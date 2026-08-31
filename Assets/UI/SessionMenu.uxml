@@ -1,0 +1,54 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements" editor-extension-mode="False">
+    <ui:VisualElement name="root" class="root">
+        <Style src="SessionMenu.uss" />
+
+        <ui:VisualElement name="menu-panel" class="panel">
+            <ui:Label text="Dragoneye Combat" class="title" />
+            <ui:Label text="Play over the internet with a join code." class="subtitle" />
+
+            <ui:VisualElement class="field-group">
+                <ui:Label text="Your name" class="field-label" />
+                <ui:TextField name="name-field" max-length="20" class="text-input" />
+            </ui:VisualElement>
+
+            <ui:Button name="host-button" text="Host a game" class="button button--primary" />
+
+            <ui:VisualElement class="divider">
+                <ui:VisualElement class="divider__rule" />
+                <ui:Label text="or" class="divider__label" />
+                <ui:VisualElement class="divider__rule" />
+            </ui:VisualElement>
+
+            <ui:VisualElement class="field-group">
+                <ui:Label text="Join code" class="field-label" />
+                <ui:TextField name="code-field" max-length="6" class="text-input text-input--code" />
+            </ui:VisualElement>
+
+            <ui:Button name="join-button" text="Join game" class="button" />
+        </ui:VisualElement>
+
+        <ui:VisualElement name="lobby-panel" class="panel">
+            <ui:Label text="Lobby" class="title" />
+
+            <ui:VisualElement class="code-card">
+                <ui:VisualElement class="code-card__text">
+                    <ui:Label text="Join code" class="field-label" />
+                    <ui:Label name="code-label" text="------" class="code-card__code" />
+                </ui:VisualElement>
+                <ui:Button name="copy-button" text="Copy" class="button button--ghost button--compact" />
+            </ui:VisualElement>
+
+            <ui:Label name="roster-label" text="Players" class="field-label" />
+            <ui:ScrollView name="player-list" class="player-list" />
+
+            <ui:Toggle name="ready-toggle" text="I'm ready" class="ready-toggle" />
+
+            <ui:VisualElement class="button-row">
+                <ui:Button name="leave-button" text="Leave" class="button button--ghost" />
+                <ui:Button name="start-button" text="Start match" class="button button--primary" />
+            </ui:VisualElement>
+        </ui:VisualElement>
+
+        <ui:Label name="status-label" text="" class="status" />
+    </ui:VisualElement>
+</ui:UXML>
