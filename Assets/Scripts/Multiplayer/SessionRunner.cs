@@ -25,8 +25,14 @@ namespace Dragoneye.Multiplayer
         /// <summary>Player property key holding "1" when that player has readied up.</summary>
         public const string ReadyKey = "ready";
 
-        /// <summary>Session property key set to "1" once the host starts the match.</summary>
-        public const string MatchStartedKey = "matchStarted";
+        /// <summary>
+        /// Client-side key identifying this game's sessions. Must match between host and client:
+        /// a mismatch surfaces as a confusing "session not found".
+        /// </summary>
+        public const string SessionType = "dragoneye-combat";
+
+        /// <summary>PlayerPrefs key mirroring the server-side player name for instant display.</summary>
+        const string k_CachedNameKey = "dragoneye.playerName";
 
         [SerializeField, Tooltip("Maximum players in a session, including the host.")]
         int m_MaxPlayers = 4;
@@ -56,19 +62,60 @@ namespace Dragoneye.Multiplayer
         /// <summary>Human readable status, surfaced in the UI status bar.</summary>
         public string Status { get; private set; } = "Connecting to Unity services...";
 
-        public bool IsInSession => Session != null && Session.State == SessionState.Connected;
-
         public bool IsHost => Session != null && Session.IsHost;
 
-        public string PlayerName => ServicesReady ? AuthenticationService.Instance.PlayerName : null;
+        /// <summary>
+        /// The authoritative (server-side) player name once signed in. Null before that -- use
+        /// <see cref="CachedPlayerName"/> to show something immediately.
+        /// </summary>
+        public string PlayerName => StripDiscriminator(QualifiedPlayerName);
 
-        public int MaxPlayers => m_MaxPlayers;
+        /// <summary>
+        /// The full UGS name including its <c>#NNNN</c> discriminator, e.g. "Chris#1234".
+        /// </summary>
+        public string QualifiedPlayerName =>
+            ServicesReady ? AuthenticationService.Instance.PlayerName : null;
+
+        /// <summary>
+        /// Drops the <c>#NNNN</c> that UGS appends to every player name.
+        ///
+        /// The discriminator is assigned by the service, not chosen by the player, and it is not
+        /// part of the name they typed. It must never be fed back into
+        /// <see cref="SetPlayerNameAsync"/>: the sanitiser strips the '#' but keeps the digits, so
+        /// "Chris#1234" would be submitted as "Chris1234", come back as "Chris1234#5678", and grow
+        /// a little longer every time the name was committed.
+        /// </summary>
+        public static string StripDiscriminator(string name)
+        {
+            if (string.IsNullOrEmpty(name))
+            {
+                return name;
+            }
+
+            var separator = name.IndexOf('#');
+            return separator < 0 ? name : name.Substring(0, separator);
+        }
+
+        /// <summary>
+        /// Last known player name, read from local PlayerPrefs. Display cache only: the UGS account
+        /// is authoritative and overwrites this as soon as sign-in completes.
+        /// </summary>
+        public static string CachedPlayerName => PlayerPrefs.GetString(k_CachedNameKey, string.Empty);
 
         /// <summary>Raised whenever anything the UI renders may have changed.</summary>
         public event Action Changed;
 
-        /// <summary>Raised on every client once the host starts the match.</summary>
+        /// <summary>
+        /// Raised on the host when it starts the match. Clients are not notified here -- they follow
+        /// the netcode scene load, which is the actual match-start signal.
+        /// </summary>
         public event Action MatchStarted;
+
+        /// <summary>
+        /// Raised when we are no longer in a session, whether we left, were removed, or the host
+        /// closed it. <see cref="MatchFlow"/> uses this to return to the menu scene.
+        /// </summary>
+        public event Action SessionEnded;
 
         void Awake()
         {
@@ -79,6 +126,11 @@ namespace Dragoneye.Multiplayer
             }
 
             Instance = this;
+
+            // NetworkManager marks itself DontDestroyOnLoad when it starts. Without this the runner
+            // would die on the first NetworkManager.SceneManager.LoadScene, taking the ISession
+            // handle with it -- no clean leave, no roster, no session properties.
+            DontDestroyOnLoad(gameObject);
         }
 
         async void Start()
@@ -99,7 +151,8 @@ namespace Dragoneye.Multiplayer
                 await AuthenticationService.Instance.GetPlayerNameAsync();
 
                 ServicesReady = true;
-                SetStatus($"Signed in as {AuthenticationService.Instance.PlayerName}");
+                CachePlayerName(PlayerName);
+                SetStatus($"Signed in as {PlayerName}");
             }
             catch (Exception e)
             {
@@ -125,11 +178,13 @@ namespace Dragoneye.Multiplayer
 
         void OnDestroy()
         {
-            if (Instance == this)
+            // A duplicate destroyed by the Awake guard must not tear down the real instance's state.
+            if (Instance != this)
             {
-                Instance = null;
+                return;
             }
 
+            Instance = null;
             DetachSession();
         }
 
@@ -139,8 +194,13 @@ namespace Dragoneye.Multiplayer
         /// </summary>
         public async Task SetPlayerNameAsync(string rawName)
         {
-            var name = k_IllegalNameChars.Replace(rawName ?? string.Empty, "").Trim();
-            if (name.Length == 0 || !ServicesReady || name == AuthenticationService.Instance.PlayerName)
+            // Strip any discriminator before sanitising, so a name read back from the service can
+            // be committed again unchanged instead of absorbing its own digits.
+            var name = k_IllegalNameChars.Replace(StripDiscriminator(rawName) ?? string.Empty, "").Trim();
+
+            // Compared against the bare name for the same reason: comparing against the qualified
+            // one never matches, so every commit would be a needless write against a rate limit.
+            if (name.Length == 0 || !ServicesReady || name == PlayerName)
             {
                 return;
             }
@@ -148,13 +208,25 @@ namespace Dragoneye.Multiplayer
             try
             {
                 await AuthenticationService.Instance.UpdatePlayerNameAsync(name);
-                SetStatus($"Playing as {AuthenticationService.Instance.PlayerName}");
+                CachePlayerName(PlayerName);
+                SetStatus($"Playing as {PlayerName}");
             }
             catch (Exception e)
             {
                 Debug.LogException(e);
                 SetStatus($"Could not set name: {e.Message}");
             }
+        }
+
+        static void CachePlayerName(string name)
+        {
+            if (string.IsNullOrEmpty(name))
+            {
+                return;
+            }
+
+            PlayerPrefs.SetString(k_CachedNameKey, name);
+            PlayerPrefs.Save();
         }
 
         /// <summary>
@@ -173,7 +245,7 @@ namespace Dragoneye.Multiplayer
             {
                 var options = new SessionOptions
                 {
-                    Type = "dragoneye-combat",
+                    Type = SessionType,
                     Name = m_SessionName,
                     MaxPlayers = Mathf.Max(2, m_MaxPlayers),
                     // Private only means "not listed in queries / quick-join".
@@ -219,7 +291,7 @@ namespace Dragoneye.Multiplayer
             BeginOperation($"Joining {code}...");
             try
             {
-                var options = new JoinSessionOptions { Type = "dragoneye-combat" }.WithPlayerName();
+                var options = new JoinSessionOptions { Type = SessionType }.WithPlayerName();
                 options.PlayerProperties[ReadyKey] = NotReadyProperty();
 
                 AttachSession(await MultiplayerService.Instance.JoinSessionByCodeAsync(code, options));
@@ -246,6 +318,8 @@ namespace Dragoneye.Multiplayer
                 return;
             }
 
+            // Detach optimistically so the UI snaps back immediately, but keep the handle: if the
+            // server-side leave fails we are locally out of a session that still lists us.
             var leaving = Session;
             DetachSession();
             BeginOperation("Leaving...");
@@ -257,20 +331,27 @@ namespace Dragoneye.Multiplayer
             catch (Exception e)
             {
                 Debug.LogException(e);
-                SetStatus(Explain(e));
+                SetStatus($"Left locally, but the server did not confirm ({Explain(e)}). " +
+                    "You may linger in the lobby until it times you out.");
             }
             finally
             {
                 EndOperation();
+                SessionEnded?.Invoke();
             }
         }
 
-        /// <summary>Publishes our ready flag to everyone else in the lobby.</summary>
-        public async Task SetReadyAsync(bool ready)
+        /// <summary>
+        /// Publishes our ready flag to everyone else in the lobby.
+        /// Returns false if the write failed, in which case the caller should re-sync its UI from
+        /// <see cref="IsPlayerReady"/> -- lobby player-data writes are rate limited, so a player
+        /// flicking the toggle will hit <see cref="SessionError.RateLimitExceeded"/>.
+        /// </summary>
+        public async Task<bool> SetReadyAsync(bool ready)
         {
             if (Session == null)
             {
-                return;
+                return false;
             }
 
             try
@@ -279,19 +360,25 @@ namespace Dragoneye.Multiplayer
                     new PlayerProperty(ready ? "1" : "0", VisibilityPropertyOptions.Member));
                 await Session.SaveCurrentPlayerDataAsync();
                 Changed?.Invoke();
+                return true;
             }
             catch (Exception e)
             {
                 Debug.LogException(e);
                 SetStatus(Explain(e));
+                Changed?.Invoke();
+                return false;
             }
         }
 
         /// <summary>
-        /// Host only. Flips a session property that every client is listening for, which is
-        /// how the lobby phase ends. Swap the body of <see cref="RaiseMatchStarted"/> for
-        /// <c>NetworkManager.Singleton.SceneManager.LoadScene(...)</c> once you have a
-        /// gameplay scene to move everyone into.
+        /// Host only. Locks the lobby against further joins and hands off to <see cref="MatchFlow"/>,
+        /// which loads the arena through the netcode scene manager.
+        ///
+        /// The scene load itself is the match-start signal: it reaches clients over Relay, ordered
+        /// against all other gameplay traffic. An earlier version broadcast a lobby session property
+        /// instead -- that is the slow, rate-limited, eventually-consistent channel, and it should
+        /// carry pre-connection metadata only.
         /// </summary>
         public async Task StartMatchAsync()
         {
@@ -305,10 +392,8 @@ namespace Dragoneye.Multiplayer
             {
                 var host = Session.AsHost();
                 host.IsLocked = true;
-                host.SetProperty(MatchStartedKey, new SessionProperty("1", VisibilityPropertyOptions.Member));
                 await host.SavePropertiesAsync();
 
-                // Property change events do not fire locally for the writer, so raise it here.
                 RaiseMatchStarted();
             }
             catch (Exception e)
@@ -333,8 +418,25 @@ namespace Dragoneye.Multiplayer
 
         public static string DisplayName(IReadOnlyPlayer player)
         {
-            var name = player.GetPlayerName();
+            var name = StripDiscriminator(player.GetPlayerName());
             return string.IsNullOrEmpty(name) ? player.Id : name;
+        }
+
+        /// <summary>
+        /// Runs a task without awaiting it, logging faults. Methods on this class catch their own
+        /// exceptions, so nothing should ever surface here -- but an unobserved async void would
+        /// vanish silently if one ever did.
+        /// </summary>
+        public static async void Forget(Task task)
+        {
+            try
+            {
+                await task;
+            }
+            catch (Exception e)
+            {
+                Debug.LogException(e);
+            }
         }
 
         static PlayerProperty NotReadyProperty() =>
@@ -379,31 +481,20 @@ namespace Dragoneye.Multiplayer
 
         void OnPlayerChanged(string playerId) => Changed?.Invoke();
 
-        void OnSessionPropertiesChanged()
-        {
-            if (!m_MatchStarted
-                && Session != null
-                && Session.Properties != null
-                && Session.Properties.TryGetValue(MatchStartedKey, out var property)
-                && property.Value == "1")
-            {
-                RaiseMatchStarted();
-                return;
-            }
-
-            Changed?.Invoke();
-        }
+        void OnSessionPropertiesChanged() => Changed?.Invoke();
 
         void OnRemovedFromSession()
         {
             DetachSession();
             SetStatus("You were removed from the session.");
+            SessionEnded?.Invoke();
         }
 
         void OnSessionDeleted()
         {
             DetachSession();
             SetStatus("The host closed the session.");
+            SessionEnded?.Invoke();
         }
 
         void RaiseMatchStarted()

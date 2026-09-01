@@ -1,0 +1,17 @@
+{
+    "name": "Dragoneye.Hex.Rendering",
+    "rootNamespace": "Dragoneye.Hex.Rendering",
+    "references": [
+        "Dragoneye.Hex",
+        "Dragoneye.Hex.Systems"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

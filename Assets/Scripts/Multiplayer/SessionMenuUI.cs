@@ -1,3 +1,5 @@
+using System;
+using System.Threading.Tasks;
 using UnityEngine;
 using UnityEngine.UIElements;
 
@@ -81,9 +83,22 @@ namespace Dragoneye.Multiplayer
             });
 
             m_NameField.RegisterCallback<BlurEvent>(_ => OnNameCommitted());
+            m_NameField.RegisterCallback<KeyDownEvent>(evt =>
+            {
+                if (evt.keyCode == KeyCode.Return || evt.keyCode == KeyCode.KeypadEnter)
+                {
+                    OnNameCommitted();
+                }
+            });
+
+            // Show the last known name instantly; sign-in overwrites it with the server value.
+            var cached = SessionRunner.CachedPlayerName;
+            if (!string.IsNullOrEmpty(cached))
+            {
+                m_NameField.SetValueWithoutNotify(cached);
+            }
 
             m_Runner.Changed += Refresh;
-            m_Runner.MatchStarted += OnMatchStarted;
             Refresh();
         }
 
@@ -95,20 +110,60 @@ namespace Dragoneye.Multiplayer
             }
 
             m_Runner.Changed -= Refresh;
-            m_Runner.MatchStarted -= OnMatchStarted;
         }
 
-        async void OnHostClicked() => await m_Runner.HostAsync();
+        // SessionRunner catches its own exceptions, so nothing below should ever fault. Routing
+        // through Forget anyway means the day one of them does, it lands in the console instead of
+        // vanishing into the async-void unhandled path.
+        void OnHostClicked() => Forget(HostFlowAsync());
 
-        async void OnJoinClicked() => await m_Runner.JoinAsync(m_CodeField.value);
+        void OnJoinClicked() => Forget(JoinFlowAsync());
 
-        async void OnLeaveClicked() => await m_Runner.LeaveAsync();
+        void OnLeaveClicked() => Forget(m_Runner.LeaveAsync());
 
-        async void OnStartClicked() => await m_Runner.StartMatchAsync();
+        void OnStartClicked() => Forget(m_Runner.StartMatchAsync());
 
-        async void OnReadyChanged(ChangeEvent<bool> evt) => await m_Runner.SetReadyAsync(evt.newValue);
+        void OnReadyChanged(ChangeEvent<bool> evt) => Forget(ReadyFlowAsync(evt.newValue));
 
-        async void OnNameCommitted() => await m_Runner.SetPlayerNameAsync(m_NameField.value);
+        void OnNameCommitted() => Forget(m_Runner.SetPlayerNameAsync(m_NameField.value));
+
+        // Commit the typed name before connecting: BlurEvent usually fires first when a button is
+        // clicked, but that is focus behaviour we should not depend on.
+        async Task HostFlowAsync()
+        {
+            await m_Runner.SetPlayerNameAsync(m_NameField.value);
+            await m_Runner.HostAsync();
+        }
+
+        async Task JoinFlowAsync()
+        {
+            await m_Runner.SetPlayerNameAsync(m_NameField.value);
+            await m_Runner.JoinAsync(m_CodeField.value);
+        }
+
+        /// <summary>
+        /// Lobby player-data writes are rate limited. Lock the toggle for the duration of the write
+        /// and snap it back to the server value if the write is rejected, so the local checkbox can
+        /// never disagree with what the other players see.
+        /// </summary>
+        async Task ReadyFlowAsync(bool ready)
+        {
+            m_ReadyToggle.SetEnabled(false);
+            try
+            {
+                if (!await m_Runner.SetReadyAsync(ready) && m_Runner.Session != null)
+                {
+                    m_ReadyToggle.SetValueWithoutNotify(
+                        SessionRunner.IsPlayerReady(m_Runner.Session.CurrentPlayer));
+                }
+            }
+            finally
+            {
+                m_ReadyToggle.SetEnabled(m_Runner.Session != null && !m_Runner.IsBusy);
+            }
+        }
+
+        static void Forget(Task task) => SessionRunner.Forget(task);
 
         void OnCopyClicked()
         {
@@ -118,13 +173,6 @@ namespace Dragoneye.Multiplayer
                 m_CopyButton.text = "Copied";
                 m_CopyButton.schedule.Execute(() => m_CopyButton.text = "Copy").StartingIn(1200);
             }
-        }
-
-        void OnMatchStarted()
-        {
-            // The lobby has done its job. Hide it and let gameplay take over -- players are
-            // already connected through Relay at this point, so nothing else needs starting.
-            m_Root.style.display = DisplayStyle.None;
         }
 
         void Refresh()

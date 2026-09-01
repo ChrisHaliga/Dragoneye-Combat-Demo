@@ -5,12 +5,15 @@ EditorBuildSettings:
   m_ObjectHideFlags: 0
   serializedVersion: 2
   m_Scenes:
-  - enabled: 0
-    path: Assets/Scenes/SampleScene.unity
-    guid: 99c9720ab356a0642a771bea13969a05
   - enabled: 1
-    path: Assets/Scenes/SampleMultiplayer.unity
-    guid: f5494f96287660148be5fcd6c120262a
+    path: Assets/Scenes/Bootstrap.unity
+    guid: f17b798c161068040a8163271ce212ff
+  - enabled: 1
+    path: Assets/Scenes/MainMenu.unity
+    guid: ca8bd17881d92b54881f34ace4c6ed66
+  - enabled: 1
+    path: Assets/Scenes/Arena.unity
+    guid: 6cf0bd6bdf475d949ba835f275d3e213
   m_configObjects:
     com.unity.dt.app-ui: {fileID: 11400000, guid: 1b1c20d82303e4b5781c3ef50ac1449f, type: 2}
     com.unity.input.settings.actions: {fileID: -944628639613478452, guid: 052faaac586de48259a63d0c4782560b, type: 3}

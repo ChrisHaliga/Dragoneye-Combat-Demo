@@ -1,0 +1,16 @@
+{
+    "name": "Dragoneye.Hex.Systems",
+    "rootNamespace": "Dragoneye.Hex.Systems",
+    "references": [
+        "Dragoneye.Hex"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}
