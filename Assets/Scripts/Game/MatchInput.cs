@@ -18,6 +18,9 @@ namespace Dragoneye.Game
         [SerializeField]
         CameraRigInput m_Input;
 
+        [SerializeField, Tooltip("Optional. When something is selected, Escape dismisses it instead of leaving.")]
+        CreatureSelection m_Selection;
+
         void OnEnable()
         {
             if (m_Input == null)
@@ -40,6 +43,14 @@ namespace Dragoneye.Game
 
         void OnLeaveRequested()
         {
+            // The summary card takes Escape first. Quitting a match by accident because a card was
+            // open is a bad surprise, so leaving only happens when nothing is selected.
+            if (m_Selection != null && m_Selection.HasSelection)
+            {
+                m_Selection.Clear();
+                return;
+            }
+
             var runner = SessionRunner.Instance;
             if (runner != null && runner.IsInSession && !runner.IsBusy)
             {

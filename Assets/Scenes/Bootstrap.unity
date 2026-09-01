@@ -238,6 +238,7 @@ GameObject:
   - component: {fileID: 1721136184}
   - component: {fileID: 1721136186}
   - component: {fileID: 1721136187}
+  - component: {fileID: 1721136188}
   m_Layer: 0
   m_Name: Session Runner
   m_TagString: Untagged
@@ -303,7 +304,21 @@ MonoBehaviour:
   m_EditorClassIdentifier: Dragoneye.Game::Dragoneye.Game.MatchSpawner
   m_ArenaScene: Arena
   m_FocusPrefab: {fileID: 905914197302847904, guid: dcfac96cce0955540844b21d4c4b4f89, type: 3}
-  m_PlayerPrefab: {fileID: 0}
+  m_UnitPrefab: {fileID: 3663994556299287048, guid: cf55b9f30a3e1c14c855173e822c9b17, type: 3}
+  m_SeedCreaturesPerParty: 3
+--- !u!114 &1721136188
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1721136183}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b73a4d3c9422211488260c5f5b1c253e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Dragoneye.Game::Dragoneye.Game.DraftHost
+  m_DraftPrefab: {fileID: 8779040532995224036, guid: 9ea9e2c9309b35d448bfe61692a6463b, type: 3}
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0

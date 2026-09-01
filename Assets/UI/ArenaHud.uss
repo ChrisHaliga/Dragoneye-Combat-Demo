@@ -1,0 +1,178 @@
+/* Arena HUD. Party column upper-left, summary card upper-right -- the Baldur's Gate / Pillars
+   layout, where the portrait column and its health readout live together on the left. */
+
+.hud-root {
+    flex-grow: 1;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: flex-start;
+    padding: 16px;
+}
+
+/* The HUD must never eat board clicks; only its own controls are interactive. */
+.hud-root,
+.party-column,
+.card {
+    /* picking-mode is set from code on the root; these keep children hit-testable */
+}
+
+/* ---------- party column ---------- */
+
+.party-column {
+    width: 250px;
+}
+
+.party-title {
+    font-size: 12px;
+    color: rgb(190, 198, 214);
+    -unity-font-style: bold;
+    margin-bottom: 6px;
+}
+
+.portrait-list {
+    max-height: 420px;
+}
+
+.portrait {
+    flex-direction: row;
+    align-items: center;
+    padding: 6px;
+    margin-bottom: 6px;
+    border-radius: 8px;
+    background-color: rgba(18, 20, 27, 0.85);
+
+    /* The border is the ownership channel: it takes the controlling player's colour. */
+    border-width: 2px;
+    border-color: rgb(90, 96, 112);
+}
+
+.portrait:hover {
+    background-color: rgba(32, 36, 48, 0.95);
+}
+
+.portrait--selected {
+    background-color: rgba(46, 52, 68, 0.95);
+}
+
+.portrait__image {
+    width: 42px;
+    height: 42px;
+    border-radius: 6px;
+    background-color: rgb(38, 42, 55);
+    -unity-background-scale-mode: scale-and-crop;
+}
+
+/* Stand-in when a creature has no portrait sprite: its initial on a plain tile. */
+.portrait__initial {
+    -unity-text-align: middle-center;
+    font-size: 20px;
+    -unity-font-style: bold;
+    color: rgb(226, 232, 245);
+}
+
+.portrait__body {
+    flex-grow: 1;
+    margin-left: 8px;
+}
+
+.portrait__name {
+    font-size: 13px;
+    color: rgb(226, 232, 245);
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Track stays visible so a nearly-empty bar still reads as "hurt" rather than "missing". */
+.hp-track {
+    height: 7px;
+    margin-top: 5px;
+    border-radius: 4px;
+    background-color: rgb(38, 20, 24);
+    overflow: hidden;
+}
+
+.hp-fill {
+    height: 100%;
+    border-radius: 4px;
+    background-color: rgb(196, 62, 58);
+}
+
+/* ---------- summary card ---------- */
+
+.card {
+    width: 290px;
+    padding: 16px;
+    border-radius: 12px;
+    background-color: rgba(20, 22, 30, 0.94);
+    border-width: 1px;
+    border-color: rgb(52, 58, 74);
+}
+
+.card__name {
+    font-size: 20px;
+    -unity-font-style: bold;
+    color: rgb(240, 243, 250);
+}
+
+.card__subtitle {
+    font-size: 12px;
+    color: rgb(150, 160, 182);
+    margin-top: 2px;
+}
+
+.card__controller {
+    font-size: 12px;
+    color: rgb(190, 198, 214);
+    margin-top: 6px;
+    margin-bottom: 12px;
+}
+
+.card__stats {
+    margin-bottom: 10px;
+}
+
+.stat-row {
+    flex-direction: row;
+    align-items: center;
+    margin-bottom: 6px;
+}
+
+.stat-row__label {
+    width: 42px;
+    font-size: 11px;
+    -unity-font-style: bold;
+    color: rgb(130, 140, 162);
+}
+
+.stat-row__value {
+    font-size: 13px;
+    color: rgb(226, 232, 245);
+}
+
+/* Discrete pips, not a bar: players count remaining actions rather than estimating them. */
+.pips {
+    flex-direction: row;
+    margin-right: 10px;
+}
+
+.pip {
+    width: 9px;
+    height: 9px;
+    border-radius: 5px;
+    margin-right: 4px;
+    background-color: rgb(58, 64, 80);
+}
+
+.pip--filled {
+    background-color: rgb(232, 196, 96);
+}
+
+.card__description {
+    font-size: 12px;
+    color: rgb(150, 160, 182);
+    white-space: normal;
+}
+
+.is-hidden {
+    display: none;
+}

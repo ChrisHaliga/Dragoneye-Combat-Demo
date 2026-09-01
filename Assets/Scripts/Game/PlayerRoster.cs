@@ -93,6 +93,22 @@ namespace Dragoneye.Game
             return slot;
         }
 
+        /// <summary>Reverse lookup: which client holds a slot.</summary>
+        public bool TryGetBySlot(int slot, out PlayerEntry entry)
+        {
+            for (var i = 0; i < m_Entries.Count; i++)
+            {
+                if (m_Entries[i].Slot == slot)
+                {
+                    entry = m_Entries[i];
+                    return true;
+                }
+            }
+
+            entry = default;
+            return false;
+        }
+
         public bool TryGet(ulong clientId, out PlayerEntry entry)
         {
             for (var i = 0; i < m_Entries.Count; i++)

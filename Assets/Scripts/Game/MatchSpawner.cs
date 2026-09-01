@@ -8,12 +8,16 @@ using UnityEngine.SceneManagement;
 
 namespace Dragoneye.Game
 {
+    // Declared inside the namespace, not at file scope: C# resolves names against enclosing
+    // namespaces before file-level aliases, so out here the bare name Hex would still bind to the
+    // Dragoneye.Hex namespace rather than the type.
+    using Hex = Dragoneye.Hex.Hex;
+
     /// <summary>
-    /// Places players in the arena once everyone has finished loading it.
+    /// Places creatures in the arena once everyone has finished loading it.
     ///
     /// Split out of <see cref="MatchFlow"/>, which owns scene transitions: putting objects into the
-    /// world is a different job from deciding which world to load, and the two have changed for
-    /// different reasons every time this project grew.
+    /// world is a different job from deciding which world to load.
     ///
     /// Spawning is gated on the arena load completing rather than on connection. NGO creates a
     /// player object the moment a client connects whenever NetworkConfig.PlayerPrefab is set --
@@ -29,16 +33,19 @@ namespace Dragoneye.Game
         [SerializeField, Tooltip("Networked focus point spawned per player. Must be in the NetworkPrefabsList.")]
         GameObject m_FocusPrefab;
 
-        [SerializeField, Tooltip("Optional player character, spawned on each spawn hex. Leave empty for focus-only play.")]
-        GameObject m_PlayerPrefab;
+        [SerializeField, Tooltip("Unit spawned per roster entry. Must be in the NetworkPrefabsList.")]
+        GameObject m_UnitPrefab;
+
+        [SerializeField, Min(0), Tooltip("Creatures dealt to each party when the draft is empty. "
+             + "A stand-in until the lobby draft UI exists; set to 0 to require a real draft.")]
+        int m_SeedCreaturesPerParty = 3;
 
         NetworkSceneManager m_SceneManager;
 
         // Start, not OnEnable. NetworkManager assigns its Singleton in its own OnEnable, and Unity
         // does not order OnEnable across GameObjects -- this component lives on a different object,
         // so in OnEnable the Singleton may still be null. Missing it there is silent: the hook is
-        // never installed and nothing ever spawns, with no error to show for it. By Start every
-        // Awake and OnEnable in the scene has run.
+        // never installed and nothing ever spawns, with no error to show for it.
         void Start()
         {
             var networkManager = NetworkManager.Singleton;
@@ -50,7 +57,6 @@ namespace Dragoneye.Game
 
             networkManager.OnServerStarted += OnServerStarted;
 
-            // A session started before this ran would already have fired OnServerStarted.
             if (networkManager.IsServer)
             {
                 OnServerStarted();
@@ -72,8 +78,7 @@ namespace Dragoneye.Game
         {
             // NetworkManager.SceneManager only exists once netcode is running, and NGO builds a
             // fresh one per session. Re-subscribing every time rather than once is what makes a
-            // second match spawn: a "have I subscribed" flag would still be set from the first
-            // session while pointing at a scene manager that no longer exists.
+            // second match spawn.
             var sceneManager = NetworkManager.Singleton.SceneManager;
             if (sceneManager == null)
             {
@@ -94,7 +99,6 @@ namespace Dragoneye.Game
             }
         }
 
-
         void OnLoadEventCompleted(string sceneName, LoadSceneMode mode,
             List<ulong> clientsCompleted, List<ulong> clientsTimedOut)
         {
@@ -104,6 +108,12 @@ namespace Dragoneye.Game
             }
         }
 
+        /// <summary>
+        /// Spawns one unit per roster entry rather than one per player.
+        ///
+        /// A player may run several creatures and some are run by nobody, so the roster -- not the
+        /// connected client list -- decides what exists.
+        /// </summary>
         void SpawnAll()
         {
             var context = ArenaContext.Current;
@@ -114,29 +124,105 @@ namespace Dragoneye.Game
             }
 
             var arena = context.Map;
-            var clients = NetworkManager.Singleton.ConnectedClientsIds;
+            var draft = DraftState.Current;
+            if (draft == null)
+            {
+                Debug.LogError("No draft state spawned; nothing to place.", this);
+                return;
+            }
 
-            // One spawn per connected client, so players spread evenly around the rim whatever the
-            // headcount. Determinism comes from HexSpawnPlacement's own (Q, R) ordering.
+            RegisterPlayers();
+
+            // Until the lobby draft UI lands, fill an empty roster so a match is still playable.
+            draft.ServerSeedIfEmpty(m_SeedCreaturesPerParty);
+
+            var roster = draft.Snapshot();
+            if (roster.Count == 0)
+            {
+                Debug.LogError("Draft roster is empty; check the creature catalog.", this);
+                return;
+            }
+
+            SpawnFocusPoints(arena);
+            SpawnCreatures(arena, roster);
+        }
+
+        void SpawnFocusPoints(ArenaMap arena)
+        {
+            var clients = NetworkManager.Singleton.ConnectedClientsIds;
             var spawns = HexSpawnPlacement.ChooseSpawns(arena.Map, clients.Count);
-            var center = arena.WorldCenter();
             var index = 0;
 
             foreach (var clientId in clients)
             {
-                var position = spawns.Count > 0 ? arena.ToWorld(spawns[index % spawns.Count]) : center;
+                var cell = spawns.Count > 0 ? spawns[index % spawns.Count] : Hex.Zero;
                 index++;
 
-                // Resolved statically, not serialised: the roster is an in-scene network object in
-                // the arena, and this component lives in Bootstrap, so no scene reference can span
-                // the two. It has spawned by the time a load event completes.
-                var roster = PlayerRoster.Current;
-                var slot = roster != null ? roster.Register(clientId, NameFor(clientId)) : index - 1;
+                SpawnFocus(clientId, arena.ToWorld(cell));
+            }
+        }
 
-                // Each spawn is isolated. A single failure must not strand every player after it in
-                // the loop with neither a focus point nor a character.
-                SpawnFocus(clientId, position, slot);
-                SpawnCharacter(clientId, position, center);
+        void SpawnCreatures(ArenaMap arena, List<RosterEntry> roster)
+        {
+            // One anchor per party, so a side lands together and away from the others.
+            var parties = new List<Party>();
+            foreach (var entry in roster)
+            {
+                if (!parties.Contains(entry.Party))
+                {
+                    parties.Add(entry.Party);
+                }
+            }
+
+            var anchors = HexSpawnPlacement.ChooseSpawns(arena.Map, Mathf.Max(1, parties.Count));
+            var taken = new HashSet<Hex>();
+
+            foreach (var entry in roster)
+            {
+                var partyIndex = Mathf.Max(0, parties.IndexOf(entry.Party));
+                var anchor = anchors.Count > 0 ? anchors[partyIndex % anchors.Count] : Hex.Zero;
+
+                var cell = FindFreeCell(arena, anchor, taken);
+                taken.Add(cell);
+
+                SpawnUnit(entry, cell);
+            }
+        }
+
+        /// <summary>
+        /// Walks outward from a party's anchor to the first free walkable hex. Rings rather than a
+        /// line, so a party clusters instead of forming a queue.
+        /// </summary>
+        static Hex FindFreeCell(ArenaMap arena, Hex anchor, HashSet<Hex> taken)
+        {
+            for (var radius = 0; radius < 16; radius++)
+            {
+                foreach (var candidate in Hex.Ring(anchor, radius))
+                {
+                    if (!taken.Contains(candidate)
+                        && arena.Map.TryGetTile(candidate, out var tile)
+                        && tile.IsWalkable)
+                    {
+                        return candidate;
+                    }
+                }
+            }
+
+            return anchor;
+        }
+
+        /// <summary>Ensures every connected player holds a slot before creatures reference one.</summary>
+        void RegisterPlayers()
+        {
+            var roster = PlayerRoster.Current;
+            if (roster == null)
+            {
+                return;
+            }
+
+            foreach (var clientId in NetworkManager.Singleton.ConnectedClientsIds)
+            {
+                roster.Register(clientId, NameFor(clientId));
             }
         }
 
@@ -150,7 +236,7 @@ namespace Dragoneye.Game
                 : string.Empty;
         }
 
-        void SpawnFocus(ulong clientId, Vector3 position, int slot)
+        void SpawnFocus(ulong clientId, Vector3 position)
         {
             if (m_FocusPrefab == null)
             {
@@ -171,7 +257,12 @@ namespace Dragoneye.Game
                 }
 
                 networkObject.SpawnWithOwnership(clientId);
-                instance.GetComponent<FocusState>().AssignSlot(slot);
+
+                var roster = PlayerRoster.Current;
+                if (roster != null && roster.TryGet(clientId, out var entry))
+                {
+                    instance.GetComponent<FocusState>().AssignSlot(entry.Slot);
+                }
             }
             catch (Exception e)
             {
@@ -179,30 +270,68 @@ namespace Dragoneye.Game
             }
         }
 
-        void SpawnCharacter(ulong clientId, Vector3 position, Vector3 center)
+        /// <summary>
+        /// Spawns one creature. Ownership goes to the claiming player so their client may command
+        /// it; an unclaimed creature stays owned by the server, which is what "computer-controlled"
+        /// means for now.
+        /// </summary>
+        void SpawnUnit(RosterEntry entry, Hex cell)
         {
-            // A character is optional: the focus point is currently the whole representation of a
-            // player. Assign a prefab when there are real units to place.
-            if (m_PlayerPrefab == null
-                || NetworkManager.Singleton.ConnectedClients[clientId].PlayerObject != null)
+            if (m_UnitPrefab == null)
             {
+                Debug.LogError("MatchSpawner has no unit prefab assigned.", this);
                 return;
             }
 
             try
             {
-                var toCenter = center - position;
-                var rotation = toCenter.sqrMagnitude > 1e-4f
-                    ? Quaternion.LookRotation(new Vector3(toCenter.x, 0f, toCenter.z))
-                    : Quaternion.identity;
+                var instance = Instantiate(m_UnitPrefab);
+                var networkObject = instance.GetComponent<NetworkObject>();
+                if (networkObject == null)
+                {
+                    Debug.LogError("Unit prefab has no NetworkObject.", m_UnitPrefab);
+                    Destroy(instance);
+                    return;
+                }
 
-                var player = Instantiate(m_PlayerPrefab, position, rotation);
-                player.GetComponent<NetworkObject>().SpawnAsPlayerObject(clientId);
+                var owner = OwnerClientFor(entry.ClaimedBySlot);
+
+                // Spawn before writing: NetworkVariable writes on an unspawned object are dropped.
+                if (owner.HasValue)
+                {
+                    networkObject.SpawnWithOwnership(owner.Value);
+                }
+                else
+                {
+                    networkObject.Spawn();
+                }
+
+                var draft = DraftState.Current;
+                var definition = draft != null && draft.Catalog != null
+                    ? draft.Catalog.Resolve(entry.CreatureId)
+                    : null;
+
+                instance.GetComponent<UnitState>().ServerSetCell(cell);
+                instance.GetComponent<CreatureState>()
+                    .ServerInitialise(entry.CreatureId, entry.Party, entry.ClaimedBySlot, definition);
             }
             catch (Exception e)
             {
-                Debug.LogError($"Character spawn failed for client {clientId}: {e}", this);
+                Debug.LogError($"Unit spawn failed for creature {entry.CreatureId}: {e}", this);
             }
+        }
+
+        static ulong? OwnerClientFor(byte slot)
+        {
+            if (slot == PartyInfo.Unclaimed)
+            {
+                return null;
+            }
+
+            var roster = PlayerRoster.Current;
+            return roster != null && roster.TryGetBySlot(slot, out var entry)
+                ? entry.ClientId
+                : (ulong?)null;
         }
     }
 }

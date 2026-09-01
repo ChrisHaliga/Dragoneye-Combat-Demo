@@ -31,8 +31,11 @@ namespace Dragoneye.Game
         [SerializeField]
         HexArenaCameraBounds m_CameraBounds;
 
-        [SerializeField, Tooltip("The camera Cinemachine drives. Used by world-space labels.")]
+        [SerializeField, Tooltip("The camera Cinemachine drives. Used by pointer rays and labels.")]
         Camera m_OutputCamera;
+
+        [SerializeField, Tooltip("Occupancy: which unit stands on which hex.")]
+        UnitIndex m_Units;
 
         /// <summary>The context for the arena currently loaded, or null outside a match.</summary>
         public static ArenaContext Current { get; private set; }
@@ -45,6 +48,8 @@ namespace Dragoneye.Game
 
         public Camera OutputCamera => m_OutputCamera;
 
+        public UnitIndex Units => m_Units;
+
         void OnEnable()
         {
             if (Current != null && Current != this)
@@ -53,7 +58,8 @@ namespace Dragoneye.Game
                 return;
             }
 
-            if (m_Map == null || m_Rig == null || m_RigInput == null || m_CameraBounds == null)
+            if (m_Map == null || m_Rig == null || m_RigInput == null || m_CameraBounds == null
+                || m_OutputCamera == null || m_Units == null)
             {
                 Debug.LogError($"{nameof(ArenaContext)} is missing references; wire them in the scene.", this);
                 enabled = false;

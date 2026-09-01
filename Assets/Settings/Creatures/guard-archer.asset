@@ -1,0 +1,22 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5b5afe3455a6b4544881d36f2a1ccd7d, type: 3}
+  m_Name: guard-archer
+  m_EditorClassIdentifier: Dragoneye.Game::Dragoneye.Game.CreatureDefinition
+  m_Id: guard-archer
+  m_DisplayName: Watch Archer
+  m_Portrait: {fileID: 0}
+  m_Species: {fileID: 11400000, guid: 9c3524b72d6a7a6469f270945bc4d8a3, type: 2}
+  m_Class: {fileID: 11400000, guid: b6641c8d1cc267e4e8e6aba65955e29c, type: 2}
+  m_MaxHp: 17
+  m_MaxAp: 6
+  m_Speed: 6

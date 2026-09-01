@@ -1,0 +1,34 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements" editor-extension-mode="False">
+    <ui:VisualElement name="root" class="hud-root">
+        <Style src="ArenaHud.uss" />
+
+        <ui:VisualElement name="party-column" class="party-column">
+            <ui:Label name="party-title" text="Party" class="party-title" />
+            <ui:ScrollView name="portrait-list" class="portrait-list" />
+        </ui:VisualElement>
+
+        <ui:VisualElement name="summary-card" class="card">
+            <ui:Label name="card-name" text="Name" class="card__name" />
+            <ui:Label name="card-subtitle" text="Species - Class - Party" class="card__subtitle" />
+            <ui:Label name="card-controller" text="Controlled by" class="card__controller" />
+
+            <ui:VisualElement class="card__stats">
+                <ui:VisualElement class="stat-row">
+                    <ui:Label text="HP" class="stat-row__label" />
+                    <ui:Label name="card-hp" text="0 / 0" class="stat-row__value" />
+                </ui:VisualElement>
+                <ui:VisualElement class="stat-row">
+                    <ui:Label text="AP" class="stat-row__label" />
+                    <ui:VisualElement name="card-ap-pips" class="pips" />
+                    <ui:Label name="card-ap" text="0 / 0" class="stat-row__value" />
+                </ui:VisualElement>
+                <ui:VisualElement class="stat-row">
+                    <ui:Label text="SPD" class="stat-row__label" />
+                    <ui:Label name="card-speed" text="0" class="stat-row__value" />
+                </ui:VisualElement>
+            </ui:VisualElement>
+
+            <ui:Label name="card-description" text="" class="card__description" />
+        </ui:VisualElement>
+    </ui:VisualElement>
+</ui:UXML>
