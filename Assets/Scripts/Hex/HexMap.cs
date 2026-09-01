@@ -62,7 +62,7 @@ namespace Dragoneye.Hex
                 return;
             }
 
-            tile.Terrain = terrain;
+            tile.ApplyTerrain(terrain);
             TileChanged?.Invoke(tile);
         }
 

@@ -1,0 +1,50 @@
+using Dragoneye.CameraControl;
+using Dragoneye.Multiplayer;
+using UnityEngine;
+
+namespace Dragoneye.Game
+{
+    /// <summary>
+    /// Turns the arena's "leave" input into leaving the session.
+    ///
+    /// The binding lives in the Camera action map, which <see cref="CameraRigInput"/> owns; this
+    /// only subscribes to the event it raises. That keeps one component enabling and disabling the
+    /// map, and keeps device polling out of match code -- reading Keyboard.current here would
+    /// hardcode the key and fight the action asset that everything else goes through.
+    /// </summary>
+    [DisallowMultipleComponent]
+    public sealed class MatchInput : MonoBehaviour
+    {
+        [SerializeField]
+        CameraRigInput m_Input;
+
+        void OnEnable()
+        {
+            if (m_Input == null)
+            {
+                Debug.LogError($"{nameof(MatchInput)} has no input component assigned.", this);
+                enabled = false;
+                return;
+            }
+
+            m_Input.LeaveRequested += OnLeaveRequested;
+        }
+
+        void OnDisable()
+        {
+            if (m_Input != null)
+            {
+                m_Input.LeaveRequested -= OnLeaveRequested;
+            }
+        }
+
+        void OnLeaveRequested()
+        {
+            var runner = SessionRunner.Instance;
+            if (runner != null && runner.IsInSession && !runner.IsBusy)
+            {
+                TaskUtil.Forget(runner.LeaveAsync());
+            }
+        }
+    }
+}

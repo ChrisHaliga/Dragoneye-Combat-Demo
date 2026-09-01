@@ -1,22 +1,22 @@
 using System.Collections.Generic;
-using Dragoneye.Hex.Systems;
 using UnityEngine;
 
 namespace Dragoneye.Hex.Rendering
 {
     /// <summary>
-    /// Draws an <see cref="ArenaMap"/>. Reacts to the data; owns none of it.
+    /// Draws the map published by an <see cref="IHexMapSource"/>. Reacts to the data; owns none of it.
     ///
-    /// One child object per tile, all sharing a single generated mesh and material, tinted through
-    /// a <see cref="MaterialPropertyBlock"/> so no per-tile material instances are created. A tile
+    /// One child object per tile, all sharing a single generated mesh and material, tinted through a
+    /// <see cref="MaterialPropertyBlock"/> so no per-tile material instances are created. A tile
     /// changing terrain repaints only that tile.
+    ///
+    /// Note that a property block opts the renderer out of the SRP Batcher, so GPU instancing on the
+    /// tile material is what keeps ~91 tiles from becoming ~91 draw calls. If tiles ever stop
+    /// batching, check that flag on the material first.
     /// </summary>
     [DisallowMultipleComponent]
     public sealed class HexMapRenderer : MonoBehaviour
     {
-        [SerializeField]
-        ArenaMap m_Arena;
-
         [SerializeField, Tooltip("Shared by every tile. Enable GPU instancing on it.")]
         Material m_TileMaterial;
 
@@ -31,21 +31,30 @@ namespace Dragoneye.Hex.Rendering
 
         readonly Dictionary<Hex, Renderer> m_TileViews = new Dictionary<Hex, Renderer>();
 
+        // Resolved from this GameObject rather than serialised: Unity cannot serialise an interface
+        // field, and naming a concrete source type here is exactly the dependency this assembly is
+        // meant not to have.
+        IHexMapSource m_Source;
+
         MaterialPropertyBlock m_PropertyBlock;
         Transform m_TileRoot;
         Mesh m_SharedMesh;
         int m_ColorPropertyId;
 
-        // Tracked explicitly rather than read back off the ArenaMap: by the time a rebuild runs,
-        // ArenaMap.Map already points at the new map, so we would unsubscribe from the wrong one
-        // and leak a handler on the old.
+        // Tracked explicitly rather than read back off the source: by the time a rebuild runs, the
+        // source already points at the new map, so we would unsubscribe from the wrong one and leak
+        // a handler on the old.
         HexMap m_SubscribedMap;
 
         void Awake()
         {
-            if (m_Arena == null)
+            m_Source = GetComponent<IHexMapSource>();
+            if (m_Source == null)
             {
-                m_Arena = GetComponent<ArenaMap>();
+                Debug.LogError($"{nameof(HexMapRenderer)} needs an {nameof(IHexMapSource)} on the "
+                    + "same GameObject.", this);
+                enabled = false;
+                return;
             }
 
             m_PropertyBlock = new MaterialPropertyBlock();
@@ -54,35 +63,31 @@ namespace Dragoneye.Hex.Rendering
 
         void OnEnable()
         {
-            if (m_Arena != null)
+            if (m_Source != null)
             {
-                m_Arena.MapBuilt += Rebuild;
+                m_Source.MapBuilt += Rebuild;
             }
         }
 
         void OnDisable()
         {
-            if (m_Arena != null)
+            if (m_Source != null)
             {
-                m_Arena.MapBuilt -= Rebuild;
+                m_Source.MapBuilt -= Rebuild;
             }
         }
 
         void Start()
         {
-            // ArenaMap builds in Awake, so by Start the map usually exists already and MapBuilt has
-            // been and gone. Render what is there; MapBuilt covers any later rebuild.
-            if (m_Arena != null && m_Arena.Map != null && m_TileViews.Count == 0)
+            // The source builds in Awake, so by Start the map usually exists already and MapBuilt
+            // has been and gone. Render what is there; MapBuilt covers any later rebuild.
+            if (m_Source != null && m_Source.Map != null && m_TileViews.Count == 0)
             {
-                Rebuild(m_Arena.Map);
+                Rebuild(m_Source.Map);
             }
         }
 
-        void OnDestroy()
-        {
-            Unsubscribe();
-            DestroySharedMesh();
-        }
+        void OnDestroy() => Clear();
 
         void Rebuild(HexMap map)
         {
@@ -101,7 +106,6 @@ namespace Dragoneye.Hex.Rendering
 
             if (m_TilePrefab == null)
             {
-                DestroySharedMesh();
                 m_SharedMesh = HexMeshFactory.Create(map.Layout.Size, m_TileFill);
             }
 
@@ -163,6 +167,11 @@ namespace Dragoneye.Hex.Rendering
             view.SetPropertyBlock(m_PropertyBlock);
         }
 
+        /// <summary>
+        /// Tears down the current view. The tile objects and the mesh they share are destroyed
+        /// together so no tile can outlive its mesh: Object.Destroy defers both to the same point
+        /// after the update loop, which is what keeps that pairing safe.
+        /// </summary>
         void Clear()
         {
             Unsubscribe();
@@ -173,6 +182,13 @@ namespace Dragoneye.Hex.Rendering
                 Destroy(m_TileRoot.gameObject);
                 m_TileRoot = null;
             }
+
+            if (m_SharedMesh != null)
+            {
+                // Generated at runtime, so nothing else will collect it.
+                Destroy(m_SharedMesh);
+                m_SharedMesh = null;
+            }
         }
 
         void Unsubscribe()
@@ -182,18 +198,6 @@ namespace Dragoneye.Hex.Rendering
                 m_SubscribedMap.TileChanged -= OnTileChanged;
                 m_SubscribedMap = null;
             }
-        }
-
-        void DestroySharedMesh()
-        {
-            if (m_SharedMesh == null)
-            {
-                return;
-            }
-
-            // Generated at runtime, so nothing else will collect it.
-            Destroy(m_SharedMesh);
-            m_SharedMesh = null;
         }
     }
 }

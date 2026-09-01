@@ -51,6 +51,15 @@
                     "initialStateCheck": false
                 },
                 {
+                    "name": "Leave",
+                    "type": "Button",
+                    "id": "cc159365-d476-40cf-c288-53a60b17cfaa",
+                    "expectedControlType": "Button",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": false
+                },
+                {
                     "name": "PointerDelta",
                     "type": "Value",
                     "id": "f6159365-d476-40cf-c288-53a60b17cf56",
@@ -234,6 +243,17 @@
                     "processors": "",
                     "groups": "",
                     "action": "OrbitDrag",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "dd0482c4-c3c5-4ebe-b177-429f5a660eaa",
+                    "path": "<Keyboard>/escape",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "Leave",
                     "isComposite": false,
                     "isPartOfComposite": false
                 },

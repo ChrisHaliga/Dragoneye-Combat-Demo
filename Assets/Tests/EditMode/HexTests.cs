@@ -65,6 +65,30 @@ namespace Dragoneye.Hex.Tests
             }
         }
 
+        [TestCase(-1, HexDirection.NorthWest)]
+        [TestCase(-2, HexDirection.SouthWest)]
+        [TestCase(-6, HexDirection.North)]
+        [TestCase(-7, HexDirection.NorthWest)]
+        [TestCase(-13, HexDirection.NorthWest)]
+        public void RotatingByNegativeStepsGoesAnticlockwise(int steps, HexDirection expected)
+        {
+            // C# leaves a negative modulus negative, so the +6 correction is what keeps this in
+            // range. Existing coverage only exercised positive steps.
+            Assert.AreEqual(expected, HexDirection.North.RotateClockwise(steps));
+        }
+
+        [Test]
+        public void RotationIsReversible()
+        {
+            foreach (HexDirection direction in System.Enum.GetValues(typeof(HexDirection)))
+            {
+                for (var steps = -8; steps <= 8; steps++)
+                {
+                    Assert.AreEqual(direction, direction.RotateClockwise(steps).RotateClockwise(-steps));
+                }
+            }
+        }
+
         [Test]
         public void SixClockwiseRotationsReturnToStart()
         {

@@ -12,7 +12,7 @@ namespace Dragoneye.Hex.Systems
     /// without the data layer knowing anything about it.
     /// </summary>
     [DisallowMultipleComponent]
-    public sealed class ArenaMap : MonoBehaviour
+    public sealed class ArenaMap : MonoBehaviour, IHexMapSource
     {
         [SerializeField]
         HexMapDefinition m_Definition;
@@ -42,12 +42,15 @@ namespace Dragoneye.Hex.Systems
             MapBuilt?.Invoke(Map);
         }
 
+        // All three tolerate a null map. Rebuild already logs the real cause when a definition is
+        // missing, and letting a NullReferenceException pile on top only buries that message.
         public Vector3 ToWorld(Hex hex) =>
-            transform.TransformPoint(Map.Layout.ToWorld(hex));
+            Map == null ? transform.position : transform.TransformPoint(Map.Layout.ToWorld(hex));
 
         public Hex FromWorld(Vector3 world) =>
-            Map.Layout.FromWorld(transform.InverseTransformPoint(world));
+            Map == null ? Hex.Zero : Map.Layout.FromWorld(transform.InverseTransformPoint(world));
 
-        public Vector3 WorldCenter() => transform.TransformPoint(Map.WorldCenter());
+        public Vector3 WorldCenter() =>
+            Map == null ? transform.position : transform.TransformPoint(Map.WorldCenter());
     }
 }

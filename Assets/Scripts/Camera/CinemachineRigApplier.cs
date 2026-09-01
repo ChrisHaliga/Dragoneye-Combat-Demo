@@ -15,6 +15,9 @@ namespace Dragoneye.CameraControl
     /// <c>GetCinemachineComponent&lt;T&gt;().m_FollowOffset</c> pattern found in most tutorials --
     /// is what makes camera code break on every package upgrade.
     /// </summary>
+    // After CameraRig (-100) so the offset pushed here was computed from this frame's rig, and
+    // before the Cinemachine brain, which runs in LateUpdate.
+    [DefaultExecutionOrder(-50)]
     [RequireComponent(typeof(CinemachineFollow))]
     [DisallowMultipleComponent]
     public sealed class CinemachineRigApplier : MonoBehaviour
@@ -30,12 +33,7 @@ namespace Dragoneye.CameraControl
 
             if (m_Rig == null)
             {
-                m_Rig = FindAnyObjectByType<CameraRig>();
-            }
-
-            if (m_Rig == null)
-            {
-                Debug.LogError($"{nameof(CinemachineRigApplier)} could not find a {nameof(CameraRig)}.", this);
+                Debug.LogError($"{nameof(CinemachineRigApplier)} has no {nameof(CameraRig)} assigned.", this);
                 enabled = false;
             }
         }

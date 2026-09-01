@@ -119,6 +119,142 @@ NavMeshSettings:
     debug:
       m_Flags: 0
   m_NavMeshData: {fileID: 0}
+--- !u!1 &133918668
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 133918670}
+  - component: {fileID: 133918669}
+  - component: {fileID: 133918671}
+  m_Layer: 0
+  m_Name: Player Roster
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &133918669
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 133918668}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d5a57f767e5e46a458fc5d3c628d0cbb, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Unity.Netcode.Runtime::Unity.Netcode.NetworkObject
+  GlobalObjectIdHash: 2239252866
+  InScenePlacedSourceGlobalObjectIdHash: 0
+  m_InScenePlacedDisabledByDefault: 0
+  DeferredDespawnTick: 0
+  Ownership: 1
+  AlwaysReplicateAsRoot: 0
+  SynchronizeTransform: 1
+  m_InScenePlaced: 1
+  ActiveSceneSynchronization: 0
+  SceneMigrationSynchronization: 0
+  SpawnWithObservers: 1
+  DontDestroyWithOwner: 0
+  AutoObjectParentSync: 1
+  SyncOwnerTransformWhenParented: 1
+  AllowOwnerToParent: 0
+--- !u!4 &133918670
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 133918668}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &133918671
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 133918668}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 306c19a85803dd04f84a3d5693e0f5bc, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Dragoneye.Game::Dragoneye.Game.PlayerRoster
+  ShowTopMostFoldoutHeaderGroup: 1
+--- !u!1 &261654050
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 261654053}
+  - component: {fileID: 261654052}
+  - component: {fileID: 261654051}
+  m_Layer: 0
+  m_Name: Arena Context
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &261654051
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 261654050}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: dd853624b7d7cc84ab5bdd1796d5e465, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Dragoneye.Game::Dragoneye.Game.MatchInput
+  m_Input: {fileID: 1295460253}
+--- !u!114 &261654052
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 261654050}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d5dfffaa00b80a04fb10261481e8b89b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Dragoneye.Game::Dragoneye.Game.ArenaContext
+  m_Map: {fileID: 1461267523}
+  m_Rig: {fileID: 1295460251}
+  m_RigInput: {fileID: 1295460253}
+  m_CameraBounds: {fileID: 1461267525}
+  m_OutputCamera: {fileID: 1164859713}
+--- !u!4 &261654053
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 261654050}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &906999541
 GameObject:
   m_ObjectHideFlags: 0
@@ -479,7 +615,7 @@ MonoBehaviour:
   IgnoreTimeScale: 0
   WorldUpOverride: {fileID: 0}
   ChannelMask: -1
-  UpdateMethod: 2
+  UpdateMethod: 1
   BlendUpdateMethod: 1
   LensModeOverride:
     Enabled: 0
@@ -524,7 +660,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 432595647159b8a4d9e81d00b3496df2, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Dragoneye.Camera::Dragoneye.CameraControl.CameraRig
-  m_Cursor: {fileID: 0}
   m_RotateSpeed: 120
   m_OrbitDragSpeed: 0.25
   m_InitialZoom: 0.6
@@ -564,7 +699,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: Dragoneye.Camera::Dragoneye.CameraControl.CameraRigInput
   m_Actions: {fileID: -944628639613478452, guid: d4408fc05790f9d4f9bd8af384ede7bb, type: 3}
   m_ActionMapName: Camera
-  m_Cursor: {fileID: 0}
 --- !u!1 &1461267521
 GameObject:
   m_ObjectHideFlags: 0
@@ -576,6 +710,7 @@ GameObject:
   - component: {fileID: 1461267524}
   - component: {fileID: 1461267523}
   - component: {fileID: 1461267522}
+  - component: {fileID: 1461267525}
   m_Layer: 0
   m_Name: Hex Map
   m_TagString: Untagged
@@ -595,7 +730,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 141ae97153157ea429ea4f5423c416a4, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Dragoneye.Hex.Rendering::Dragoneye.Hex.Rendering.HexMapRenderer
-  m_Arena: {fileID: 1461267523}
   m_TileMaterial: {fileID: 2100000, guid: 050b82a830e0384498e5ff1257bf2d74, type: 2}
   m_TilePrefab: {fileID: 0}
   m_TileFill: 0.94
@@ -629,6 +763,21 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1461267525
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1461267521}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 568e73de14b61964ab4e86c3e18ef33d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Dragoneye.Game::Dragoneye.Game.HexArenaCameraBounds
+  m_Arena: {fileID: 1461267523}
+  m_Focus: {fileID: 0}
+  m_Margin: 2
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0
@@ -638,3 +787,5 @@ SceneRoots:
   - {fileID: 1461267524}
   - {fileID: 1295460252}
   - {fileID: 906999546}
+  - {fileID: 133918670}
+  - {fileID: 261654053}

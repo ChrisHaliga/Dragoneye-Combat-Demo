@@ -26,12 +26,15 @@ namespace Dragoneye.Game
         public static int Count => k_Colors.Length;
 
         /// <summary>
-        /// The colour for a given netcode client id.
+        /// The colour for a player slot.
         ///
-        /// Client ids are reused after a disconnect, so a player who drops and rejoins can come
-        /// back a different colour. Fixing that properly needs a stable mapping from lobby player
-        /// to client id, which is a separate piece of work.
+        /// Keyed on slot rather than client id on purpose: client ids are handed out by the
+        /// transport and reused after a disconnect, so using one here let a player change colour
+        /// mid-session. Slots are assigned once by the server -- see <see cref="PlayerRoster"/>.
+        ///
+        /// A negative slot (state not yet replicated) wraps to the first colour rather than
+        /// throwing, so a focus point drawn a frame early looks plain rather than breaking.
         /// </summary>
-        public static Color ForClient(ulong clientId) => k_Colors[clientId % (ulong)k_Colors.Length];
+        public static Color ForSlot(int slot) => k_Colors[(int)Mathf.Repeat(slot, k_Colors.Length)];
     }
 }

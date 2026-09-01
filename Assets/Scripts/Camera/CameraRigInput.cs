@@ -1,3 +1,4 @@
+using System;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
@@ -10,10 +11,11 @@ namespace Dragoneye.CameraControl
     /// gamepad-capable, and safe when a device is absent. Polling <c>Keyboard.current.wKey</c>
     /// hardcodes the layout and throws the moment someone plays without a keyboard attached.
     ///
-    /// Actions are resolved once on Awake. Resolving by name every frame is a string lookup in the
-    /// hot path.
+    /// Actions are resolved once on Awake, and resolution throws if one is missing: a typo in an
+    /// action name should fail loudly at startup, not silently disable a control.
     /// </summary>
     [RequireComponent(typeof(CameraRig))]
+    [DisallowMultipleComponent]
     public sealed class CameraRigInput : MonoBehaviour
     {
         [SerializeField, Tooltip("Asset containing the Camera action map.")]
@@ -22,11 +24,12 @@ namespace Dragoneye.CameraControl
         [SerializeField]
         string m_ActionMapName = "Camera";
 
-        [SerializeField, Tooltip("The cursor that movement input drives.")]
-        CameraCursor m_Cursor;
-
         CameraRig m_Rig;
         InputActionMap m_Map;
+
+        // Not serialised: the focus is a networked object that only exists once a match starts, so
+        // it is handed in by ArenaContext rather than wired in the scene.
+        ICameraFocus m_Focus;
 
         InputAction m_Pan;
         InputAction m_Rotate;
@@ -34,15 +37,19 @@ namespace Dragoneye.CameraControl
         InputAction m_DragPan;
         InputAction m_OrbitDrag;
         InputAction m_PointerDelta;
+        InputAction m_Leave;
+
+        /// <summary>
+        /// Raised when the player asks to leave the match.
+        ///
+        /// Surfaced as an event rather than acted on here: this component owns the action map, but
+        /// leaving a match is not a camera concern. Whoever owns match lifetime subscribes.
+        /// </summary>
+        public event Action LeaveRequested;
 
         void Awake()
         {
             m_Rig = GetComponent<CameraRig>();
-
-            if (m_Cursor == null)
-            {
-                m_Cursor = FindAnyObjectByType<CameraCursor>();
-            }
 
             if (m_Actions == null)
             {
@@ -59,58 +66,76 @@ namespace Dragoneye.CameraControl
                 return;
             }
 
-            m_Pan = m_Map.FindAction("Pan");
-            m_Rotate = m_Map.FindAction("Rotate");
-            m_Zoom = m_Map.FindAction("Zoom");
-            m_DragPan = m_Map.FindAction("DragPan");
-            m_OrbitDrag = m_Map.FindAction("OrbitDrag");
-            m_PointerDelta = m_Map.FindAction("PointerDelta");
+            m_Pan = m_Map.FindAction("Pan", throwIfNotFound: true);
+            m_Rotate = m_Map.FindAction("Rotate", throwIfNotFound: true);
+            m_Zoom = m_Map.FindAction("Zoom", throwIfNotFound: true);
+            m_DragPan = m_Map.FindAction("DragPan", throwIfNotFound: true);
+            m_OrbitDrag = m_Map.FindAction("OrbitDrag", throwIfNotFound: true);
+            m_PointerDelta = m_Map.FindAction("PointerDelta", throwIfNotFound: true);
+            m_Leave = m_Map.FindAction("Leave", throwIfNotFound: true);
         }
-
-        /// <summary>Swaps the cursor this input drives. See <see cref="CameraRig.SetCursor"/>.</summary>
-        public void SetCursor(CameraCursor cursor) => m_Cursor = cursor;
 
         // Enabling the map here rather than globally keeps camera input a context that can be
         // switched off wholesale -- during a cutscene, or while a modal UI has focus.
-        void OnEnable() => m_Map?.Enable();
+        void OnEnable()
+        {
+            if (m_Map == null)
+            {
+                return;
+            }
 
-        void OnDisable() => m_Map?.Disable();
+            m_Map.Enable();
+            m_Leave.performed += OnLeavePerformed;
+        }
+
+        void OnDisable()
+        {
+            if (m_Map == null)
+            {
+                return;
+            }
+
+            m_Leave.performed -= OnLeavePerformed;
+            m_Map.Disable();
+        }
+
+        /// <summary>Swaps the focus this input drives. See <see cref="CameraRig.SetFocus"/>.</summary>
+        public void SetFocus(ICameraFocus focus) => m_Focus = focus;
+
+        void OnLeavePerformed(InputAction.CallbackContext _) => LeaveRequested?.Invoke();
 
         void Update()
         {
+            if (m_Map == null)
+            {
+                return;
+            }
+
+            // Unscaled so the camera keeps responding while the game is paused.
             var deltaTime = Time.unscaledDeltaTime;
             var yaw = m_Rig.Yaw;
             var speedScale = m_Rig.PanSpeedScale;
 
-            if (m_Pan != null && m_Cursor != null)
+            if (m_Focus != null)
             {
-                m_Cursor.Move(m_Pan.ReadValue<Vector2>(), yaw, deltaTime, speedScale);
+                m_Focus.Move(m_Pan.ReadValue<Vector2>(), yaw, deltaTime, speedScale);
             }
 
-            if (m_Rotate != null)
-            {
-                m_Rig.Rotate(m_Rotate.ReadValue<float>(), deltaTime);
-            }
+            m_Rig.Rotate(m_Rotate.ReadValue<float>(), deltaTime);
+            m_Rig.AddZoom(CameraRigMath.ZoomDelta(m_Zoom.ReadValue<float>(), m_Rig.ZoomSensitivity));
 
-            if (m_Zoom != null)
-            {
-                m_Rig.AddZoom(CameraRigMath.ZoomDelta(m_Zoom.ReadValue<float>(), m_Rig.ZoomSensitivity));
-            }
-
-            var pointerDelta = m_PointerDelta != null
-                ? m_PointerDelta.ReadValue<Vector2>()
-                : Vector2.zero;
+            var pointerDelta = m_PointerDelta.ReadValue<Vector2>();
 
             // Right-drag orbits and zooms in one gesture: horizontal matches Q/E, vertical matches
-            // the scroll wheel.
-            if (m_OrbitDrag != null && m_OrbitDrag.IsPressed())
+            // the scroll wheel. It takes priority so the two drag gestures cannot fight.
+            if (m_OrbitDrag.IsPressed())
             {
                 m_Rig.AddYaw(CameraRigMath.OrbitDragYaw(pointerDelta, m_Rig.OrbitDragSpeed));
                 m_Rig.AddZoom(CameraRigMath.OrbitDragZoom(pointerDelta, m_Rig.ZoomDragSpeed));
             }
-            else if (m_DragPan != null && m_DragPan.IsPressed() && m_Cursor != null)
+            else if (m_DragPan.IsPressed() && m_Focus != null)
             {
-                m_Cursor.Drag(pointerDelta, yaw, speedScale);
+                m_Focus.Drag(pointerDelta, yaw, speedScale);
             }
         }
     }

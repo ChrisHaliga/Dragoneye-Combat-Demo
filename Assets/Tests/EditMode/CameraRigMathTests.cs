@@ -153,6 +153,48 @@ namespace Dragoneye.Hex.Tests
         }
 
         [Test]
+        public void DragDisplacementIsLinearInDistance()
+        {
+            // Halving the drag must halve the movement, including below one pixel. Routing pixel
+            // deltas through PanDirection made displacement proportional to |delta| squared under
+            // 1px, so slow drags on a high-DPI pointer were silently damped.
+            var far = CameraRigMath.PanDirectionFromDelta(new Vector2(8f, 0f), 0f) * 8f;
+            var half = CameraRigMath.PanDirectionFromDelta(new Vector2(4f, 0f), 0f) * 4f;
+
+            Assert.AreEqual(far.magnitude * 0.5f, half.magnitude, 1e-4f);
+        }
+
+        [TestCase(2f)]
+        [TestCase(1f)]
+        [TestCase(0.5f)]
+        [TestCase(0.1f)]
+        [TestCase(0.01f)]
+        public void SubPixelDragStaysProportional(float distance)
+        {
+            var move = CameraRigMath.PanDirectionFromDelta(new Vector2(distance, 0f), 0f) * distance;
+
+            Assert.AreEqual(distance, move.magnitude, 1e-5f,
+                $"A {distance}px drag should move {distance} units, not {move.magnitude}");
+        }
+
+        [Test]
+        public void DragDirectionIsIndependentOfDistance()
+        {
+            var big = CameraRigMath.PanDirectionFromDelta(new Vector2(50f, 20f), 30f);
+            var small = CameraRigMath.PanDirectionFromDelta(new Vector2(0.05f, 0.02f), 30f);
+
+            Assert.AreEqual(1f, big.magnitude, 1e-4f);
+            Assert.AreEqual(1f, small.magnitude, 1e-4f);
+            Assert.AreEqual(0f, Vector3.Distance(big, small), 1e-4f);
+        }
+
+        [Test]
+        public void ZeroDragProducesNoDirection()
+        {
+            Assert.AreEqual(Vector3.zero, CameraRigMath.PanDirectionFromDelta(Vector2.zero, 0f));
+        }
+
+        [Test]
         public void ScrollingUpZoomsIn()
         {
             // Positive scroll (wheel away from you) should reduce zoom, i.e. move closer.

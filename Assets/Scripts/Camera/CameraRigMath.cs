@@ -25,6 +25,26 @@ namespace Dragoneye.CameraControl
             return Quaternion.Euler(0f, yawDegrees, 0f) * local;
         }
 
+        /// <summary>
+        /// Direction for a pointer movement measured in pixels. Always normalises.
+        ///
+        /// <see cref="PanDirection"/> deliberately preserves magnitude below 1 so a half-deflected
+        /// stick moves at half speed. Feeding pixel deltas through that rule makes displacement
+        /// proportional to |delta| above one pixel but |delta| squared below it, so slow drags on a
+        /// high-DPI pointer are damped non-linearly. Callers scale by |delta| themselves.
+        /// </summary>
+        public static Vector3 PanDirectionFromDelta(Vector2 pixelDelta, float yawDegrees)
+        {
+            var local = new Vector3(pixelDelta.x, 0f, pixelDelta.y);
+            if (local.sqrMagnitude < 1e-12f)
+            {
+                return Vector3.zero;
+            }
+
+            local.Normalize();
+            return Quaternion.Euler(0f, yawDegrees, 0f) * local;
+        }
+
         /// <summary>Keeps the focus point inside <paramref name="bounds"/>, ignoring height.</summary>
         public static Vector3 ClampToBounds(Vector3 focus, Bounds bounds) =>
             new Vector3(

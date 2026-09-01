@@ -5,6 +5,8 @@
         "Dragoneye.Hex",
         "Dragoneye.Hex.Systems",
         "Dragoneye.Camera",
+        "Dragoneye.Game",
+        "Dragoneye.Multiplayer",
         "UnityEngine.TestRunner",
         "UnityEditor.TestRunner"
     ],

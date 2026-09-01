@@ -24,6 +24,6 @@ namespace Dragoneye.Hex
             (HexDirection)(((int)direction + 3) % 6);
 
         public static HexDirection RotateClockwise(this HexDirection direction, int steps = 1) =>
-            (HexDirection)(((int)direction + steps % 6 + 6) % 6);
+            (HexDirection)(((int)direction + (steps % 6) + 6) % 6);
     }
 }

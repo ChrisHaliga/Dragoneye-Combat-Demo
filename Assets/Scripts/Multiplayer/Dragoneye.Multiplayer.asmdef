@@ -1,0 +1,23 @@
+{
+    "name": "Dragoneye.Multiplayer",
+    "rootNamespace": "Dragoneye.Multiplayer",
+    "references": [
+        "Dragoneye.Hex",
+        "Dragoneye.Hex.Systems",
+        "Unity.Netcode.Runtime",
+        "Unity.Services.Multiplayer",
+        "Unity.Services.Authentication",
+        "Unity.Services.Core",
+        "Unity.InputSystem",
+        "Unity.Collections"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

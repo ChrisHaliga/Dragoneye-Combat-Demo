@@ -11,7 +11,13 @@ namespace Dragoneye.Hex
     {
         public Hex Coordinates { get; }
 
-        public TerrainType Terrain { get; internal set; }
+        /// <summary>
+        /// Mutated only through <see cref="HexMap.SetTerrain"/>, which raises the notification views
+        /// depend on. An accessible setter would let a tile change silently behind the map.
+        /// </summary>
+        public TerrainType Terrain { get; private set; }
+
+        internal void ApplyTerrain(TerrainType terrain) => Terrain = terrain;
 
         public HexTile(Hex coordinates, TerrainType terrain)
         {

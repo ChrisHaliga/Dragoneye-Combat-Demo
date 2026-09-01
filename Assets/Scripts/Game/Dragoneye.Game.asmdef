@@ -1,8 +1,13 @@
 {
-    "name": "Dragoneye.Hex.Rendering",
-    "rootNamespace": "Dragoneye.Hex.Rendering",
+    "name": "Dragoneye.Game",
+    "rootNamespace": "Dragoneye.Game",
     "references": [
-        "Dragoneye.Hex"
+        "Dragoneye.Hex",
+        "Dragoneye.Hex.Systems",
+        "Dragoneye.Camera",
+        "Dragoneye.Multiplayer",
+        "Unity.Netcode.Runtime",
+        "Unity.Collections"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

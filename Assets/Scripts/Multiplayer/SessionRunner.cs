@@ -1,5 +1,5 @@
 using System;
-using System.Linq;
+using System.Collections.Generic;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Unity.Services.Authentication;
@@ -20,7 +20,7 @@ namespace Dragoneye.Multiplayer
     /// Requires a NetworkManager in the scene (the quickstart scene already has one).
     /// </summary>
     [DisallowMultipleComponent]
-    public class SessionRunner : MonoBehaviour
+    public sealed class SessionRunner : MonoBehaviour
     {
         /// <summary>Player property key holding "1" when that player has readied up.</summary>
         public const string ReadyKey = "ready";
@@ -59,8 +59,14 @@ namespace Dragoneye.Multiplayer
         /// <summary>True while a create/join/leave call is in flight, so the UI can lock out input.</summary>
         public bool IsBusy { get; private set; }
 
-        /// <summary>Human readable status, surfaced in the UI status bar.</summary>
-        public string Status { get; private set; } = "Connecting to Unity services...";
+        /// <summary>Where the session is in its lifecycle. The UI turns this into words.</summary>
+        public SessionPhase Phase { get; private set; } = SessionPhase.Connecting;
+
+        /// <summary>Why the last operation failed, or None. Cleared when the next one starts.</summary>
+        public SessionFault Fault { get; private set; }
+
+        /// <summary>True while a session handle is held.</summary>
+        public bool IsInSession => Session != null;
 
         public bool IsHost => Session != null && Session.IsHost;
 
@@ -152,12 +158,12 @@ namespace Dragoneye.Multiplayer
 
                 ServicesReady = true;
                 CachePlayerName(PlayerName);
-                SetStatus($"Signed in as {PlayerName}");
+                SetPhase(SessionPhase.Idle);
             }
             catch (Exception e)
             {
                 Debug.LogException(e);
-                SetStatus($"Could not reach Unity services: {e.Message}");
+                SetFault(SessionPhase.Unavailable, SessionFault.ServicesUnreachable);
             }
         }
 
@@ -209,12 +215,12 @@ namespace Dragoneye.Multiplayer
             {
                 await AuthenticationService.Instance.UpdatePlayerNameAsync(name);
                 CachePlayerName(PlayerName);
-                SetStatus($"Playing as {PlayerName}");
+                Notify();
             }
             catch (Exception e)
             {
                 Debug.LogException(e);
-                SetStatus($"Could not set name: {e.Message}");
+                SetFault(Phase, SessionFault.NameRejected);
             }
         }
 
@@ -240,7 +246,7 @@ namespace Dragoneye.Multiplayer
                 return;
             }
 
-            BeginOperation("Creating session...");
+            BeginOperation(SessionPhase.Hosting);
             try
             {
                 var options = new SessionOptions
@@ -258,12 +264,12 @@ namespace Dragoneye.Multiplayer
                 options.PlayerProperties[ReadyKey] = NotReadyProperty();
 
                 AttachSession(await MultiplayerService.Instance.CreateSessionAsync(options));
-                SetStatus($"Hosting. Share join code {Session.Code}");
+                SetPhase(SessionPhase.InLobby);
             }
             catch (Exception e)
             {
                 Debug.LogException(e);
-                SetStatus(Explain(e));
+                SetFault(Session == null ? SessionPhase.Idle : Phase, Classify(e));
             }
             finally
             {
@@ -279,7 +285,7 @@ namespace Dragoneye.Multiplayer
             var code = (joinCode ?? string.Empty).Trim().ToUpperInvariant();
             if (code.Length == 0)
             {
-                SetStatus("Enter a join code first.");
+                SetFault(Phase, SessionFault.NoJoinCode);
                 return;
             }
 
@@ -288,19 +294,19 @@ namespace Dragoneye.Multiplayer
                 return;
             }
 
-            BeginOperation($"Joining {code}...");
+            BeginOperation(SessionPhase.Joining);
             try
             {
                 var options = new JoinSessionOptions { Type = SessionType }.WithPlayerName();
                 options.PlayerProperties[ReadyKey] = NotReadyProperty();
 
                 AttachSession(await MultiplayerService.Instance.JoinSessionByCodeAsync(code, options));
-                SetStatus($"Joined {Session.Code}");
+                SetPhase(SessionPhase.InLobby);
             }
             catch (Exception e)
             {
                 Debug.LogException(e);
-                SetStatus(Explain(e));
+                SetFault(Session == null ? SessionPhase.Idle : Phase, Classify(e));
             }
             finally
             {
@@ -322,17 +328,16 @@ namespace Dragoneye.Multiplayer
             // server-side leave fails we are locally out of a session that still lists us.
             var leaving = Session;
             DetachSession();
-            BeginOperation("Leaving...");
+            BeginOperation(SessionPhase.Leaving);
             try
             {
                 await leaving.LeaveAsync();
-                SetStatus("Left the session.");
+                SetPhase(SessionPhase.Idle);
             }
             catch (Exception e)
             {
                 Debug.LogException(e);
-                SetStatus($"Left locally, but the server did not confirm ({Explain(e)}). " +
-                    "You may linger in the lobby until it times you out.");
+                SetFault(SessionPhase.Idle, SessionFault.LeaveNotConfirmed);
             }
             finally
             {
@@ -365,7 +370,7 @@ namespace Dragoneye.Multiplayer
             catch (Exception e)
             {
                 Debug.LogException(e);
-                SetStatus(Explain(e));
+                SetFault(Session == null ? SessionPhase.Idle : Phase, Classify(e));
                 Changed?.Invoke();
                 return false;
             }
@@ -387,7 +392,7 @@ namespace Dragoneye.Multiplayer
                 return;
             }
 
-            BeginOperation("Starting match...");
+            BeginOperation(SessionPhase.InLobby);
             try
             {
                 var host = Session.AsHost();
@@ -399,7 +404,7 @@ namespace Dragoneye.Multiplayer
             catch (Exception e)
             {
                 Debug.LogException(e);
-                SetStatus(Explain(e));
+                SetFault(Session == null ? SessionPhase.Idle : Phase, Classify(e));
             }
             finally
             {
@@ -407,36 +412,55 @@ namespace Dragoneye.Multiplayer
             }
         }
 
-        /// <summary>True when every player in the session has readied up.</summary>
-        public bool EveryoneReady =>
-            Session != null && Session.PlayerCount > 0 && Session.Players.All(IsPlayerReady);
+        /// <summary>
+        /// A snapshot of the lobby in this project's own types.
+        ///
+        /// Projected here, once, rather than letting the UI walk ISession and IReadOnlyPlayer: a
+        /// view should not depend on the shape of a vendor SDK, and a projection can be built in a
+        /// test without one.
+        /// </summary>
+        public LobbyView? CurrentLobby
+        {
+            get
+            {
+                var session = Session;
+                if (session == null)
+                {
+                    return null;
+                }
 
-        public static bool IsPlayerReady(IReadOnlyPlayer player) =>
+                var selfId = session.CurrentPlayer?.Id;
+                var players = new List<LobbyPlayerView>(session.PlayerCount);
+                var everyoneReady = session.PlayerCount > 0;
+                var selfIsReady = false;
+
+                foreach (var player in session.Players)
+                {
+                    var ready = IsReady(player);
+                    var isSelf = player.Id == selfId;
+
+                    everyoneReady &= ready;
+                    selfIsReady |= isSelf && ready;
+
+                    players.Add(new LobbyPlayerView(
+                        DisplayNameOf(player), ready, player.Id == session.Host, isSelf));
+                }
+
+                return new LobbyView(
+                    session.Code, session.PlayerCount, session.MaxPlayers,
+                    session.IsHost, everyoneReady, selfIsReady, players);
+            }
+        }
+
+        static bool IsReady(IReadOnlyPlayer player) =>
             player.Properties != null
             && player.Properties.TryGetValue(ReadyKey, out var property)
             && property.Value == "1";
 
-        public static string DisplayName(IReadOnlyPlayer player)
+        static string DisplayNameOf(IReadOnlyPlayer player)
         {
             var name = StripDiscriminator(player.GetPlayerName());
             return string.IsNullOrEmpty(name) ? player.Id : name;
-        }
-
-        /// <summary>
-        /// Runs a task without awaiting it, logging faults. Methods on this class catch their own
-        /// exceptions, so nothing should ever surface here -- but an unobserved async void would
-        /// vanish silently if one ever did.
-        /// </summary>
-        public static async void Forget(Task task)
-        {
-            try
-            {
-                await task;
-            }
-            catch (Exception e)
-            {
-                Debug.LogException(e);
-            }
         }
 
         static PlayerProperty NotReadyProperty() =>
@@ -486,21 +510,21 @@ namespace Dragoneye.Multiplayer
         void OnRemovedFromSession()
         {
             DetachSession();
-            SetStatus("You were removed from the session.");
+            SetFault(SessionPhase.Idle, SessionFault.RemovedFromSession);
             SessionEnded?.Invoke();
         }
 
         void OnSessionDeleted()
         {
             DetachSession();
-            SetStatus("The host closed the session.");
+            SetFault(SessionPhase.Idle, SessionFault.Deleted);
             SessionEnded?.Invoke();
         }
 
         void RaiseMatchStarted()
         {
             m_MatchStarted = true;
-            SetStatus("Match started.");
+            Notify();
             MatchStarted?.Invoke();
         }
 
@@ -513,23 +537,23 @@ namespace Dragoneye.Multiplayer
 
             if (!ServicesReady)
             {
-                SetStatus("Still connecting to Unity services -- try again in a moment.");
+                SetFault(Phase, SessionFault.NotReady);
                 return false;
             }
 
             if (Session != null)
             {
-                SetStatus("Already in a session.");
+                SetFault(Phase, SessionFault.AlreadyInSession);
                 return false;
             }
 
             return true;
         }
 
-        void BeginOperation(string status)
+        void BeginOperation(SessionPhase phase)
         {
             IsBusy = true;
-            SetStatus(status);
+            SetPhase(phase);
         }
 
         void EndOperation()
@@ -538,40 +562,55 @@ namespace Dragoneye.Multiplayer
             Changed?.Invoke();
         }
 
-        void SetStatus(string status)
+        void SetPhase(SessionPhase phase)
         {
-            Status = status;
-            Changed?.Invoke();
+            Phase = phase;
+            Fault = SessionFault.None;
+            Notify();
         }
 
-        /// <summary>Turns the common SessionExceptions into something a player can act on.</summary>
-        static string Explain(Exception e)
+        void SetFault(SessionPhase phase, SessionFault fault)
         {
-            if (e is SessionException sessionException)
+            Phase = phase;
+            Fault = fault;
+            Notify();
+        }
+
+        void Notify() => Changed?.Invoke();
+
+        /// <summary>
+        /// Maps the SDK's failure codes onto this project's own. Returning an enum rather than a
+        /// sentence keeps English out of a systems class, lets failure paths be asserted in a test
+        /// without string matching, and leaves wording to the layer that does wording.
+        /// </summary>
+        static SessionFault Classify(Exception e)
+        {
+            if (e is not SessionException sessionException)
             {
-                switch (sessionException.Error)
-                {
-                    case SessionError.SessionNotFound:
-                        return "No session with that join code.";
-                    case SessionError.SessionDeleted:
-                        return "That session no longer exists.";
-                    case SessionError.Forbidden:
-                        return "Cannot join -- the session is full or locked.";
-                    case SessionError.NotAuthorized:
-                        return "Not authorized. Check that this project is linked and Relay is enabled.";
-                    case SessionError.RateLimitExceeded:
-                        return "Too many requests -- wait a few seconds and retry.";
-                    case SessionError.NetworkManagerNotInitialized:
-                        return "No NetworkManager in the scene.";
-                    case SessionError.NetworkManagerStartFailed:
-                    case SessionError.NetworkSetupFailed:
-                        return "Relay connected but netcode failed to start. See the console.";
-                    case SessionError.SessionTypeAlreadyExists:
-                        return "A session is already open on this client. Leave it first.";
-                }
+                return SessionFault.Unknown;
             }
 
-            return e.Message;
+            switch (sessionException.Error)
+            {
+                case SessionError.SessionNotFound:
+                    return SessionFault.NotFound;
+                case SessionError.SessionDeleted:
+                    return SessionFault.Deleted;
+                case SessionError.Forbidden:
+                    return SessionFault.Forbidden;
+                case SessionError.NotAuthorized:
+                    return SessionFault.NotAuthorized;
+                case SessionError.RateLimitExceeded:
+                    return SessionFault.RateLimited;
+                case SessionError.NetworkManagerNotInitialized:
+                case SessionError.NetworkManagerStartFailed:
+                case SessionError.NetworkSetupFailed:
+                    return SessionFault.NetcodeFailed;
+                case SessionError.SessionTypeAlreadyExists:
+                    return SessionFault.AlreadyInSession;
+                default:
+                    return SessionFault.Unknown;
+            }
         }
     }
 }

@@ -9,6 +9,9 @@ namespace Dragoneye.CameraControl
     /// Runs in LateUpdate so it sees the camera's final position for the frame. Doing this in
     /// Update would leave labels a frame behind and visibly swim while orbiting.
     /// </summary>
+    // After the Cinemachine brain has positioned the camera for this frame, so labels face where
+    // the camera actually ended up rather than where it was last frame.
+    [DefaultExecutionOrder(200)]
     [DisallowMultipleComponent]
     public sealed class Billboard : MonoBehaviour
     {

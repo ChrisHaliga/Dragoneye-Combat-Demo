@@ -3,23 +3,24 @@ using UnityEngine;
 namespace Dragoneye.CameraControl
 {
     /// <summary>
-    /// How the camera looks at the cursor: which way round, and from how far.
+    /// How the camera looks at the focus point: which way round, and from how far.
     ///
-    /// Sits on the cursor's position every frame and adds yaw, so Cinemachine has a single target
-    /// carrying both. Owns no movement of its own -- that belongs to <see cref="CameraCursor"/> --
-    /// and publishes an arm offset rather than touching a camera, so it knows nothing about
+    /// Sits on the focus position every frame and adds yaw, so Cinemachine has a single target
+    /// carrying both. Owns no movement of its own -- that belongs to the <see cref="ICameraFocus"/>
+    /// -- and publishes an arm offset rather than touching a camera, so it knows nothing about
     /// Cinemachine either.
     ///
     /// Every tunable is a serialised field on purpose. Speeds buried in method bodies are the
     /// single most common reason a camera "feels wrong" and cannot be fixed without a recompile.
     /// </summary>
+    // Runs before CinemachineRigApplier so the applier pushes an offset computed this frame, and
+    // before the brain so Cinemachine positions the camera from a rig that has already moved.
+    // Without explicit ordering these three LateUpdates run in an arbitrary order and roughly half
+    // the time each reads the previous frame.
+    [DefaultExecutionOrder(-100)]
     [DisallowMultipleComponent]
     public sealed class CameraRig : MonoBehaviour
     {
-        [Header("Target")]
-        [SerializeField, Tooltip("The cursor this camera orbits and follows.")]
-        CameraCursor m_Cursor;
-
         [Header("Orbit")]
         [SerializeField, Tooltip("Degrees per second from Q/E.")]
         float m_RotateSpeed = 120f;
@@ -83,13 +84,12 @@ namespace Dragoneye.CameraControl
         public float PanSpeedScale =>
             Mathf.Lerp(m_MinDistance, m_MaxDistance, Zoom) / m_MaxDistance;
 
+        // Not serialised: the focus is a networked object that only exists once a match starts, so
+        // it is handed in by ArenaContext rather than wired in the scene.
+        ICameraFocus m_Focus;
+
         void Awake()
         {
-            if (m_Cursor == null)
-            {
-                m_Cursor = FindAnyObjectByType<CameraCursor>();
-            }
-
             m_Yaw = transform.eulerAngles.y;
             Zoom = Mathf.Clamp01(m_InitialZoom);
             m_TargetZoom = Zoom;
@@ -99,16 +99,19 @@ namespace Dragoneye.CameraControl
         void LateUpdate()
         {
             Zoom = m_ZoomSmoothTime > 0f
-                ? Mathf.SmoothDamp(Zoom, m_TargetZoom, ref m_ZoomVelocity, m_ZoomSmoothTime)
+                // Unscaled to match CameraRigInput. With scaled time, pausing the game would freeze
+                // zoom while panning kept working, because only one of the two reads timeScale.
+                ? Mathf.SmoothDamp(Zoom, m_TargetZoom, ref m_ZoomVelocity, m_ZoomSmoothTime,
+                    Mathf.Infinity, Time.unscaledDeltaTime)
                 : m_TargetZoom;
 
             RecalculateArm();
 
             // Snap to the cursor with no smoothing of its own. Cinemachine's damping is disabled
             // for the same reason: on a directly-driven camera it reads as input lag.
-            if (m_Cursor != null)
+            if (m_Focus != null)
             {
-                transform.SetPositionAndRotation(m_Cursor.Position, Quaternion.Euler(0f, m_Yaw, 0f));
+                transform.SetPositionAndRotation(m_Focus.Position, Quaternion.Euler(0f, m_Yaw, 0f));
             }
             else
             {
@@ -117,16 +120,16 @@ namespace Dragoneye.CameraControl
         }
 
         /// <summary>
-        /// Swaps the cursor being followed. Networked cursors only exist once a match starts, so
-        /// this cannot always be wired up in the scene.
+        /// Swaps the focus being followed, snapping to it so the first frame does not interpolate
+        /// from wherever the rig happened to be.
         /// </summary>
-        public void SetCursor(CameraCursor cursor)
+        public void SetFocus(ICameraFocus focus)
         {
-            m_Cursor = cursor;
+            m_Focus = focus;
 
-            if (cursor != null)
+            if (focus != null)
             {
-                transform.position = cursor.Position;
+                transform.position = focus.Position;
             }
         }
 

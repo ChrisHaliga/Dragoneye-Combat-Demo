@@ -1,4 +1,3 @@
-using System;
 using System.Threading.Tasks;
 using UnityEngine;
 using UnityEngine.UIElements;
@@ -8,14 +7,21 @@ namespace Dragoneye.Multiplayer
     /// <summary>
     /// Binds SessionMenu.uxml to a <see cref="SessionRunner"/>.
     ///
-    /// UI Toolkit has no per-element inspector wiring: we look elements up by name from the
-    /// UIDocument's visual tree, register callbacks, then re-render everything from
+    /// UI Toolkit has no per-element inspector wiring: elements are looked up by name from the
+    /// UIDocument's visual tree, callbacks registered, then everything re-rendered from
     /// <see cref="Refresh"/> whenever the session changes.
+    ///
+    /// All player-facing wording lives here. The runner reports a <see cref="SessionPhase"/> and a
+    /// <see cref="SessionFault"/>; turning those into English is a presentation job, and keeping it
+    /// in one place is what makes the strings localisable later.
     /// </summary>
     [RequireComponent(typeof(UIDocument))]
-    public class SessionMenuUI : MonoBehaviour
+    [DisallowMultipleComponent]
+    public sealed class SessionMenuUI : MonoBehaviour
     {
+        [SerializeField, Tooltip("Leave empty to use the persistent runner.")]
         SessionRunner m_Runner;
+
         bool m_NameSeeded;
 
         VisualElement m_Root;
@@ -37,13 +43,14 @@ namespace Dragoneye.Multiplayer
 
         void Start()
         {
-            m_Runner = SessionRunner.Instance != null
-                ? SessionRunner.Instance
-                : FindAnyObjectByType<SessionRunner>();
+            if (m_Runner == null)
+            {
+                m_Runner = SessionRunner.Instance;
+            }
 
             if (m_Runner == null)
             {
-                Debug.LogError($"{nameof(SessionMenuUI)} needs a {nameof(SessionRunner)} in the scene.", this);
+                Debug.LogError($"{nameof(SessionMenuUI)} has no {nameof(SessionRunner)}.", this);
                 enabled = false;
                 return;
             }
@@ -104,41 +111,57 @@ namespace Dragoneye.Multiplayer
 
         void OnDestroy()
         {
-            if (m_Runner == null)
+            if (m_Runner != null)
             {
-                return;
+                m_Runner.Changed -= Refresh;
             }
-
-            m_Runner.Changed -= Refresh;
         }
 
-        // SessionRunner catches its own exceptions, so nothing below should ever fault. Routing
-        // through Forget anyway means the day one of them does, it lands in the console instead of
-        // vanishing into the async-void unhandled path.
-        void OnHostClicked() => Forget(HostFlowAsync());
+        void OnHostClicked() => TaskUtil.Forget(HostFlowAsync());
 
-        void OnJoinClicked() => Forget(JoinFlowAsync());
+        void OnJoinClicked() => TaskUtil.Forget(JoinFlowAsync());
 
-        void OnLeaveClicked() => Forget(m_Runner.LeaveAsync());
+        void OnLeaveClicked() => TaskUtil.Forget(m_Runner.LeaveAsync());
 
-        void OnStartClicked() => Forget(m_Runner.StartMatchAsync());
+        void OnStartClicked() => TaskUtil.Forget(m_Runner.StartMatchAsync());
 
-        void OnReadyChanged(ChangeEvent<bool> evt) => Forget(ReadyFlowAsync(evt.newValue));
+        void OnReadyChanged(ChangeEvent<bool> evt) => TaskUtil.Forget(ReadyFlowAsync(evt.newValue));
 
-        void OnNameCommitted() => Forget(m_Runner.SetPlayerNameAsync(m_NameField.value));
+        void OnNameCommitted() => TaskUtil.Forget(m_Runner.SetPlayerNameAsync(m_NameField.value));
 
-        // Commit the typed name before connecting: BlurEvent usually fires first when a button is
-        // clicked, but that is focus behaviour we should not depend on.
+        /// <summary>
+        /// Commits the typed name, then connects.
+        ///
+        /// The buttons are locked for the whole flow rather than only for the connect call. Setting
+        /// a name is a network round trip of its own, and leaving the buttons live during it relied
+        /// on continuations happening to resume in order -- true today, but nothing enforces it.
+        /// </summary>
         async Task HostFlowAsync()
         {
-            await m_Runner.SetPlayerNameAsync(m_NameField.value);
-            await m_Runner.HostAsync();
+            SetInteractable(false);
+            try
+            {
+                await m_Runner.SetPlayerNameAsync(m_NameField.value);
+                await m_Runner.HostAsync();
+            }
+            finally
+            {
+                Refresh();
+            }
         }
 
         async Task JoinFlowAsync()
         {
-            await m_Runner.SetPlayerNameAsync(m_NameField.value);
-            await m_Runner.JoinAsync(m_CodeField.value);
+            SetInteractable(false);
+            try
+            {
+                await m_Runner.SetPlayerNameAsync(m_NameField.value);
+                await m_Runner.JoinAsync(m_CodeField.value);
+            }
+            finally
+            {
+                Refresh();
+            }
         }
 
         /// <summary>
@@ -151,48 +174,57 @@ namespace Dragoneye.Multiplayer
             m_ReadyToggle.SetEnabled(false);
             try
             {
-                if (!await m_Runner.SetReadyAsync(ready) && m_Runner.Session != null)
+                if (!await m_Runner.SetReadyAsync(ready))
                 {
-                    m_ReadyToggle.SetValueWithoutNotify(
-                        SessionRunner.IsPlayerReady(m_Runner.Session.CurrentPlayer));
+                    var lobby = m_Runner.CurrentLobby;
+                    if (lobby.HasValue)
+                    {
+                        m_ReadyToggle.SetValueWithoutNotify(lobby.Value.SelfIsReady);
+                    }
                 }
             }
             finally
             {
-                m_ReadyToggle.SetEnabled(m_Runner.Session != null && !m_Runner.IsBusy);
+                Refresh();
             }
         }
 
-        static void Forget(Task task) => SessionRunner.Forget(task);
-
         void OnCopyClicked()
         {
-            if (m_Runner.Session != null)
+            var lobby = m_Runner.CurrentLobby;
+            if (!lobby.HasValue)
             {
-                GUIUtility.systemCopyBuffer = m_Runner.Session.Code;
-                m_CopyButton.text = "Copied";
-                m_CopyButton.schedule.Execute(() => m_CopyButton.text = "Copy").StartingIn(1200);
+                return;
             }
+
+            GUIUtility.systemCopyBuffer = lobby.Value.Code;
+            m_CopyButton.text = "Copied";
+            m_CopyButton.schedule.Execute(() => m_CopyButton.text = "Copy").StartingIn(1200);
+        }
+
+        void SetInteractable(bool interactable)
+        {
+            m_HostButton.SetEnabled(interactable);
+            m_JoinButton.SetEnabled(interactable);
+            m_NameField.SetEnabled(interactable);
         }
 
         void Refresh()
         {
-            var session = m_Runner.Session;
-            var inSession = session != null;
+            var lobby = m_Runner.CurrentLobby;
+            var inLobby = lobby.HasValue;
 
-            SetVisible(m_MenuPanel, !inSession);
-            SetVisible(m_LobbyPanel, inSession);
+            SetVisible(m_MenuPanel, !inLobby);
+            SetVisible(m_LobbyPanel, inLobby);
 
-            m_StatusLabel.text = m_Runner.Status;
+            m_StatusLabel.text = Describe(m_Runner.Phase, m_Runner.Fault, m_Runner.PlayerName);
 
-            if (!inSession)
+            if (!inLobby)
             {
-                m_HostButton.SetEnabled(m_Runner.ServicesReady && !m_Runner.IsBusy);
-                m_JoinButton.SetEnabled(m_Runner.ServicesReady && !m_Runner.IsBusy);
-                m_NameField.SetEnabled(m_Runner.ServicesReady && !m_Runner.IsBusy);
+                SetInteractable(m_Runner.ServicesReady && !m_Runner.IsBusy);
 
-                // Seed the field with the auto-generated name once, then leave the player's
-                // typing alone -- Refresh runs on every session change.
+                // Seed the field with the auto-generated name once, then leave the player's typing
+                // alone -- Refresh runs on every session change.
                 if (!m_NameSeeded && !string.IsNullOrEmpty(m_Runner.PlayerName))
                 {
                     m_NameField.SetValueWithoutNotify(m_Runner.PlayerName);
@@ -202,52 +234,51 @@ namespace Dragoneye.Multiplayer
                 return;
             }
 
-            m_CodeLabel.text = session.Code;
-            m_RosterLabel.text = $"Players ({session.PlayerCount}/{session.MaxPlayers})";
+            var view = lobby.Value;
 
-            m_ReadyToggle.SetValueWithoutNotify(SessionRunner.IsPlayerReady(session.CurrentPlayer));
+            m_CodeLabel.text = view.Code;
+            m_RosterLabel.text = $"Players ({view.PlayerCount}/{view.MaxPlayers})";
+
+            m_ReadyToggle.SetValueWithoutNotify(view.SelfIsReady);
             m_ReadyToggle.SetEnabled(!m_Runner.IsBusy);
             m_LeaveButton.SetEnabled(!m_Runner.IsBusy);
 
             // Only the host can start, and only once everyone has readied up.
-            SetVisible(m_StartButton, m_Runner.IsHost);
-            m_StartButton.SetEnabled(m_Runner.IsHost && m_Runner.EveryoneReady && !m_Runner.IsBusy);
-            m_StartButton.text = m_Runner.EveryoneReady ? "Start match" : "Waiting for players";
+            SetVisible(m_StartButton, view.IsHost);
+            m_StartButton.SetEnabled(view.IsHost && view.EveryoneReady && !m_Runner.IsBusy);
+            m_StartButton.text = view.EveryoneReady ? "Start match" : "Waiting for players";
 
-            RebuildPlayerList();
+            RebuildPlayerList(view);
         }
 
-        void RebuildPlayerList()
+        void RebuildPlayerList(LobbyView view)
         {
             m_PlayerList.Clear();
 
-            foreach (var player in m_Runner.Session.Players)
+            foreach (var player in view.Players)
             {
-                var ready = SessionRunner.IsPlayerReady(player);
-                var isSelf = player.Id == m_Runner.Session.CurrentPlayer.Id;
-
                 var row = new VisualElement();
                 row.AddToClassList("player-row");
 
                 var nameGroup = new VisualElement { style = { flexDirection = FlexDirection.Row } };
 
-                var name = new Label(SessionRunner.DisplayName(player));
+                var name = new Label(player.Name);
                 name.AddToClassList("player-row__name");
                 nameGroup.Add(name);
 
-                if (player.Id == m_Runner.Session.Host)
+                if (player.IsHost)
                 {
                     nameGroup.Add(Tag("host"));
                 }
 
-                if (isSelf)
+                if (player.IsSelf)
                 {
                     nameGroup.Add(Tag("you"));
                 }
 
-                var state = new Label(ready ? "Ready" : "Not ready");
+                var state = new Label(player.IsReady ? "Ready" : "Not ready");
                 state.AddToClassList("player-row__state");
-                if (ready)
+                if (player.IsReady)
                 {
                     state.AddToClassList("player-row__state--ready");
                 }
@@ -255,6 +286,62 @@ namespace Dragoneye.Multiplayer
                 row.Add(nameGroup);
                 row.Add(state);
                 m_PlayerList.Add(row);
+            }
+        }
+
+        /// <summary>
+        /// The single place session state becomes words. A fault outranks the phase, because when
+        /// something has gone wrong that is the only thing the player needs to read.
+        /// </summary>
+        static string Describe(SessionPhase phase, SessionFault fault, string playerName)
+        {
+            switch (fault)
+            {
+                case SessionFault.NotFound:
+                    return "No session with that join code.";
+                case SessionFault.Deleted:
+                    return "That session no longer exists.";
+                case SessionFault.Forbidden:
+                    return "Cannot join -- the session is full or locked.";
+                case SessionFault.NotAuthorized:
+                    return "Not authorized. Check that this project is linked and Relay is enabled.";
+                case SessionFault.RateLimited:
+                    return "Too many requests -- wait a few seconds and retry.";
+                case SessionFault.NetcodeFailed:
+                    return "Relay connected but netcode failed to start. See the console.";
+                case SessionFault.AlreadyInSession:
+                    return "A session is already open on this client. Leave it first.";
+                case SessionFault.NoJoinCode:
+                    return "Enter a join code first.";
+                case SessionFault.NotReady:
+                    return "Still connecting to Unity services -- try again in a moment.";
+                case SessionFault.RemovedFromSession:
+                    return "You were removed from the session.";
+                case SessionFault.NameRejected:
+                    return "Could not set that name.";
+                case SessionFault.LeaveNotConfirmed:
+                    return "Left locally, but the server did not confirm. "
+                        + "You may linger in the lobby until it times you out.";
+                case SessionFault.ServicesUnreachable:
+                    return "Could not reach Unity services. See the console.";
+                case SessionFault.Unknown:
+                    return "Something went wrong. See the console.";
+            }
+
+            switch (phase)
+            {
+                case SessionPhase.Connecting:
+                    return "Connecting to Unity services...";
+                case SessionPhase.Hosting:
+                    return "Creating session...";
+                case SessionPhase.Joining:
+                    return "Joining...";
+                case SessionPhase.Leaving:
+                    return "Leaving...";
+                case SessionPhase.InLobby:
+                    return "In lobby.";
+                default:
+                    return string.IsNullOrEmpty(playerName) ? "Ready." : $"Signed in as {playerName}";
             }
         }
 

@@ -1,11 +1,10 @@
-using Dragoneye.CameraControl;
 using Dragoneye.Hex.Systems;
 using UnityEngine;
 
 namespace Dragoneye.Game
 {
     /// <summary>
-    /// Glue: tells the camera how far it may roam, derived from whatever arena is loaded.
+    /// Tells the focus point how far it may roam, derived from whatever arena is loaded.
     ///
     /// This exists so neither side has to know about the other. The camera assembly has no
     /// reference to the hex assemblies and would work in a game with no grid at all; the hex
@@ -19,23 +18,10 @@ namespace Dragoneye.Game
         ArenaMap m_Arena;
 
         [SerializeField]
-        CameraCursor m_Cursor;
+        FocusPoint m_Focus;
 
         [SerializeField, Tooltip("Extra world units the camera may travel beyond the outermost tile.")]
         float m_Margin = 2f;
-
-        void Awake()
-        {
-            if (m_Arena == null)
-            {
-                m_Arena = FindAnyObjectByType<ArenaMap>();
-            }
-
-            if (m_Cursor == null)
-            {
-                m_Cursor = FindAnyObjectByType<CameraCursor>();
-            }
-        }
 
         void OnEnable()
         {
@@ -63,12 +49,12 @@ namespace Dragoneye.Game
         }
 
         /// <summary>
-        /// Points at a different cursor and immediately re-applies the bounds. Called when the
-        /// local player's networked cursor spawns.
+        /// Points at a different focus point and immediately re-applies the bounds. Called when the
+        /// local player's networked focus spawns.
         /// </summary>
-        public void SetCursor(CameraCursor cursor)
+        public void SetFocus(FocusPoint focus)
         {
-            m_Cursor = cursor;
+            m_Focus = focus;
             Apply();
         }
 
@@ -76,12 +62,14 @@ namespace Dragoneye.Game
 
         void Apply()
         {
-            if (m_Cursor == null || m_Arena == null || m_Arena.Map == null || m_Arena.Map.Count == 0)
+            if (m_Focus == null || m_Arena == null || m_Arena.Map == null || m_Arena.Map.Count == 0)
             {
                 return;
             }
 
-            var bounds = new Bounds(m_Arena.ToWorld(default), Vector3.zero);
+            // Not seeded from a real position: the first tile below sets it, and seeding from an
+            // arbitrary hex would silently widen the box if the loop ever ran zero times.
+            var bounds = default(Bounds);
             var first = true;
 
             foreach (var hex in m_Arena.Map.Coordinates)
@@ -99,7 +87,7 @@ namespace Dragoneye.Game
             }
 
             bounds.Expand(new Vector3(m_Margin * 2f, 0f, m_Margin * 2f));
-            m_Cursor.SetBounds(bounds);
+            m_Focus.SetBounds(bounds);
         }
     }
 }

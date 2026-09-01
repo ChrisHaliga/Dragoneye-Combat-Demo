@@ -1,19 +1,22 @@
+using Dragoneye.CameraControl;
 using UnityEngine;
 
-namespace Dragoneye.CameraControl
+namespace Dragoneye.Game
 {
     /// <summary>
-    /// The point of interest the camera watches. Movement input drives this, not the camera.
+    /// The point of interest the camera watches: world state, replicated to every client.
     ///
-    /// Separating it means panning is a property of a thing in the world rather than of the view:
-    /// gameplay can read where the player is looking, snap the cursor to a unit, or drive it from a
-    /// cutscene, and the camera follows without any of that knowing what a camera is.
+    /// It lives in the game assembly, not the camera assembly, because its transform is replicated --
+    /// where a player is looking is something other players can see. The camera reaches it only
+    /// through <see cref="ICameraFocus"/>, so the view never names a networked type.
     ///
-    /// Moves instantly, with no smoothing. Damping on a directly-controlled cursor reads as input
-    /// lag, not as polish.
+    /// Named "focus", not "cursor": a mouse cursor is a different thing this project will also need.
+    ///
+    /// Moves instantly, with no smoothing. Damping on a directly-driven point reads as input lag,
+    /// not as polish.
     /// </summary>
     [DisallowMultipleComponent]
-    public sealed class CameraCursor : MonoBehaviour
+    public sealed class FocusPoint : MonoBehaviour, ICameraFocus
     {
         [SerializeField, Tooltip("World units per second at full deflection.")]
         float m_MoveSpeed = 22f;
@@ -30,7 +33,7 @@ namespace Dragoneye.CameraControl
         public Vector3 Position => transform.position;
 
         /// <summary>
-        /// Confines the cursor. Supplied at runtime so it adapts to whatever arena is loaded
+        /// Confines the focus point. Supplied at runtime so it adapts to whatever arena is loaded
         /// without knowing anything about maps.
         /// </summary>
         public void SetBounds(Bounds bounds)
@@ -75,11 +78,11 @@ namespace Dragoneye.CameraControl
             }
 
             // Dragging grabs the world, so the cursor moves opposite to the pointer.
-            var direction = CameraRigMath.PanDirection(-pixelDelta, yawDegrees);
+            var direction = CameraRigMath.PanDirectionFromDelta(-pixelDelta, yawDegrees);
             Translate(direction * (pixelDelta.magnitude * m_DragSpeed * speedScale));
         }
 
-        /// <summary>Jumps the cursor somewhere, respecting bounds. For "focus my unit".</summary>
+        /// <summary>Jumps the focus somewhere, respecting bounds. For "focus my unit".</summary>
         public void SnapTo(Vector3 position)
         {
             transform.position = new Vector3(position.x, transform.position.y, position.z);
