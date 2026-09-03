@@ -74,7 +74,7 @@ namespace Dragoneye.Game
             // was ever recorded, because the server filled entries from its own SessionRunner --
             // so everyone else showed as "Player N".
             var runner = Dragoneye.Multiplayer.SessionRunner.Instance;
-            var name = runner != null ? runner.PlayerName : null;
+            var name = runner != null ? runner.DisplayName : null;
             if (!string.IsNullOrEmpty(name))
             {
                 ReportNameRpc(new FixedString64Bytes(FixedStringText.Clamp(name)));

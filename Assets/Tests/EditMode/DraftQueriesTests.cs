@@ -212,5 +212,70 @@ namespace Dragoneye.Hex.Tests
                 }
             }
         }
+
+        [Test]
+        public void APlayerWhoControlsNothingStillHasTheirParty()
+        {
+            // The HUD used to infer the local party from a creature the player controlled, and fell
+            // back to "the first party present" when they controlled none -- showing a Heroes player
+            // the Monsters column. The choice is stored, so it survives holding nothing.
+            var choices = Choices((0, Party.Monsters), (1, Party.Heroes));
+            var roster = new List<RosterEntry>
+            {
+                Entry(1, Party.Heroes, claimedBy: 1),
+                Entry(2, Party.Monsters, claimedBy: 1)
+            };
+
+            Assert.AreEqual(0, DraftQueries.ClaimCountFor(roster, 0), "Slot 0 holds nothing");
+            Assert.IsTrue(DraftQueries.TryGetParty(choices, 0, out var party));
+            Assert.AreEqual(Party.Monsters, party, "Their own choice, not the first party present");
+        }
+
+        [Test]
+        public void APartyIsReportedEvenWhenItHasNoCreaturesLeft()
+        {
+            // Same failure the other way round: every creature on the side claimed by teammates.
+            var choices = Choices((0, Party.Heroes));
+
+            Assert.IsTrue(DraftQueries.TryGetParty(choices, 0, out var party));
+            Assert.AreEqual(Party.Heroes, party);
+            Assert.AreEqual(0, DraftQueries.CreatureCountIn(new List<RosterEntry>(), Party.Heroes));
+        }
+
+        [Test]
+        public void EveryCreatureOnAJoinedSideIsClaimableSoNothingIsStrandedUnclaimed()
+        {
+            // A host who builds a roster by hand and never presses Claim used to end up with every
+            // creature unclaimed -- server-owned, so nobody could move anything. Match start now
+            // fills up to the cap, and the cap covers the whole side when one player is on it.
+            var roster = new List<RosterEntry>
+            {
+                Entry(1, Party.Heroes), Entry(2, Party.Heroes), Entry(3, Party.Heroes)
+            };
+            var choices = Choices((0, Party.Heroes));
+
+            Assert.AreEqual(3, DraftQueries.CapFor(roster, choices, 0));
+
+            foreach (var entry in roster)
+            {
+                Assert.IsTrue(DraftQueries.CanClaim(roster, choices, 0, entry.EntryId),
+                    $"Entry {entry.EntryId} should be claimable by the only player on its side");
+            }
+        }
+
+        [Test]
+        public void APartyNobodyJoinedStaysUnclaimed()
+        {
+            // The other half of the same rule: filling up to caps must not hand the enemy side to a
+            // player. A party with no players has a cap of zero, so it stays computer-run.
+            var roster = new List<RosterEntry>
+            {
+                Entry(1, Party.Heroes), Entry(2, Party.Monsters)
+            };
+            var choices = Choices((0, Party.Heroes));
+
+            Assert.AreEqual(1, DraftQueries.CapFor(roster, choices, 0));
+            Assert.IsFalse(DraftQueries.CanClaim(roster, choices, 0, 2), "Monsters is not their side");
+        }
     }
 }

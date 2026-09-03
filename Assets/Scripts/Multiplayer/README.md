@@ -13,7 +13,7 @@ easy to misread.
 | Scene | Contents |
 |---|---|
 | **Bootstrap** | `NetworkManager` (+ `UnityTransport`), `Session Runner` (`SessionRunner` + `MatchFlow`). Nothing visible. Loads MainMenu on start. |
-| **MainMenu** | Menu camera, `Session UI` — `UIDocument` (→ `SessionPanelSettings` + `SessionMenu.uxml`) + `SessionMenuUI`. |
+| **MainMenu** | Menu camera, `Session UI` — `UIDocument` (→ `SessionPanelSettings` + `SessionMenu.uxml`) + `MainMenuUI`, and `Draft Panel` — `UIDocument` + `DraftPanelView`. |
 | **Arena** | Camera, light, ground, four `SpawnPoint`s. |
 
 **Why the persistent objects live in Bootstrap and not MainMenu:** `NetworkManager.OnEnable` calls
@@ -45,10 +45,43 @@ Bootstrap ──> MainMenu ──host clicks Start──> Arena ──session en
   `MatchFlow.ReturnToMenu()` shuts netcode down and loads MainMenu with a plain (non-networked)
   `SceneManager.LoadScene`. `ReturnToMenu` is idempotent because a host leaving fires both a
   netcode disconnect and a lobby `Deleted` event, and either can arrive first.
-- **Leaving mid-match.** Escape in the Arena scene calls `LeaveAsync`.
+- **Leaving mid-match.** Escape in the Arena scene calls `MatchFlow.LeaveMatch()`, which leaves the
+  session when there is one and otherwise just shuts netcode down. The input layer does not need
+  to know which kind of match it is in.
 
 There is **no host migration**. Host leaves, match over, everyone back to the menu. Deliberate for
 the MVP; it constrains how much authoritative state can live only on the host.
+
+## Singleplayer
+
+The Singleplayer button calls `MatchFlow.StartSoloMatch()`: it restores the loopback transport
+settings a previous Relay session may have overwritten, calls `NetworkManager.StartHost()`, and
+loads the Arena. No sign-in, no session, no Relay, no join code, and nothing can connect to it.
+
+Netcode still runs. That is the point rather than a compromise: a solo match then takes the exact
+same path through spawning, ownership, the draft and the rules as a hosted one. A separate
+netcode-free path would be a second implementation of those rules, free to drift from the
+multiplayer one until a playtest caught it. The cost is a loopback socket nobody dials.
+
+Sign-in still happens at boot so the multiplayer screens can prepopulate a name, but nothing on the
+Singleplayer, Settings or Quit paths depends on it — they all work with the services unreachable.
+
+## Menu structure
+
+`MainMenuUI` owns which panel is visible; the screens themselves are plain classes bound to one
+subtree each.
+
+```
+Home ──> Singleplayer  (straight to Arena)
+     ──> Multiplayer ──> Host ──> Lobby
+     │               └─> Join ──> Lobby
+     ──> Test Mode    (disabled)
+     ──> Settings
+     ──> Quit
+```
+
+Everything needing Unity services lives in `SessionScreens`, which is what lets the rest of the
+menu work offline. `SettingsScreen` reads and writes `Dragoneye.Settings.GameSettings`.
 
 ## How a session maps onto netcode
 

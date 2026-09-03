@@ -109,7 +109,7 @@ namespace Dragoneye.Game
             m_List.Clear();
 
             var party = LocalParty();
-            m_Title.text = party.HasValue ? PartyPalette.NameOf(party.Value) : "Party";
+            m_Title.text = party.HasValue ? PartyPalette.NameOf(party.Value) : "Spectating";
 
             if (!party.HasValue)
             {
@@ -125,32 +125,33 @@ namespace Dragoneye.Game
         }
 
         /// <summary>
-        /// The side the local player is on, inferred from a creature they control. Falls back to the
-        /// first party present so a spectator still sees something rather than an empty column.
+        /// The side the local player chose, read from the draft.
+        ///
+        /// This used to be inferred from a creature the player happened to control, which was a view
+        /// reconstructing a fact the draft already owns -- and it was wrong exactly when it mattered:
+        /// a player whose teammates claimed everything, or whose claims were released by
+        /// <c>EnforceCaps</c>, controls nothing, so the inference fell through to "the first party
+        /// present" and showed them the enemy column.
+        ///
+        /// Null means no party, which is a real state -- a spectator, or a player who has not picked
+        /// yet -- and the caller shows an empty column for it rather than guessing.
         /// </summary>
         Party? LocalParty()
         {
             var roster = PlayerRoster.Current;
             var manager = NetworkManager.Singleton;
+            var draft = DraftState.Current;
 
-            if (roster != null && manager != null && roster.TryGet(manager.LocalClientId, out var entry))
+            if (roster == null || manager == null || draft == null
+                || !roster.TryGet(manager.LocalClientId, out var entry)
+                || entry.Slot < 0 || entry.Slot > byte.MaxValue)
             {
-                var mine = m_Creatures.FirstControlledBy(entry.Slot);
-                if (mine != null)
-                {
-                    return mine.Party;
-                }
+                return null;
             }
 
-            foreach (var creature in m_Creatures.All)
-            {
-                if (creature != null)
-                {
-                    return creature.Party;
-                }
-            }
-
-            return null;
+            return DraftQueries.TryGetParty(draft.Choices, (byte)entry.Slot, out var party)
+                ? party
+                : (Party?)null;
         }
 
         VisualElement BuildPortrait(CreatureState creature)

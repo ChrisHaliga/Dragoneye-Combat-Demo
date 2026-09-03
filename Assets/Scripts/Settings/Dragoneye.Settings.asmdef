@@ -1,11 +1,7 @@
 {
-    "name": "Dragoneye.Camera",
-    "rootNamespace": "Dragoneye.CameraControl",
-    "references": [
-        "Dragoneye.Settings",
-        "Unity.InputSystem",
-        "Unity.Cinemachine"
-    ],
+    "name": "Dragoneye.Settings",
+    "rootNamespace": "Dragoneye.Settings",
+    "references": [],
     "includePlatforms": [],
     "excludePlatforms": [],
     "allowUnsafeCode": false,

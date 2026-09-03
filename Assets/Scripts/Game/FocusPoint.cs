@@ -1,4 +1,5 @@
 using Dragoneye.CameraControl;
+using Dragoneye.Settings;
 using UnityEngine;
 
 namespace Dragoneye.Game
@@ -60,7 +61,7 @@ namespace Dragoneye.Game
             }
 
             var direction = CameraRigMath.PanDirection(input, yawDegrees);
-            Translate(direction * (m_MoveSpeed * speedScale * deltaTime));
+            Translate(direction * (m_MoveSpeed * GameSettings.PanSensitivity * speedScale * deltaTime));
         }
 
         /// <summary>
@@ -79,7 +80,8 @@ namespace Dragoneye.Game
 
             // Dragging grabs the world, so the cursor moves opposite to the pointer.
             var direction = CameraRigMath.PanDirectionFromDelta(-pixelDelta, yawDegrees);
-            Translate(direction * (pixelDelta.magnitude * m_DragSpeed * speedScale));
+            Translate(direction
+                * (pixelDelta.magnitude * m_DragSpeed * GameSettings.PanSensitivity * speedScale));
         }
 
         /// <summary>Jumps the focus somewhere, respecting bounds. For "focus my unit".</summary>

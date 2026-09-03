@@ -24,6 +24,11 @@ namespace Dragoneye.Game
         readonly NetworkVariable<int> m_CurrentHp = new NetworkVariable<int>();
         readonly NetworkVariable<int> m_CurrentAp = new NetworkVariable<int>();
 
+        // Identity handed over before the spawn, held until there are NetworkVariables to put it in.
+        ushort m_StartCreatureId;
+        Party m_StartParty;
+        byte m_StartControllerSlot = PartyInfo.Unclaimed;
+
         CreatureDefinition m_Definition;
         CreatureRegistry m_Registry;
 
@@ -40,6 +45,18 @@ namespace Dragoneye.Game
 
         public int CurrentAp => m_CurrentAp.Value;
 
+        /// <summary>
+        /// The one catalog in play.
+        ///
+        /// <see cref="DraftState"/> owns it because it needs it first -- it builds the roster in the
+        /// lobby, before any arena exists -- and it survives into the arena as a spawned object. A
+        /// second serialised copy on the arena was a second thing to point at the wrong asset, which
+        /// would resolve ids in the spawner and not in the HUD and look exactly like a replication
+        /// bug.
+        /// </summary>
+        public static CreatureCatalog Catalog =>
+            DraftState.Current != null ? DraftState.Current.Catalog : null;
+
         /// <summary>The authored definition, resolved locally. Null if the id does not resolve.</summary>
         public CreatureDefinition Definition
         {
@@ -47,13 +64,7 @@ namespace Dragoneye.Game
             {
                 if (m_Definition == null)
                 {
-                    // The arena owns the catalog; falling back to the draft keeps a lobby-only
-                    // scene working, but the arena is the normal path.
-                    var context = ArenaContext.Current;
-                    var catalog = context != null && context.Catalog != null
-                        ? context.Catalog
-                        : DraftState.Current != null ? DraftState.Current.Catalog : null;
-
+                    var catalog = Catalog;
                     m_Definition = catalog != null ? catalog.Resolve(m_CreatureId.Value) : null;
                 }
 
@@ -74,6 +85,19 @@ namespace Dragoneye.Game
 
         public override void OnNetworkSpawn()
         {
+            // Before subscribing and before registering with the HUD, so the creature is never
+            // briefly a party-zero, full-health nobody that the portrait column has to redraw.
+            if (IsServer)
+            {
+                var definition = Catalog != null ? Catalog.Resolve(m_StartCreatureId) : null;
+
+                m_CreatureId.Value = m_StartCreatureId;
+                m_PartyId.Value = (byte)m_StartParty;
+                m_ControllerSlot.Value = m_StartControllerSlot;
+                m_CurrentHp.Value = definition != null ? definition.MaxHp : 1;
+                m_CurrentAp.Value = definition != null ? definition.MaxAp : 0;
+            }
+
             m_CreatureId.OnValueChanged += OnIdChanged;
             m_PartyId.OnValueChanged += OnByteChanged;
             m_ControllerSlot.OnValueChanged += OnByteChanged;
@@ -110,20 +134,19 @@ namespace Dragoneye.Game
             }
         }
 
-        /// <summary>Server only. Sets identity and fills vitals from the authored definition.</summary>
-        public void ServerInitialise(ushort creatureId, Party party, byte controllerSlot,
-            CreatureDefinition definition)
+        /// <summary>
+        /// Server only, and only before <c>Spawn()</c>. Sets what this creature is; vitals are
+        /// filled from the authored definition when the object spawns.
+        ///
+        /// Takes an id rather than a definition: the definition is authored data every peer can
+        /// resolve locally, so passing one in would invite a caller to hand over a definition that
+        /// disagrees with the id being replicated.
+        /// </summary>
+        public void ServerConfigure(ushort creatureId, Party party, byte controllerSlot)
         {
-            if (!IsServer)
-            {
-                return;
-            }
-
-            m_CreatureId.Value = creatureId;
-            m_PartyId.Value = (byte)party;
-            m_ControllerSlot.Value = controllerSlot;
-            m_CurrentHp.Value = definition != null ? definition.MaxHp : 1;
-            m_CurrentAp.Value = definition != null ? definition.MaxAp : 0;
+            m_StartCreatureId = creatureId;
+            m_StartParty = party;
+            m_StartControllerSlot = controllerSlot;
         }
 
         void OnIdChanged(ushort previous, ushort current)

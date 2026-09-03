@@ -132,11 +132,10 @@ GameObject:
   - component: {fileID: 261654051}
   - component: {fileID: 261654057}
   - component: {fileID: 261654056}
-  - component: {fileID: 261654055}
   - component: {fileID: 261654054}
   - component: {fileID: 261654058}
-  - component: {fileID: 261654059}
   - component: {fileID: 261654060}
+  - component: {fileID: 261654061}
   m_Layer: 0
   m_Name: Arena Context
   m_TagString: Untagged
@@ -176,7 +175,7 @@ MonoBehaviour:
   m_CameraBounds: {fileID: 1461267525}
   m_OutputCamera: {fileID: 1164859713}
   m_Units: {fileID: 261654057}
-  m_Catalog: {fileID: 11400000, guid: 3f3f32dd7c5c26e45b62f3d4b3e2490e, type: 2}
+  m_Creatures: {fileID: 261654061}
 --- !u!4 &261654053
 Transform:
   m_ObjectHideFlags: 0
@@ -207,20 +206,6 @@ MonoBehaviour:
   m_Pointer: {fileID: 261654056}
   m_Marker: {fileID: 1536404565}
   m_GroundOffset: 0.03
---- !u!114 &261654055
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 261654050}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 212924441d5e87748bc1ef74c989b141, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Dragoneye.Game::Dragoneye.Game.UnitOrderInput
-  m_Pointer: {fileID: 261654056}
-  m_Units: {fileID: 261654057}
 --- !u!114 &261654056
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -259,21 +244,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 17b2bb6a9b916e5449336c5b9b38fa58, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Dragoneye.Game::Dragoneye.Game.CreatureSelection
---- !u!114 &261654059
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 261654050}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 1111ffb345f7b93438cdcdba750cf342, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Dragoneye.Game::Dragoneye.Game.BoardSelectionInput
-  m_Pointer: {fileID: 261654056}
-  m_Units: {fileID: 261654057}
-  m_Selection: {fileID: 261654058}
+  m_Creatures: {fileID: 261654061}
 --- !u!114 &261654060
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -289,6 +260,18 @@ MonoBehaviour:
   m_Pointer: {fileID: 261654056}
   m_Units: {fileID: 261654057}
   m_Selection: {fileID: 261654058}
+--- !u!114 &261654061
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 261654050}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ac233e33dbbdc334998e6d1b70c03988, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Dragoneye.Game::Dragoneye.Game.CreatureRegistry
 --- !u!1 &648006334
 GameObject:
   m_ObjectHideFlags: 0
@@ -299,7 +282,8 @@ GameObject:
   m_Component:
   - component: {fileID: 648006337}
   - component: {fileID: 648006336}
-  - component: {fileID: 648006335}
+  - component: {fileID: 648006339}
+  - component: {fileID: 648006338}
   m_Layer: 0
   m_Name: Arena HUD
   m_TagString: Untagged
@@ -307,19 +291,6 @@ GameObject:
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!114 &648006335
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 648006334}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 961cd40ddbc884a4eb4cee8562f70a43, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Dragoneye.Game::Dragoneye.Game.ArenaHudView
-  m_Selection: {fileID: 261654058}
 --- !u!114 &648006336
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -358,6 +329,33 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &648006338
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 648006334}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 26ef9af35ec31814cbfd2f68cba58a57, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Dragoneye.Game::Dragoneye.Game.CreatureCardView
+  m_Selection: {fileID: 261654058}
+--- !u!114 &648006339
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 648006334}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8456d76c4f5091e428db2a74859225ba, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Dragoneye.Game::Dragoneye.Game.PartyPanelView
+  m_Selection: {fileID: 261654058}
+  m_Creatures: {fileID: 261654061}
 --- !u!1 &723212526
 GameObject:
   m_ObjectHideFlags: 0

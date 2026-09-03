@@ -105,6 +105,22 @@ namespace Dragoneye.Multiplayer
         /// </summary>
         public static string CachedPlayerName => PlayerPrefs.GetString(k_CachedNameKey, string.Empty);
 
+        /// <summary>
+        /// What to call this player, signed in or not: the account name when services are up, and
+        /// the last name they used otherwise.
+        ///
+        /// A solo match never signs in, so without the fallback a player would show up as
+        /// "Player 1" in their own single-player game.
+        /// </summary>
+        public string DisplayName
+        {
+            get
+            {
+                var authoritative = PlayerName;
+                return string.IsNullOrEmpty(authoritative) ? CachedPlayerName : authoritative;
+            }
+        }
+
         /// <summary>Raised whenever anything the UI renders may have changed.</summary>
         public event Action Changed;
 

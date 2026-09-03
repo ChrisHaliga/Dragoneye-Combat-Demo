@@ -1,3 +1,4 @@
+using Dragoneye.Settings;
 using UnityEngine;
 
 namespace Dragoneye.CameraControl
@@ -65,11 +66,15 @@ namespace Dragoneye.CameraControl
 
         public float Yaw => m_Yaw;
 
-        public float ZoomSensitivity => m_ZoomSensitivity;
+        // Player sensitivity is folded in here rather than at the input site, so the serialised
+        // field stays the "feels right at 1x" baseline and the preference stays a pure multiplier.
+        public float ZoomSensitivity => m_ZoomSensitivity * GameSettings.ZoomSensitivity;
 
-        public float OrbitDragSpeed => m_OrbitDragSpeed;
+        /// <summary>Signed: negative when the player has asked for inverted orbit drag.</summary>
+        public float OrbitDragSpeed =>
+            m_OrbitDragSpeed * GameSettings.OrbitSensitivity * GameSettings.OrbitDirection;
 
-        public float ZoomDragSpeed => m_ZoomDragSpeed;
+        public float ZoomDragSpeed => m_ZoomDragSpeed * GameSettings.ZoomSensitivity;
 
         /// <summary>
         /// Camera offset from the cursor, in rig-local space. An applier copies this onto whatever
@@ -141,7 +146,7 @@ namespace Dragoneye.CameraControl
                 return;
             }
 
-            m_Yaw += input * m_RotateSpeed * deltaTime;
+            m_Yaw += input * m_RotateSpeed * GameSettings.OrbitSensitivity * deltaTime;
         }
 
         /// <summary>Orbit by a raw degree amount. Used by drag, which is already frame-independent.</summary>

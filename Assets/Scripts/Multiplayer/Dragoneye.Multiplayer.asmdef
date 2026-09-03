@@ -2,6 +2,7 @@
     "name": "Dragoneye.Multiplayer",
     "rootNamespace": "Dragoneye.Multiplayer",
     "references": [
+        "Dragoneye.Settings",
         "Dragoneye.Hex",
         "Dragoneye.Hex.Systems",
         "Unity.Netcode.Runtime",

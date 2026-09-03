@@ -45,7 +45,7 @@ namespace Dragoneye.Game
             // A full-screen element with the default picking mode therefore eats every click meant
             // for the menu underneath -- which is exactly what happened to the Host button. The
             // document root AND the template root both have to opt out; only the panel opts back in.
-            MakeClickThrough(m_Root);
+            CreatureDisplay.MakeClickThrough(m_Root);
 
             m_Panel = m_Root.Q<VisualElement>("draft-panel");
             m_TeamButtons = m_Root.Q<VisualElement>("team-buttons");
@@ -71,20 +71,6 @@ namespace Dragoneye.Game
 
             BuildPartyButtons();
             Refresh();
-        }
-
-        /// <summary>
-        /// Makes an element and every full-screen ancestor transparent to clicks. Interactive
-        /// children set their own mode back to Position.
-        /// </summary>
-        static void MakeClickThrough(VisualElement root)
-        {
-            root.pickingMode = PickingMode.Ignore;
-
-            foreach (var child in root.Children())
-            {
-                child.pickingMode = PickingMode.Ignore;
-            }
         }
 
         void Update()

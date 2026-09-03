@@ -2,6 +2,7 @@
     "name": "Dragoneye.Game",
     "rootNamespace": "Dragoneye.Game",
     "references": [
+        "Dragoneye.Settings",
         "Dragoneye.Hex",
         "Dragoneye.Hex.Systems",
         "Dragoneye.Camera",

@@ -57,19 +57,5 @@ namespace Dragoneye.Game
 
             return result;
         }
-
-        /// <summary>The creature a given player slot controls, or null.</summary>
-        public CreatureState FirstControlledBy(int slot)
-        {
-            foreach (var creature in m_Creatures)
-            {
-                if (creature != null && creature.ControllerSlot == slot)
-                {
-                    return creature;
-                }
-            }
-
-            return null;
-        }
     }
 }

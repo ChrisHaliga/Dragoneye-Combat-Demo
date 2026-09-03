@@ -59,10 +59,13 @@ namespace Dragoneye.Game
                 return;
             }
 
-            // Empty ground: move the selection, if it is ours to move. The server checks ownership
-            // again; this only avoids sending an order that is certain to be refused.
+            // Empty ground: move the selection, if it is ours to move. The server checks this again;
+            // here it only avoids sending an order that is certain to be refused.
+            //
+            // Control, not ownership: an unclaimed creature is owned by the server, so a host asking
+            // IsOwner is told yes for every computer-run creature on the board.
             var selected = m_Selection.Selected;
-            if (selected == null || !selected.IsOwner)
+            if (!LocalPlayer.Controls(selected))
             {
                 m_Selection.Clear();
                 return;

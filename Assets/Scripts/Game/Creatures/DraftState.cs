@@ -318,31 +318,58 @@ namespace Dragoneye.Game
         }
 
         /// <summary>
-        /// Server only. Fills an empty draft so a match is playable without anyone using the draft
-        /// UI, and -- critically -- puts every player on a side and hands them their share.
+        /// Server only. Brings the draft to a state a match can actually be played from, whatever
+        /// the players did or did not do in the lobby.
         ///
-        /// Seeding creatures without also seeding party choices left every creature unclaimed, so
-        /// they all spawned server-owned: the host silently owned everything and no client owned
-        /// anything.
+        /// Three steps, and they are separate because they have different conditions. Seeding only
+        /// makes sense for an untouched draft; assigning a side and handing out shares have to
+        /// happen either way. They used to all sit behind the "is the roster empty" guard, so a host
+        /// who added a single creature by hand got no party assigned and nothing claimed -- every
+        /// creature stayed unclaimed, which means server-owned, which means nobody could move
+        /// anything. It looked like the opposite bug on a solo host, where owning the server also
+        /// meant owning every unclaimed creature on the board.
         /// </summary>
-        public void ServerSeedIfEmpty(int perParty, IReadOnlyList<byte> playerSlots)
+        public void ServerPrepareForMatch(int perParty, IReadOnlyList<byte> playerSlots)
         {
-            if (!IsServer || m_Roster.Count > 0 || m_Catalog == null || m_Catalog.Count == 0)
+            if (!IsServer)
             {
                 return;
             }
 
-            // Spread players who have not chosen across the first two parties, so a solo host still
-            // gets an opponent and a pair start on opposite sides.
-            if (playerSlots != null)
+            AssignMissingParties(playerSlots);
+            SeedIfEmpty(perParty);
+            ClaimUpToCaps();
+        }
+
+        /// <summary>
+        /// Puts anyone who skipped the draft on a side, alternating, so a solo host still gets an
+        /// opponent and a pair start opposite each other.
+        /// </summary>
+        void AssignMissingParties(IReadOnlyList<byte> playerSlots)
+        {
+            if (playerSlots == null)
             {
-                for (var i = 0; i < playerSlots.Count; i++)
+                return;
+            }
+
+            for (var i = 0; i < playerSlots.Count; i++)
+            {
+                if (!HasChosenParty(playerSlots[i]))
                 {
-                    if (!HasChosenParty(playerSlots[i]))
-                    {
-                        SetChoice(playerSlots[i], i % 2 == 0 ? Party.Heroes : Party.Monsters);
-                    }
+                    SetChoice(playerSlots[i], i % 2 == 0 ? Party.Heroes : Party.Monsters);
                 }
+            }
+        }
+
+        /// <summary>
+        /// Deals a starting roster, but only into a draft nobody has touched. A hand-built roster is
+        /// the host's decision and must not be added to behind their back.
+        /// </summary>
+        void SeedIfEmpty(int perParty)
+        {
+            if (m_Roster.Count > 0 || m_Catalog == null || m_Catalog.Count == 0 || perParty <= 0)
+            {
+                return;
             }
 
             var parties = new List<Party>();
@@ -375,18 +402,23 @@ namespace Dragoneye.Game
                     m_Roster.Add(new RosterEntry(m_NextEntryId++, m_Catalog.IdOf(definition), party));
                 }
             }
-
-            AutoClaim(parties);
         }
 
-        /// <summary>Gives each player the creatures on their own side, up to their cap.</summary>
-        void AutoClaim(List<Party> parties)
+        /// <summary>
+        /// Hands every player the unclaimed creatures on their own side, up to their cap.
+        ///
+        /// Runs at match start regardless of what the lobby did, so forgetting to press Claim costs
+        /// a player nothing. Caps still apply, so whatever is left over stays unclaimed and is run
+        /// by the computer -- including every creature in a party nobody joined.
+        /// </summary>
+        void ClaimUpToCaps()
         {
-            foreach (var party in parties)
+            foreach (var party in PartyInfo.All)
             {
                 foreach (var slot in SlotsIn(party))
                 {
                     var cap = CapFor(slot);
+
                     for (var i = 0; i < m_Roster.Count && ClaimCountFor(slot) < cap; i++)
                     {
                         var entry = m_Roster[i];

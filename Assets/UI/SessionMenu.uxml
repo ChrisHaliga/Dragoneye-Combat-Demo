@@ -2,21 +2,59 @@
     <ui:VisualElement name="root" class="root">
         <Style src="SessionMenu.uss" />
 
-        <ui:VisualElement name="menu-panel" class="panel">
+        <ui:VisualElement name="home-panel" class="panel">
             <ui:Label text="Dragoneye Combat" class="title" />
+            <ui:Label text="A tactics demo on a hex board." class="subtitle" />
+
+            <ui:VisualElement class="menu-stack">
+                <ui:Button name="singleplayer-button" text="Singleplayer" class="button button--primary button--menu" />
+                <ui:Button name="multiplayer-button" text="Multiplayer" class="button button--menu" />
+                <ui:Button name="test-mode-button" text="Test Mode" class="button button--menu" />
+                <ui:Button name="settings-button" text="Settings" class="button button--menu" />
+                <ui:Button name="quit-button" text="Quit" class="button button--ghost button--menu" />
+            </ui:VisualElement>
+        </ui:VisualElement>
+
+        <ui:VisualElement name="solo-panel" class="panel is-hidden">
+            <ui:Label text="Singleplayer" class="title" />
+            <ui:Label text="Pick your side and claim your creatures, then start." class="subtitle" />
+
+            <ui:Button name="solo-start-button" text="Start match" class="button button--primary" />
+            <ui:Button name="solo-back-button" text="Back" class="button button--ghost back-button" />
+        </ui:VisualElement>
+
+        <ui:VisualElement name="multiplayer-panel" class="panel is-hidden">
+            <ui:Label text="Multiplayer" class="title" />
             <ui:Label text="Play over the internet with a join code." class="subtitle" />
+
+            <ui:VisualElement class="menu-stack">
+                <ui:Button name="host-menu-button" text="Host a game" class="button button--primary button--menu" />
+                <ui:Button name="join-menu-button" text="Join a game" class="button button--menu" />
+            </ui:VisualElement>
+
+            <ui:Button name="multiplayer-back-button" text="Back" class="button button--ghost back-button" />
+        </ui:VisualElement>
+
+        <ui:VisualElement name="host-panel" class="panel is-hidden">
+            <ui:Label text="Host a game" class="title" />
+            <ui:Label text="You will get a join code to share once the lobby opens." class="subtitle" />
 
             <ui:VisualElement class="field-group">
                 <ui:Label text="Your name" class="field-label" />
-                <ui:TextField name="name-field" max-length="20" class="text-input" />
+                <ui:TextField name="host-name-field" max-length="20" class="text-input" />
             </ui:VisualElement>
 
-            <ui:Button name="host-button" text="Host a game" class="button button--primary" />
+            <ui:Button name="host-button" text="Open lobby" class="button button--primary" />
+            <ui:Button name="host-back-button" text="Back" class="button button--ghost back-button" />
+        </ui:VisualElement>
 
-            <ui:VisualElement class="divider">
-                <ui:VisualElement class="divider__rule" />
-                <ui:Label text="or" class="divider__label" />
-                <ui:VisualElement class="divider__rule" />
+        <ui:VisualElement name="join-panel" class="panel is-hidden">
+            <ui:Label text="Join a game" class="title" />
+            <ui:Label text="Ask the host for their six-character join code." class="subtitle" />
+
+            <ui:VisualElement class="field-group">
+                <ui:Label text="Your name" class="field-label" />
+                <ui:TextField name="join-name-field" max-length="20" class="text-input" />
             </ui:VisualElement>
 
             <ui:VisualElement class="field-group">
@@ -24,10 +62,11 @@
                 <ui:TextField name="code-field" max-length="6" class="text-input text-input--code" />
             </ui:VisualElement>
 
-            <ui:Button name="join-button" text="Join game" class="button" />
+            <ui:Button name="join-button" text="Join game" class="button button--primary" />
+            <ui:Button name="join-back-button" text="Back" class="button button--ghost back-button" />
         </ui:VisualElement>
 
-        <ui:VisualElement name="lobby-panel" class="panel">
+        <ui:VisualElement name="lobby-panel" class="panel is-hidden">
             <ui:Label text="Lobby" class="title" />
 
             <ui:VisualElement class="code-card">
@@ -46,6 +85,59 @@
             <ui:VisualElement class="button-row">
                 <ui:Button name="leave-button" text="Leave" class="button button--ghost" />
                 <ui:Button name="start-button" text="Start match" class="button button--primary" />
+            </ui:VisualElement>
+        </ui:VisualElement>
+
+        <ui:VisualElement name="settings-panel" class="panel panel--wide is-hidden">
+            <ui:Label text="Settings" class="title" />
+
+            <ui:Label text="Display" class="section-heading" />
+
+            <ui:VisualElement class="setting-row">
+                <ui:Label text="Window mode" class="setting-row__label" />
+                <ui:DropdownField name="mode-dropdown" class="setting-row__control dropdown" />
+            </ui:VisualElement>
+
+            <ui:VisualElement class="setting-row">
+                <ui:Label text="Monitor" class="setting-row__label" />
+                <ui:DropdownField name="monitor-dropdown" class="setting-row__control dropdown" />
+            </ui:VisualElement>
+
+            <ui:VisualElement class="setting-row">
+                <ui:Label text="Resolution" class="setting-row__label" />
+                <ui:DropdownField name="resolution-dropdown" class="setting-row__control dropdown" />
+            </ui:VisualElement>
+
+            <ui:Label name="display-note" text="" class="setting-note" />
+
+            <ui:Label text="Controls" class="section-heading" />
+
+            <ui:VisualElement class="setting-row">
+                <ui:Label text="Pan speed" class="setting-row__label" />
+                <ui:Slider name="pan-slider" low-value="0.25" high-value="3" class="setting-row__control slider" />
+                <ui:Label name="pan-value" text="1.00x" class="setting-row__value" />
+            </ui:VisualElement>
+
+            <ui:VisualElement class="setting-row">
+                <ui:Label text="Zoom speed" class="setting-row__label" />
+                <ui:Slider name="zoom-slider" low-value="0.25" high-value="3" class="setting-row__control slider" />
+                <ui:Label name="zoom-value" text="1.00x" class="setting-row__value" />
+            </ui:VisualElement>
+
+            <ui:VisualElement class="setting-row">
+                <ui:Label text="Orbit speed" class="setting-row__label" />
+                <ui:Slider name="orbit-slider" low-value="0.25" high-value="3" class="setting-row__control slider" />
+                <ui:Label name="orbit-value" text="1.00x" class="setting-row__value" />
+            </ui:VisualElement>
+
+            <ui:VisualElement class="setting-row">
+                <ui:Label text="Invert orbit drag" class="setting-row__label" />
+                <ui:Toggle name="invert-toggle" class="setting-row__control" />
+            </ui:VisualElement>
+
+            <ui:VisualElement class="button-row">
+                <ui:Button name="settings-reset-button" text="Reset to defaults" class="button button--ghost" />
+                <ui:Button name="settings-back-button" text="Back" class="button button--primary" />
             </ui:VisualElement>
         </ui:VisualElement>
 

@@ -239,3 +239,106 @@
 .is-hidden {
     display: none;
 }
+
+/* ---------- menu screens ---------- */
+
+.panel--wide {
+    width: 520px;
+}
+
+.menu-stack {
+    margin-top: 4px;
+}
+
+.button--menu {
+    height: 46px;
+    margin-bottom: 10px;
+}
+
+.back-button {
+    margin-top: 18px;
+}
+
+/* ---------- settings ---------- */
+
+.section-heading {
+    font-size: 12px;
+    -unity-font-style: bold;
+    letter-spacing: 2px;
+    color: rgb(110, 120, 142);
+    margin-top: 18px;
+    margin-bottom: 10px;
+}
+
+.setting-row {
+    flex-direction: row;
+    align-items: center;
+    margin-bottom: 10px;
+}
+
+.setting-row__label {
+    width: 140px;
+    font-size: 13px;
+    color: rgb(200, 208, 224);
+}
+
+.setting-row__control {
+    flex-grow: 1;
+    flex-basis: 0;
+    margin: 0;
+}
+
+/* Fixed width and right alignment so the numbers do not shuffle the slider as they change. */
+.setting-row__value {
+    width: 52px;
+    margin-left: 10px;
+    font-size: 12px;
+    color: rgb(148, 158, 180);
+    -unity-text-align: middle-right;
+}
+
+.dropdown .unity-base-popup-field__input {
+    height: 32px;
+    padding-left: 10px;
+    font-size: 13px;
+    color: rgb(226, 232, 245);
+    background-color: rgb(16, 18, 25);
+    border-radius: 8px;
+    border-width: 1px;
+    border-color: rgb(56, 62, 80);
+}
+
+.slider .unity-base-slider__tracker {
+    height: 4px;
+    background-color: rgb(16, 18, 25);
+    border-width: 1px;
+    border-color: rgb(48, 53, 68);
+}
+
+.slider .unity-base-slider__dragger {
+    width: 16px;
+    height: 16px;
+    margin-top: -7px;
+    border-radius: 8px;
+    background-color: rgb(198, 88, 38);
+    border-width: 0;
+}
+
+.setting-note {
+    font-size: 11px;
+    color: rgb(110, 120, 142);
+    white-space: normal;
+    margin-top: 2px;
+}
+
+/* Loud enough to be read before the player concludes the dropdowns are broken. */
+.setting-note--warning {
+    padding: 8px 10px;
+    margin-top: 6px;
+    margin-bottom: 4px;
+    border-radius: 6px;
+    color: rgb(240, 195, 120);
+    background-color: rgba(240, 195, 120, 0.1);
+    border-left-width: 2px;
+    border-left-color: rgb(240, 195, 120);
+}

@@ -133,10 +133,9 @@ namespace Dragoneye.Game
 
             var slots = RegisterPlayers();
 
-            // Until every player has used the draft UI, fill an empty roster so a match is still
-            // playable -- and put players on sides, because seeding creatures without seeding party
-            // choices left everything unclaimed and therefore server-owned.
-            draft.ServerSeedIfEmpty(m_SeedCreaturesPerParty, slots);
+            // Whatever the lobby did or did not do, everyone ends up on a side holding their share.
+            // An untouched draft also gets a starting roster dealt to it.
+            draft.ServerPrepareForMatch(m_SeedCreaturesPerParty, slots);
 
             var roster = draft.Snapshot();
             if (roster.Count == 0)
@@ -214,7 +213,7 @@ namespace Dragoneye.Game
         {
             var runner = SessionRunner.Instance;
             return runner != null && clientId == NetworkManager.Singleton.LocalClientId
-                ? runner.PlayerName
+                ? runner.DisplayName
                 : string.Empty;
         }
 
@@ -278,7 +277,13 @@ namespace Dragoneye.Game
 
                 var owner = OwnerClientFor(entry.ClaimedBySlot);
 
-                // Spawn before writing: NetworkVariable writes on an unspawned object are dropped.
+                // Configure, then spawn. Both components publish what they were given from inside
+                // OnNetworkSpawn, which the server runs before the spawn message goes out -- so the
+                // unit reaches every client already on its hex and already the right creature.
+                instance.GetComponent<UnitState>().ServerPlaceAt(cell);
+                instance.GetComponent<CreatureState>()
+                    .ServerConfigure(entry.CreatureId, entry.Party, entry.ClaimedBySlot);
+
                 if (owner.HasValue)
                 {
                     networkObject.SpawnWithOwnership(owner.Value);
@@ -287,15 +292,6 @@ namespace Dragoneye.Game
                 {
                     networkObject.Spawn();
                 }
-
-                var draft = DraftState.Current;
-                var definition = draft != null && draft.Catalog != null
-                    ? draft.Catalog.Resolve(entry.CreatureId)
-                    : null;
-
-                instance.GetComponent<UnitState>().ServerSetCell(cell);
-                instance.GetComponent<CreatureState>()
-                    .ServerInitialise(entry.CreatureId, entry.Party, entry.ClaimedBySlot, definition);
             }
             catch (Exception e)
             {

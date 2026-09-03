@@ -51,10 +51,13 @@ namespace Dragoneye.Game
                 return;
             }
 
-            var runner = SessionRunner.Instance;
-            if (runner != null && runner.IsInSession && !runner.IsBusy)
+            // MatchFlow, not SessionRunner: leaving is the same gesture whether a UGS session is
+            // involved or the match is a solo host, and the input layer should not have to know
+            // which kind it is in.
+            var flow = MatchFlow.Instance;
+            if (flow != null && flow.InMatch)
             {
-                TaskUtil.Forget(runner.LeaveAsync());
+                flow.LeaveMatch();
             }
         }
     }
