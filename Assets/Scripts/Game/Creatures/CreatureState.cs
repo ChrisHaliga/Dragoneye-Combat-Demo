@@ -31,6 +31,7 @@ namespace Dragoneye.Game
 
         CreatureDefinition m_Definition;
         CreatureRegistry m_Registry;
+        UnitState m_Unit;
 
         public ushort CreatureId => m_CreatureId.Value;
 
@@ -147,6 +148,81 @@ namespace Dragoneye.Game
             m_StartCreatureId = creatureId;
             m_StartParty = party;
             m_StartControllerSlot = controllerSlot;
+        }
+
+        /// <summary>
+        /// Where this creature stands.
+        ///
+        /// Position lives on <see cref="UnitState"/> and identity lives here, which is the right
+        /// split -- but combat needs both in the same breath, and every caller reaching across with
+        /// GetComponent would be the same lookup written eight times.
+        /// </summary>
+        public Dragoneye.Hex.Hex Cell => Unit != null ? Unit.Cell : default;
+
+        /// <summary>The position half of this creature. Cached; both live on the one prefab.</summary>
+        public UnitState Unit
+        {
+            get
+            {
+                if (m_Unit == null)
+                {
+                    m_Unit = GetComponent<UnitState>();
+                }
+
+                return m_Unit;
+            }
+        }
+
+        /// <summary>Alive until its health reaches zero.</summary>
+        public bool IsAlive => CombatRules.IsAlive(m_CurrentHp.Value);
+
+        /// <summary>
+        /// A stable per-match identifier, used to name this creature in the replicated turn order.
+        ///
+        /// The NetworkObjectId rather than the creature id: several creatures in a match can share a
+        /// definition, so the catalog id names a *kind* and would put three dire wolves in the same
+        /// slot of the initiative queue.
+        /// </summary>
+        public uint TurnId => (uint)NetworkObjectId;
+
+        /// <summary>
+        /// Server only. Deducts AP, refusing to go below zero.
+        /// </summary>
+        /// <returns>False if the creature could not afford it, in which case nothing was spent.</returns>
+        public bool ServerSpendAp(int amount)
+        {
+            if (!IsServer || amount < 0 || m_CurrentAp.Value < amount)
+            {
+                return false;
+            }
+
+            m_CurrentAp.Value -= amount;
+            return true;
+        }
+
+        /// <summary>Server only. Restores AP to full at the start of a turn.</summary>
+        public void ServerRefillAp()
+        {
+            if (IsServer)
+            {
+                m_CurrentAp.Value = MaxAp;
+            }
+        }
+
+        /// <summary>
+        /// Server only. Applies damage.
+        /// </summary>
+        /// <returns>True if this killed the creature, so the caller can clear it off the board.</returns>
+        public bool ServerApplyDamage(int damage)
+        {
+            if (!IsServer || !IsAlive)
+            {
+                return false;
+            }
+
+            m_CurrentHp.Value = CombatRules.Damaged(m_CurrentHp.Value, damage);
+
+            return !IsAlive;
         }
 
         void OnIdChanged(ushort previous, ushort current)

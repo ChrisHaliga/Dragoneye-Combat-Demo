@@ -2,6 +2,24 @@
     <ui:VisualElement name="root" class="hud-root">
         <Style src="ArenaHud.uss" />
 
+        <ui:VisualElement name="turn-bar" class="turn-bar">
+            <ui:Label name="round-label" text="Round 1" class="turn-bar__round" />
+            <ui:VisualElement name="turn-order" class="turn-bar__order" />
+            <ui:Label name="active-name" text="" class="turn-bar__active-name" />
+        </ui:VisualElement>
+
+        <ui:VisualElement name="turn-footer" class="turn-footer">
+            <ui:Label name="ap-label" text="" class="turn-footer__ap" />
+            <ui:Button name="end-turn-button" text="End Turn" class="button end-turn" />
+        </ui:VisualElement>
+
+        <ui:Label name="cursor-action" text="" class="cursor-action" />
+
+        <ui:VisualElement name="outcome-banner" class="outcome is-hidden">
+            <ui:Label name="outcome-title" text="" class="outcome__title" />
+            <ui:Label name="outcome-note" text="Returning to the menu..." class="outcome__note" />
+        </ui:VisualElement>
+
         <ui:VisualElement name="party-column" class="party-column">
             <ui:Label name="party-title" text="Party" class="party-title" />
             <ui:ScrollView name="portrait-list" class="portrait-list" />

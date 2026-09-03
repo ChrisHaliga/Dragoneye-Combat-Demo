@@ -83,6 +83,34 @@ Home ──> Singleplayer  (straight to Arena)
 Everything needing Unity services lives in `SessionScreens`, which is what lets the rest of the
 menu work offline. `SettingsScreen` reads and writes `Dragoneye.Settings.GameSettings`.
 
+## Combat
+
+Turn-based, server-authoritative. The rules are pure and tested; only the parts that touch
+replicated state are not.
+
+| Piece | Where | Netcode |
+|---|---|---|
+| Routes and their cost | `HexPathfinder` (Hex.Systems) | none |
+| Initiative order | `TurnOrder` | none |
+| Prices, damage, death | `CombatRules` | none |
+| What a click does | `ActionResolver` | none |
+| The opponent | `ICreatureBrain` / `BasicBrain` | none |
+| Round and turn state | `TurnState` | replicated |
+| Running the fight | `CombatDirector` | server only |
+
+- **Order.** Fastest first, ties broken on turn id. The tiebreak is load-bearing: every peer reads
+  the same order, and an unstable sort would put two clients in different turns.
+- **Costs.** Moving is 1 AP per step *along a route*, so a wall makes a hex more expensive rather
+  than merely further. Attacking is 2 AP at melee range. All of it is in `CombatRules`.
+- **One resolver.** `ActionResolver` prices the hover label *and* decides the click. Two answers to
+  "what would this do" is how a UI ends up promising a move the server refuses.
+- **Ending a turn.** Only ever on the player clicking End Turn. The button highlights when nothing
+  is affordable; it never ends the turn itself, so AP can be held.
+- **The opponent** is one method behind `ICreatureBrain`. `BasicBrain` hits what is adjacent and
+  otherwise walks toward the nearest enemy. Replacing it is a new implementation and nothing else.
+- **Victory.** Last party with a living creature wins; the banner shows and `MatchFlow` closes the
+  match the same way a session ending does.
+
 ## How a session maps onto netcode
 
 `CreateSessionAsync` / `JoinSessionByCodeAsync` allocate Relay, configure `UnityTransport`, and

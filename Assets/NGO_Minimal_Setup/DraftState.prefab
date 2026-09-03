@@ -12,6 +12,8 @@ GameObject:
   - component: {fileID: 2250863367333109468}
   - component: {fileID: 700820590437719270}
   - component: {fileID: 1601258587155580401}
+  - component: {fileID: -7747417339205816013}
+  - component: {fileID: 60772001502441018}
   m_Layer: 0
   m_Name: DraftState
   m_TagString: Untagged
@@ -46,14 +48,14 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d5a57f767e5e46a458fc5d3c628d0cbb, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Unity.Netcode.Runtime::Unity.Netcode.NetworkObject
-  GlobalObjectIdHash: 1728893310
+  GlobalObjectIdHash: 3686807028
   InScenePlacedSourceGlobalObjectIdHash: 0
   m_InScenePlacedDisabledByDefault: 0
   DeferredDespawnTick: 0
   Ownership: 1
   AlwaysReplicateAsRoot: 0
   SynchronizeTransform: 1
-  m_InScenePlaced: 1
+  m_InScenePlaced: 0
   ActiveSceneSynchronization: 0
   SceneMigrationSynchronization: 0
   SpawnWithObservers: 1
@@ -87,4 +89,30 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 306c19a85803dd04f84a3d5693e0f5bc, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Dragoneye.Game::Dragoneye.Game.PlayerRoster
+  ShowTopMostFoldoutHeaderGroup: 1
+--- !u!114 &-7747417339205816013
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8779040532995224036}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 77756fed2d3faa643aff3c8b373f3f41, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Dragoneye.Game::Dragoneye.Game.TurnState
+  ShowTopMostFoldoutHeaderGroup: 1
+--- !u!114 &60772001502441018
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8779040532995224036}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e698c23fb346c72478f591379ee8108f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Dragoneye.Game::Dragoneye.Game.TurnCommands
   ShowTopMostFoldoutHeaderGroup: 1

@@ -146,6 +146,17 @@ namespace Dragoneye.Game
 
             SpawnFocusPoints(arena);
             SpawnCreatures(arena, roster);
+
+            // Last, and only once every creature exists: the initiative order is built from what is
+            // on the board, so opening the fight any earlier would order an empty board.
+            if (CombatDirector.Current != null)
+            {
+                CombatDirector.Current.ServerBeginMatch();
+            }
+            else
+            {
+                Debug.LogError("No CombatDirector in the arena; the match will not take turns.", this);
+            }
         }
 
         void SpawnFocusPoints(ArenaMap arena)
