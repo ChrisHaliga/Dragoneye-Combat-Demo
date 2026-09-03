@@ -8,7 +8,6 @@
         "Unity.Services.Multiplayer",
         "Unity.Services.Authentication",
         "Unity.Services.Core",
-        "Unity.InputSystem",
         "Unity.Collections"
     ],
     "includePlatforms": [],

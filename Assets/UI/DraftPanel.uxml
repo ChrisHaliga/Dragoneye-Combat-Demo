@@ -1,0 +1,26 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements" editor-extension-mode="False">
+    <ui:VisualElement name="root" class="draft-root">
+        <Style src="DraftPanel.uss" />
+
+        <ui:VisualElement name="draft-panel" class="draft-panel">
+            <ui:Label text="Draft" class="draft__title" />
+
+            <ui:Label text="Your team" class="draft__section" />
+            <ui:VisualElement name="team-buttons" class="button-row" />
+
+            <ui:Label text="Viewing" class="draft__section" />
+            <ui:VisualElement name="view-buttons" class="button-row" />
+
+            <ui:VisualElement name="host-tools" class="host-tools">
+                <ui:Label text="Add creature (host)" class="draft__section" />
+                <ui:VisualElement class="add-row">
+                    <ui:DropdownField name="creature-dropdown" class="dropdown" />
+                    <ui:Button name="add-button" text="Add" class="button button--primary button--compact" />
+                </ui:VisualElement>
+            </ui:VisualElement>
+
+            <ui:Label name="cap-label" text="" class="draft__cap" />
+            <ui:ScrollView name="roster-list" class="roster-list" />
+        </ui:VisualElement>
+    </ui:VisualElement>
+</ui:UXML>

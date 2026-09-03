@@ -6,6 +6,16 @@ namespace Dragoneye.Game
     /// <summary>One creature placed in a party, and who (if anyone) has claimed it.</summary>
     public struct RosterEntry : INetworkSerializable, IEquatable<RosterEntry>
     {
+        /// <summary>
+        /// Stable identity, assigned once when the entry is added.
+        ///
+        /// RPCs address entries by this rather than by list position. A client picks a target from
+        /// what it currently renders, and by the time the message reaches the server another peer
+        /// may have added or removed something and shifted everything after it -- a bounds check
+        /// cannot tell that index 3 is now a different creature.
+        /// </summary>
+        public uint EntryId;
+
         public ushort CreatureId;
 
         /// <summary>Stored as a byte so the enum's wire size is explicit rather than implied.</summary>
@@ -25,8 +35,9 @@ namespace Dragoneye.Game
 
         public bool IsClaimed => ClaimedBySlot != PartyInfo.Unclaimed;
 
-        public RosterEntry(ushort creatureId, Party party)
+        public RosterEntry(uint entryId, ushort creatureId, Party party)
         {
+            EntryId = entryId;
             CreatureId = creatureId;
             PartyId = (byte)party;
             ClaimedBySlot = PartyInfo.Unclaimed;
@@ -35,6 +46,7 @@ namespace Dragoneye.Game
 
         public void NetworkSerialize<T>(BufferSerializer<T> serializer) where T : IReaderWriter
         {
+            serializer.SerializeValue(ref EntryId);
             serializer.SerializeValue(ref CreatureId);
             serializer.SerializeValue(ref PartyId);
             serializer.SerializeValue(ref ClaimedBySlot);
@@ -42,15 +54,15 @@ namespace Dragoneye.Game
         }
 
         public bool Equals(RosterEntry other) =>
-            CreatureId == other.CreatureId
+            EntryId == other.EntryId
+            && CreatureId == other.CreatureId
             && PartyId == other.PartyId
             && ClaimedBySlot == other.ClaimedBySlot
             && ClaimSequence == other.ClaimSequence;
 
         public override bool Equals(object obj) => obj is RosterEntry other && Equals(other);
 
-        public override int GetHashCode() =>
-            unchecked((CreatureId * 397) ^ (PartyId << 8) ^ ClaimedBySlot);
+        public override int GetHashCode() => unchecked(((int)EntryId * 397) ^ CreatureId);
     }
 
     /// <summary>Which party a player has chosen to fight for.</summary>

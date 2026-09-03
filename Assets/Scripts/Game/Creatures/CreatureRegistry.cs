@@ -1,50 +1,53 @@
 using System;
 using System.Collections.Generic;
+using UnityEngine;
 
 namespace Dragoneye.Game
 {
     /// <summary>
     /// Every creature currently on the board.
     ///
-    /// The HUD needs "all creatures in my party", which is not a question the hex-keyed
-    /// <see cref="UnitIndex"/> answers -- that one exists for "what is standing here". Two different
-    /// questions, two lookups, rather than one structure doing both badly.
+    /// The HUD needs "all creatures in my party", which the hex-keyed <see cref="UnitIndex"/> cannot
+    /// answer -- that one exists for "what is standing here". Two different questions, two lookups,
+    /// rather than one structure doing both badly.
     ///
-    /// Static because creatures are spawned by netcode and the HUD is a scene object, so neither can
-    /// hold a serialised reference to the other. Cleared on despawn, and every entry is removed by
-    /// its own <c>OnNetworkDespawn</c>, so nothing survives a match.
+    /// A component reached through <see cref="ArenaContext"/> rather than a static, matching
+    /// <see cref="UnitIndex"/>. A static list outlives the arena: it survives a domain reload being
+    /// disabled, and a match that ends abnormally leaves entries behind for the next one. Scoping it
+    /// to the scene makes that impossible instead of merely unlikely.
     /// </summary>
-    public static class CreatureRegistry
+    [DisallowMultipleComponent]
+    public sealed class CreatureRegistry : MonoBehaviour
     {
-        static readonly List<CreatureState> s_Creatures = new List<CreatureState>();
+        readonly List<CreatureState> m_Creatures = new List<CreatureState>();
 
-        public static IReadOnlyList<CreatureState> All => s_Creatures;
+        public IReadOnlyList<CreatureState> All => m_Creatures;
 
         /// <summary>Raised when a creature appears or disappears.</summary>
-        public static event Action Changed;
+        public event Action Changed;
 
-        public static void Add(CreatureState creature)
+        public void Add(CreatureState creature)
         {
-            if (creature != null && !s_Creatures.Contains(creature))
+            if (creature != null && !m_Creatures.Contains(creature))
             {
-                s_Creatures.Add(creature);
+                m_Creatures.Add(creature);
                 Changed?.Invoke();
             }
         }
 
-        public static void Remove(CreatureState creature)
+        public void Remove(CreatureState creature)
         {
-            if (s_Creatures.Remove(creature))
+            if (m_Creatures.Remove(creature))
             {
                 Changed?.Invoke();
             }
         }
 
         /// <summary>Creatures on one side, in spawn order.</summary>
-        public static List<CreatureState> InParty(Party party)
+        public List<CreatureState> InParty(Party party)
         {
             var result = new List<CreatureState>();
-            foreach (var creature in s_Creatures)
+            foreach (var creature in m_Creatures)
             {
                 if (creature != null && creature.Party == party)
                 {
@@ -53,6 +56,20 @@ namespace Dragoneye.Game
             }
 
             return result;
+        }
+
+        /// <summary>The creature a given player slot controls, or null.</summary>
+        public CreatureState FirstControlledBy(int slot)
+        {
+            foreach (var creature in m_Creatures)
+            {
+                if (creature != null && creature.ControllerSlot == slot)
+                {
+                    return creature;
+                }
+            }
+
+            return null;
         }
     }
 }

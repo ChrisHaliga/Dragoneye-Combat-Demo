@@ -1,0 +1,139 @@
+/* Lobby draft panel. Sits alongside the session menu rather than inside it, so the multiplayer
+   assembly's UI does not need to know creatures exist. */
+
+.draft-root {
+    flex-grow: 1;
+    align-items: flex-end;
+    justify-content: center;
+    padding: 24px;
+}
+
+.draft-panel {
+    width: 380px;
+    max-height: 90%;
+    padding: 20px;
+    border-radius: 14px;
+    background-color: rgb(24, 27, 36);
+    border-width: 1px;
+    border-color: rgb(48, 53, 68);
+}
+
+.draft__title {
+    font-size: 22px;
+    -unity-font-style: bold;
+    color: rgb(240, 243, 250);
+    margin-bottom: 10px;
+}
+
+.draft__section {
+    font-size: 11px;
+    -unity-font-style: bold;
+    color: rgb(130, 140, 162);
+    margin-top: 10px;
+    margin-bottom: 5px;
+}
+
+.draft__cap {
+    font-size: 12px;
+    color: rgb(190, 198, 214);
+    margin-top: 12px;
+    margin-bottom: 6px;
+}
+
+.button-row {
+    flex-direction: row;
+    flex-wrap: wrap;
+}
+
+.button {
+    height: 30px;
+    margin: 0 6px 6px 0;
+    padding: 0 12px;
+    font-size: 12px;
+    -unity-font-style: bold;
+    color: rgb(226, 232, 245);
+    background-color: rgb(43, 49, 65);
+    border-radius: 7px;
+    border-width: 0;
+}
+
+.button:hover {
+    background-color: rgb(56, 63, 82);
+}
+
+.button:disabled {
+    opacity: 0.4;
+}
+
+.button--primary {
+    background-color: rgb(198, 88, 38);
+    color: rgb(255, 246, 240);
+}
+
+.button--compact {
+    height: 28px;
+    padding: 0 10px;
+}
+
+/* The chosen team and the viewed team are different states; both need to read at a glance. */
+.button--chosen {
+    border-width: 2px;
+    border-color: rgb(240, 195, 120);
+}
+
+.button--viewing {
+    background-color: rgb(70, 78, 100);
+}
+
+.host-tools {
+    margin-top: 4px;
+}
+
+.add-row {
+    flex-direction: row;
+    align-items: center;
+}
+
+.dropdown {
+    flex-grow: 1;
+    margin-right: 8px;
+}
+
+.roster-list {
+    height: 240px;
+    border-radius: 10px;
+    background-color: rgb(16, 18, 25);
+    border-width: 1px;
+    border-color: rgb(48, 53, 68);
+}
+
+.roster-row {
+    flex-direction: row;
+    align-items: center;
+    padding: 8px 10px;
+    border-bottom-width: 1px;
+    border-bottom-color: rgb(32, 36, 48);
+}
+
+.roster-row__body {
+    flex-grow: 1;
+}
+
+.roster-row__name {
+    font-size: 13px;
+    color: rgb(226, 232, 245);
+}
+
+.roster-row__owner {
+    font-size: 11px;
+    color: rgb(140, 150, 172);
+    margin-top: 2px;
+}
+
+.roster-row__owner--mine {
+    color: rgb(240, 195, 120);
+}
+
+.is-hidden {
+    display: none;
+}

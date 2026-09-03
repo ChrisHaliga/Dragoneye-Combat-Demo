@@ -37,6 +37,12 @@ namespace Dragoneye.Game
         [SerializeField, Tooltip("Occupancy: which unit stands on which hex.")]
         UnitIndex m_Units;
 
+        [SerializeField, Tooltip("Resolves creature ids to authored definitions.")]
+        CreatureCatalog m_Catalog;
+
+        [SerializeField, Tooltip("Every creature on the board. Answers \"who is in my party\".")]
+        CreatureRegistry m_Creatures;
+
         /// <summary>The context for the arena currently loaded, or null outside a match.</summary>
         public static ArenaContext Current { get; private set; }
 
@@ -49,6 +55,15 @@ namespace Dragoneye.Game
         public Camera OutputCamera => m_OutputCamera;
 
         public UnitIndex Units => m_Units;
+
+        /// <summary>
+        /// The arena owns the catalog. Resolving through DraftState instead made an arena-time
+        /// question -- what is this creature called -- depend on a lobby-phase object still being
+        /// alive.
+        /// </summary>
+        public CreatureCatalog Catalog => m_Catalog;
+
+        public CreatureRegistry Creatures => m_Creatures;
 
         void OnEnable()
         {

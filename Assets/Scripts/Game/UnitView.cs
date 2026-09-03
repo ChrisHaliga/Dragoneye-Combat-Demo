@@ -33,7 +33,7 @@ namespace Dragoneye.Game
     [DisallowMultipleComponent]
     public sealed class UnitView : MonoBehaviour
     {
-        [SerializeField, Tooltip("The renderer that takes the owner's colour.")]
+        [SerializeField, Tooltip("The renderer that takes the party colour.")]
         Renderer m_Body;
 
         [SerializeField, Tooltip("World units per second. One tile is about 1.7 units.")]
@@ -49,6 +49,7 @@ namespace Dragoneye.Game
         string m_ColorProperty = "_BaseColor";
 
         UnitState m_State;
+        CreatureState m_Creature;
         MaterialPropertyBlock m_PropertyBlock;
         int m_ColorPropertyId;
 
@@ -58,6 +59,7 @@ namespace Dragoneye.Game
         void Awake()
         {
             m_State = GetComponent<UnitState>();
+            m_Creature = GetComponent<CreatureState>();
             m_PropertyBlock = new MaterialPropertyBlock();
             m_ColorPropertyId = Shader.PropertyToID(m_ColorProperty);
 
@@ -71,14 +73,23 @@ namespace Dragoneye.Game
         void OnEnable()
         {
             m_State.CellChanged += OnCellChanged;
-            m_State.SlotChanged += Repaint;
+
+            if (m_Creature != null)
+            {
+                m_Creature.Changed += Repaint;
+            }
+
             Repaint();
         }
 
         void OnDisable()
         {
             m_State.CellChanged -= OnCellChanged;
-            m_State.SlotChanged -= Repaint;
+
+            if (m_Creature != null)
+            {
+                m_Creature.Changed -= Repaint;
+            }
         }
 
         void Update()
@@ -107,6 +118,9 @@ namespace Dragoneye.Game
             var context = ArenaContext.Current;
             if (context == null || context.Map == null)
             {
+                // Silent here meant the unit sat on the origin forever with nothing logged. This is
+                // the failure mode ArenaContext exists to eliminate, so it says so.
+                Debug.LogError("UnitView has no arena context; the unit cannot be placed.", this);
                 return;
             }
 
@@ -136,10 +150,16 @@ namespace Dragoneye.Game
 
         void Repaint()
         {
+            // Party, not player. Friend-or-foe is the read a player makes constantly, and it gets
+            // the largest surface; which specific player controls a creature is the ring's inner
+            // accent. This used to colour by a UnitState.OwnerSlot that nothing ever wrote, so every
+            // body rendered as slot -1 -- the first palette entry, for every unit on the board.
+            var color = m_Creature != null ? PartyPalette.ForParty(m_Creature.Party) : Color.white;
+
             // A property block rather than material.color, which would leak a material instance per
             // unit and break instancing.
             m_Body.GetPropertyBlock(m_PropertyBlock);
-            m_PropertyBlock.SetColor(m_ColorPropertyId, PlayerPalette.ForSlot(m_State.OwnerSlot));
+            m_PropertyBlock.SetColor(m_ColorPropertyId, color);
             m_Body.SetPropertyBlock(m_PropertyBlock);
         }
     }

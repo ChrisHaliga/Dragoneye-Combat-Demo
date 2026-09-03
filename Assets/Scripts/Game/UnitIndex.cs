@@ -25,8 +25,14 @@ namespace Dragoneye.Game
     {
         readonly Dictionary<Hex, UnitState> m_Occupants = new Dictionary<Hex, UnitState>();
 
-        /// <summary>The unit this client controls, or null. Set when an owned unit spawns.</summary>
-        public UnitState LocalUnit { get; private set; }
+        readonly List<UnitState> m_LocalUnits = new List<UnitState>();
+
+        /// <summary>
+        /// Every unit this client owns. A list, not a single reference: a player who claims three
+        /// creatures owns three units, and keeping only the most recent one to spawn left the rest
+        /// permanently inert -- which is the whole point of the draft.
+        /// </summary>
+        public IReadOnlyList<UnitState> LocalUnits => m_LocalUnits;
 
         public bool TryGet(Hex hex, out UnitState unit) => m_Occupants.TryGetValue(hex, out unit);
 
@@ -40,9 +46,9 @@ namespace Dragoneye.Game
         {
             m_Occupants[unit.Cell] = unit;
 
-            if (unit.IsOwner)
+            if (unit.IsOwner && !m_LocalUnits.Contains(unit))
             {
-                LocalUnit = unit;
+                m_LocalUnits.Add(unit);
             }
         }
 
@@ -53,10 +59,7 @@ namespace Dragoneye.Game
                 m_Occupants.Remove(unit.Cell);
             }
 
-            if (LocalUnit == unit)
-            {
-                LocalUnit = null;
-            }
+            m_LocalUnits.Remove(unit);
         }
 
         public void Move(UnitState unit, Hex from, Hex to)

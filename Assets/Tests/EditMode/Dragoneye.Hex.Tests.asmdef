@@ -7,6 +7,7 @@
         "Dragoneye.Camera",
         "Dragoneye.Game",
         "Dragoneye.Multiplayer",
+        "Unity.Services.Multiplayer",
         "UnityEngine.TestRunner",
         "UnityEditor.TestRunner"
     ],

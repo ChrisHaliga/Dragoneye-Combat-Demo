@@ -22,9 +22,6 @@ namespace Dragoneye.Multiplayer
     [DisallowMultipleComponent]
     public sealed class SessionRunner : MonoBehaviour
     {
-        /// <summary>Player property key holding "1" when that player has readied up.</summary>
-        public const string ReadyKey = "ready";
-
         /// <summary>
         /// Client-side key identifying this game's sessions. Must match between host and client:
         /// a mismatch surfaces as a confusing "session not found".
@@ -261,7 +258,7 @@ namespace Dragoneye.Multiplayer
                     .WithRelayNetwork(string.IsNullOrWhiteSpace(m_RelayRegion) ? null : m_RelayRegion)
                     .WithPlayerName();
 
-                options.PlayerProperties[ReadyKey] = NotReadyProperty();
+                options.PlayerProperties[LobbyProjection.ReadyKey] = NotReadyProperty();
 
                 AttachSession(await MultiplayerService.Instance.CreateSessionAsync(options));
                 SetPhase(SessionPhase.InLobby);
@@ -269,7 +266,7 @@ namespace Dragoneye.Multiplayer
             catch (Exception e)
             {
                 Debug.LogException(e);
-                SetFault(Session == null ? SessionPhase.Idle : Phase, Classify(e));
+                SetFault(Session == null ? SessionPhase.Idle : Phase, LobbyProjection.Classify(e));
             }
             finally
             {
@@ -298,7 +295,7 @@ namespace Dragoneye.Multiplayer
             try
             {
                 var options = new JoinSessionOptions { Type = SessionType }.WithPlayerName();
-                options.PlayerProperties[ReadyKey] = NotReadyProperty();
+                options.PlayerProperties[LobbyProjection.ReadyKey] = NotReadyProperty();
 
                 AttachSession(await MultiplayerService.Instance.JoinSessionByCodeAsync(code, options));
                 SetPhase(SessionPhase.InLobby);
@@ -306,7 +303,7 @@ namespace Dragoneye.Multiplayer
             catch (Exception e)
             {
                 Debug.LogException(e);
-                SetFault(Session == null ? SessionPhase.Idle : Phase, Classify(e));
+                SetFault(Session == null ? SessionPhase.Idle : Phase, LobbyProjection.Classify(e));
             }
             finally
             {
@@ -361,7 +358,7 @@ namespace Dragoneye.Multiplayer
 
             try
             {
-                Session.CurrentPlayer.SetProperty(ReadyKey,
+                Session.CurrentPlayer.SetProperty(LobbyProjection.ReadyKey,
                     new PlayerProperty(ready ? "1" : "0", VisibilityPropertyOptions.Member));
                 await Session.SaveCurrentPlayerDataAsync();
                 Changed?.Invoke();
@@ -370,7 +367,7 @@ namespace Dragoneye.Multiplayer
             catch (Exception e)
             {
                 Debug.LogException(e);
-                SetFault(Session == null ? SessionPhase.Idle : Phase, Classify(e));
+                SetFault(Session == null ? SessionPhase.Idle : Phase, LobbyProjection.Classify(e));
                 Changed?.Invoke();
                 return false;
             }
@@ -404,7 +401,7 @@ namespace Dragoneye.Multiplayer
             catch (Exception e)
             {
                 Debug.LogException(e);
-                SetFault(Session == null ? SessionPhase.Idle : Phase, Classify(e));
+                SetFault(Session == null ? SessionPhase.Idle : Phase, LobbyProjection.Classify(e));
             }
             finally
             {
@@ -413,55 +410,11 @@ namespace Dragoneye.Multiplayer
         }
 
         /// <summary>
-        /// A snapshot of the lobby in this project's own types.
-        ///
-        /// Projected here, once, rather than letting the UI walk ISession and IReadOnlyPlayer: a
-        /// view should not depend on the shape of a vendor SDK, and a projection can be built in a
-        /// test without one.
+        /// A snapshot of the lobby in this project's own types, or null when not in one.
+        /// Built by <see cref="LobbyProjection"/>; this class only decides when to ask.
         /// </summary>
-        public LobbyView? CurrentLobby
-        {
-            get
-            {
-                var session = Session;
-                if (session == null)
-                {
-                    return null;
-                }
-
-                var selfId = session.CurrentPlayer?.Id;
-                var players = new List<LobbyPlayerView>(session.PlayerCount);
-                var everyoneReady = session.PlayerCount > 0;
-                var selfIsReady = false;
-
-                foreach (var player in session.Players)
-                {
-                    var ready = IsReady(player);
-                    var isSelf = player.Id == selfId;
-
-                    everyoneReady &= ready;
-                    selfIsReady |= isSelf && ready;
-
-                    players.Add(new LobbyPlayerView(
-                        DisplayNameOf(player), ready, player.Id == session.Host, isSelf));
-                }
-
-                return new LobbyView(
-                    session.Code, session.PlayerCount, session.MaxPlayers,
-                    session.IsHost, everyoneReady, selfIsReady, players);
-            }
-        }
-
-        static bool IsReady(IReadOnlyPlayer player) =>
-            player.Properties != null
-            && player.Properties.TryGetValue(ReadyKey, out var property)
-            && property.Value == "1";
-
-        static string DisplayNameOf(IReadOnlyPlayer player)
-        {
-            var name = StripDiscriminator(player.GetPlayerName());
-            return string.IsNullOrEmpty(name) ? player.Id : name;
-        }
+        public LobbyView? CurrentLobby =>
+            Session == null ? (LobbyView?)null : LobbyProjection.Project(Session);
 
         static PlayerProperty NotReadyProperty() =>
             new PlayerProperty("0", VisibilityPropertyOptions.Member);
@@ -578,39 +531,5 @@ namespace Dragoneye.Multiplayer
 
         void Notify() => Changed?.Invoke();
 
-        /// <summary>
-        /// Maps the SDK's failure codes onto this project's own. Returning an enum rather than a
-        /// sentence keeps English out of a systems class, lets failure paths be asserted in a test
-        /// without string matching, and leaves wording to the layer that does wording.
-        /// </summary>
-        static SessionFault Classify(Exception e)
-        {
-            if (e is not SessionException sessionException)
-            {
-                return SessionFault.Unknown;
-            }
-
-            switch (sessionException.Error)
-            {
-                case SessionError.SessionNotFound:
-                    return SessionFault.NotFound;
-                case SessionError.SessionDeleted:
-                    return SessionFault.Deleted;
-                case SessionError.Forbidden:
-                    return SessionFault.Forbidden;
-                case SessionError.NotAuthorized:
-                    return SessionFault.NotAuthorized;
-                case SessionError.RateLimitExceeded:
-                    return SessionFault.RateLimited;
-                case SessionError.NetworkManagerNotInitialized:
-                case SessionError.NetworkManagerStartFailed:
-                case SessionError.NetworkSetupFailed:
-                    return SessionFault.NetcodeFailed;
-                case SessionError.SessionTypeAlreadyExists:
-                    return SessionFault.AlreadyInSession;
-                default:
-                    return SessionFault.Unknown;
-            }
-        }
     }
 }

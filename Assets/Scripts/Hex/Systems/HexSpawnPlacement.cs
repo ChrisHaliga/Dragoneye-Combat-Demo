@@ -12,6 +12,36 @@ namespace Dragoneye.Hex.Systems
     public static class HexSpawnPlacement
     {
         /// <summary>
+        /// The nearest walkable, unoccupied hex to <paramref name="anchor"/>, searched outward a
+        /// ring at a time so a group clusters around its anchor rather than forming a line.
+        /// </summary>
+        /// <param name="taken">Hexes already handed out in this batch. Not mutated.</param>
+        /// <returns>The anchor itself if nothing free is found within the search radius.</returns>
+        public static Hex FindNearestFree(HexMap map, Hex anchor, ICollection<Hex> taken,
+            int maxRadius = 16)
+        {
+            if (map == null)
+            {
+                return anchor;
+            }
+
+            for (var radius = 0; radius <= maxRadius; radius++)
+            {
+                foreach (var candidate in Hex.Ring(anchor, radius))
+                {
+                    if ((taken == null || !taken.Contains(candidate))
+                        && map.TryGetTile(candidate, out var tile)
+                        && tile.IsWalkable)
+                    {
+                        return candidate;
+                    }
+                }
+            }
+
+            return anchor;
+        }
+
+        /// <summary>
         /// Picks <paramref name="count"/> distinct walkable tiles, spaced around the map's rim at
         /// equal angles. Returns fewer only if the map has fewer walkable tiles than requested.
         /// </summary>
@@ -86,6 +116,41 @@ namespace Dragoneye.Hex.Systems
             }
 
             return spawns;
+        }
+
+        /// <summary>
+        /// Places a batch of things so members of a group land together and the groups land apart.
+        ///
+        /// Each group takes one rim anchor from <see cref="ChooseSpawns"/>; its members then fill
+        /// the rings around it. Groups are identified by index rather than by any game type, so the
+        /// systems layer stays ignorant of what a "party" is.
+        /// </summary>
+        /// <param name="groupOfItem">One group index per item, in the order items are placed.</param>
+        /// <returns>One distinct cell per item, in the same order.</returns>
+        public static IReadOnlyList<Hex> PlaceGrouped(HexMap map, IReadOnlyList<int> groupOfItem,
+            int groupCount)
+        {
+            var cells = new List<Hex>();
+            if (groupOfItem == null)
+            {
+                return cells;
+            }
+
+            var anchors = ChooseSpawns(map, Mathf.Max(1, groupCount));
+            var taken = new HashSet<Hex>();
+
+            foreach (var group in groupOfItem)
+            {
+                var anchor = anchors.Count > 0
+                    ? anchors[Mathf.Max(0, group) % anchors.Count]
+                    : Hex.Zero;
+
+                var cell = FindNearestFree(map, anchor, taken);
+                taken.Add(cell);
+                cells.Add(cell);
+            }
+
+            return cells;
         }
     }
 }

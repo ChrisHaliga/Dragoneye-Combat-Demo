@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using Unity.Collections;
 using Unity.Netcode;
 using UnityEngine;
@@ -43,6 +44,10 @@ namespace Dragoneye.Game
     {
         readonly NetworkList<PlayerEntry> m_Entries = new NetworkList<PlayerEntry>();
 
+        // Names reported by clients before their entry exists. The server cannot know a remote
+        // player's lobby name any other way: it lives on that player's UGS account.
+        readonly Dictionary<ulong, string> m_ReportedNames = new Dictionary<ulong, string>();
+
         public static PlayerRoster Current { get; private set; }
 
         /// <summary>Raised whenever an entry is added, removed or changed.</summary>
@@ -52,11 +57,60 @@ namespace Dragoneye.Game
         {
             Current = this;
             m_Entries.OnListChanged += OnListChanged;
+
+            if (IsServer)
+            {
+                // Slots are handed out on connect rather than at match start, so the draft can
+                // address players while they are still choosing.
+                foreach (var clientId in NetworkManager.ConnectedClientsIds)
+                {
+                    Register(clientId, string.Empty);
+                }
+
+                NetworkManager.OnClientConnectedCallback += OnClientConnected;
+            }
+
+            // Every peer reports its own name, including the host. Previously only the host's name
+            // was ever recorded, because the server filled entries from its own SessionRunner --
+            // so everyone else showed as "Player N".
+            var runner = Dragoneye.Multiplayer.SessionRunner.Instance;
+            var name = runner != null ? runner.PlayerName : null;
+            if (!string.IsNullOrEmpty(name))
+            {
+                ReportNameRpc(new FixedString64Bytes(FixedStringText.Clamp(name)));
+            }
+        }
+
+        /// <summary>
+        /// A player telling the server what it is called. Sender-derived, so a client can only ever
+        /// name itself.
+        /// </summary>
+        [Rpc(SendTo.Server, InvokePermission = RpcInvokePermission.Everyone)]
+        void ReportNameRpc(FixedString64Bytes name, RpcParams rpc = default)
+        {
+            var clientId = rpc.Receive.SenderClientId;
+            m_ReportedNames[clientId] = name.ToString();
+
+            for (var i = 0; i < m_Entries.Count; i++)
+            {
+                if (m_Entries[i].ClientId == clientId)
+                {
+                    var entry = m_Entries[i];
+                    entry.Name = name;
+                    m_Entries[i] = entry;
+                    return;
+                }
+            }
         }
 
         public override void OnNetworkDespawn()
         {
             m_Entries.OnListChanged -= OnListChanged;
+
+            if (IsServer && NetworkManager != null)
+            {
+                NetworkManager.OnClientConnectedCallback -= OnClientConnected;
+            }
 
             if (Current == this)
             {
@@ -65,6 +119,8 @@ namespace Dragoneye.Game
         }
 
         void OnListChanged(NetworkListEvent<PlayerEntry> _) => Changed?.Invoke();
+
+        void OnClientConnected(ulong clientId) => Register(clientId, string.Empty);
 
         /// <summary>Server only. Assigns the next free slot, or returns the existing one.</summary>
         public int Register(ulong clientId, string name)
@@ -80,6 +136,12 @@ namespace Dragoneye.Game
                 {
                     return m_Entries[i].Slot;
                 }
+            }
+
+            // Prefer what the client reported over whatever the caller guessed.
+            if (m_ReportedNames.TryGetValue(clientId, out var reported) && !string.IsNullOrEmpty(reported))
+            {
+                name = reported;
             }
 
             var slot = m_Entries.Count;

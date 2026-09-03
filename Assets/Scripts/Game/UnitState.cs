@@ -32,26 +32,17 @@ namespace Dragoneye.Game
         readonly NetworkVariable<NetCell> m_Cell = new NetworkVariable<NetCell>(
             default, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Server);
 
-        readonly NetworkVariable<int> m_OwnerSlot = new NetworkVariable<int>(-1);
-
         UnitIndex m_Index;
 
         /// <summary>The hex this unit occupies. Authoritative the instant the server writes it.</summary>
         public Hex Cell => m_Cell.Value.ToHex();
 
-        /// <summary>Stable player slot, or -1 before the server has assigned one. Drives colour.</summary>
-        public int OwnerSlot => m_OwnerSlot.Value;
-
         /// <summary>Raised on every client when the unit's cell changes.</summary>
         public event Action<Hex> CellChanged;
-
-        /// <summary>Raised when the owning slot arrives or changes.</summary>
-        public event Action SlotChanged;
 
         public override void OnNetworkSpawn()
         {
             m_Cell.OnValueChanged += OnCellChanged;
-            m_OwnerSlot.OnValueChanged += OnSlotChanged;
 
             var context = ArenaContext.Current;
             m_Index = context != null ? context.Units : null;
@@ -60,15 +51,19 @@ namespace Dragoneye.Game
             {
                 m_Index.Register(this);
             }
+            else
+            {
+                // Without the index this unit is invisible to occupancy and to clicks, which used
+                // to happen with nothing logged at all.
+                Debug.LogError("UnitState found no unit index; it will be unclickable.", this);
+            }
 
             CellChanged?.Invoke(Cell);
-            SlotChanged?.Invoke();
         }
 
         public override void OnNetworkDespawn()
         {
             m_Cell.OnValueChanged -= OnCellChanged;
-            m_OwnerSlot.OnValueChanged -= OnSlotChanged;
 
             if (m_Index != null)
             {
@@ -86,21 +81,11 @@ namespace Dragoneye.Game
             }
         }
 
-        /// <summary>Server only.</summary>
-        public void ServerSetSlot(int slot)
-        {
-            if (IsServer)
-            {
-                m_OwnerSlot.Value = slot;
-            }
-        }
-
         void OnCellChanged(NetCell previous, NetCell current)
         {
             m_Index?.Move(this, previous.ToHex(), current.ToHex());
             CellChanged?.Invoke(current.ToHex());
         }
 
-        void OnSlotChanged(int previous, int current) => SlotChanged?.Invoke();
     }
 }

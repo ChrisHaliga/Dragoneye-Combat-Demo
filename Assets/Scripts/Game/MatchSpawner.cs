@@ -131,10 +131,12 @@ namespace Dragoneye.Game
                 return;
             }
 
-            RegisterPlayers();
+            var slots = RegisterPlayers();
 
-            // Until the lobby draft UI lands, fill an empty roster so a match is still playable.
-            draft.ServerSeedIfEmpty(m_SeedCreaturesPerParty);
+            // Until every player has used the draft UI, fill an empty roster so a match is still
+            // playable -- and put players on sides, because seeding creatures without seeding party
+            // choices left everything unclaimed and therefore server-owned.
+            draft.ServerSeedIfEmpty(m_SeedCreaturesPerParty, slots);
 
             var roster = draft.Snapshot();
             if (roster.Count == 0)
@@ -164,72 +166,52 @@ namespace Dragoneye.Game
 
         void SpawnCreatures(ArenaMap arena, List<RosterEntry> roster)
         {
-            // One anchor per party, so a side lands together and away from the others.
-            var parties = new List<Party>();
+            // Placement only needs to know which creatures belong together, so parties are handed
+            // down as group indices; HexSpawnPlacement gives each group its own anchor.
+            var parties = DraftQueries.PartiesPresent(roster);
+            var groups = new List<int>(roster.Count);
             foreach (var entry in roster)
             {
-                if (!parties.Contains(entry.Party))
-                {
-                    parties.Add(entry.Party);
-                }
+                groups.Add(Mathf.Max(0, parties.IndexOf(entry.Party)));
             }
 
-            var anchors = HexSpawnPlacement.ChooseSpawns(arena.Map, Mathf.Max(1, parties.Count));
-            var taken = new HashSet<Hex>();
+            var cells = HexSpawnPlacement.PlaceGrouped(arena.Map, groups, parties.Count);
 
-            foreach (var entry in roster)
+            for (var i = 0; i < roster.Count; i++)
             {
-                var partyIndex = Mathf.Max(0, parties.IndexOf(entry.Party));
-                var anchor = anchors.Count > 0 ? anchors[partyIndex % anchors.Count] : Hex.Zero;
-
-                var cell = FindFreeCell(arena, anchor, taken);
-                taken.Add(cell);
-
-                SpawnUnit(entry, cell);
+                SpawnUnit(roster[i], cells[i]);
             }
         }
 
         /// <summary>
-        /// Walks outward from a party's anchor to the first free walkable hex. Rings rather than a
-        /// line, so a party clusters instead of forming a queue.
+        /// Ensures every connected player holds a slot before creatures reference one, and returns
+        /// those slots in connection order.
         /// </summary>
-        static Hex FindFreeCell(ArenaMap arena, Hex anchor, HashSet<Hex> taken)
+        List<byte> RegisterPlayers()
         {
-            for (var radius = 0; radius < 16; radius++)
-            {
-                foreach (var candidate in Hex.Ring(anchor, radius))
-                {
-                    if (!taken.Contains(candidate)
-                        && arena.Map.TryGetTile(candidate, out var tile)
-                        && tile.IsWalkable)
-                    {
-                        return candidate;
-                    }
-                }
-            }
-
-            return anchor;
-        }
-
-        /// <summary>Ensures every connected player holds a slot before creatures reference one.</summary>
-        void RegisterPlayers()
-        {
+            var slots = new List<byte>();
             var roster = PlayerRoster.Current;
             if (roster == null)
             {
-                return;
+                return slots;
             }
 
             foreach (var clientId in NetworkManager.Singleton.ConnectedClientsIds)
             {
-                roster.Register(clientId, NameFor(clientId));
+                slots.Add((byte)roster.Register(clientId, NameFor(clientId)));
             }
+
+            return slots;
         }
 
+        /// <summary>
+        /// A fallback name only. Every client reports its own name to
+        /// <see cref="PlayerRoster"/> directly, which is the only way the server can learn a remote
+        /// player's lobby name -- it lives on that player's UGS account. Using the server's own
+        /// SessionRunner for everyone is what left every remote player called "Player N".
+        /// </summary>
         static string NameFor(ulong clientId)
         {
-            // The host knows its own lobby name. Remote names are filled in by the owning client
-            // once its focus point spawns.
             var runner = SessionRunner.Instance;
             return runner != null && clientId == NetworkManager.Singleton.LocalClientId
                 ? runner.PlayerName

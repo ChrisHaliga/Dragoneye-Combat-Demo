@@ -25,6 +25,7 @@ namespace Dragoneye.Game
         readonly NetworkVariable<int> m_CurrentAp = new NetworkVariable<int>();
 
         CreatureDefinition m_Definition;
+        CreatureRegistry m_Registry;
 
         public ushort CreatureId => m_CreatureId.Value;
 
@@ -46,10 +47,14 @@ namespace Dragoneye.Game
             {
                 if (m_Definition == null)
                 {
-                    var draft = DraftState.Current;
-                    m_Definition = draft != null && draft.Catalog != null
-                        ? draft.Catalog.Resolve(m_CreatureId.Value)
-                        : null;
+                    // The arena owns the catalog; falling back to the draft keeps a lobby-only
+                    // scene working, but the arena is the normal path.
+                    var context = ArenaContext.Current;
+                    var catalog = context != null && context.Catalog != null
+                        ? context.Catalog
+                        : DraftState.Current != null ? DraftState.Current.Catalog : null;
+
+                    m_Definition = catalog != null ? catalog.Resolve(m_CreatureId.Value) : null;
                 }
 
                 return m_Definition;
@@ -75,7 +80,18 @@ namespace Dragoneye.Game
             m_CurrentHp.OnValueChanged += OnIntChanged;
             m_CurrentAp.OnValueChanged += OnIntChanged;
 
-            CreatureRegistry.Add(this);
+            var context = ArenaContext.Current;
+            m_Registry = context != null ? context.Creatures : null;
+
+            if (m_Registry != null)
+            {
+                m_Registry.Add(this);
+            }
+            else
+            {
+                Debug.LogError("CreatureState found no creature registry; it will not appear in the HUD.", this);
+            }
+
             Changed?.Invoke();
         }
 
@@ -87,7 +103,11 @@ namespace Dragoneye.Game
             m_CurrentHp.OnValueChanged -= OnIntChanged;
             m_CurrentAp.OnValueChanged -= OnIntChanged;
 
-            CreatureRegistry.Remove(this);
+            if (m_Registry != null)
+            {
+                m_Registry.Remove(this);
+                m_Registry = null;
+            }
         }
 
         /// <summary>Server only. Sets identity and fills vitals from the authored definition.</summary>
