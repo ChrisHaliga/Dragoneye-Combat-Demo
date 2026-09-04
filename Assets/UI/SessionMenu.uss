@@ -230,7 +230,7 @@
 }
 
 .col__title--spaced {
-    margin-top: 20px;
+    margin-top: 14px;
 }
 
 .field-label {
@@ -349,6 +349,7 @@
 
 .rail {
     width: 340px;
+    flex-shrink: 0;
     margin-right: 26px;
 }
 
@@ -447,6 +448,7 @@
 
 .sheet {
     flex-grow: 1;
+    flex-basis: 0;
     padding: 30px 34px;
     background-image: url("Generated/ui-panel.png");
     -unity-slice-left: 16;
@@ -545,28 +547,40 @@
 
 /* ---------- creator columns ---------- */
 
+/* Fixed columns are genuinely fixed, and only the sheet flexes.
+
+   `flex-basis` beats `width` on the main axis, so a shared `flex-basis: 0` here would give every
+   column a base size of zero -- and the three that do not grow would then collapse to their
+   content, which is precisely what happened: three crushed strips of overlapping labels and a
+   sheet stretched across the whole window. Width alone is not enough either; a flex item shrinks
+   by default, so each one also has to refuse to. */
 .col {
-    flex-grow: 1;
-    flex-basis: 0;
+    flex-grow: 0;
+    flex-shrink: 0;
     margin-right: 26px;
 }
 
 .col--identity {
-    flex-grow: 0;
     width: 230px;
 }
 
 .col--attributes {
-    flex-grow: 0;
     width: 300px;
 }
 
 .col--kit {
-    flex-grow: 0;
     width: 270px;
 }
 
+/* The one column that takes whatever is left.
+
+   Clipped, so a class with an unusually long skill list spills inside the frame rather than out
+   the bottom of it. Everything authored today fits. */
 .col--sheet {
+    flex-grow: 1;
+    flex-shrink: 1;
+    flex-basis: 0;
+    overflow: hidden;
     padding: 24px;
     margin-right: 0;
     background-image: url("Generated/ui-panel.png");
@@ -902,9 +916,9 @@
     flex-direction: row;
     justify-content: space-between;
     align-items: center;
-    height: 26px;
+    height: 24px;
     padding: 0 8px;
-    margin-bottom: 3px;
+    margin-bottom: 2px;
     background-image: url("Generated/ui-card.png");
     -unity-slice-left: 14;
     -unity-slice-right: 14;

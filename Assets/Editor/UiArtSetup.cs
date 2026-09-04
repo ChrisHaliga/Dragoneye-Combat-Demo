@@ -257,19 +257,22 @@ namespace Dragoneye.MultiplayerEditor
                 {
                     var colour = new Color32(0, 0, 0, 0);
 
-                    // The line, fading out towards the ends so a stretched rule does not stop dead.
+                    // Constant along its length. The line is stretched to the width of a panel, so
+                    // any fade authored into the source becomes most of the rule: a version that
+                    // faded towards the ends rendered as a short stub floating in the middle of the
+                    // screen.
                     if (y == mid)
                     {
-                        var reach = Mathf.Abs(x - centre) / (float)centre;
-                        colour = Fade(k_Gold, 0.75f * (1f - 0.55f * reach));
+                        colour = Fade(k_Gold, 0.6f);
                     }
 
-                    // The diamond.
+                    // The diamond. It lives in the middle two pixels, which nine-slicing leaves
+                    // alone, so it stays a diamond at any width.
                     var d = Mathf.Abs(x - centre) + Mathf.Abs(y - mid);
 
                     if (d <= mid)
                     {
-                        colour = d == mid ? Fade(k_Gold, 0.9f) : Fade(k_Gold, 0.35f);
+                        colour = d == mid ? Fade(k_Gold, 0.9f) : Fade(k_Gold, 0.45f);
                     }
 
                     pixels[y * w + x] = colour;
