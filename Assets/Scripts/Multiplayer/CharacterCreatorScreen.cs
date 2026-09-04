@@ -380,8 +380,11 @@ namespace Dragoneye.Multiplayer
 
             if (choices == null || choices.Count == 0)
             {
-                m_PortraitControls.Add(MenuControls.Note(
-                    "No portraits are installed for this species."));
+                // Named precisely, because "none for this species" sent somebody looking at their
+                // art folder when the library had simply never been built from it.
+                m_PortraitControls.Add(MenuControls.Note(library == null
+                    ? "No portrait library. Run ClaudeCode > Set Up Everything."
+                    : "No portraits for this species. Add images to Assets/Art/Portraits."));
                 return;
             }
 

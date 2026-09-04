@@ -30,8 +30,42 @@ namespace Dragoneye.MultiplayerEditor
 
         static readonly string[] k_Extensions = { ".png", ".jpg", ".jpeg" };
 
-        /// <summary>Runs the whole step. Called by <see cref="SetUpEverything"/>.</summary>
+        /// <summary>
+        /// True while this is writing assets of its own.
+        ///
+        /// Fixing the import settings of a picture reimports it, which is a change to the folder,
+        /// which is what <see cref="PortraitImporter"/> watches for -- so without this the two would
+        /// call each other until the editor gave up.
+        /// </summary>
+        internal static bool IsRebuilding { get; private set; }
+
+        /// <summary>
+        /// Runs the whole step.
+        ///
+        /// Called by <see cref="SetUpEverything"/>, and by the importer whenever the folder changes
+        /// -- which is the path that matters, because it means adding a portrait is dropping a file
+        /// in and nothing else.
+        /// </summary>
         internal static void Run()
+        {
+            if (IsRebuilding)
+            {
+                return;
+            }
+
+            IsRebuilding = true;
+
+            try
+            {
+                Rebuild();
+            }
+            finally
+            {
+                IsRebuilding = false;
+            }
+        }
+
+        static void Rebuild()
         {
             EnsureFolders();
 
@@ -69,9 +103,12 @@ namespace Dragoneye.MultiplayerEditor
 
             Attach(library);
 
-            Debug.Log(entries.Count == 0
-                ? $"No portraits found. Drop images into {k_Root}/<Species>/ and run this again."
-                : $"Portrait library rebuilt: {entries.Count} portrait(s).");
+            AssetDatabase.SaveAssets();
+
+            if (entries.Count == 0)
+            {
+                Debug.LogWarning($"No portraits found. Drop images into {k_Root}/<Species>/.");
+            }
         }
 
         /// <summary>Every image in one folder, as entries belonging to one species.</summary>
