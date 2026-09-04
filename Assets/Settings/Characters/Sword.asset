@@ -12,15 +12,14 @@ MonoBehaviour:
   m_Script: {fileID: 0}
   m_Name: Sword
   m_EditorClassIdentifier: Dragoneye.Data:Dragoneye.Data:EquipmentAsset
-  m_Id: 10
-  m_DisplayName: Sword
-  m_Description: A soldier's blade. Reliable, and heavy enough to matter.
+  m_Id: 1
+  m_DisplayName: Item
+  m_Description: 
   m_Slot: 0
   m_Modifiers:
     Vitality: 0
     Speed: 0
-    Power: 2
+    Power: 0
     Focus: 0
-  m_Skills:
-  - {fileID: 11400000, guid: 033e1b59e526f754fb62a30a8156f229, type: 2}
+  m_Skills: []
   m_Passives: 

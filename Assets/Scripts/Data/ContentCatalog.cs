@@ -18,6 +18,9 @@ namespace Dragoneye.Data
     public sealed class ContentCatalog : ScriptableObject, IContentIndex
     {
         [SerializeField]
+        List<SpeciesDefinition> m_Species = new List<SpeciesDefinition>();
+
+        [SerializeField]
         List<ClassAsset> m_Classes = new List<ClassAsset>();
 
         [SerializeField]
@@ -27,18 +30,18 @@ namespace Dragoneye.Data
         List<SkillAsset> m_Skills = new List<SkillAsset>();
 
         [Header("Build rules")]
-        [SerializeField, Min(0), Tooltip("Points to spend across all stats, beyond the minimum.")]
-        int m_PointBudget = 8;
+        [SerializeField, Min(0), Tooltip("Points to spend raising attributes. Each step costs the "
+             + "attribute's current value, so the first is cheap and the last is dear.")]
+        int m_PointBudget = 20;
 
-        [SerializeField, Min(0)]
-        int m_MinPerStat = 1;
-
-        [SerializeField, Min(1)]
-        int m_MaxPerStat = 8;
+        [SerializeField, Min(1), Tooltip("The highest any one attribute may be bought to.")]
+        int m_MaxPerAttribute = 8;
 
         [SerializeField, Min(1), Tooltip("Element resources in a starting pool -- one per level.")]
         int m_Level = 4;
 
+        readonly List<SpeciesSpec> m_SpeciesSpecs = new List<SpeciesSpec>();
+        readonly Dictionary<int, SpeciesSpec> m_SpeciesById = new Dictionary<int, SpeciesSpec>();
         readonly List<ClassSpec> m_ClassSpecs = new List<ClassSpec>();
         readonly List<EquipmentSpec> m_EquipmentSpecs = new List<EquipmentSpec>();
         readonly Dictionary<int, ClassSpec> m_ClassById = new Dictionary<int, ClassSpec>();
@@ -55,6 +58,15 @@ namespace Dragoneye.Data
             {
                 Build();
                 return m_Rules;
+            }
+        }
+
+        public IReadOnlyList<SpeciesSpec> Species
+        {
+            get
+            {
+                Build();
+                return m_SpeciesSpecs;
             }
         }
 
@@ -89,6 +101,12 @@ namespace Dragoneye.Data
         {
             Build();
             return m_SkillById.TryGetValue(id, out spec);
+        }
+
+        public bool TryGetSpecies(int id, out SpeciesSpec spec)
+        {
+            Build();
+            return m_SpeciesById.TryGetValue(id, out spec);
         }
 
         public bool TryGetClass(int id, out ClassSpec spec)
@@ -137,11 +155,6 @@ namespace Dragoneye.Data
 
         void OnValidate()
         {
-            if (m_MaxPerStat < m_MinPerStat)
-            {
-                m_MaxPerStat = m_MinPerStat;
-            }
-
             m_Built = false;
         }
 
@@ -156,6 +169,8 @@ namespace Dragoneye.Data
             // this property would recurse.
             m_Built = true;
 
+            m_SpeciesSpecs.Clear();
+            m_SpeciesById.Clear();
             m_ClassSpecs.Clear();
             m_EquipmentSpecs.Clear();
             m_ClassById.Clear();
@@ -163,7 +178,7 @@ namespace Dragoneye.Data
             m_SkillSpecs.Clear();
             m_SkillById.Clear();
 
-            m_Rules = new CharacterRules(m_PointBudget, m_MinPerStat, m_MaxPerStat, m_Level);
+            m_Rules = new CharacterRules(m_PointBudget, m_MaxPerAttribute, m_Level);
 
             foreach (var asset in m_Skills)
             {
@@ -182,6 +197,25 @@ namespace Dragoneye.Data
 
                 m_SkillById.Add(spec.Id, spec);
                 m_SkillSpecs.Add(spec);
+            }
+
+            foreach (var asset in m_Species)
+            {
+                if (asset == null)
+                {
+                    continue;
+                }
+
+                var spec = asset.ToSpec();
+
+                if (m_SpeciesById.ContainsKey(spec.Id))
+                {
+                    Debug.LogError($"Duplicate species id {spec.Id} on '{asset.name}'.", asset);
+                    continue;
+                }
+
+                m_SpeciesById.Add(spec.Id, spec);
+                m_SpeciesSpecs.Add(spec);
             }
 
             foreach (var asset in m_Classes)

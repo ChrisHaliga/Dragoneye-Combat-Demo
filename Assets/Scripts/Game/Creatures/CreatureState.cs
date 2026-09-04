@@ -104,7 +104,7 @@ namespace Dragoneye.Game
         public IReadOnlyList<int> SkillIds => Profile.SkillIds;
 
         /// <summary>The elements it starts holding.</summary>
-        public IReadOnlyList<Element> StartingPool => Profile.StartingPool;
+        public ElementCounts StartingPool => Profile.StartingPool;
 
         /// <summary>
         /// Resolves a creature from whichever source owns it.

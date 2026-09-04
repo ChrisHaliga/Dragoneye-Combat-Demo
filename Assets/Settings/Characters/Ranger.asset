@@ -12,16 +12,13 @@ MonoBehaviour:
   m_Script: {fileID: 0}
   m_Name: Ranger
   m_EditorClassIdentifier: Dragoneye.Data:Dragoneye.Data:ClassAsset
-  m_Id: 2
-  m_DisplayName: Ranger
-  m_Description: Acts first and picks the fight. Cannot afford to be caught.
+  m_Id: 1
+  m_DisplayName: Class
+  m_Description: 
   m_Baseline:
-    Vitality: 2
-    Speed: 3
-    Power: 2
-    Focus: 1
-  m_Weapons:
-  - {fileID: 11400000, guid: 686a87e6555bce24dab1133314cbbeba, type: 2}
-  - {fileID: 11400000, guid: d5367f39b0a440f4896fcfc1e950f8ce, type: 2}
-  m_Skills:
-  - {fileID: 11400000, guid: d57f35a51af6b494d9d323120731af2c, type: 2}
+    Vitality: 0
+    Speed: 0
+    Power: 0
+    Focus: 0
+  m_Weapons: []
+  m_Skills: []

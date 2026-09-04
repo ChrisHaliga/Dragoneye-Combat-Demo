@@ -5,6 +5,9 @@ using NUnit.Framework;
 
 namespace Dragoneye.Hex.Tests
 {
+    // System.Attribute would otherwise win the name; the alias must be inside the namespace.
+    using Attribute = Dragoneye.Combat.Attribute;
+
     /// <summary>
     /// DE-003. A passive is data an item grants and a rule reads. The clash asks the loadout a
     /// question it can already answer, so a shield never needs special-casing inside the resolution.
@@ -79,16 +82,16 @@ namespace Dragoneye.Hex.Tests
             var faults = new List<BuildFault>();
 
             BuildValidator.Validate(
-                new CharacterBuild { ClassId = 1, Name = "x", OffhandId = PlateId }, content, faults);
+                new CharacterBuild { SpeciesId = 1, ClassId = 1, Name = "x", OffhandId = PlateId }, content, faults);
 
             Assert.IsTrue(faults.Any(f => f.Problem == BuildProblem.ItemInWrongSlot));
         }
 
         static PassiveContent Content() =>
             new PassiveContent()
-                .With(new ClassSpec(1, "Warrior", StatBlock.Zero, new int[0]))
-                .With(new EquipmentSpec(PlateId, "Plate", EquipmentSlot.Armor, StatBlock.Zero))
-                .With(new EquipmentSpec(ShieldId, "Shield", EquipmentSlot.Offhand, StatBlock.Zero,
+                .With(new ClassSpec(1, "Warrior", AttributeBlock.Zero, new int[0]))
+                .With(new EquipmentSpec(PlateId, "Plate", EquipmentSlot.Armor, AttributeBlock.Zero))
+                .With(new EquipmentSpec(ShieldId, "Shield", EquipmentSlot.Offhand, AttributeBlock.Zero,
                     null, new[] { Passive.DefendAdvantage }));
 
         sealed class PassiveContent : IContentIndex
@@ -96,13 +99,24 @@ namespace Dragoneye.Hex.Tests
             readonly List<ClassSpec> m_Classes = new List<ClassSpec>();
             readonly List<EquipmentSpec> m_Equipment = new List<EquipmentSpec>();
 
-            public CharacterRules Rules { get; } = new CharacterRules(0, 0, 8, 0);
+            public CharacterRules Rules { get; } = new CharacterRules(0, 8, 1);
             public IReadOnlyList<ClassSpec> Classes => m_Classes;
             public IReadOnlyList<EquipmentSpec> Equipment => m_Equipment;
             public IReadOnlyList<SkillSpec> Skills => System.Array.Empty<SkillSpec>();
 
             public PassiveContent With(ClassSpec s) { m_Classes.Add(s); return this; }
             public PassiveContent With(EquipmentSpec s) { m_Equipment.Add(s); return this; }
+        readonly List<SpeciesSpec> m_SpeciesList =
+            new List<SpeciesSpec> { new SpeciesSpec(1, "Human", AttributeBlock.Zero) };
+
+        public IReadOnlyList<SpeciesSpec> Species => m_SpeciesList;
+
+        public bool TryGetSpecies(int id, out SpeciesSpec spec)
+        {
+            spec = m_SpeciesList.FirstOrDefault(s => s.Id == id);
+            return spec != null;
+        }
+
 
             public bool TryGetClass(int id, out ClassSpec spec)
             {

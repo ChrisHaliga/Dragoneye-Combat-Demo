@@ -1,5 +1,3 @@
-using System;
-
 namespace Dragoneye.Combat
 {
     /// <summary>
@@ -14,10 +12,13 @@ namespace Dragoneye.Combat
     /// </summary>
     public enum Element
     {
-        Fire = 0,
-        Water = 1,
-        Earth = 2,
-        Air = 3
+        Geo = 0,
+        Hydro = 1,
+        Pyro = 2,
+        Aero = 3,
+        Lux = 4,
+        Nyx = 5,
+        Arcana = 6
     }
 
     public static class ElementInfo
@@ -31,10 +32,13 @@ namespace Dragoneye.Combat
         /// </summary>
         public static readonly Element[] All =
         {
-            Element.Fire,
-            Element.Water,
-            Element.Earth,
-            Element.Air
+            Element.Geo,
+            Element.Hydro,
+            Element.Pyro,
+            Element.Aero,
+            Element.Lux,
+            Element.Nyx,
+            Element.Arcana
         };
 
         public static int Count => All.Length;
@@ -59,11 +63,30 @@ namespace Dragoneye.Combat
         {
             switch (element)
             {
-                case Element.Fire: return "Fire";
-                case Element.Water: return "Water";
-                case Element.Earth: return "Earth";
-                case Element.Air: return "Air";
+                case Element.Geo: return "Geo";
+                case Element.Hydro: return "Hydro";
+                case Element.Pyro: return "Pyro";
+                case Element.Aero: return "Aero";
+                case Element.Lux: return "Lux";
+                case Element.Nyx: return "Nyx";
+                case Element.Arcana: return "Arcana";
                 default: return "Unknown";
+            }
+        }
+
+        /// <summary>The short form used wherever space is tight.</summary>
+        public static string ShortNameOf(Element element)
+        {
+            switch (element)
+            {
+                case Element.Geo: return "GEO";
+                case Element.Hydro: return "HYD";
+                case Element.Pyro: return "PYR";
+                case Element.Aero: return "AER";
+                case Element.Lux: return "LUX";
+                case Element.Nyx: return "NYX";
+                case Element.Arcana: return "ARC";
+                default: return "???";
             }
         }
     }

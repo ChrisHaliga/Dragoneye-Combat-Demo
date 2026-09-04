@@ -23,7 +23,7 @@ namespace Dragoneye.Data
         string m_Description = "";
 
         [SerializeField, Tooltip("Fixed by the skill. The user does not choose it.")]
-        Element m_Element = Element.Fire;
+        Element m_Element = Element.Pyro;
 
         [SerializeField, Min(0), Tooltip("Whole action points. Stored as half-units internally.")]
         int m_ApCost = 1;

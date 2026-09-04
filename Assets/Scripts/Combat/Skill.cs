@@ -31,7 +31,15 @@ namespace Dragoneye.Combat
         Heal = 1,
 
         /// <summary>Restore action points, never past the maximum.</summary>
-        RestoreAp = 2
+        RestoreAp = 2,
+
+        /// <summary>
+        /// Put spent elements back into the pool, oldest first.
+        ///
+        /// The amount is a count of elements, not of any one element: which ones come back is
+        /// decided by the order they were spent in, not by the skill.
+        /// </summary>
+        ReturnElement = 3
     }
 
     /// <summary>An effect and how much of it.</summary>

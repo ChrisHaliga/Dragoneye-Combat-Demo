@@ -3,7 +3,8 @@ using System.Collections.Generic;
 namespace Dragoneye.Combat
 {
     /// <summary>
-    /// A character as its player assembled it: a class, an allocation, a starting pool and a kit.
+    /// A character as its player assembled it: a class, an attribute spread, a starting pool, a kit
+    /// and anything it has learned.
     ///
     /// Mutable, because the creation screen edits one of these directly and a value type would mean
     /// copying it back on every keystroke. Correctness comes from <see cref="BuildValidator"/>
@@ -22,19 +23,36 @@ namespace Dragoneye.Combat
 
         public string Name = string.Empty;
 
+        /// <summary>What this character is. Grants a baseline and whatever comes with being one.</summary>
+        public int SpeciesId;
+
         public int ClassId;
 
-        /// <summary>Points the player distributed. Not the resolved stats -- see <see cref="Loadout"/>.</summary>
-        public StatBlock Allocation;
+        /// <summary>What the player bought. Not the resolved values -- see <see cref="Loadout"/>.</summary>
+        public AttributeBlock Attributes = AttributeBlock.Uniform(PointBuy.Floor);
 
-        /// <summary>One element per level; together these are the starting pool.</summary>
-        public readonly List<Element> ElementPicks = new List<Element>();
+        /// <summary>
+        /// The elements this character starts holding.
+        ///
+        /// Any spread that totals the character's level. A level-four character may hold three Hydro
+        /// and one Pyro, or one of four different elements -- the shape of the pool is as much a
+        /// choice as its size.
+        /// </summary>
+        public ElementCounts StartingPool = ElementCounts.Empty;
 
         public int WeaponId = NoEquipment;
 
         public int ArmorId = NoEquipment;
 
         public int OffhandId = NoEquipment;
+
+        /// <summary>
+        /// Skills this character knows beyond what its class and equipment grant.
+        ///
+        /// A third source, because there are ways to learn a skill that are neither -- and folding
+        /// them into the class list would make an earned skill indistinguishable from a birthright.
+        /// </summary>
+        public readonly List<int> LearnedSkillIds = new List<int>();
 
         public CharacterBuild() { }
 
@@ -46,27 +64,26 @@ namespace Dragoneye.Combat
             }
 
             Name = other.Name;
+            SpeciesId = other.SpeciesId;
             ClassId = other.ClassId;
-            Allocation = other.Allocation;
+            Attributes = other.Attributes;
+            StartingPool = other.StartingPool;
             WeaponId = other.WeaponId;
             ArmorId = other.ArmorId;
             OffhandId = other.OffhandId;
-            ElementPicks.AddRange(other.ElementPicks);
+            LearnedSkillIds.AddRange(other.LearnedSkillIds);
         }
 
         /// <summary>
-        /// A build at its starting position for a class: minimum stats, no kit, an empty pool.
-        ///
-        /// Starting at the minimum rather than at zero means the budget is spent on the interesting
-        /// part of the range, and a character can never be built with nothing in a stat.
+        /// A build at its starting position: every attribute at the floor, no kit, an empty pool.
         /// </summary>
-        public static CharacterBuild StartingFrom(ClassSpec spec, CharacterRules rules)
+        public static CharacterBuild StartingFrom(SpeciesSpec species, ClassSpec spec)
         {
             var build = new CharacterBuild();
 
-            if (rules != null)
+            if (species != null)
             {
-                build.Allocation = rules.StartingAllocation;
+                build.SpeciesId = species.Id;
             }
 
             if (spec != null)
@@ -78,11 +95,10 @@ namespace Dragoneye.Combat
             return build;
         }
 
-        /// <summary>Points spent beyond the floor every stat starts at.</summary>
-        public int PointsSpent(CharacterRules rules) =>
-            rules == null ? Allocation.Total : Allocation.Total - rules.MinPerStat * StatInfo.All.Length;
+        /// <summary>Points spent raising attributes off the floor.</summary>
+        public int PointsSpent() => PointBuy.TotalCost(Attributes);
 
         public int PointsRemaining(CharacterRules rules) =>
-            rules == null ? 0 : rules.PointBudget - PointsSpent(rules);
+            rules == null ? 0 : PointBuy.Remaining(Attributes, rules.PointBudget);
     }
 }

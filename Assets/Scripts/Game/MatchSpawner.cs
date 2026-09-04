@@ -374,8 +374,8 @@ namespace Dragoneye.Game
 
                 if (pool != null)
                 {
-                    pool.ServerConfigure(ElementCounts.From(
-                        CreatureState.ProfileFor(buildSlot, entry.CreatureId).StartingPool));
+                    pool.ServerConfigure(
+                        CreatureState.ProfileFor(buildSlot, entry.CreatureId).StartingPool);
                 }
 
                 if (owner.HasValue)

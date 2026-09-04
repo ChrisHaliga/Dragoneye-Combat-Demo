@@ -256,40 +256,64 @@ namespace Dragoneye.Data
         {
             public string Id;
             public string Name;
+            public int SpeciesId;
             public int ClassId;
+
+            // One field per attribute and per element, because JsonUtility cannot serialise the
+            // readonly structs the rules use. Flat and explicit beats clever here: the file is meant
+            // to be readable and hand-editable during a playtest.
+            public int Toughness;
+            public int Dexterity;
+            public int Strength;
+            public int Skill;
             public int Vitality;
-            public int Speed;
-            public int Power;
-            public int Focus;
-            public int[] ElementPicks;
+            public int Willpower;
+            public int Endurance;
+
+            public int Geo;
+            public int Hydro;
+            public int Pyro;
+            public int Aero;
+            public int Lux;
+            public int Nyx;
+            public int Arcana;
+
             public int WeaponId;
             public int ArmorId;
             public int OffhandId;
+            public int[] LearnedSkillIds;
             public string PortraitFile;
 
             public static Record From(SavedCharacter character)
             {
                 var build = character.Build;
-                var picks = new int[build.ElementPicks.Count];
-
-                for (var i = 0; i < picks.Length; i++)
-                {
-                    picks[i] = (int)build.ElementPicks[i];
-                }
+                var a = build.Attributes;
+                var p = build.StartingPool;
 
                 return new Record
                 {
                     Id = character.Id,
                     Name = build.Name,
+                    SpeciesId = build.SpeciesId,
                     ClassId = build.ClassId,
-                    Vitality = build.Allocation.Vitality,
-                    Speed = build.Allocation.Speed,
-                    Power = build.Allocation.Power,
-                    Focus = build.Allocation.Focus,
-                    ElementPicks = picks,
+                    Toughness = a.Toughness,
+                    Dexterity = a.Dexterity,
+                    Strength = a.Strength,
+                    Skill = a.Skill,
+                    Vitality = a.Vitality,
+                    Willpower = a.Willpower,
+                    Endurance = a.Endurance,
+                    Geo = p[Element.Geo],
+                    Hydro = p[Element.Hydro],
+                    Pyro = p[Element.Pyro],
+                    Aero = p[Element.Aero],
+                    Lux = p[Element.Lux],
+                    Nyx = p[Element.Nyx],
+                    Arcana = p[Element.Arcana],
                     WeaponId = build.WeaponId,
                     ArmorId = build.ArmorId,
                     OffhandId = build.OffhandId,
+                    LearnedSkillIds = build.LearnedSkillIds.ToArray(),
                     PortraitFile = ""
                 };
             }
@@ -299,19 +323,19 @@ namespace Dragoneye.Data
                 var build = new CharacterBuild
                 {
                     Name = Name ?? string.Empty,
+                    SpeciesId = SpeciesId,
                     ClassId = ClassId,
-                    Allocation = new StatBlock(Vitality, Speed, Power, Focus),
+                    Attributes = new AttributeBlock(Toughness, Dexterity, Strength, Skill,
+                        Vitality, Willpower, Endurance),
+                    StartingPool = new ElementCounts(Geo, Hydro, Pyro, Aero, Lux, Nyx, Arcana),
                     WeaponId = WeaponId,
                     ArmorId = ArmorId,
                     OffhandId = OffhandId
                 };
 
-                if (ElementPicks != null)
+                if (LearnedSkillIds != null)
                 {
-                    foreach (var pick in ElementPicks)
-                    {
-                        build.ElementPicks.Add((Element)pick);
-                    }
+                    build.LearnedSkillIds.AddRange(LearnedSkillIds);
                 }
 
                 return build;

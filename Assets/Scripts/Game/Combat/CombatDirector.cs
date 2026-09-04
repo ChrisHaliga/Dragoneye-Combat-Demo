@@ -261,6 +261,30 @@ namespace Dragoneye.Game
                 case SkillEffectKind.RestoreAp:
                     actor.ServerRestoreAp(Ap.FromWhole(skill.Effect.Amount));
                     break;
+
+                case SkillEffectKind.ReturnElement:
+                    ReturnElements(actor, skill.Effect.Amount);
+                    break;
+            }
+        }
+
+        /// <summary>
+        /// Puts spent elements back, oldest first.
+        ///
+        /// Stops at the first refusal rather than running the loop out: a skill that returns three
+        /// when two were spent returns two, and the creature has already paid its AP for the try.
+        /// </summary>
+        static void ReturnElements(CreatureState actor, int count)
+        {
+            var pool = actor.GetComponent<CreaturePool>();
+
+            if (pool == null)
+            {
+                return;
+            }
+
+            for (var i = 0; i < count && pool.ServerReturn(out _, out _); i++)
+            {
             }
         }
 

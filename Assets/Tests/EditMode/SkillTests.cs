@@ -5,6 +5,9 @@ using NUnit.Framework;
 
 namespace Dragoneye.Hex.Tests
 {
+    // System.Attribute would otherwise win the name; the alias must be inside the namespace.
+    using Attribute = Dragoneye.Combat.Attribute;
+
     /// <summary>
     /// DE-002. Six authored fields, both costs enforced, a reason for anything unavailable, and
     /// equipment as the only source of skills.
@@ -14,13 +17,13 @@ namespace Dragoneye.Hex.Tests
         const int StrikeId = 100;
         const int RecoverId = 110;
 
-        static SkillSpec Strike() => new SkillSpec(StrikeId, "Strike", Element.Fire,
+        static SkillSpec Strike() => new SkillSpec(StrikeId, "Strike", Element.Pyro,
             Ap.FromWhole(1), 1, 1, SkillTarget.Creature, new SkillEffect(SkillEffectKind.Damage, 6));
 
-        static SkillSpec Recover() => new SkillSpec(RecoverId, "Recover", Element.Water,
+        static SkillSpec Recover() => new SkillSpec(RecoverId, "Recover", Element.Hydro,
             Ap.FromWhole(1), 1, 0, SkillTarget.Self, new SkillEffect(SkillEffectKind.Heal, 5));
 
-        static ElementLedger Full() => ElementLedger.Starting(new ElementCounts(3, 3, 3, 3));
+        static ElementLedger Full() => ElementLedger.Starting(new ElementCounts(3, 3, 3, 3, 0, 0, 0));
 
         static SkillTargetInfo Enemy(int distance = 1) =>
             SkillTargetInfo.Creature(distance, isSelf: false, isAlly: false);
@@ -30,7 +33,7 @@ namespace Dragoneye.Hex.Tests
         {
             var skill = Strike();
 
-            Assert.AreEqual(Element.Fire, skill.Element);
+            Assert.AreEqual(Element.Pyro, skill.Element);
             Assert.AreEqual(Ap.FromWhole(1), skill.ApCost);
             Assert.AreEqual(1, skill.ElementCost);
             Assert.AreEqual(1, skill.Range);
@@ -70,7 +73,7 @@ namespace Dragoneye.Hex.Tests
         [Test]
         public void ASkillCostingNothingIsAlwaysAffordable()
         {
-            var free = new SkillSpec(1, "Free", Element.Fire, Ap.Zero, 0, 1,
+            var free = new SkillSpec(1, "Free", Element.Pyro, Ap.Zero, 0, 1,
                 SkillTarget.Self, default);
 
             Assert.AreEqual(SkillRefusal.None, SkillRules.CheckAffordable(free, true, Ap.Zero,
@@ -169,7 +172,7 @@ namespace Dragoneye.Hex.Tests
         public void AnIdWithNoSkillBehindItIsDropped()
         {
             var content = new SkillContent()
-                .With(new ClassSpec(1, "W", StatBlock.Zero, new int[0], new[] { 999 }));
+                .With(new ClassSpec(1, "W", AttributeBlock.Zero, new int[0], new[] { 999 }));
 
             Assert.IsEmpty(LoadoutResolver.Resolve(new CharacterBuild { ClassId = 1 }, content).Skills);
         }
@@ -177,10 +180,10 @@ namespace Dragoneye.Hex.Tests
         static SkillContent Content() =>
             new SkillContent()
                 .With(Strike()).With(Recover())
-                .With(new ClassSpec(1, "Warrior", StatBlock.Zero, new[] { 10 }, new[] { RecoverId }))
-                .With(new EquipmentSpec(10, "Sword", EquipmentSlot.Weapon, StatBlock.Zero,
+                .With(new ClassSpec(1, "Warrior", AttributeBlock.Zero, new[] { 10 }, new[] { RecoverId }))
+                .With(new EquipmentSpec(10, "Sword", EquipmentSlot.Weapon, AttributeBlock.Zero,
                     new[] { StrikeId }))
-                .With(new EquipmentSpec(20, "Charm", EquipmentSlot.Armor, StatBlock.Zero,
+                .With(new EquipmentSpec(20, "Charm", EquipmentSlot.Armor, AttributeBlock.Zero,
                     new[] { StrikeId }));
 
         sealed class SkillContent : IContentIndex
@@ -189,7 +192,7 @@ namespace Dragoneye.Hex.Tests
             readonly List<EquipmentSpec> m_Equipment = new List<EquipmentSpec>();
             readonly List<SkillSpec> m_Skills = new List<SkillSpec>();
 
-            public CharacterRules Rules { get; } = new CharacterRules(0, 0, 8, 1);
+            public CharacterRules Rules { get; } = new CharacterRules(0, 8, 1);
             public IReadOnlyList<ClassSpec> Classes => m_Classes;
             public IReadOnlyList<EquipmentSpec> Equipment => m_Equipment;
             public IReadOnlyList<SkillSpec> Skills => m_Skills;
@@ -197,6 +200,17 @@ namespace Dragoneye.Hex.Tests
             public SkillContent With(ClassSpec s) { m_Classes.Add(s); return this; }
             public SkillContent With(EquipmentSpec s) { m_Equipment.Add(s); return this; }
             public SkillContent With(SkillSpec s) { m_Skills.Add(s); return this; }
+        readonly List<SpeciesSpec> m_SpeciesList =
+            new List<SpeciesSpec> { new SpeciesSpec(1, "Human", AttributeBlock.Zero) };
+
+        public IReadOnlyList<SpeciesSpec> Species => m_SpeciesList;
+
+        public bool TryGetSpecies(int id, out SpeciesSpec spec)
+        {
+            spec = m_SpeciesList.FirstOrDefault(s => s.Id == id);
+            return spec != null;
+        }
+
 
             public bool TryGetClass(int id, out ClassSpec spec)
             {

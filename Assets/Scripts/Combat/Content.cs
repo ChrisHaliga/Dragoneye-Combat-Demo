@@ -13,6 +13,41 @@ namespace Dragoneye.Combat
     }
 
     /// <summary>
+    /// An authored species, as the rules see it.
+    ///
+    /// What a creature is, as opposed to what it trained to do. Every creature has one -- premade or
+    /// built -- which makes it the right place for anything true of all of them. Take a Breath is
+    /// authored onto every species rather than written into the rules: it comes for free with being
+    /// alive, but it is still content, and a species that cannot catch its breath is a species a
+    /// designer is allowed to author.
+    /// </summary>
+    public sealed class SpeciesSpec
+    {
+        public SpeciesSpec(int id, string name, AttributeBlock baseline,
+            IReadOnlyList<int> skillIds = null, string description = "")
+        {
+            Id = id;
+            Name = name ?? string.Empty;
+            Baseline = baseline;
+            SkillIds = skillIds ?? System.Array.Empty<int>();
+            Description = description ?? string.Empty;
+        }
+
+        /// <summary>Stable, hand-assigned. It crosses the network and is written into saved builds.</summary>
+        public int Id { get; }
+
+        public string Name { get; }
+
+        /// <summary>Attributes every member of the species has before class, points or kit.</summary>
+        public AttributeBlock Baseline { get; }
+
+        /// <summary>What being this species lets you do, whatever else you are.</summary>
+        public IReadOnlyList<int> SkillIds { get; }
+
+        public string Description { get; }
+    }
+
+    /// <summary>
     /// An authored class, as the rules see it.
     ///
     /// A plain descriptor rather than the asset itself. Combat cannot reference a ScriptableObject
@@ -21,7 +56,7 @@ namespace Dragoneye.Combat
     /// </summary>
     public sealed class ClassSpec
     {
-        public ClassSpec(int id, string name, StatBlock baseline, IReadOnlyList<int> weaponIds,
+        public ClassSpec(int id, string name, AttributeBlock baseline, IReadOnlyList<int> weaponIds,
             IReadOnlyList<int> skillIds = null, string description = "")
         {
             Id = id;
@@ -38,7 +73,7 @@ namespace Dragoneye.Combat
         public string Name { get; }
 
         /// <summary>Stats before any allocation or equipment.</summary>
-        public StatBlock Baseline { get; }
+        public AttributeBlock Baseline { get; }
 
         /// <summary>The weapons this class may carry. A weapon outside this list fails validation.</summary>
         public IReadOnlyList<int> WeaponIds { get; }
@@ -71,10 +106,11 @@ namespace Dragoneye.Combat
     /// </summary>
     public sealed class EquipmentSpec
     {
-        public EquipmentSpec(int id, string name, EquipmentSlot slot, StatBlock modifiers,
+        public EquipmentSpec(int id, string name, EquipmentSlot slot, AttributeBlock modifiers,
             IReadOnlyList<int> skillIds = null, IReadOnlyList<Passive> passives = null,
-            string description = "")
+            ArmourClass armour = ArmourClass.None, string description = "")
         {
+            Armour = armour;
             Id = id;
             Name = name ?? string.Empty;
             Slot = slot;
@@ -91,8 +127,11 @@ namespace Dragoneye.Combat
 
         public EquipmentSlot Slot { get; }
 
-        /// <summary>Added to the resolved stats. May be negative.</summary>
-        public StatBlock Modifiers { get; }
+        /// <summary>Added to the resolved attributes. May be negative.</summary>
+        public AttributeBlock Modifiers { get; }
+
+        /// <summary>How much this slows its wearer. Only armour is anything but None.</summary>
+        public ArmourClass Armour { get; }
 
         /// <summary>
         /// Skills this item grants while it is equipped.
@@ -122,20 +161,18 @@ namespace Dragoneye.Combat
     /// </summary>
     public sealed class CharacterRules
     {
-        public CharacterRules(int pointBudget, int minPerStat, int maxPerStat, int level)
+        public CharacterRules(int pointBudget, int maxPerAttribute, int level)
         {
             PointBudget = pointBudget < 0 ? 0 : pointBudget;
-            MinPerStat = minPerStat < 0 ? 0 : minPerStat;
-            MaxPerStat = maxPerStat < MinPerStat ? MinPerStat : maxPerStat;
+            MaxPerAttribute = maxPerAttribute < PointBuy.Floor ? PointBuy.Floor : maxPerAttribute;
             Level = level < 1 ? 1 : level;
         }
 
         /// <summary>Points available to spend across every stat.</summary>
         public int PointBudget { get; }
 
-        public int MinPerStat { get; }
-
-        public int MaxPerStat { get; }
+        /// <summary>The highest any one attribute may be bought to.</summary>
+        public int MaxPerAttribute { get; }
 
         /// <summary>
         /// How many element resources make up the starting pool -- one per level.
@@ -145,9 +182,8 @@ namespace Dragoneye.Combat
         /// </summary>
         public int Level { get; }
 
-        /// <summary>The allocation a fresh character starts from: the minimum in every stat.</summary>
-        public StatBlock StartingAllocation =>
-            new StatBlock(MinPerStat, MinPerStat, MinPerStat, MinPerStat);
+        /// <summary>Where a fresh character starts: every attribute at the floor.</summary>
+        public AttributeBlock StartingAttributes => AttributeBlock.Uniform(PointBuy.Floor);
     }
 
     /// <summary>
@@ -161,9 +197,13 @@ namespace Dragoneye.Combat
     {
         CharacterRules Rules { get; }
 
+        IReadOnlyList<SpeciesSpec> Species { get; }
+
         IReadOnlyList<ClassSpec> Classes { get; }
 
         IReadOnlyList<EquipmentSpec> Equipment { get; }
+
+        bool TryGetSpecies(int id, out SpeciesSpec spec);
 
         bool TryGetClass(int id, out ClassSpec spec);
 

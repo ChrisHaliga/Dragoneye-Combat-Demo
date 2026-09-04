@@ -7,9 +7,10 @@ namespace Dragoneye.Combat
     {
         NameMissing,
         NameTooLong,
+        SpeciesUnknown,
         ClassUnknown,
-        StatBelowMinimum,
-        StatAboveMaximum,
+        AttributeBelowFloor,
+        AttributeAboveCeiling,
         OverBudget,
         UnderBudget,
         PoolWrongSize,
@@ -31,17 +32,18 @@ namespace Dragoneye.Combat
     {
         public readonly BuildProblem Problem;
 
-        /// <summary>The stat at fault, when the problem is about one. Otherwise ignored.</summary>
-        public readonly StatKind Stat;
+        /// <summary>The attribute at fault, when the problem is about one. Otherwise ignored.</summary>
+        public readonly Attribute Attribute;
 
         /// <summary>A number the message needs -- the budget, the expected pool size, an item id.</summary>
         public readonly int Value;
 
-        public BuildFault(BuildProblem problem, int value = 0, StatKind stat = StatKind.Vitality)
+        public BuildFault(BuildProblem problem, int value = 0,
+            Attribute attribute = Attribute.Toughness)
         {
             Problem = problem;
             Value = value;
-            Stat = stat;
+            Attribute = attribute;
         }
     }
 
@@ -73,6 +75,14 @@ namespace Dragoneye.Combat
 
             ValidateName(build, faults);
 
+            if (!content.TryGetSpecies(build.SpeciesId, out _))
+            {
+                // The species contributes a baseline, so the attributes below cannot be judged
+                // until it resolves.
+                faults.Add(new BuildFault(BuildProblem.SpeciesUnknown, build.SpeciesId));
+                return;
+            }
+
             if (!content.TryGetClass(build.ClassId, out var classSpec))
             {
                 // Everything below is measured against the class, so there is nothing further to
@@ -81,7 +91,7 @@ namespace Dragoneye.Combat
                 return;
             }
 
-            ValidateAllocation(build, content.Rules, faults);
+            ValidateAttributes(build, content.Rules, faults);
             ValidatePool(build, content.Rules, faults);
             ValidateEquipment(build, classSpec, content, faults);
         }
@@ -108,20 +118,22 @@ namespace Dragoneye.Combat
             }
         }
 
-        static void ValidateAllocation(CharacterBuild build, CharacterRules rules,
+        static void ValidateAttributes(CharacterBuild build, CharacterRules rules,
             List<BuildFault> faults)
         {
-            foreach (var stat in StatInfo.All)
+            foreach (var attribute in AttributeInfo.All)
             {
-                var value = build.Allocation[stat];
+                var value = build.Attributes[attribute];
 
-                if (value < rules.MinPerStat)
+                if (value < PointBuy.Floor)
                 {
-                    faults.Add(new BuildFault(BuildProblem.StatBelowMinimum, rules.MinPerStat, stat));
+                    faults.Add(new BuildFault(BuildProblem.AttributeBelowFloor,
+                        PointBuy.Floor, attribute));
                 }
-                else if (value > rules.MaxPerStat)
+                else if (value > rules.MaxPerAttribute)
                 {
-                    faults.Add(new BuildFault(BuildProblem.StatAboveMaximum, rules.MaxPerStat, stat));
+                    faults.Add(new BuildFault(BuildProblem.AttributeAboveCeiling,
+                        rules.MaxPerAttribute, attribute));
                 }
             }
 
@@ -139,16 +151,22 @@ namespace Dragoneye.Combat
             }
         }
 
+        /// <summary>
+        /// The pool must total the character's level, in whatever spread the player chose.
+        ///
+        /// Only the total is constrained. Four of one element and one each of four others are both
+        /// legal at level four, and which you pick is the most consequential decision on the screen.
+        /// </summary>
         static void ValidatePool(CharacterBuild build, CharacterRules rules, List<BuildFault> faults)
         {
-            if (build.ElementPicks.Count != rules.Level)
+            if (build.StartingPool.Total != rules.Level)
             {
                 faults.Add(new BuildFault(BuildProblem.PoolWrongSize, rules.Level));
             }
 
-            foreach (var element in build.ElementPicks)
+            foreach (var element in ElementInfo.All)
             {
-                if (!ElementInfo.IsDefined(element))
+                if (build.StartingPool[element] < 0)
                 {
                     faults.Add(new BuildFault(BuildProblem.PoolElementUnknown, (int)element));
                     break;

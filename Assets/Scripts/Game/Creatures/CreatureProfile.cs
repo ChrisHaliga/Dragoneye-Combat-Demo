@@ -17,24 +17,24 @@ namespace Dragoneye.Game
     public readonly struct CreatureProfile
     {
         public static readonly CreatureProfile Unknown = new CreatureProfile(
-            "Unknown", 1, Ap.Zero, 0, null, null);
+            "Unknown", 1, Ap.Zero, 0, null, ElementCounts.Empty);
 
         public readonly string Name;
         public readonly int MaxHealth;
         public readonly Ap MaxAp;
         public readonly int Initiative;
         public readonly IReadOnlyList<int> SkillIds;
-        public readonly IReadOnlyList<Element> StartingPool;
+        public readonly ElementCounts StartingPool;
 
         public CreatureProfile(string name, int maxHealth, Ap maxAp, int initiative,
-            IReadOnlyList<int> skillIds, IReadOnlyList<Element> startingPool)
+            IReadOnlyList<int> skillIds, ElementCounts startingPool)
         {
             Name = string.IsNullOrEmpty(name) ? "Unknown" : name;
             MaxHealth = maxHealth < 1 ? 1 : maxHealth;
             MaxAp = maxAp;
             Initiative = initiative;
             SkillIds = skillIds ?? System.Array.Empty<int>();
-            StartingPool = startingPool ?? System.Array.Empty<Element>();
+            StartingPool = startingPool;
         }
 
         /// <summary>An authored premade.</summary>
@@ -66,7 +66,7 @@ namespace Dragoneye.Game
             }
 
             return new CreatureProfile(name, loadout.Vitals.MaxHealth, loadout.Vitals.MaxAp,
-                loadout.Vitals.Initiative, skillIds, loadout.StartingPool);
+                loadout.Vitals.Speed, skillIds, loadout.StartingPool);
         }
     }
 }

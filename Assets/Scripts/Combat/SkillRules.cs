@@ -14,6 +14,10 @@ namespace Dragoneye.Combat
         NotYourTurn,
         NotEnoughAp,
         NotEnoughElement,
+
+        /// <summary>Nothing has been spent, so there is nothing to take back.</summary>
+        NothingToReturn,
+
         NoTarget,
         WrongTargetKind,
         OutOfRange,
@@ -101,6 +105,13 @@ namespace Dragoneye.Combat
             if (skill.ElementCost > 0 && !ledger.CanSpend(skill.Element, skill.ElementCost))
             {
                 return SkillRefusal.NotEnoughElement;
+            }
+
+            // Taking an element back is worth nothing when none has been spent, and charging AP for
+            // a no-op is the sort of thing a player only notices after it has cost them a turn.
+            if (skill.Effect.Kind == SkillEffectKind.ReturnElement && !ledger.CanReturn)
+            {
+                return SkillRefusal.NothingToReturn;
             }
 
             return SkillRefusal.None;

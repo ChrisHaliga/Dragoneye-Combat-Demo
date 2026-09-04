@@ -24,21 +24,23 @@ namespace Dragoneye.Multiplayer
                     return "Give your character a name.";
                 case BuildProblem.NameTooLong:
                     return $"Names are at most {fault.Value} characters.";
+                case BuildProblem.SpeciesUnknown:
+                    return "Pick a species.";
                 case BuildProblem.ClassUnknown:
                     return "Pick a class.";
-                case BuildProblem.StatBelowMinimum:
-                    return $"{StatInfo.NameOf(fault.Stat)} cannot go below {fault.Value}.";
-                case BuildProblem.StatAboveMaximum:
-                    return $"{StatInfo.NameOf(fault.Stat)} cannot go above {fault.Value}.";
+                case BuildProblem.AttributeBelowFloor:
+                    return $"{AttributeInfo.NameOf(fault.Attribute)} cannot go below {fault.Value}.";
+                case BuildProblem.AttributeAboveCeiling:
+                    return $"{AttributeInfo.NameOf(fault.Attribute)} cannot go above {fault.Value}.";
                 case BuildProblem.OverBudget:
-                    return $"Remove {Points(fault.Value)}.";
+                    return $"Refund {Points(fault.Value)}.";
                 case BuildProblem.UnderBudget:
                     return $"Spend {Points(fault.Value)}.";
                 case BuildProblem.PoolWrongSize:
-                    return $"Choose {fault.Value} element{(fault.Value == 1 ? "" : "s")} "
-                        + "for your starting pool.";
+                    return $"Your starting pool must total {fault.Value} "
+                        + $"element{(fault.Value == 1 ? "" : "s")}.";
                 case BuildProblem.PoolElementUnknown:
-                    return "One of your pool choices is no longer a real element.";
+                    return "One of your pool choices is not a real element.";
                 case BuildProblem.WeaponUnknown:
                     return "That weapon no longer exists.";
                 case BuildProblem.WeaponNotForClass:

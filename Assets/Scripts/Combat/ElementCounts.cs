@@ -1,34 +1,39 @@
 using System;
-using System.Collections.Generic;
 
 namespace Dragoneye.Combat
 {
     /// <summary>
     /// How many of each element something holds.
     ///
-    /// One named field per element rather than an array, for the same reasons as
-    /// <see cref="StatBlock"/>: it is unmanaged, so netcode can replicate it without a heap
-    /// allocation per creature per frame, and adding a fifth element becomes a deliberate edit that
-    /// shows up in a diff rather than a silent change in an array length.
+    /// One named field per element rather than an array: it stays unmanaged, so netcode can
+    /// replicate it without a heap allocation per creature, and adding an eighth element becomes a
+    /// deliberate edit that shows up in a diff rather than a silent change in a length.
     ///
-    /// Used for both halves of DE-001. A pool and a reveal record are the same shape -- a count per
-    /// element -- and giving them the same type is what lets a spend update both with one operation.
+    /// Used for both halves of DE-001 and for a character's starting spread. A pool, a reveal record
+    /// and a spread are all the same shape -- a count per element -- and giving them one type is what
+    /// lets a spend update two of them in a single operation.
     /// </summary>
     public readonly struct ElementCounts : IEquatable<ElementCounts>
     {
         public static readonly ElementCounts Empty = default;
 
-        public readonly int Fire;
-        public readonly int Water;
-        public readonly int Earth;
-        public readonly int Air;
+        public readonly int Geo;
+        public readonly int Hydro;
+        public readonly int Pyro;
+        public readonly int Aero;
+        public readonly int Lux;
+        public readonly int Nyx;
+        public readonly int Arcana;
 
-        public ElementCounts(int fire, int water, int earth, int air)
+        public ElementCounts(int geo, int hydro, int pyro, int aero, int lux, int nyx, int arcana)
         {
-            Fire = fire;
-            Water = water;
-            Earth = earth;
-            Air = air;
+            Geo = geo;
+            Hydro = hydro;
+            Pyro = pyro;
+            Aero = aero;
+            Lux = lux;
+            Nyx = nyx;
+            Arcana = arcana;
         }
 
         public int this[Element element]
@@ -37,16 +42,32 @@ namespace Dragoneye.Combat
             {
                 switch (element)
                 {
-                    case Element.Fire: return Fire;
-                    case Element.Water: return Water;
-                    case Element.Earth: return Earth;
-                    case Element.Air: return Air;
+                    case Element.Geo: return Geo;
+                    case Element.Hydro: return Hydro;
+                    case Element.Pyro: return Pyro;
+                    case Element.Aero: return Aero;
+                    case Element.Lux: return Lux;
+                    case Element.Nyx: return Nyx;
+                    case Element.Arcana: return Arcana;
                     default: return 0;
                 }
             }
         }
 
-        public int Total => Fire + Water + Earth + Air;
+        public int Total
+        {
+            get
+            {
+                var total = 0;
+
+                foreach (var element in ElementInfo.All)
+                {
+                    total += this[element];
+                }
+
+                return total;
+            }
+        }
 
         public bool IsEmpty => Total == 0;
 
@@ -57,10 +78,13 @@ namespace Dragoneye.Combat
 
             switch (element)
             {
-                case Element.Fire: return new ElementCounts(amount, Water, Earth, Air);
-                case Element.Water: return new ElementCounts(Fire, amount, Earth, Air);
-                case Element.Earth: return new ElementCounts(Fire, Water, amount, Air);
-                case Element.Air: return new ElementCounts(Fire, Water, Earth, amount);
+                case Element.Geo: return new ElementCounts(amount, Hydro, Pyro, Aero, Lux, Nyx, Arcana);
+                case Element.Hydro: return new ElementCounts(Geo, amount, Pyro, Aero, Lux, Nyx, Arcana);
+                case Element.Pyro: return new ElementCounts(Geo, Hydro, amount, Aero, Lux, Nyx, Arcana);
+                case Element.Aero: return new ElementCounts(Geo, Hydro, Pyro, amount, Lux, Nyx, Arcana);
+                case Element.Lux: return new ElementCounts(Geo, Hydro, Pyro, Aero, amount, Nyx, Arcana);
+                case Element.Nyx: return new ElementCounts(Geo, Hydro, Pyro, Aero, Lux, amount, Arcana);
+                case Element.Arcana: return new ElementCounts(Geo, Hydro, Pyro, Aero, Lux, Nyx, amount);
                 default: return this;
             }
         }
@@ -68,39 +92,52 @@ namespace Dragoneye.Combat
         public ElementCounts Plus(Element element, int amount) =>
             amount <= 0 ? this : With(element, this[element] + amount);
 
+        public ElementCounts Minus(Element element, int amount) =>
+            amount <= 0 ? this : With(element, this[element] - amount);
+
         /// <summary>Whether this holds at least <paramref name="amount"/> of an element.</summary>
         public bool Holds(Element element, int amount) => amount <= 0 || this[element] >= amount;
 
-        /// <summary>Builds counts from a list of picks, which is how a starting pool is authored.</summary>
-        public static ElementCounts From(IReadOnlyList<Element> picks)
+        public bool Equals(ElementCounts other)
         {
-            var counts = Empty;
-
-            if (picks == null)
+            foreach (var element in ElementInfo.All)
             {
-                return counts;
-            }
-
-            foreach (var element in picks)
-            {
-                if (ElementInfo.IsDefined(element))
+                if (this[element] != other[element])
                 {
-                    counts = counts.Plus(element, 1);
+                    return false;
                 }
             }
 
-            return counts;
+            return true;
         }
-
-        public bool Equals(ElementCounts other) =>
-            Fire == other.Fire && Water == other.Water
-            && Earth == other.Earth && Air == other.Air;
 
         public override bool Equals(object obj) => obj is ElementCounts other && Equals(other);
 
-        public override int GetHashCode() =>
-            unchecked(((Fire * 397 ^ Water) * 397 ^ Earth) * 397 ^ Air);
+        public override int GetHashCode()
+        {
+            var hash = 17;
 
-        public override string ToString() => $"F{Fire} W{Water} E{Earth} A{Air}";
+            foreach (var element in ElementInfo.All)
+            {
+                hash = unchecked(hash * 397 ^ this[element]);
+            }
+
+            return hash;
+        }
+
+        public override string ToString()
+        {
+            var text = string.Empty;
+
+            foreach (var element in ElementInfo.All)
+            {
+                if (this[element] > 0)
+                {
+                    text += $"{ElementInfo.ShortNameOf(element)}{this[element]} ";
+                }
+            }
+
+            return text.Length == 0 ? "empty" : text.TrimEnd();
+        }
     }
 }

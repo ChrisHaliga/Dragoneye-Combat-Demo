@@ -91,7 +91,7 @@ namespace Dragoneye.CameraControl
 
         // Not serialised: the focus is a networked object that only exists once a match starts, so
         // it is handed in by ArenaContext rather than wired in the scene.
-        ICameraFocus m_Focus;
+        CameraFocusRef m_Focus;
 
         void Awake()
         {
@@ -114,9 +114,11 @@ namespace Dragoneye.CameraControl
 
             // Snap to the cursor with no smoothing of its own. Cinemachine's damping is disabled
             // for the same reason: on a directly-driven camera it reads as input lag.
-            if (m_Focus != null)
+            var focus = m_Focus.Value;
+
+            if (focus != null)
             {
-                transform.SetPositionAndRotation(m_Focus.Position, Quaternion.Euler(0f, m_Yaw, 0f));
+                transform.SetPositionAndRotation(focus.Position, Quaternion.Euler(0f, m_Yaw, 0f));
             }
             else
             {
@@ -130,9 +132,9 @@ namespace Dragoneye.CameraControl
         /// </summary>
         public void SetFocus(ICameraFocus focus)
         {
-            m_Focus = focus;
+            m_Focus = new CameraFocusRef(focus);
 
-            if (focus != null)
+            if (m_Focus.IsAlive)
             {
                 transform.position = focus.Position;
             }

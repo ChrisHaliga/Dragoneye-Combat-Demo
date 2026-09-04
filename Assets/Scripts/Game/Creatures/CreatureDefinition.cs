@@ -43,9 +43,9 @@ namespace Dragoneye.Game
         [SerializeField, Min(0)]
         int m_Speed = 5;
 
-        [SerializeField, Tooltip("Elements this creature starts holding. One entry per resource; "
-             + "repeat an element to hold several. Pools deplete and are never restored.")]
-        List<Element> m_StartingPool = new List<Element>();
+        [SerializeField, Tooltip("Elements this creature starts holding. Any spread; the total is "
+             + "this creature's level.")]
+        ElementValues m_StartingPool;
 
         [SerializeField, Tooltip("What this creature can do. Authored directly, because a premade "
              + "has no class and equipment to derive a kit from.")]
@@ -73,14 +73,15 @@ namespace Dragoneye.Game
         /// Authored, because a premade has no player behind it to pick one. A built character gets
         /// its pool from the choices made in the creator instead -- same shape, different source.
         /// </summary>
-        public IReadOnlyList<Element> StartingPool => m_StartingPool;
+        public ElementCounts StartingPool => m_StartingPool.ToCounts();
 
         /// <summary>
-        /// The skills a premade creature can use.
+        /// The skills a premade creature can use: what its species grants, then what is authored
+        /// here.
         ///
-        /// Authored here for the same reason the pool is: a premade has no build behind it. A player
-        /// character derives the same list from its class and equipment instead, and both end up as
-        /// a set of ids the creature resolves locally.
+        /// Species first for the same reason a built character resolves it first -- being a Goblinoid
+        /// is true before anything this particular goblin trained at. The rest is authored directly,
+        /// because a premade has no class and equipment to derive a kit from.
         /// </summary>
         public IReadOnlyList<int> SkillIds
         {
@@ -88,9 +89,14 @@ namespace Dragoneye.Game
             {
                 var ids = new List<int>();
 
+                if (m_Species != null)
+                {
+                    ids.AddRange(m_Species.SkillIds);
+                }
+
                 foreach (var skill in m_Skills)
                 {
-                    if (skill != null)
+                    if (skill != null && !ids.Contains(skill.Id))
                     {
                         ids.Add(skill.Id);
                     }

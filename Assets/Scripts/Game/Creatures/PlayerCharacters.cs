@@ -15,56 +15,82 @@ namespace Dragoneye.Game
     /// grant -- is authored content every peer already has, so what crosses the wire is the choices,
     /// not the content. The portrait deliberately does not travel at all.
     ///
-    /// The pool is a fixed-size inline array rather than a list. NGO needs an unmanaged type, and a
-    /// bounded array makes the message a fixed size -- a client cannot make the host allocate by
-    /// claiming a level of four thousand.
+    /// Every field is fixed-size, which makes the whole message fixed-size: a client cannot make the
+    /// host allocate by claiming a pool of four thousand. The pool is counts rather than a list of
+    /// picks for exactly that reason, and because counts are what the rules actually use.
     /// </summary>
     public struct NetBuild : INetworkSerializable, IEquatable<NetBuild>
     {
-        /// <summary>Most element picks a build may carry. Generous next to any sane level.</summary>
-        public const byte MaxPicks = 12;
+        /// <summary>Most learned skills a build may carry. Generous next to any sane character.</summary>
+        public const byte MaxLearned = 16;
 
         public byte Slot;
         public FixedString64Bytes Name;
+        public int SpeciesId;
         public int ClassId;
+
+        public int Toughness;
+        public int Dexterity;
+        public int Strength;
+        public int Skill;
         public int Vitality;
-        public int Speed;
-        public int Power;
-        public int Focus;
+        public int Willpower;
+        public int Endurance;
+
+        public int Geo;
+        public int Hydro;
+        public int Pyro;
+        public int Aero;
+        public int Lux;
+        public int Nyx;
+        public int Arcana;
+
         public int WeaponId;
         public int ArmorId;
         public int OffhandId;
-        public byte PickCount;
 
-        // Fixed inline rather than an array field: NGO serialises what it is told to, and twelve
-        // named bytes cost less than a length-prefixed collection per creature per match.
-        public FixedList32Bytes<byte> Picks;
+        public byte LearnedCount;
+        public FixedList128Bytes<int> Learned;
 
         public static NetBuild From(byte slot, CharacterBuild build)
         {
+            var a = build.Attributes;
+            var p = build.StartingPool;
+
             var net = new NetBuild
             {
                 Slot = slot,
                 Name = new FixedString64Bytes(Clamp(build.Name)),
+                SpeciesId = build.SpeciesId,
                 ClassId = build.ClassId,
-                Vitality = build.Allocation.Vitality,
-                Speed = build.Allocation.Speed,
-                Power = build.Allocation.Power,
-                Focus = build.Allocation.Focus,
+                Toughness = a.Toughness,
+                Dexterity = a.Dexterity,
+                Strength = a.Strength,
+                Skill = a.Skill,
+                Vitality = a.Vitality,
+                Willpower = a.Willpower,
+                Endurance = a.Endurance,
+                Geo = p[Element.Geo],
+                Hydro = p[Element.Hydro],
+                Pyro = p[Element.Pyro],
+                Aero = p[Element.Aero],
+                Lux = p[Element.Lux],
+                Nyx = p[Element.Nyx],
+                Arcana = p[Element.Arcana],
                 WeaponId = build.WeaponId,
                 ArmorId = build.ArmorId,
                 OffhandId = build.OffhandId,
-                Picks = new FixedList32Bytes<byte>()
+                Learned = new FixedList128Bytes<int>()
             };
 
-            var count = Math.Min(build.ElementPicks.Count, MaxPicks);
+            var count = Math.Min(build.LearnedSkillIds.Count, MaxLearned);
 
             for (var i = 0; i < count; i++)
             {
-                net.Picks.Add((byte)build.ElementPicks[i]);
+                net.Learned.Add(build.LearnedSkillIds[i]);
             }
 
-            net.PickCount = (byte)count;
+            net.LearnedCount = (byte)count;
             return net;
         }
 
@@ -73,18 +99,21 @@ namespace Dragoneye.Game
             var build = new CharacterBuild
             {
                 Name = Name.ToString(),
+                SpeciesId = SpeciesId,
                 ClassId = ClassId,
-                Allocation = new StatBlock(Vitality, Speed, Power, Focus),
+                Attributes = new AttributeBlock(Toughness, Dexterity, Strength, Skill,
+                    Vitality, Willpower, Endurance),
+                StartingPool = new ElementCounts(Geo, Hydro, Pyro, Aero, Lux, Nyx, Arcana),
                 WeaponId = WeaponId,
                 ArmorId = ArmorId,
                 OffhandId = OffhandId
             };
 
-            var count = Math.Min((int)PickCount, Picks.Length);
+            var count = Math.Min((int)LearnedCount, Learned.Length);
 
             for (var i = 0; i < count; i++)
             {
-                build.ElementPicks.Add((Element)Picks[i]);
+                build.LearnedSkillIds.Add(Learned[i]);
             }
 
             return build;
@@ -103,50 +132,65 @@ namespace Dragoneye.Game
         {
             serializer.SerializeValue(ref Slot);
             serializer.SerializeValue(ref Name);
+            serializer.SerializeValue(ref SpeciesId);
             serializer.SerializeValue(ref ClassId);
+
+            serializer.SerializeValue(ref Toughness);
+            serializer.SerializeValue(ref Dexterity);
+            serializer.SerializeValue(ref Strength);
+            serializer.SerializeValue(ref Skill);
             serializer.SerializeValue(ref Vitality);
-            serializer.SerializeValue(ref Speed);
-            serializer.SerializeValue(ref Power);
-            serializer.SerializeValue(ref Focus);
+            serializer.SerializeValue(ref Willpower);
+            serializer.SerializeValue(ref Endurance);
+
+            serializer.SerializeValue(ref Geo);
+            serializer.SerializeValue(ref Hydro);
+            serializer.SerializeValue(ref Pyro);
+            serializer.SerializeValue(ref Aero);
+            serializer.SerializeValue(ref Lux);
+            serializer.SerializeValue(ref Nyx);
+            serializer.SerializeValue(ref Arcana);
+
             serializer.SerializeValue(ref WeaponId);
             serializer.SerializeValue(ref ArmorId);
             serializer.SerializeValue(ref OffhandId);
-            serializer.SerializeValue(ref PickCount);
+            serializer.SerializeValue(ref LearnedCount);
 
             // Element by element, because FixedList has no serialiser of its own -- and the count is
-            // clamped on read before it drives the loop, so a client claiming two hundred picks
-            // cannot make the host read past the message.
-            if (PickCount > MaxPicks)
+            // clamped on read before it drives the loop, so a client claiming two hundred learned
+            // skills cannot make the host read past the message.
+            if (LearnedCount > MaxLearned)
             {
-                PickCount = MaxPicks;
+                LearnedCount = MaxLearned;
             }
 
             if (serializer.IsReader)
             {
-                Picks = new FixedList32Bytes<byte>();
+                Learned = new FixedList128Bytes<int>();
 
-                for (var i = 0; i < PickCount; i++)
+                for (var i = 0; i < LearnedCount; i++)
                 {
-                    byte pick = 0;
-                    serializer.SerializeValue(ref pick);
-                    Picks.Add(pick);
+                    var id = 0;
+                    serializer.SerializeValue(ref id);
+                    Learned.Add(id);
                 }
 
                 return;
             }
 
-            for (var i = 0; i < PickCount && i < Picks.Length; i++)
+            for (var i = 0; i < LearnedCount && i < Learned.Length; i++)
             {
-                var pick = Picks[i];
-                serializer.SerializeValue(ref pick);
+                var id = Learned[i];
+                serializer.SerializeValue(ref id);
             }
         }
 
         public bool Equals(NetBuild other) =>
             Slot == other.Slot && Name.Equals(other.Name) && ClassId == other.ClassId
-            && Vitality == other.Vitality && Speed == other.Speed && Power == other.Power
-            && Focus == other.Focus && WeaponId == other.WeaponId && ArmorId == other.ArmorId
-            && OffhandId == other.OffhandId && PickCount == other.PickCount;
+            && WeaponId == other.WeaponId && ArmorId == other.ArmorId
+            && OffhandId == other.OffhandId && LearnedCount == other.LearnedCount
+            && ToBuild().Attributes.Equals(other.ToBuild().Attributes)
+            && ToBuild().StartingPool.Equals(other.ToBuild().StartingPool);
 
         public override bool Equals(object obj) => obj is NetBuild other && Equals(other);
 

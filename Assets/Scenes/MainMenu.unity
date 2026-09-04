@@ -189,7 +189,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Dragoneye.Multiplayer::Dragoneye.Multiplayer.MainMenuUI
   m_Runner: {fileID: 0}
-  m_Content: {fileID: 0}
+  m_Content: {fileID: 11400000, guid: 8ddd609005201304b860171a12654bf0, type: 2}
 --- !u!114 &939729451
 MonoBehaviour:
   m_ObjectHideFlags: 0

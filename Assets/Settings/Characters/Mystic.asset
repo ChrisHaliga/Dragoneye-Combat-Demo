@@ -22,8 +22,8 @@ MonoBehaviour:
     Power: 1
     Focus: 4
   m_Weapons:
-  - {fileID: 11400000, guid: e304023166a860b4089fa9776dd1035b, type: 2}
-  - {fileID: 11400000, guid: d5367f39b0a440f4896fcfc1e950f8ce, type: 2}
+  - {fileID: 0}
+  - {fileID: 0}
   m_Skills:
   - {fileID: 11400000, guid: d3df0d8534ad78d4cb8e75b3ddc7042d, type: 2}
   - {fileID: 11400000, guid: d57f35a51af6b494d9d323120731af2c, type: 2}

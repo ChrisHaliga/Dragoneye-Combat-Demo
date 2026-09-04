@@ -12,14 +12,14 @@ MonoBehaviour:
   m_Script: {fileID: 0}
   m_Name: Shield
   m_EditorClassIdentifier: Dragoneye.Data:Dragoneye.Data:EquipmentAsset
-  m_Id: 30
-  m_DisplayName: Shield
-  m_Description: Advantage when you are the one being asked a question.
-  m_Slot: 2
+  m_Id: 1
+  m_DisplayName: Item
+  m_Description: 
+  m_Slot: 0
   m_Modifiers:
-    Vitality: 1
+    Vitality: 0
     Speed: 0
     Power: 0
     Focus: 0
   m_Skills: []
-  m_Passives: 01000000
+  m_Passives: 

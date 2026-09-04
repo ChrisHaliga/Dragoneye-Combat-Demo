@@ -7,6 +7,10 @@ using UnityEngine.UIElements;
 
 namespace Dragoneye.Multiplayer
 {
+    // Declared inside the namespace, not at file scope: C# resolves names against enclosing
+    // namespaces before file-level aliases, and System.Attribute would otherwise win.
+    using Attribute = Dragoneye.Combat.Attribute;
+
     /// <summary>
     /// Building a character: who they are, what they look like, and what they carry.
     ///
@@ -41,9 +45,9 @@ namespace Dragoneye.Multiplayer
 
         readonly List<BuildFault> m_FaultBuffer = new List<BuildFault>();
 
-        readonly Dictionary<StatKind, Label> m_StatValues = new Dictionary<StatKind, Label>();
-        readonly Dictionary<StatKind, Button> m_StatMinus = new Dictionary<StatKind, Button>();
-        readonly Dictionary<StatKind, Button> m_StatPlus = new Dictionary<StatKind, Button>();
+        readonly Dictionary<Attribute, Label> m_AttributeValues = new Dictionary<Attribute, Label>();
+        readonly Dictionary<Attribute, Button> m_AttributeMinus = new Dictionary<Attribute, Button>();
+        readonly Dictionary<Attribute, Button> m_AttributePlus = new Dictionary<Attribute, Button>();
 
         CharacterBuild m_Build;
         Label m_Budget;
@@ -116,7 +120,7 @@ namespace Dragoneye.Multiplayer
 
             m_Build = existing != null
                 ? new CharacterBuild(existing.Build)
-                : CharacterBuild.StartingFrom(classes[0], m_Content.Rules);
+                : CharacterBuild.StartingFrom(FirstSpecies(), classes[0]);
 
             m_PortraitTexture = existing != null ? existing.Portrait : null;
             m_DecodedPortrait = null;
@@ -140,18 +144,19 @@ namespace Dragoneye.Multiplayer
 
             m_Form.Add(MenuControls.Heading("1 · Identity"));
             m_Form.Add(NameField());
+            m_Form.Add(SpeciesField());
             m_Form.Add(ClassField());
-            m_Form.Add(MenuControls.Heading("Stats"));
+            m_Form.Add(MenuControls.Heading("Attributes"));
             m_Form.Add(BudgetLine());
 
-            foreach (var stat in StatInfo.All)
+            foreach (var stat in AttributeInfo.All)
             {
-                m_Form.Add(AllocationRow(stat));
+                m_Form.Add(AttributeRow(stat));
             }
 
-            m_Form.Add(MenuControls.Heading("Starting pool"));
-            m_Form.Add(MenuControls.Note("One element per level. Pools do not refill, so this decides what you "
-                + "can answer with all fight."));
+            m_Form.Add(MenuControls.Heading("Elements"));
+            m_Form.Add(MenuControls.Note("Any spread totalling your level. This is what you can "
+                + "answer with, and Take a Breath is the only way to get one back mid-fight."));
             m_Form.Add(ElementPicker());
 
             m_Form.Add(MenuControls.Heading("2 · Portrait"));
@@ -181,6 +186,55 @@ namespace Dragoneye.Multiplayer
             group.Add(field);
             return group;
         }
+
+        /// <summary>
+        /// The species picker.
+        ///
+        /// Separate from the class picker because they answer different questions: species is what
+        /// the character is and class is what it trained at. Changing it cannot invalidate the kit,
+        /// so unlike ClassField this does not rebuild the form.
+        /// </summary>
+        VisualElement SpeciesField()
+        {
+            var group = new VisualElement();
+            group.AddToClassList("field-group");
+            group.Add(MenuControls.FieldLabel("Species"));
+
+            var species = m_Content.Species;
+            var names = new List<string>();
+            var index = 0;
+
+            for (var i = 0; i < species.Count; i++)
+            {
+                names.Add(species[i].Name);
+
+                if (species[i].Id == m_Build.SpeciesId)
+                {
+                    index = i;
+                }
+            }
+
+            var dropdown = new DropdownField { choices = names, index = index };
+            dropdown.AddToClassList("dropdown");
+            dropdown.RegisterValueChangedCallback(_ =>
+            {
+                if (species.Count == 0)
+                {
+                    return;
+                }
+
+                m_Build.SpeciesId = species[Mathf.Clamp(dropdown.index, 0, species.Count - 1)].Id;
+                Refresh();
+            });
+
+            group.Add(dropdown);
+            return group;
+        }
+
+        /// <summary>The species a new character starts as. Null when none are authored.</summary>
+        SpeciesSpec FirstSpecies() =>
+            m_Content.Species.Count > 0 ? m_Content.Species[0] : null;
+
 
         VisualElement ClassField()
         {
@@ -239,16 +293,16 @@ namespace Dragoneye.Multiplayer
             return m_Budget;
         }
 
-        VisualElement AllocationRow(StatKind stat)
+        VisualElement AttributeRow(Attribute stat)
         {
             var row = new VisualElement();
             row.AddToClassList("alloc-row");
 
-            var label = new Label(StatInfo.NameOf(stat));
+            var label = new Label(AttributeInfo.NameOf(stat));
             label.AddToClassList("alloc-row__label");
             row.Add(label);
 
-            var effect = new Label(StatInfo.DescribeEffect(stat));
+            var effect = new Label(AttributeInfo.DescribeEffect(stat));
             effect.AddToClassList("alloc-row__effect");
             row.Add(effect);
 
@@ -261,47 +315,78 @@ namespace Dragoneye.Multiplayer
             row.Add(value);
             row.Add(plus);
 
-            m_StatValues[stat] = value;
-            m_StatMinus[stat] = minus;
-            m_StatPlus[stat] = plus;
+            m_AttributeValues[stat] = value;
+            m_AttributeMinus[stat] = minus;
+            m_AttributePlus[stat] = plus;
 
             return row;
         }
 
-        void Adjust(StatKind stat, int delta)
+        void Adjust(Attribute attribute, int delta)
         {
-            m_Build.Allocation = m_Build.Allocation.With(stat, m_Build.Allocation[stat] + delta);
+            m_Build.Attributes =
+                m_Build.Attributes.With(attribute, m_Build.Attributes[attribute] + delta);
             Refresh();
         }
 
+        /// <summary>
+        /// The starting pool as a spread rather than a list of picks.
+        ///
+        /// Any combination that totals the level is legal, so four of one element and one each of
+        /// four others are both valid at level four. Stepping each element up and down is the only
+        /// control that makes that obvious -- a pick list would imply an order that does not exist.
+        /// </summary>
         VisualElement ElementPicker()
         {
-            var buttons = new VisualElement();
-            buttons.AddToClassList("element-buttons");
+            var group = new VisualElement();
 
             foreach (var element in ElementInfo.All)
             {
-                var captured = element;
-
-                buttons.Add(MenuControls.TextButton(ElementInfo.NameOf(element), "element-button", () =>
-                {
-                    if (m_Build.ElementPicks.Count < m_Content.Rules.Level)
-                    {
-                        m_Build.ElementPicks.Add(captured);
-                        Refresh();
-                    }
-                }));
+                group.Add(ElementRow(element));
             }
 
+            return group;
+        }
+
+        readonly Dictionary<Element, Label> m_ElementValues = new Dictionary<Element, Label>();
+        readonly Dictionary<Element, Button> m_ElementMinus = new Dictionary<Element, Button>();
+        readonly Dictionary<Element, Button> m_ElementPlus = new Dictionary<Element, Button>();
+
+        VisualElement ElementRow(Element element)
+        {
             var row = new VisualElement();
-            row.Add(buttons);
-            row.Add(MenuControls.TextButton("Clear pool", "button button--ghost button--compact", () =>
-            {
-                m_Build.ElementPicks.Clear();
-                Refresh();
-            }));
+            row.AddToClassList("alloc-row");
+
+            var label = new Label(ElementInfo.NameOf(element));
+            label.AddToClassList("alloc-row__label");
+            label.style.color = ElementPalette.ForElement(element);
+            row.Add(label);
+
+            var spacer = new VisualElement();
+            spacer.AddToClassList("alloc-row__effect");
+            row.Add(spacer);
+
+            var minus = MenuControls.StepButton("-", () => AdjustPool(element, -1));
+            var value = new Label();
+            value.AddToClassList("alloc-row__value");
+            var plus = MenuControls.StepButton("+", () => AdjustPool(element, +1));
+
+            row.Add(minus);
+            row.Add(value);
+            row.Add(plus);
+
+            m_ElementValues[element] = value;
+            m_ElementMinus[element] = minus;
+            m_ElementPlus[element] = plus;
 
             return row;
+        }
+
+        void AdjustPool(Element element, int delta)
+        {
+            m_Build.StartingPool =
+                m_Build.StartingPool.With(element, m_Build.StartingPool[element] + delta);
+            Refresh();
         }
 
         VisualElement PortraitRow()
@@ -475,11 +560,11 @@ namespace Dragoneye.Multiplayer
         }
 
         /// <summary>"+2 Power  -1 Speed", or empty when an item changes nothing.</summary>
-        static string Modifiers(StatBlock block)
+        static string Modifiers(AttributeBlock block)
         {
             var text = string.Empty;
 
-            foreach (var stat in StatInfo.All)
+            foreach (var stat in AttributeInfo.All)
             {
                 var value = block[stat];
 
@@ -488,7 +573,7 @@ namespace Dragoneye.Multiplayer
                     continue;
                 }
 
-                text += $"{(value > 0 ? "+" : "")}{value} {StatInfo.NameOf(stat)}  ";
+                text += $"{(value > 0 ? "+" : "")}{value} {AttributeInfo.NameOf(stat)}  ";
             }
 
             return text.TrimEnd();
@@ -515,14 +600,14 @@ namespace Dragoneye.Multiplayer
 
             BuildValidator.Validate(m_Build, m_Content, m_FaultBuffer);
 
-            RefreshAllocation(rules);
+            RefreshAttributes(rules);
             RefreshSummary(loadout, rules);
 
             m_Faults.text = BuildFaultText.Summarise(m_FaultBuffer);
             m_Save.SetEnabled(m_FaultBuffer.Count == 0);
         }
 
-        void RefreshAllocation(CharacterRules rules)
+        void RefreshAttributes(CharacterRules rules)
         {
             var remaining = m_Build.PointsRemaining(rules);
 
@@ -537,24 +622,26 @@ namespace Dragoneye.Multiplayer
                 m_Budget.EnableInClassList("budget-line--over", remaining < 0);
             }
 
-            foreach (var stat in StatInfo.All)
+            foreach (var stat in AttributeInfo.All)
             {
-                var value = m_Build.Allocation[stat];
+                var value = m_Build.Attributes[stat];
 
-                if (m_StatValues.TryGetValue(stat, out var label))
+                if (m_AttributeValues.TryGetValue(stat, out var label))
                 {
                     label.text = value.ToString();
                 }
 
-                // Disabled rather than clamped on click, so the limit is visible before it is hit.
-                if (m_StatMinus.TryGetValue(stat, out var minus))
+                // Disabled rather than clamped on click, so the limit is visible before it is hit --
+                // and the plus knows the price of the next step rather than assuming it is one.
+                if (m_AttributeMinus.TryGetValue(stat, out var minus))
                 {
-                    minus.SetEnabled(value > rules.MinPerStat);
+                    minus.SetEnabled(value > PointBuy.Floor);
                 }
 
-                if (m_StatPlus.TryGetValue(stat, out var plus))
+                if (m_AttributePlus.TryGetValue(stat, out var plus))
                 {
-                    plus.SetEnabled(value < rules.MaxPerStat && remaining > 0);
+                    plus.SetEnabled(PointBuy.CanRaise(m_Build.Attributes, stat,
+                        rules.PointBudget, rules.MaxPerAttribute));
                 }
             }
         }
@@ -569,14 +656,15 @@ namespace Dragoneye.Multiplayer
             RefreshPortrait();
 
             m_Stats.Clear();
-            m_Stats.Add(MenuControls.ReadoutRow("Health", loadout.Vitals.MaxHealth.ToString()));
-            m_Stats.Add(MenuControls.ReadoutRow("Action points", loadout.Vitals.MaxAp.ToString()));
-            m_Stats.Add(MenuControls.ReadoutRow("Initiative", loadout.Vitals.Initiative.ToString()));
-            m_Stats.Add(MenuControls.ReadoutRow("Damage", loadout.Vitals.Damage.ToString()));
+            m_Stats.Add(MenuControls.ReadoutRow("LVL", loadout.Vitals.Level.ToString()));
+            m_Stats.Add(MenuControls.ReadoutRow("HP", loadout.Vitals.MaxHealth.ToString()));
+            m_Stats.Add(MenuControls.ReadoutRow("AP", loadout.Vitals.MaxAp.ToString()));
+            m_Stats.Add(MenuControls.ReadoutRow("SPD", loadout.Vitals.Speed.ToString()));
 
-            foreach (var stat in StatInfo.All)
+            foreach (var attribute in AttributeInfo.All)
             {
-                m_Stats.Add(MenuControls.ReadoutRow(StatInfo.NameOf(stat), loadout.Stats[stat].ToString()));
+                m_Stats.Add(MenuControls.ReadoutRow(AttributeInfo.ShortNameOf(attribute),
+                    loadout.Attributes[attribute].ToString()));
             }
 
             RefreshPool(rules);
@@ -595,36 +683,46 @@ namespace Dragoneye.Multiplayer
         }
 
         /// <summary>
-        /// The pool as chips being filled, not a count.
+        /// The pool as one chip per element held, with the running total against the level.
         ///
-        /// Empty slots are drawn too, so the shape of the choice -- four picks, three made -- is
-        /// visible without reading a number.
+        /// The shape is free and the size is not, so the total is what needs saying. Showing empty
+        /// slots would imply a fixed number of picks, which is exactly what this is not.
         /// </summary>
         void RefreshPool(CharacterRules rules)
         {
             m_Pool.Clear();
 
-            for (var i = 0; i < rules.Level; i++)
+            var pool = m_Build.StartingPool;
+
+            foreach (var element in ElementInfo.All)
             {
-                var filled = i < m_Build.ElementPicks.Count;
+                var held = pool[element];
 
-                var chip = new Label(filled
-                    ? ElementInfo.NameOf(m_Build.ElementPicks[i])
-                    : "—");
-
-                chip.AddToClassList("pool-chip");
-                chip.EnableInClassList("pool-chip--empty", !filled);
-
-                if (filled)
+                if (held <= 0)
                 {
-                    var color = ElementPalette.ForElement(m_Build.ElementPicks[i]);
-                    chip.style.color = color;
-                    chip.style.borderTopColor = chip.style.borderBottomColor =
-                        chip.style.borderLeftColor = chip.style.borderRightColor = color;
+                    continue;
                 }
+
+                var chip = new Label(ElementInfo.ShortNameOf(element) + " " + held);
+                chip.AddToClassList("pool-chip");
+
+                var color = ElementPalette.ForElement(element);
+                chip.style.color = color;
+                chip.style.borderTopColor = chip.style.borderBottomColor =
+                    chip.style.borderLeftColor = chip.style.borderRightColor = color;
 
                 m_Pool.Add(chip);
             }
+
+            if (pool.Total == rules.Level)
+            {
+                return;
+            }
+
+            var total = new Label(pool.Total + " of " + rules.Level);
+            total.AddToClassList("pool-chip");
+            total.AddToClassList("pool-chip--empty");
+            m_Pool.Add(total);
         }
 
         /// <summary>

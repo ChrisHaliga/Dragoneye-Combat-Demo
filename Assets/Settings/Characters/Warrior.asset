@@ -13,15 +13,12 @@ MonoBehaviour:
   m_Name: Warrior
   m_EditorClassIdentifier: Dragoneye.Data:Dragoneye.Data:ClassAsset
   m_Id: 1
-  m_DisplayName: Warrior
-  m_Description: Holds ground. Trades initiative for the health to be wrong once.
+  m_DisplayName: Class
+  m_Description: 
   m_Baseline:
-    Vitality: 3
-    Speed: 1
-    Power: 2
-    Focus: 2
-  m_Weapons:
-  - {fileID: 11400000, guid: 13433801fd50bb94aaeaeef163af9539, type: 2}
-  - {fileID: 11400000, guid: cad38c69e986fd347a87ecf6b3e2a5f9, type: 2}
-  m_Skills:
-  - {fileID: 11400000, guid: d3df0d8534ad78d4cb8e75b3ddc7042d, type: 2}
+    Vitality: 0
+    Speed: 0
+    Power: 0
+    Focus: 0
+  m_Weapons: []
+  m_Skills: []

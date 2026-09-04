@@ -143,7 +143,7 @@ namespace Dragoneye.Multiplayer
         }
 
         /// <summary>
-        /// The title card advances on anything at all.
+        /// The title card advances on any key.
         ///
         /// Polled rather than driven by an input action: this is the one screen where the specific
         /// key does not matter, and adding a binding to the input asset for "any" would be a
@@ -156,11 +156,11 @@ namespace Dragoneye.Multiplayer
                 return;
             }
 
+            // Keyboard only. A click also arrives when the window takes focus, so accepting the
+            // mouse here means alt-tabbing back into the game skips the title card.
             var keyboard = UnityEngine.InputSystem.Keyboard.current;
-            var mouse = UnityEngine.InputSystem.Mouse.current;
 
-            if ((keyboard != null && keyboard.anyKey.wasPressedThisFrame)
-                || (mouse != null && mouse.leftButton.wasPressedThisFrame))
+            if (keyboard != null && keyboard.anyKey.wasPressedThisFrame)
             {
                 ShowCharacters();
             }

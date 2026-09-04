@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using Dragoneye.Combat;
 using Unity.Netcode;
 using UnityEngine;
@@ -15,37 +16,55 @@ namespace Dragoneye.Game
     /// </summary>
     public struct NetElementCounts : INetworkSerializable, IEquatable<NetElementCounts>
     {
-        public int Fire;
-        public int Water;
-        public int Earth;
-        public int Air;
+        public int Geo;
+        public int Hydro;
+        public int Pyro;
+        public int Aero;
+        public int Lux;
+        public int Nyx;
+        public int Arcana;
 
         public NetElementCounts(ElementCounts counts)
         {
-            Fire = counts.Fire;
-            Water = counts.Water;
-            Earth = counts.Earth;
-            Air = counts.Air;
+            Geo = counts.Geo;
+            Hydro = counts.Hydro;
+            Pyro = counts.Pyro;
+            Aero = counts.Aero;
+            Lux = counts.Lux;
+            Nyx = counts.Nyx;
+            Arcana = counts.Arcana;
         }
 
-        public ElementCounts ToCounts() => new ElementCounts(Fire, Water, Earth, Air);
+        public ElementCounts ToCounts() =>
+            new ElementCounts(Geo, Hydro, Pyro, Aero, Lux, Nyx, Arcana);
 
         public void NetworkSerialize<T>(BufferSerializer<T> serializer) where T : IReaderWriter
         {
-            serializer.SerializeValue(ref Fire);
-            serializer.SerializeValue(ref Water);
-            serializer.SerializeValue(ref Earth);
-            serializer.SerializeValue(ref Air);
+            serializer.SerializeValue(ref Geo);
+            serializer.SerializeValue(ref Hydro);
+            serializer.SerializeValue(ref Pyro);
+            serializer.SerializeValue(ref Aero);
+            serializer.SerializeValue(ref Lux);
+            serializer.SerializeValue(ref Nyx);
+            serializer.SerializeValue(ref Arcana);
         }
 
-        public bool Equals(NetElementCounts other) =>
-            Fire == other.Fire && Water == other.Water
-            && Earth == other.Earth && Air == other.Air;
+        public bool Equals(NetElementCounts other)
+        {
+            foreach (var element in ElementInfo.All)
+            {
+                if (ToCounts()[element] != other.ToCounts()[element])
+                {
+                    return false;
+                }
+            }
+
+            return true;
+        }
 
         public override bool Equals(object obj) => obj is NetElementCounts other && Equals(other);
 
-        public override int GetHashCode() =>
-            unchecked(((Fire * 397 ^ Water) * 397 ^ Earth) * 397 ^ Air);
+        public override int GetHashCode() => ToCounts().GetHashCode();
     }
 
     /// <summary>
@@ -75,6 +94,11 @@ namespace Dragoneye.Game
         readonly NetworkVariable<NetElementCounts> m_Revealed = new NetworkVariable<NetElementCounts>(
             default, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Server);
 
+        // Public: everyone watched these being spent, and Take a Breath draws from the front.
+        readonly NetworkList<byte> m_Outstanding = new NetworkList<byte>();
+
+        readonly List<Element> m_OutstandingView = new List<Element>();
+
         ElementCounts m_StartingPool;
 
         /// <summary>Raised on every peer when either half changes.</summary>
@@ -95,7 +119,10 @@ namespace Dragoneye.Game
         /// <summary>Whether this peer is entitled to <see cref="Pool"/>.</summary>
         public bool CanSee => IsOwner;
 
-        public ElementLedger Ledger => new ElementLedger(Pool, Revealed);
+        public ElementLedger Ledger => new ElementLedger(Pool, Revealed, m_OutstandingView);
+
+        /// <summary>Spends not yet returned, oldest first. Public information.</summary>
+        public IReadOnlyList<Element> Outstanding => m_OutstandingView;
 
         /// <summary>Server only, and only before <c>Spawn()</c>. Sets the starting pool.</summary>
         public void ServerConfigure(ElementCounts pool) => m_StartingPool = pool;
@@ -112,14 +139,30 @@ namespace Dragoneye.Game
 
             m_Pool.OnValueChanged += OnCountsChanged;
             m_Revealed.OnValueChanged += OnCountsChanged;
+            m_Outstanding.OnListChanged += OnOutstandingChanged;
 
-            Changed?.Invoke();
+            RebuildOutstanding();
         }
 
         public override void OnNetworkDespawn()
         {
             m_Pool.OnValueChanged -= OnCountsChanged;
             m_Revealed.OnValueChanged -= OnCountsChanged;
+            m_Outstanding.OnListChanged -= OnOutstandingChanged;
+        }
+
+        void OnOutstandingChanged(NetworkListEvent<byte> _) => RebuildOutstanding();
+
+        void RebuildOutstanding()
+        {
+            m_OutstandingView.Clear();
+
+            for (var i = 0; i < m_Outstanding.Count; i++)
+            {
+                m_OutstandingView.Add((Element)m_Outstanding[i]);
+            }
+
+            Changed?.Invoke();
         }
 
         /// <summary>
@@ -140,12 +183,49 @@ namespace Dragoneye.Game
                 return false;
             }
 
-            // Both writes or neither. They are separate NetworkVariables only because they have
-            // different audiences; the ledger is what guarantees they agree.
-            m_Pool.Value = new NetElementCounts(next.Pool);
-            m_Revealed.Value = new NetElementCounts(next.Revealed);
-
+            Publish(next);
             return true;
+        }
+
+        /// <summary>
+        /// Server only. Brings back the oldest outstanding spend, which is what Take a Breath does.
+        /// </summary>
+        public bool ServerReturn(out Element returned, out SpendRefusal refusal)
+        {
+            returned = default;
+            refusal = SpendRefusal.None;
+
+            if (!IsServer)
+            {
+                return false;
+            }
+
+            if (!Ledger.TryReturn(out var next, out returned, out refusal))
+            {
+                return false;
+            }
+
+            Publish(next);
+            return true;
+        }
+
+        /// <summary>
+        /// Writes a whole ledger back.
+        ///
+        /// All three or none. They are separate replicated fields only because they have different
+        /// audiences; the ledger is what guarantees they agree.
+        /// </summary>
+        void Publish(ElementLedger ledger)
+        {
+            m_Pool.Value = new NetElementCounts(ledger.Pool);
+            m_Revealed.Value = new NetElementCounts(ledger.Revealed);
+
+            m_Outstanding.Clear();
+
+            foreach (var element in ledger.Outstanding)
+            {
+                m_Outstanding.Add((byte)element);
+            }
         }
 
         void OnCountsChanged(NetElementCounts previous, NetElementCounts current) => Changed?.Invoke();

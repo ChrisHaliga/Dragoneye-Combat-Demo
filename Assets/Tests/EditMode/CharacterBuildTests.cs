@@ -5,34 +5,47 @@ using NUnit.Framework;
 
 namespace Dragoneye.Hex.Tests
 {
+    // System.Attribute would otherwise win the name; the alias must be inside the namespace.
+    using Attribute = Dragoneye.Combat.Attribute;
+
     /// <summary>
     /// A build arrives from a client, so the validator is a trust boundary rather than a convenience
-    /// for the creation screen. These cases are the ones a hostile or stale client would send.
+    /// for the creation screen. These cases are the ones a hostile or stale client would send, plus
+    /// the arithmetic a player is promised on screen.
     /// </summary>
     public class CharacterBuildTests
     {
         const int SwordId = 10;
         const int BowId = 11;
         const int PlateId = 20;
+        const int Budget = 20;
+        const int Level = 4;
 
-        /// <summary>
-        /// The content seam answered from lists -- the reason IContentIndex exists. No Unity asset,
-        /// no ScriptableObject, no scene.
-        /// </summary>
         sealed class FakeContent : IContentIndex
         {
             readonly List<ClassSpec> m_Classes = new List<ClassSpec>();
             readonly List<EquipmentSpec> m_Equipment = new List<EquipmentSpec>();
-            readonly List<SkillSpec> m_Skills = new List<SkillSpec>();
 
             public FakeContent(CharacterRules rules) => Rules = rules;
 
             public CharacterRules Rules { get; }
             public IReadOnlyList<ClassSpec> Classes => m_Classes;
             public IReadOnlyList<EquipmentSpec> Equipment => m_Equipment;
+            public IReadOnlyList<SkillSpec> Skills => System.Array.Empty<SkillSpec>();
 
             public FakeContent With(ClassSpec spec) { m_Classes.Add(spec); return this; }
             public FakeContent With(EquipmentSpec spec) { m_Equipment.Add(spec); return this; }
+        readonly List<SpeciesSpec> m_SpeciesList =
+            new List<SpeciesSpec> { new SpeciesSpec(1, "Human", AttributeBlock.Zero) };
+
+        public IReadOnlyList<SpeciesSpec> Species => m_SpeciesList;
+
+        public bool TryGetSpecies(int id, out SpeciesSpec spec)
+        {
+            spec = m_SpeciesList.FirstOrDefault(s => s.Id == id);
+            return spec != null;
+        }
+
 
             public bool TryGetClass(int id, out ClassSpec spec)
             {
@@ -47,36 +60,38 @@ namespace Dragoneye.Hex.Tests
                 return spec != null;
             }
 
-            public IReadOnlyList<SkillSpec> Skills => m_Skills;
-
-            public FakeContent With(SkillSpec spec) { m_Skills.Add(spec); return this; }
-
             public bool TryGetSkill(int id, out SkillSpec spec)
             {
-                spec = m_Skills.FirstOrDefault(s => s.Id == id);
-                return spec != null;
+                spec = null;
+                return false;
             }
         }
 
-        static FakeContent Content(int budget = 8, int min = 1, int max = 8, int level = 4) =>
-            new FakeContent(new CharacterRules(budget, min, max, level))
-                .With(new ClassSpec(1, "Warrior", new StatBlock(2, 1, 2, 1), new[] { SwordId }))
-                .With(new EquipmentSpec(SwordId, "Sword", EquipmentSlot.Weapon, new StatBlock(0, 0, 2, 0)))
-                .With(new EquipmentSpec(BowId, "Bow", EquipmentSlot.Weapon, new StatBlock(0, 1, 1, 0)))
-                .With(new EquipmentSpec(PlateId, "Plate", EquipmentSlot.Armor, new StatBlock(3, -1, 0, 0)));
+        static FakeContent Content() =>
+            new FakeContent(new CharacterRules(Budget, 8, Level))
+                .With(new ClassSpec(1, "Guardian", AttributeBlock.Zero, new[] { SwordId }))
+                .With(new ClassSpec(2, "Hunter", AttributeBlock.Zero, new[] { BowId }))
+                .With(new EquipmentSpec(SwordId, "Sword", EquipmentSlot.Weapon, AttributeBlock.Zero))
+                .With(new EquipmentSpec(BowId, "Bow", EquipmentSlot.Weapon, AttributeBlock.Zero))
+                .With(new EquipmentSpec(PlateId, "Plate", EquipmentSlot.Armor, AttributeBlock.Zero,
+                    null, null, ArmourClass.Heavy));
 
+        /// <summary>
+        /// A build that passes, so each case below can break exactly one thing.
+        ///
+        /// Four attributes at three costs 4 x (1 + 2) = 12, and two at five costs 2 x (1 + 2 + 3 + 4)
+        /// = 20 -- so this spends the budget exactly.
+        /// </summary>
         static CharacterBuild Valid(IContentIndex content)
         {
-            content.TryGetClass(1, out var warrior);
-            var build = CharacterBuild.StartingFrom(warrior, content.Rules);
+            content.TryGetClass(1, out var guardian);
+            var build = CharacterBuild.StartingFrom(content.Species[0], guardian);
             build.Name = "Ansel";
-            build.Allocation = new StatBlock(5, 3, 2, 2);
-            build.ArmorId = PlateId;
 
-            for (var i = 0; i < content.Rules.Level; i++)
-            {
-                build.ElementPicks.Add(ElementInfo.All[i % ElementInfo.Count]);
-            }
+            // 1 + 2 = 3 each on four attributes is 12; 1 + 2 + 3 = 6 more on one is 18; two more
+            // single steps bring it to 20.
+            build.Attributes = new AttributeBlock(3, 3, 3, 3, 4, 2, 2);
+            build.StartingPool = new ElementCounts(2, 1, 1, 0, 0, 0, 0);
 
             return build;
         }
@@ -87,6 +102,107 @@ namespace Dragoneye.Hex.Tests
             BuildValidator.Validate(build, content, faults);
             return faults.Select(f => f.Problem).ToList();
         }
+
+        // ---------- point buy ----------
+
+        [Test]
+        public void RaisingAnAttributeCostsItsCurrentValue()
+        {
+            Assert.AreEqual(1, PointBuy.CostToRaise(1), "the first step off the floor is cheap");
+            Assert.AreEqual(4, PointBuy.CostToRaise(4), "and every one after it is dearer");
+        }
+
+        [Test]
+        public void ReachingAValueCostsEveryStepAlongTheWay()
+        {
+            Assert.AreEqual(0, PointBuy.CostOf(1), "the floor is free");
+            Assert.AreEqual(1, PointBuy.CostOf(2));
+            Assert.AreEqual(3, PointBuy.CostOf(3), "1 + 2");
+            Assert.AreEqual(6, PointBuy.CostOf(4), "1 + 2 + 3");
+            Assert.AreEqual(10, PointBuy.CostOf(5), "1 + 2 + 3 + 4");
+        }
+
+        [Test]
+        public void TheFloorCostsNothingAcrossEveryAttribute()
+        {
+            Assert.AreEqual(0, PointBuy.TotalCost(AttributeBlock.Uniform(PointBuy.Floor)));
+        }
+
+        [Test]
+        public void OneHighAttributeCostsFarMoreThanSeveralMiddling()
+        {
+            // The whole point of the curve: twenty points buys breadth or depth, never both.
+            var deep = AttributeBlock.Uniform(1).With(Attribute.Strength, 6);
+            var broad = new AttributeBlock(3, 3, 3, 3, 1, 1, 1);
+
+            Assert.AreEqual(15, PointBuy.TotalCost(deep), "1+2+3+4+5");
+            Assert.AreEqual(12, PointBuy.TotalCost(broad), "four attributes at 3 apiece");
+        }
+
+        [Test]
+        public void CanRaiseRefusesWhatTheBudgetWillNotCover()
+        {
+            var spent = new AttributeBlock(3, 3, 3, 3, 4, 2, 2);
+
+            Assert.AreEqual(0, PointBuy.Remaining(spent, Budget), "this spread spends exactly 20");
+            Assert.IsFalse(PointBuy.CanRaise(spent, Attribute.Strength, Budget, 8));
+        }
+
+        [Test]
+        public void CanRaiseRefusesAtTheCeiling()
+        {
+            var maxed = AttributeBlock.Uniform(1).With(Attribute.Skill, 8);
+
+            Assert.IsFalse(PointBuy.CanRaise(maxed, Attribute.Skill, 999, 8));
+        }
+
+        // ---------- derived stats ----------
+
+        [Test]
+        public void HealthIsThreePlusLevelPlusVitalityPlusToughness()
+        {
+            var vitals = Vitals.From(
+                AttributeBlock.Uniform(1).With(Attribute.Vitality, 4).With(Attribute.Toughness, 2),
+                level: 3, armour: ArmourClass.None);
+
+            Assert.AreEqual(3 + 3 + 4 + 2, vitals.MaxHealth);
+        }
+
+        [Test]
+        public void ActionPointsNeverFallBelowTheFloor()
+        {
+            // 4 + END, floored at 8 -- so Endurance only starts buying points once it clears four.
+            var weak = Vitals.From(AttributeBlock.Uniform(1), 1, ArmourClass.None);
+            Assert.AreEqual(Ap.FromWhole(8), weak.MaxAp);
+
+            var strong = Vitals.From(
+                AttributeBlock.Uniform(1).With(Attribute.Endurance, 6), 1, ArmourClass.None);
+            Assert.AreEqual(Ap.FromWhole(10), strong.MaxAp);
+        }
+
+        [Test]
+        public void SpeedIsDexterityPlusEnduranceLessArmour()
+        {
+            var attributes = AttributeBlock.Uniform(1)
+                .With(Attribute.Dexterity, 5)
+                .With(Attribute.Endurance, 3);
+
+            Assert.AreEqual(8, Vitals.From(attributes, 1, ArmourClass.None).Speed);
+            Assert.AreEqual(5, Vitals.From(attributes, 1, ArmourClass.Heavy).Speed, "heavy costs 3");
+        }
+
+        [Test]
+        public void TheHeaviestArmourWornDecidesTheSpeedPenalty()
+        {
+            // Summing two armour classes would stack a penalty the rules never intended.
+            var content = Content();
+            var build = Valid(content);
+            build.ArmorId = PlateId;
+
+            Assert.AreEqual(ArmourClass.Heavy, LoadoutResolver.Resolve(build, content).Armour);
+        }
+
+        // ---------- validation ----------
 
         [Test]
         public void ACompleteBuildIsAccepted()
@@ -100,7 +216,7 @@ namespace Dragoneye.Hex.Tests
         {
             var content = Content();
             var build = Valid(content);
-            build.Allocation = build.Allocation.With(StatKind.Vitality, 9);
+            build.Attributes = build.Attributes.With(Attribute.Strength, 6);
 
             CollectionAssert.Contains(Problems(build, content), BuildProblem.OverBudget);
         }
@@ -108,12 +224,44 @@ namespace Dragoneye.Hex.Tests
         [Test]
         public void UnspentPointsAreRefusedToo()
         {
-            // Not a warning: a half-finished character reaching a match is worse than being told.
             var content = Content();
             var build = Valid(content);
-            build.Allocation = build.Allocation.With(StatKind.Vitality, 4);
+            build.Attributes = AttributeBlock.Uniform(PointBuy.Floor);
 
             CollectionAssert.Contains(Problems(build, content), BuildProblem.UnderBudget);
+        }
+
+        [Test]
+        public void AnAttributeBelowTheFloorIsRefused()
+        {
+            var content = Content();
+            var build = Valid(content);
+            build.Attributes = build.Attributes.With(Attribute.Willpower, 0);
+
+            CollectionAssert.Contains(Problems(build, content), BuildProblem.AttributeBelowFloor);
+        }
+
+        [Test]
+        public void ThePoolMustTotalTheLevelInAnyShape()
+        {
+            var content = Content();
+
+            // Four of one element is as legal as one each of four.
+            var narrow = Valid(content);
+            narrow.StartingPool = new ElementCounts(0, 4, 0, 0, 0, 0, 0);
+            CollectionAssert.IsEmpty(Problems(narrow, content));
+
+            var broad = Valid(content);
+            broad.StartingPool = new ElementCounts(1, 1, 1, 1, 0, 0, 0);
+            CollectionAssert.IsEmpty(Problems(broad, content));
+
+            var short_ = Valid(content);
+            short_.StartingPool = new ElementCounts(1, 0, 0, 0, 0, 0, 0);
+            CollectionAssert.Contains(Problems(short_, content), BuildProblem.PoolWrongSize);
+
+            var over = Valid(content);
+            over.StartingPool = new ElementCounts(9, 0, 0, 0, 0, 0, 0);
+            CollectionAssert.Contains(Problems(over, content), BuildProblem.PoolWrongSize);
         }
 
         [Test]
@@ -137,36 +285,8 @@ namespace Dragoneye.Hex.Tests
         }
 
         [Test]
-        public void ThePoolMustHoldExactlyOneElementPerLevel()
-        {
-            var content = Content();
-
-            var tooFew = Valid(content);
-            tooFew.ElementPicks.RemoveAt(0);
-            CollectionAssert.Contains(Problems(tooFew, content), BuildProblem.PoolWrongSize);
-
-            var tooMany = Valid(content);
-            tooMany.ElementPicks.Add(Element.Fire);
-            CollectionAssert.Contains(Problems(tooMany, content), BuildProblem.PoolWrongSize);
-        }
-
-        [Test]
-        public void AnElementOutsideTheEnumIsRefused()
-        {
-            // What an out-of-date or hostile client sends. Casting an int to an enum is not checked
-            // by the language, so it has to be checked here.
-            var content = Content();
-            var build = Valid(content);
-            build.ElementPicks[0] = (Element)99;
-
-            CollectionAssert.Contains(Problems(build, content), BuildProblem.PoolElementUnknown);
-        }
-
-        [Test]
         public void AnUnknownClassStopsFurtherComplaints()
         {
-            // Everything else is measured against the class, so reporting twelve consequences of one
-            // missing class would bury the actual problem.
             var content = Content();
             var build = Valid(content);
             build.ClassId = 404;
@@ -175,17 +295,6 @@ namespace Dragoneye.Hex.Tests
 
             Assert.AreEqual(1, problems.Count);
             Assert.AreEqual(BuildProblem.ClassUnknown, problems[0]);
-        }
-
-        [Test]
-        public void EmptySlotsAreAllowed()
-        {
-            var content = Content();
-            var build = Valid(content);
-            build.WeaponId = CharacterBuild.NoEquipment;
-            build.ArmorId = CharacterBuild.NoEquipment;
-
-            CollectionAssert.IsEmpty(Problems(build, content));
         }
 
         [Test]
@@ -199,43 +308,22 @@ namespace Dragoneye.Hex.Tests
         }
 
         [Test]
-        public void ModifierOrderCannotChangeResolvedStats()
+        public void ModifierOrderCannotChangeResolvedAttributes()
         {
             // DE-003 requires two clients resolving one loadout to agree. Whole-block addition is
             // commutative, which is what guarantees it.
             var content = Content();
             var build = Valid(content);
 
-            var once = LoadoutResolver.Resolve(build, content).Stats;
-            var again = LoadoutResolver.Resolve(new CharacterBuild(build), content).Stats;
-
-            Assert.AreEqual(once, again);
-            Assert.AreEqual(new StatBlock(10, 3, 6, 3), once);
-        }
-
-        [Test]
-        public void UnequippingRemovesExactlyThoseModifiers()
-        {
-            var content = Content();
-            var build = Valid(content);
-
-            var withPlate = LoadoutResolver.Resolve(build, content).Stats;
-
-            build.ArmorId = CharacterBuild.NoEquipment;
-            var without = LoadoutResolver.Resolve(build, content).Stats;
-
-            Assert.AreEqual(new StatBlock(3, -1, 0, 0), new StatBlock(
-                withPlate.Vitality - without.Vitality,
-                withPlate.Speed - without.Speed,
-                withPlate.Power - without.Power,
-                withPlate.Focus - without.Focus));
+            Assert.AreEqual(
+                LoadoutResolver.Resolve(build, content).Attributes,
+                LoadoutResolver.Resolve(new CharacterBuild(build), content).Attributes);
         }
 
         [Test]
         public void AnInvalidBuildStillResolves()
         {
-            // The creator resolves while the player is mid-edit, so resolution must not refuse --
-            // that is the validator's job and a second opinion would fight it.
+            // The creator resolves while the player is mid-edit, so resolution must not refuse.
             Assert.IsNotNull(LoadoutResolver.Resolve(new CharacterBuild { ClassId = 404 }, Content()));
         }
 
@@ -246,18 +334,6 @@ namespace Dragoneye.Hex.Tests
             Assert.AreEqual(1, Ap.Step.Units);
             Assert.AreEqual("2.5", (Ap.FromWhole(3) - Ap.Step).ToString());
             Assert.IsTrue((Ap.FromWhole(1) - Ap.FromWhole(5)).IsZero, "spending past zero floors");
-        }
-
-        [Test]
-        public void ResolvedStatsNeverGoNegative()
-        {
-            var content = new FakeContent(new CharacterRules(0, 0, 8, 0))
-                .With(new ClassSpec(1, "W", new StatBlock(1, 1, 1, 1), new int[0]))
-                .With(new EquipmentSpec(30, "Anvil", EquipmentSlot.Armor, new StatBlock(0, -99, 0, 0)));
-
-            var build = new CharacterBuild { ClassId = 1, ArmorId = 30 };
-
-            Assert.AreEqual(0, LoadoutResolver.Resolve(build, content).Stats.Speed);
         }
     }
 }

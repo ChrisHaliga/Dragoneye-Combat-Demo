@@ -29,7 +29,7 @@ namespace Dragoneye.CameraControl
 
         // Not serialised: the focus is a networked object that only exists once a match starts, so
         // it is handed in by ArenaContext rather than wired in the scene.
-        ICameraFocus m_Focus;
+        CameraFocusRef m_Focus;
 
         InputAction m_Pan;
         InputAction m_Rotate;
@@ -100,7 +100,7 @@ namespace Dragoneye.CameraControl
         }
 
         /// <summary>Swaps the focus this input drives. See <see cref="CameraRig.SetFocus"/>.</summary>
-        public void SetFocus(ICameraFocus focus) => m_Focus = focus;
+        public void SetFocus(ICameraFocus focus) => m_Focus = new CameraFocusRef(focus);
 
         void OnLeavePerformed(InputAction.CallbackContext _) => LeaveRequested?.Invoke();
 
@@ -116,9 +116,11 @@ namespace Dragoneye.CameraControl
             var yaw = m_Rig.Yaw;
             var speedScale = m_Rig.PanSpeedScale;
 
-            if (m_Focus != null)
+            var focus = m_Focus.Value;
+
+            if (focus != null)
             {
-                m_Focus.Move(m_Pan.ReadValue<Vector2>(), yaw, deltaTime, speedScale);
+                focus.Move(m_Pan.ReadValue<Vector2>(), yaw, deltaTime, speedScale);
             }
 
             m_Rig.Rotate(m_Rotate.ReadValue<float>(), deltaTime);
@@ -133,9 +135,9 @@ namespace Dragoneye.CameraControl
                 m_Rig.AddYaw(CameraRigMath.OrbitDragYaw(pointerDelta, m_Rig.OrbitDragSpeed));
                 m_Rig.AddZoom(CameraRigMath.OrbitDragZoom(pointerDelta, m_Rig.ZoomDragSpeed));
             }
-            else if (m_DragPan.IsPressed() && m_Focus != null)
+            else if (m_DragPan.IsPressed() && focus != null)
             {
-                m_Focus.Drag(pointerDelta, yaw, speedScale);
+                focus.Drag(pointerDelta, yaw, speedScale);
             }
         }
     }

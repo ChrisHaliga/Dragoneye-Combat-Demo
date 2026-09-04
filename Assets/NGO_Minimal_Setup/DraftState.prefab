@@ -130,4 +130,4 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Dragoneye.Game::Dragoneye.Game.PlayerCharacters
   ShowTopMostFoldoutHeaderGroup: 1
-  m_Content: {fileID: 0}
+  m_Content: {fileID: 11400000, guid: 8ddd609005201304b860171a12654bf0, type: 2}

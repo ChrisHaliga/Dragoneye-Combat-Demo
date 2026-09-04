@@ -12,16 +12,14 @@ MonoBehaviour:
   m_Script: {fileID: 0}
   m_Name: Greataxe
   m_EditorClassIdentifier: Dragoneye.Data:Dragoneye.Data:EquipmentAsset
-  m_Id: 11
-  m_DisplayName: Greataxe
-  m_Description: Enormous. You will hit first only by accident.
+  m_Id: 1
+  m_DisplayName: Item
+  m_Description: 
   m_Slot: 0
   m_Modifiers:
     Vitality: 0
-    Speed: -1
-    Power: 3
+    Speed: 0
+    Power: 0
     Focus: 0
-  m_Skills:
-  - {fileID: 11400000, guid: 033e1b59e526f754fb62a30a8156f229, type: 2}
-  - {fileID: 11400000, guid: 50e887c1586957747a36566bdbdcd0d5, type: 2}
+  m_Skills: []
   m_Passives: 

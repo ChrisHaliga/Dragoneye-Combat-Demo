@@ -5,21 +5,25 @@ using UnityEngine;
 namespace Dragoneye.Data
 {
     /// <summary>
-    /// The four numbers a designer edits, in a shape Unity can serialise.
+    /// The seven numbers a designer edits, in a shape Unity can serialise.
     ///
-    /// <see cref="StatBlock"/> is immutable with readonly fields, which is right for a value the
-    /// rules pass around and wrong for something an inspector writes into. This is the authoring
-    /// form; it converts once, at load.
+    /// <see cref="AttributeBlock"/> is immutable with readonly fields, which is right for a value
+    /// the rules pass around and wrong for something an inspector writes into. This is the
+    /// authoring form; it converts once, at load.
     /// </summary>
     [System.Serializable]
-    public struct StatValues
+    public struct AttributeValues
     {
+        public int Toughness;
+        public int Dexterity;
+        public int Strength;
+        public int Skill;
         public int Vitality;
-        public int Speed;
-        public int Power;
-        public int Focus;
+        public int Willpower;
+        public int Endurance;
 
-        public StatBlock ToBlock() => new StatBlock(Vitality, Speed, Power, Focus);
+        public AttributeBlock ToBlock() =>
+            new AttributeBlock(Toughness, Dexterity, Strength, Skill, Vitality, Willpower, Endurance);
     }
 
     /// <summary>An authored class. Baseline stats and the weapons it may carry.</summary>
@@ -29,7 +33,7 @@ namespace Dragoneye.Data
     /// Nulls are dropped rather than passed through as zero, which is the reserved "nothing" id and
     /// would silently read as an empty slot.
     /// </summary>
-    static class ContentIds
+    public static class ContentIds
     {
         public static List<int> SkillIds(List<SkillAsset> assets)
         {
@@ -61,7 +65,7 @@ namespace Dragoneye.Data
         string m_Description = "";
 
         [SerializeField, Tooltip("Stats before allocation or equipment.")]
-        StatValues m_Baseline;
+        AttributeValues m_Baseline;
 
         [SerializeField, Tooltip("Weapons this class may carry. Anything else fails validation.")]
         List<EquipmentAsset> m_Weapons = new List<EquipmentAsset>();
@@ -122,7 +126,7 @@ namespace Dragoneye.Data
         EquipmentSlot m_Slot = EquipmentSlot.Weapon;
 
         [SerializeField, Tooltip("Added to resolved stats. May be negative.")]
-        StatValues m_Modifiers;
+        AttributeValues m_Modifiers;
 
         [SerializeField, Tooltip("Skills this item grants while equipped. Unequipping removes them.")]
         List<SkillAsset> m_Skills = new List<SkillAsset>();
@@ -130,6 +134,10 @@ namespace Dragoneye.Data
         [SerializeField, Tooltip("Persistent effects this item grants. Read by the rules that care; "
              + "the item does not perform them.")]
         List<Passive> m_Passives = new List<Passive>();
+
+        [SerializeField, Tooltip("How much this slows its wearer. Only armour should be anything "
+             + "but None -- Speed subtracts it directly.")]
+        ArmourClass m_Armour = ArmourClass.None;
 
         public int Id => m_Id;
 
@@ -139,7 +147,7 @@ namespace Dragoneye.Data
 
         public EquipmentSpec ToSpec() =>
             new EquipmentSpec(m_Id, m_DisplayName, m_Slot, m_Modifiers.ToBlock(),
-                ContentIds.SkillIds(m_Skills), m_Passives, m_Description);
+                ContentIds.SkillIds(m_Skills), m_Passives, m_Armour, m_Description);
 
         void OnValidate()
         {

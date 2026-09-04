@@ -183,7 +183,7 @@ namespace Dragoneye.Multiplayer
 
             var loadout = LoadoutResolver.Resolve(character.Build, m_Content);
             var className = loadout.Class != null ? loadout.Class.Name : "No class";
-            var level = character.Build.ElementPicks.Count;
+            var level = m_Content.Rules.Level;
 
             return $"{className}  ·  Level {level}  ·  "
                 + $"{loadout.Vitals.MaxHealth} HP  ·  {loadout.Vitals.MaxAp} AP";
