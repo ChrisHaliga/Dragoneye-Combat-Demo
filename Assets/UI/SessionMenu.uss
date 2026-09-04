@@ -526,7 +526,33 @@
 
 .portrait--large {
     width: 100%;
-    height: 160px;
+    height: 118px;
+}
+
+/* The faces this species can wear. A wrap of thumbnails rather than a dropdown, because choosing a
+   picture from a list of names is choosing blind. */
+.portrait-picker {
+    flex-direction: row;
+    flex-wrap: wrap;
+    margin-top: 8px;
+}
+
+.portrait-choice {
+    width: 36px;
+    height: 36px;
+    margin: 0 6px 6px 0;
+    border-width: 2px;
+    border-color: rgb(46, 52, 68);
+    -unity-background-scale-mode: scale-and-crop;
+}
+
+.portrait-choice:hover {
+    border-color: rgb(96, 108, 134);
+}
+
+/* The one being worn. A gold edge, the same "this is the chosen one" the rest of the menu uses. */
+.portrait-choice--chosen {
+    border-color: rgb(226, 191, 122);
 }
 
 .portrait--sheet {

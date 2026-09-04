@@ -29,6 +29,10 @@ namespace Dragoneye.Data
         [SerializeField]
         List<SkillAsset> m_Skills = new List<SkillAsset>();
 
+        [SerializeField, Tooltip("Every portrait the game ships with. Rebuilt by the setup step "
+             + "from Assets/Art/Portraits.")]
+        PortraitLibrary m_Portraits;
+
         [Header("Build rules")]
         [SerializeField, Min(0), Tooltip("Points to spend raising attributes. Each step costs the "
              + "attribute's current value, so the first is cheap and the last is dear.")]
@@ -180,6 +184,10 @@ namespace Dragoneye.Data
             m_SkillById.Clear();
 
             m_Rules = new CharacterRules(m_PointBudget, m_MaxPerAttribute, m_StartingLevel);
+
+            // Filled here because building content is the first thing any screen or match does, so
+            // by the time anything wants to draw a face this is already answered.
+            Portraits.Current = m_Portraits;
 
             foreach (var asset in m_Skills)
             {

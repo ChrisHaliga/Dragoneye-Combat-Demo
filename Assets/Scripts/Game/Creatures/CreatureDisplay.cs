@@ -52,11 +52,10 @@ namespace Dragoneye.Game
         /// One implementation, because the turn bar, the party column and the inspect card all show
         /// the same creature and a second copy would eventually disagree about what it looks like.
         ///
-        /// A premade carries its own sprite. A character a player built carries a portrait that
-        /// lives in that player's save folder and is never sent over the wire, so only the machine
-        /// that owns it can draw it -- everybody else gets the lettered tile. Putting image bytes on
-        /// the network is a decision worth taking deliberately rather than as a side effect of
-        /// wanting a face in the turn bar.
+        /// A premade carries its own sprite. A character a player built carries the id of one of
+        /// the game's own portraits, which every machine can resolve -- so everybody sees the same
+        /// face, which is the whole reason the pictures ship with the game rather than being loaded
+        /// off the player who made the character.
         /// </summary>
         public static void DrawPortrait(VisualElement into, CreatureState creature,
             string initialClass = "portrait__initial")
@@ -97,23 +96,26 @@ namespace Dragoneye.Game
             texture = null;
 
             var definition = creature.Definition;
-            var sprite = definition != null ? definition.Portrait : null;
+            var sprite = definition != null && definition.Portrait != null
+                ? definition.Portrait
+                : OwnPortrait(creature);
 
-            if (sprite != null && sprite.texture != null)
+            if (sprite == null || sprite.texture == null)
             {
-                var rect = sprite.textureRect;
-                var page = sprite.texture;
-
-                texture = page;
-                scaleOffset = new Vector4(
-                    rect.width / page.width, rect.height / page.height,
-                    rect.x / page.width, rect.y / page.height);
-
-                return true;
+                return false;
             }
 
-            texture = OwnPortrait(creature);
-            return texture != null;
+            // A sprite may be one region of a larger page, so the rect comes with it -- handing the
+            // whole page to a disc would show a creature its neighbours.
+            var rect = sprite.textureRect;
+            var page = sprite.texture;
+
+            texture = page;
+            scaleOffset = new Vector4(
+                rect.width / page.width, rect.height / page.height,
+                rect.x / page.width, rect.y / page.height);
+
+            return true;
         }
 
         /// <summary>
@@ -122,16 +124,17 @@ namespace Dragoneye.Game
         /// Matched on the build slot rather than on control: a player who has also claimed a premade
         /// controls two creatures, and only one of them is theirs in the sense that matters here.
         /// </summary>
-        static Texture2D OwnPortrait(CreatureState creature)
+        static Sprite OwnPortrait(CreatureState creature)
         {
-            if (creature.BuildSlot == PartyInfo.Unclaimed
-                || !LocalPlayer.Controls(creature)
-                || SelectedCharacter.Current == null)
+            var characters = PlayerCharacters.Current;
+
+            if (creature.BuildSlot == PartyInfo.Unclaimed || characters == null)
             {
                 return null;
             }
 
-            return SelectedCharacter.Current.Portrait;
+            var build = characters.BuildFor(creature.BuildSlot);
+            return build != null ? Portraits.Get(build.PortraitId) : null;
         }
 
         /// <summary>Stand-in for a missing portrait: the creature's initial on a plain tile.</summary>

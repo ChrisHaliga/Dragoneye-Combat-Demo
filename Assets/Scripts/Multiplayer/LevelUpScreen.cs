@@ -287,7 +287,7 @@ namespace Dragoneye.Multiplayer
                 return;
             }
 
-            var saved = new SavedCharacter(m_Character.Id, m_Build, m_Character.Portrait);
+            var saved = new SavedCharacter(m_Character.Id, m_Build);
 
             if (!CharacterStore.Save(saved))
             {

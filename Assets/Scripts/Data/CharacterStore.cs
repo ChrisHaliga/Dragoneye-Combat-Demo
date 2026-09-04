@@ -16,11 +16,10 @@ namespace Dragoneye.Data
     /// </summary>
     public sealed class SavedCharacter
     {
-        public SavedCharacter(string id, CharacterBuild build, Texture2D portrait = null)
+        public SavedCharacter(string id, CharacterBuild build)
         {
             Id = string.IsNullOrEmpty(id) ? Guid.NewGuid().ToString("N") : id;
             Build = build ?? new CharacterBuild();
-            Portrait = portrait;
         }
 
         /// <summary>Local only. Identifies the file, not the character in a match.</summary>
@@ -28,16 +27,24 @@ namespace Dragoneye.Data
 
         public CharacterBuild Build { get; }
 
-        /// <summary>Null when none was chosen. Local to this machine.</summary>
-        public Texture2D Portrait { get; set; }
+        /// <summary>
+        /// The face this character wears, resolved from the shipped library.
+        ///
+        /// Looked up rather than stored, so a character's picture is the same on every machine and
+        /// a save file stays a page of numbers.
+        /// </summary>
+        public Sprite Portrait => Portraits.Get(Build.PortraitId);
     }
 
     /// <summary>
     /// Characters saved on this machine.
     ///
-    /// Plain JSON under <c>persistentDataPath</c>, one file per character, portraits alongside as
-    /// PNGs. A file each rather than one index means a corrupt character costs that character rather
-    /// than the whole roster, and the folder can be inspected and edited by hand during a playtest.
+    /// Plain JSON under <c>persistentDataPath</c>, one file per character. A file each rather than
+    /// one index means a corrupt character costs that character rather than the whole roster, and
+    /// the folder can be inspected and edited by hand during a playtest.
+    ///
+    /// No images. A face is the id of one of the game's own portraits, so a save file stays a page
+    /// of numbers and a character looks the same on every machine that resolves it.
     ///
     /// Static because there is exactly one save location per install, and threading a store instance
     /// through the menu to answer "what has this player made" would be ceremony around a fact about
@@ -45,14 +52,8 @@ namespace Dragoneye.Data
     /// </summary>
     public static class CharacterStore
     {
-        // Portraits are cached by character id and owned here. LoadAll runs every time the roster
-        // screen opens, and decoding a fresh 256-square texture per character per open leaked a
-        // quarter of a megabyte each time with nothing destroying the old ones.
-        static readonly Dictionary<string, Texture2D> s_Portraits = new Dictionary<string, Texture2D>();
-
         const string k_Folder = "Characters";
         const string k_Extension = ".json";
-        const string k_PortraitExtension = ".png";
 
         public static string Directory =>
             Path.Combine(Application.persistentDataPath, k_Folder);
@@ -97,7 +98,7 @@ namespace Dragoneye.Data
             return File.Exists(path) ? LoadFile(path) : null;
         }
 
-        /// <summary>Writes the character and its portrait. Returns false if the write failed.</summary>
+        /// <summary>Writes the character. Returns false if the write failed.</summary>
         public static bool Save(SavedCharacter character)
         {
             if (character == null)
@@ -109,13 +110,9 @@ namespace Dragoneye.Data
             {
                 System.IO.Directory.CreateDirectory(Directory);
 
-                var record = Record.From(character);
-                record.PortraitFile = SavePortrait(character) ? character.Id + k_PortraitExtension : "";
+                File.WriteAllText(PathFor(character.Id),
+                    JsonUtility.ToJson(Record.From(character), true));
 
-                File.WriteAllText(PathFor(character.Id), JsonUtility.ToJson(record, true));
-
-                // The store now owns this texture, and whatever it was showing before is dead.
-                Adopt(character.Id, character.Portrait);
                 return true;
             }
             catch (Exception e)
@@ -136,14 +133,6 @@ namespace Dragoneye.Data
                     File.Delete(path);
                 }
 
-                var portrait = PortraitPathFor(id);
-
-                if (File.Exists(portrait))
-                {
-                    File.Delete(portrait);
-                }
-
-                Adopt(id, null);
                 return true;
             }
             catch (Exception e)
@@ -165,7 +154,7 @@ namespace Dragoneye.Data
                     return null;
                 }
 
-                return new SavedCharacter(record.Id, record.ToBuild(), LoadPortrait(record));
+                return new SavedCharacter(record.Id, record.ToBuild());
             }
             catch (Exception e)
             {
@@ -175,74 +164,7 @@ namespace Dragoneye.Data
             }
         }
 
-        static bool SavePortrait(SavedCharacter character)
-        {
-            if (character.Portrait == null)
-            {
-                return false;
-            }
-
-            try
-            {
-                File.WriteAllBytes(PortraitPathFor(character.Id), character.Portrait.EncodeToPNG());
-                return true;
-            }
-            catch (Exception e)
-            {
-                // A character without its picture is still playable, so this is not fatal.
-                Debug.LogError($"Could not save portrait for '{character.Id}': {e.Message}");
-                return false;
-            }
-        }
-
-        static Texture2D LoadPortrait(Record record)
-        {
-            if (string.IsNullOrEmpty(record.PortraitFile))
-            {
-                return null;
-            }
-
-            // The null check matters as well as the lookup: a cached texture can have been destroyed
-            // by a scene change, and Unity reports that as a null-equal object rather than absence.
-            if (s_Portraits.TryGetValue(record.Id, out var cached) && cached != null)
-            {
-                return cached;
-            }
-
-            var path = Path.Combine(Directory, record.PortraitFile);
-            var loaded = File.Exists(path) ? PortraitLoader.FromFile(path) : null;
-
-            if (loaded != null)
-            {
-                s_Portraits[record.Id] = loaded;
-            }
-
-            return loaded;
-        }
-
-        /// <summary>
-        /// Takes ownership of a portrait, destroying whatever was cached for that character.
-        /// </summary>
-        static void Adopt(string id, Texture2D portrait)
-        {
-            if (s_Portraits.TryGetValue(id, out var previous) && previous != null && previous != portrait)
-            {
-                UnityEngine.Object.Destroy(previous);
-            }
-
-            if (portrait == null)
-            {
-                s_Portraits.Remove(id);
-            }
-            else
-            {
-                s_Portraits[id] = portrait;
-            }
-        }
-
         static string PathFor(string id) => Path.Combine(Directory, id + k_Extension);
-
-        static string PortraitPathFor(string id) => Path.Combine(Directory, id + k_PortraitExtension);
 
         /// <summary>
         /// The on-disk shape.
@@ -258,6 +180,7 @@ namespace Dragoneye.Data
             public string Name;
             public int SpeciesId;
             public int ClassId;
+            public int PortraitId;
             public int Level;
             public int Xp;
 
@@ -284,7 +207,7 @@ namespace Dragoneye.Data
             public int ArmorId;
             public int OffhandId;
             public int[] LearnedSkillIds;
-            public string PortraitFile;
+
 
             public static Record From(SavedCharacter character)
             {
@@ -298,6 +221,7 @@ namespace Dragoneye.Data
                     Name = build.Name,
                     SpeciesId = build.SpeciesId,
                     ClassId = build.ClassId,
+                    PortraitId = build.PortraitId,
                     Level = build.Level,
                     Xp = build.Xp,
                     Toughness = a.Toughness,
@@ -317,8 +241,7 @@ namespace Dragoneye.Data
                     WeaponId = build.WeaponId,
                     ArmorId = build.ArmorId,
                     OffhandId = build.OffhandId,
-                    LearnedSkillIds = build.LearnedSkillIds.ToArray(),
-                    PortraitFile = ""
+                    LearnedSkillIds = build.LearnedSkillIds.ToArray()
                 };
             }
 
@@ -329,6 +252,7 @@ namespace Dragoneye.Data
                     Name = Name ?? string.Empty,
                     SpeciesId = SpeciesId,
                     ClassId = ClassId,
+                    PortraitId = PortraitId,
 
                     // Characters saved before levels existed have none, and a level of zero would
                     // give them no pool budget and no skills at all.

@@ -28,6 +28,7 @@ namespace Dragoneye.Game
         public FixedString64Bytes Name;
         public int SpeciesId;
         public int ClassId;
+        public int PortraitId;
         public int Level;
         public int Xp;
 
@@ -65,6 +66,7 @@ namespace Dragoneye.Game
                 Name = new FixedString64Bytes(Clamp(build.Name)),
                 SpeciesId = build.SpeciesId,
                 ClassId = build.ClassId,
+                PortraitId = build.PortraitId,
                 Level = build.Level,
                 Xp = build.Xp,
                 Toughness = a.Toughness,
@@ -105,6 +107,7 @@ namespace Dragoneye.Game
                 Name = Name.ToString(),
                 SpeciesId = SpeciesId,
                 ClassId = ClassId,
+                PortraitId = PortraitId,
 
                 // A build that arrived without one is level one, not level zero: zero would give it
                 // no pool budget and no skills, which reads as the character being broken rather
@@ -143,6 +146,7 @@ namespace Dragoneye.Game
             serializer.SerializeValue(ref Slot);
             serializer.SerializeValue(ref Name);
             serializer.SerializeValue(ref SpeciesId);
+            serializer.SerializeValue(ref PortraitId);
             serializer.SerializeValue(ref Level);
             serializer.SerializeValue(ref Xp);
             serializer.SerializeValue(ref ClassId);

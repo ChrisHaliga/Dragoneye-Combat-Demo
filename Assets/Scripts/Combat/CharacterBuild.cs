@@ -26,6 +26,15 @@ namespace Dragoneye.Combat
         /// <summary>What this character is. Grants a baseline and whatever comes with being one.</summary>
         public int SpeciesId;
 
+        /// <summary>
+        /// Which of the game's portraits this character wears. Zero means none chosen.
+        ///
+        /// A number rather than a picture, because this is saved to disk and sent over the wire. The
+        /// pictures ship with the game, so everybody resolves the same face from the same id -- which
+        /// is the whole reason a character can be seen by anybody but its owner.
+        /// </summary>
+        public int PortraitId;
+
         public int ClassId;
 
         /// <summary>
@@ -79,6 +88,7 @@ namespace Dragoneye.Combat
 
             Name = other.Name;
             SpeciesId = other.SpeciesId;
+            PortraitId = other.PortraitId;
             ClassId = other.ClassId;
             Level = other.Level;
             Xp = other.Xp;

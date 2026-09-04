@@ -59,16 +59,11 @@ namespace Dragoneye.Multiplayer
 
         ElementPicker m_Picker;
 
+        readonly Dictionary<int, VisualElement> m_PortraitChoices =
+            new Dictionary<int, VisualElement>();
+
         CharacterBuild m_Build;
         string m_EditingId;
-
-        // What the summary draws and what gets saved. May be the store's texture (when editing) or
-        // one this screen decoded.
-        Texture2D m_PortraitTexture;
-
-        // Only ever a texture this screen created. The store owns everything else, so destroying a
-        // portrait we merely borrowed would blank it on the roster behind us.
-        Texture2D m_DecodedPortrait;
 
         /// <summary>True when every control was found. False means the UXML and this disagree.</summary>
         public bool IsBound { get; }
@@ -142,8 +137,12 @@ namespace Dragoneye.Multiplayer
                 : CharacterBuild.StartingFrom(FirstSpecies(), classes[0],
                     m_Content.Rules.StartingLevel);
 
-            m_PortraitTexture = existing != null ? existing.Portrait : null;
-            m_DecodedPortrait = null;
+            // A character with no face yet gets the first one its species has, so nobody has to
+            // pick before they can see what they are making.
+            if (m_Build.PortraitId == 0 && Portraits.Current != null)
+            {
+                m_Build.PortraitId = Portraits.Current.DefaultFor(m_Build.SpeciesId);
+            }
 
             BuildForm();
             Refresh();
@@ -163,6 +162,7 @@ namespace Dragoneye.Multiplayer
         /// </summary>
         void BuildForm()
         {
+            m_PortraitChoices.Clear();
             m_Identity.Clear();
             m_Attributes.Clear();
             m_Elements.Clear();
@@ -243,6 +243,16 @@ namespace Dragoneye.Multiplayer
                 }
 
                 m_Build.SpeciesId = species[Mathf.Clamp(dropdown.index, 0, species.Count - 1)].Id;
+
+                // A face belongs to a species, so becoming something else means wearing one of its
+                // faces instead. Rebuilt rather than kept, because the old one may not be on offer.
+                if (Portraits.Current != null)
+                {
+                    m_Build.PortraitId = Portraits.Current.DefaultFor(m_Build.SpeciesId);
+                }
+
+                m_PortraitControls.Clear();
+                BuildPortraitControls();
                 Refresh();
             });
 
@@ -353,88 +363,56 @@ namespace Dragoneye.Multiplayer
         }
 
         /// <summary>
-        /// The controls under the portrait: a path, a browse button where one is available, and a
-        /// way to take it off again.
+        /// The faces this species can wear, as a row of thumbnails under the big one.
         ///
-        /// Sits under the picture rather than in a numbered step, because it is the picture's
-        /// controls and putting them anywhere else was what made this screen read as a web form.
+        /// Chosen from what the game ships rather than loaded off the player's disk. A picture
+        /// nobody else has is a picture nobody else can see, and a lobby is not the place to be
+        /// transferring images -- so the pictures come with the game and a character carries the
+        /// number of the one it picked.
+        ///
+        /// Rebuilt when the species changes, because a face belongs to a species and the ones that
+        /// do not fit should not be on offer.
         /// </summary>
         void BuildPortraitControls()
         {
-            var path = new TextField();
-            path.AddToClassList("text-input");
-            path.RegisterValueChangedCallback(evt => LoadPortrait(evt.newValue));
+            var library = Portraits.Current;
+            var choices = library != null ? library.ForSpecies(m_Build.SpeciesId) : null;
 
-            if (!PortraitBrowser.IsAvailable)
+            if (choices == null || choices.Count == 0)
             {
-                // No file dialog here, so the path has to be typed. It only earns its space then,
-                // and it goes above the buttons rather than beside them.
-                m_PortraitControls.Add(path);
+                m_PortraitControls.Add(MenuControls.Note(
+                    "No portraits are installed for this species."));
+                return;
             }
 
-            // The button row is built here and not in the UXML because which buttons it holds
-            // depends on the platform. The container it goes into is a plain column: nesting a
-            // second row inside a row gave the buttons a zero base size and stacked their labels
-            // on top of each other.
             var row = new VisualElement();
-            row.AddToClassList("portrait__controls");
+            row.AddToClassList("portrait-picker");
 
-            if (PortraitBrowser.IsAvailable)
+            foreach (var entry in choices)
             {
-                row.Add(MenuControls.TextButton("Browse", "btn btn--compact", () =>
-                {
-                    if (PortraitBrowser.TryPick(out var picked))
-                    {
-                        path.SetValueWithoutNotify(picked);
-                        LoadPortrait(picked);
-                    }
-                }));
+                row.Add(PortraitChoice(entry));
             }
-
-            row.Add(MenuControls.TextButton("Remove", "btn btn--ghost btn--compact", () =>
-            {
-                ReplaceDecoded(null);
-                path.SetValueWithoutNotify(string.Empty);
-                Refresh();
-            }));
 
             m_PortraitControls.Add(row);
         }
 
-        void LoadPortrait(string path)
+        VisualElement PortraitChoice(PortraitEntry entry)
         {
-            if (string.IsNullOrWhiteSpace(path))
+            var choice = new VisualElement();
+            choice.AddToClassList("portrait-choice");
+            choice.EnableInClassList("portrait-choice--chosen", entry.Id == m_Build.PortraitId);
+            choice.style.backgroundImage = new StyleBackground(entry.Image);
+            choice.tooltip = entry.Name;
+
+            choice.RegisterCallback<ClickEvent>(_ =>
             {
-                return;
-            }
+                m_Build.PortraitId = entry.Id;
+                BuildPortraitControls();
+                Refresh();
+            });
 
-            var loaded = PortraitLoader.FromFile(path.Trim().Trim('\"'));
-
-            if (loaded == null)
-            {
-                m_Faults.text = "That file could not be read as a PNG or JPG.";
-                return;
-            }
-
-            ReplaceDecoded(loaded);
-            Refresh();
-        }
-
-        /// <summary>
-        /// Swaps in a portrait this screen decoded, destroying the previous one it decoded.
-        ///
-        /// Only textures this screen created are destroyed. The one an edited character arrived
-        /// with belongs to the store, and freeing it here would blank that row on the roster.
-        /// </summary>
-        void ReplaceDecoded(Texture2D decoded)
-        {
-            if (m_DecodedPortrait != null && m_DecodedPortrait != decoded)
-            {
-                UnityEngine.Object.Destroy(m_DecodedPortrait);
-            }
-
-            m_DecodedPortrait = decoded;
-            m_PortraitTexture = decoded;
+            m_PortraitChoices[entry.Id] = choice;
+            return choice;
         }
 
         VisualElement EquipmentField(string label, EquipmentSlot slot)
@@ -719,13 +697,13 @@ namespace Dragoneye.Multiplayer
 
         void RefreshPortrait()
         {
-            var has = m_PortraitTexture != null;
+            var face = Portraits.Get(m_Build.PortraitId);
 
-            m_Portrait.style.backgroundImage = has
-                ? new StyleBackground(m_PortraitTexture)
+            m_Portrait.style.backgroundImage = face != null
+                ? new StyleBackground(face)
                 : new StyleBackground();
 
-            m_PortraitInitial.text = has ? string.Empty : MenuControls.Initial(m_Build.Name);
+            m_PortraitInitial.text = face != null ? string.Empty : MenuControls.Initial(m_Build.Name);
         }
 
         // ---------- saving ----------
@@ -744,10 +722,7 @@ namespace Dragoneye.Multiplayer
 
             m_Build.Name = m_Build.Name.Trim();
 
-            var character = new SavedCharacter(m_EditingId, m_Build, m_PortraitTexture);
-
-            // The store takes ownership on save, so this screen must stop treating it as its own.
-            m_DecodedPortrait = null;
+            var character = new SavedCharacter(m_EditingId, m_Build);
 
             if (!CharacterStore.Save(character))
             {
