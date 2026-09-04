@@ -1,0 +1,25 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 0}
+  m_Name: Heavyarmour
+  m_EditorClassIdentifier: Dragoneye.Data:Dragoneye.Data:EquipmentAsset
+  m_Id: 22
+  m_DisplayName: Heavy armour
+  m_Description: Plate. Very hard to hurt, and everyone acts before you.
+  m_Slot: 1
+  m_Modifiers:
+    Vitality: 5
+    Speed: -2
+    Power: 0
+    Focus: 0
+  m_Skills: []
+  m_Passives: 

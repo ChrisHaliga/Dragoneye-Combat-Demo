@@ -1,0 +1,26 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 0}
+  m_Name: Dagger
+  m_EditorClassIdentifier: Dragoneye.Data:Dragoneye.Data:EquipmentAsset
+  m_Id: 13
+  m_DisplayName: Dagger
+  m_Description: Short reach, and you will be somewhere else before it is answered.
+  m_Slot: 0
+  m_Modifiers:
+    Vitality: 0
+    Speed: 2
+    Power: 1
+    Focus: 0
+  m_Skills:
+  - {fileID: 11400000, guid: 93164347dec5e714c85648e200cbd77f, type: 2}
+  m_Passives: 

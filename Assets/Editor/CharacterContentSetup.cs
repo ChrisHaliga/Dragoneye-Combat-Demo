@@ -24,7 +24,7 @@ namespace Dragoneye.MultiplayerEditor
         const string k_Folder = "Assets/Settings/Characters";
         const string k_CatalogPath = k_Folder + "/ContentCatalog.asset";
         const string k_MenuScene = "Assets/Scenes/MainMenu.unity";
-        const string k_ArenaScene = "Assets/Scenes/Arena.unity";
+        const string k_MatchPrefab = "Assets/NGO_Minimal_Setup/DraftState.prefab";
 
         [MenuItem("ClaudeCode/Set Up Character Content")]
         static void SetUpFromMenu()
@@ -45,9 +45,9 @@ namespace Dragoneye.MultiplayerEditor
                 return;
             }
 
-            // The arena first, then the menu: WireMenu leaves the menu scene open, and reopening it
-            // to do the arena afterwards would discard that.
-            WireArena(catalog);
+            // The prefab first, then the menu: WireMenu leaves the menu scene open, and opening
+            // another scene afterwards would discard that.
+            WireMatchPrefab(catalog);
             WireMenu(catalog);
         }
 
@@ -318,9 +318,10 @@ namespace Dragoneye.MultiplayerEditor
                 return;
             }
 
-            var serialized = new SerializedObject(menu);
-            serialized.FindProperty("m_Content").objectReferenceValue = catalog;
-            serialized.ApplyModifiedPropertiesWithoutUndo();
+            if (!Assign(menu, "m_Content", catalog))
+            {
+                return;
+            }
 
             EditorSceneManager.MarkSceneDirty(scene);
             EditorSceneManager.SaveScene(scene);
@@ -331,25 +332,58 @@ namespace Dragoneye.MultiplayerEditor
         /// <summary>
         /// Hands the catalog to the arena, which owns the skill seam while a match is loaded.
         /// </summary>
-        static void WireArena(ContentCatalog catalog)
+        /// <summary>
+        /// Hands the catalog to the match object, which owns it for the whole match.
+        ///
+        /// The prefab rather than the arena: it is spawned when the server starts and lives until
+        /// the match ends, so the skill seam is never briefly empty between the lobby and the board.
+        /// </summary>
+        static void WireMatchPrefab(ContentCatalog catalog)
         {
-            var scene = EditorSceneManager.OpenScene(k_ArenaScene, OpenSceneMode.Single);
-            var context = Object.FindAnyObjectByType<Dragoneye.Game.ArenaContext>();
+            var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(k_MatchPrefab);
 
-            if (context == null)
+            if (prefab == null)
             {
-                Debug.LogError("No ArenaContext in the arena; run the arena rewire first.");
+                Debug.LogError($"No prefab at {k_MatchPrefab}; cannot hand over the catalog.");
                 return;
             }
 
-            var serialized = new SerializedObject(context);
-            serialized.FindProperty("m_Content").objectReferenceValue = catalog;
+            var characters = prefab.GetComponent<Dragoneye.Game.PlayerCharacters>()
+                ?? prefab.AddComponent<Dragoneye.Game.PlayerCharacters>();
+
+            if (!Assign(characters, "m_Content", catalog))
+            {
+                return;
+            }
+
+            PrefabUtility.SavePrefabAsset(prefab);
+            Debug.Log("Match prefab wired to the content catalog.");
+        }
+
+        /// <summary>
+        /// Writes a serialised field by name, reporting a missing one rather than throwing.
+        ///
+        /// FindProperty returns null for a field that has been renamed or removed, and dereferencing
+        /// that killed this whole step once -- taking the menu wiring with it, so the only visible
+        /// symptom was a menu with no catalog. A setup step should report what it could not do and
+        /// let the rest run.
+        /// </summary>
+        static bool Assign(Object target, string path, Object value)
+        {
+            var serialized = new SerializedObject(target);
+            var property = serialized.FindProperty(path);
+
+            if (property == null)
+            {
+                Debug.LogError($"{target.GetType().Name} has no field '{path}'; "
+                    + "it was renamed or removed.", target);
+                return false;
+            }
+
+            property.objectReferenceValue = value;
             serialized.ApplyModifiedPropertiesWithoutUndo();
-
-            EditorSceneManager.MarkSceneDirty(scene);
-            EditorSceneManager.SaveScene(scene);
-
-            Debug.Log("Arena wired to the content catalog.");
+            EditorUtility.SetDirty(target);
+            return true;
         }
 
         static string Sanitise(string name) => name.Replace(" ", string.Empty);

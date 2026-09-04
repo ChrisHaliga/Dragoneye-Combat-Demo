@@ -137,6 +137,7 @@ GameObject:
   - component: {fileID: 261654061}
   - component: {fileID: 261654063}
   - component: {fileID: 261654062}
+  - component: {fileID: 261654064}
   m_Layer: 0
   m_Name: Arena Context
   m_TagString: Untagged
@@ -275,6 +276,7 @@ MonoBehaviour:
   m_Selection: {fileID: 261654058}
   m_Map: {fileID: 1461267523}
   m_Creatures: {fileID: 261654061}
+  m_SkillBar: {fileID: 648006342}
 --- !u!114 &261654063
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -291,6 +293,19 @@ MonoBehaviour:
   m_Units: {fileID: 261654057}
   m_Map: {fileID: 1461267523}
   m_BrainActionDelay: 0.45
+--- !u!114 &261654064
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 261654050}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 40126558383542a47a71d5c033ad8721, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Dragoneye.Game::Dragoneye.Game.MatchConclusion
+  m_Dwell: 4
 --- !u!1 &648006334
 GameObject:
   m_ObjectHideFlags: 0
@@ -305,6 +320,7 @@ GameObject:
   - component: {fileID: 648006338}
   - component: {fileID: 648006341}
   - component: {fileID: 648006340}
+  - component: {fileID: 648006342}
   m_Layer: 0
   m_Name: Arena HUD
   m_TagString: Untagged
@@ -392,7 +408,6 @@ MonoBehaviour:
   m_Input: {fileID: 261654062}
   m_Map: {fileID: 1461267523}
   m_Units: {fileID: 261654057}
-  m_OutcomeDwell: 4
 --- !u!114 &648006341
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -406,6 +421,20 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Dragoneye.Game::Dragoneye.Game.TurnBarView
   m_Creatures: {fileID: 261654061}
+  m_Selection: {fileID: 261654058}
+--- !u!114 &648006342
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 648006334}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 351454a637e18a140919b7bd507f9cc7, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Dragoneye.Game::Dragoneye.Game.SkillBarView
+  m_Input: {fileID: 261654062}
 --- !u!1 &723212526
 GameObject:
   m_ObjectHideFlags: 0

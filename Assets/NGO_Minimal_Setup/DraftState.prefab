@@ -14,6 +14,7 @@ GameObject:
   - component: {fileID: 1601258587155580401}
   - component: {fileID: -7747417339205816013}
   - component: {fileID: 60772001502441018}
+  - component: {fileID: -2237893994841280473}
   m_Layer: 0
   m_Name: DraftState
   m_TagString: Untagged
@@ -116,3 +117,17 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Dragoneye.Game::Dragoneye.Game.TurnCommands
   ShowTopMostFoldoutHeaderGroup: 1
+--- !u!114 &-2237893994841280473
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8779040532995224036}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 85278ea19c872464b924dae665b8d848, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Dragoneye.Game::Dragoneye.Game.PlayerCharacters
+  ShowTopMostFoldoutHeaderGroup: 1
+  m_Content: {fileID: 0}

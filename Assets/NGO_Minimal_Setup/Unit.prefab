@@ -105,6 +105,8 @@ GameObject:
   - component: {fileID: 2392091376589293359}
   - component: {fileID: 8266208396482575551}
   - component: {fileID: 1749019119451612459}
+  - component: {fileID: 903812849173389381}
+  - component: {fileID: -5218896687321454810}
   m_Layer: 0
   m_Name: Unit
   m_TagString: Untagged
@@ -142,14 +144,14 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d5a57f767e5e46a458fc5d3c628d0cbb, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Unity.Netcode.Runtime::Unity.Netcode.NetworkObject
-  GlobalObjectIdHash: 4109213979
+  GlobalObjectIdHash: 3856913034
   InScenePlacedSourceGlobalObjectIdHash: 0
   m_InScenePlacedDisabledByDefault: 0
   DeferredDespawnTick: 0
   Ownership: 1
   AlwaysReplicateAsRoot: 0
   SynchronizeTransform: 1
-  m_InScenePlaced: 1
+  m_InScenePlaced: 0
   ActiveSceneSynchronization: 0
   SceneMigrationSynchronization: 0
   SpawnWithObservers: 1
@@ -230,6 +232,32 @@ MonoBehaviour:
   m_ColorProperty: _BaseColor
   m_EmphasisScale: 1.15
   m_EmphasisBrightness: 1.6
+--- !u!114 &903812849173389381
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3663994556299287048}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c879337ce5386554a92e65fdababdfa3, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Dragoneye.Game::Dragoneye.Game.CreaturePool
+  ShowTopMostFoldoutHeaderGroup: 1
+--- !u!114 &-5218896687321454810
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3663994556299287048}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d6dcac9893742234b870e848eb431e47, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Dragoneye.Game::Dragoneye.Game.SkillCommands
+  ShowTopMostFoldoutHeaderGroup: 1
 --- !u!1 &8225563067426206153
 GameObject:
   m_ObjectHideFlags: 0

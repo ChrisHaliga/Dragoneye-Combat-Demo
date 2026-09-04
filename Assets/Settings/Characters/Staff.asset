@@ -1,0 +1,26 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 0}
+  m_Name: Staff
+  m_EditorClassIdentifier: Dragoneye.Data:Dragoneye.Data:EquipmentAsset
+  m_Id: 14
+  m_DisplayName: Staff
+  m_Description: Focuses what you draw from the pool.
+  m_Slot: 0
+  m_Modifiers:
+    Vitality: 0
+    Speed: 0
+    Power: 1
+    Focus: 1
+  m_Skills:
+  - {fileID: 11400000, guid: 52a7d511b6ea7f342a26e9e373d57dd2, type: 2}
+  m_Passives: 

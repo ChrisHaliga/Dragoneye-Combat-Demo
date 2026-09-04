@@ -1,0 +1,24 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0cf33f73d5fe1f5499fed1e4fddc1ebf, type: 3}
+  m_Name: SkillCleave
+  m_EditorClassIdentifier: Dragoneye.Data::Dragoneye.Data.SkillAsset
+  m_Id: 101
+  m_DisplayName: Cleave
+  m_Description: Slower and dearer, and it ends arguments.
+  m_Element: 2
+  m_ApCost: 2
+  m_ElementCost: 2
+  m_Range: 1
+  m_Target: 0
+  m_Effect: 0
+  m_Amount: 11
