@@ -42,13 +42,21 @@ namespace Dragoneye.Game
             Level = level < Progression.FirstLevel ? Progression.FirstLevel : level;
         }
 
-        /// <summary>An authored premade.</summary>
-        public static CreatureProfile FromDefinition(CreatureDefinition definition) =>
+        /// <summary>
+        /// An authored premade, fielded at a level.
+        ///
+        /// The definition says what the creature is; the level says how much of it the host wanted
+        /// today. Health, the skills it has reached and the pool it has bought all follow from that,
+        /// which is what makes raising a goblin's level mean something rather than only relabelling
+        /// it.
+        /// </summary>
+        public static CreatureProfile FromDefinition(CreatureDefinition definition,
+            int level = Progression.FirstLevel) =>
             definition == null
                 ? Unknown
-                : new CreatureProfile(definition.DisplayName, definition.MaxHp,
+                : new CreatureProfile(definition.DisplayName, definition.MaxHpAt(level),
                     Ap.FromWhole(definition.MaxAp), definition.Speed,
-                    definition.SkillIds, definition.StartingPool, definition.Level);
+                    definition.SkillIdsAt(level), definition.PoolFor(level), level);
 
         /// <summary>
         /// A character somebody built.

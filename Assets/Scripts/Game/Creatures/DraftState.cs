@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using Dragoneye.Combat;
 using Unity.Netcode;
 using UnityEngine;
 
@@ -184,10 +185,44 @@ namespace Dragoneye.Game
                 return;
             }
 
-            m_Roster.Add(new RosterEntry(m_NextEntryId++, creatureId, (Party)partyId));
+            // Authored level by default: what the designer decided this creature is, which the
+            // host may then raise or lower for this match.
+            var definition = m_Catalog.Resolve(creatureId);
+
+            m_Roster.Add(new RosterEntry(m_NextEntryId++, creatureId, (Party)partyId,
+                definition != null ? definition.Level : Progression.FirstLevel));
 
             // Adding only ever raises caps, so no claim can become invalid. Removing is the
             // asymmetric case and does need EnforceCaps.
+        }
+
+        /// <summary>
+        /// The host fielding a creature above or below what it was authored at.
+        ///
+        /// Host only, and clamped here rather than trusted from the message: the stepper on the
+        /// board decides what to offer, and this decides what is allowed.
+        ///
+        /// Only unclaimed creatures. A character a player brought carries its own level, earned,
+        /// and is not the host's to adjust.
+        /// </summary>
+        [Rpc(SendTo.Server, InvokePermission = RpcInvokePermission.Everyone)]
+        public void SetCreatureLevelRpc(uint entryId, int level, RpcParams rpc = default)
+        {
+            if (!IsFromHost(rpc))
+            {
+                return;
+            }
+
+            var index = IndexOf(entryId);
+
+            if (index < 0)
+            {
+                return;
+            }
+
+            var entry = m_Roster[index];
+            entry.Level = RosterEntry.Clamp(level);
+            m_Roster[index] = entry;
         }
 
         [Rpc(SendTo.Server, InvokePermission = RpcInvokePermission.Everyone)]

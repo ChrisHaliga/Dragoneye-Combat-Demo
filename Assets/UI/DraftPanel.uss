@@ -293,6 +293,33 @@
     color: rgb(255, 244, 234);
 }
 
+/* A nudge, not a button with a word on it. Two of these plus Claim plus a remove cross is
+   already more than a card this narrow wants, so they are as small as a finger allows. */
+.level-step {
+    width: 20px;
+    height: 20px;
+    margin: 0 0 0 3px;
+    padding: 0;
+    font-size: 12px;
+    -unity-font-style: bold;
+    color: rgb(220, 224, 234);
+    background-color: rgba(0, 0, 0, 0);
+    background-image: url("Generated/ui-button.png");
+    -unity-slice-left: 11;
+    -unity-slice-right: 11;
+    -unity-slice-top: 11;
+    -unity-slice-bottom: 11;
+    border-width: 0;
+}
+
+.level-step:hover {
+    background-image: url("Generated/ui-button-hot.png");
+}
+
+.level-step:disabled {
+    opacity: 0.25;
+}
+
 .button--compact {
     height: 24px;
     padding: 0 9px;

@@ -32,11 +32,17 @@ namespace Dragoneye.Game
         // of the two sources below answers "what is this creature".
         readonly NetworkVariable<byte> m_BuildSlot = new NetworkVariable<byte>(PartyInfo.Unclaimed);
 
+        // Replicated, because a premade's level is a draft decision rather than something a client
+        // can work out from the asset. A built character ignores it and reads its own build.
+        readonly NetworkVariable<byte> m_PremadeLevel =
+            new NetworkVariable<byte>(Progression.FirstLevel);
+
         // Identity handed over before the spawn, held until there are NetworkVariables to put it in.
         ushort m_StartCreatureId;
         byte m_StartBuildSlot = PartyInfo.Unclaimed;
         Party m_StartParty;
         byte m_StartControllerSlot = PartyInfo.Unclaimed;
+        int m_StartLevel = Progression.FirstLevel;
 
         CreatureDefinition m_Definition;
         CreatureRegistry m_Registry;
@@ -89,7 +95,8 @@ namespace Dragoneye.Game
         /// submitted. Resolving both into one shape here is what keeps the turn bar, the card, the
         /// spawner and the initiative order from each having to know which kind they are looking at.
         /// </summary>
-        public CreatureProfile Profile => ProfileFor(m_BuildSlot.Value, m_CreatureId.Value);
+        public CreatureProfile Profile =>
+            ProfileFor(m_BuildSlot.Value, m_CreatureId.Value, m_PremadeLevel.Value);
 
         public string DisplayName => Profile.Name;
 
@@ -115,7 +122,8 @@ namespace Dragoneye.Game
         /// Static and parameterised so the spawner can ask before the object exists, which is when
         /// it needs the starting pool.
         /// </summary>
-        public static CreatureProfile ProfileFor(byte buildSlot, ushort creatureId)
+        public static CreatureProfile ProfileFor(byte buildSlot, ushort creatureId,
+            int level = Progression.FirstLevel)
         {
             if (buildSlot != PartyInfo.Unclaimed && PlayerCharacters.Current != null)
             {
@@ -131,7 +139,7 @@ namespace Dragoneye.Game
             var catalog = Catalog;
             var definition = catalog != null ? catalog.Resolve(creatureId) : null;
 
-            return CreatureProfile.FromDefinition(definition);
+            return CreatureProfile.FromDefinition(definition, level);
         }
 
         /// <summary>Raised on every client when anything replicated here changes.</summary>
@@ -143,8 +151,9 @@ namespace Dragoneye.Game
             // briefly a party-zero, full-health nobody that the portrait column has to redraw.
             if (IsServer)
             {
-                var profile = ProfileFor(m_StartBuildSlot, m_StartCreatureId);
+                var profile = ProfileFor(m_StartBuildSlot, m_StartCreatureId, m_StartLevel);
 
+                m_PremadeLevel.Value = RosterEntry.Clamp(m_StartLevel);
                 m_BuildSlot.Value = m_StartBuildSlot;
                 m_CreatureId.Value = m_StartCreatureId;
                 m_PartyId.Value = (byte)m_StartParty;
@@ -159,6 +168,7 @@ namespace Dragoneye.Game
             m_CurrentHp.OnValueChanged += OnIntChanged;
             m_CurrentApUnits.OnValueChanged += OnIntChanged;
             m_BuildSlot.OnValueChanged += OnByteChanged;
+            m_PremadeLevel.OnValueChanged += OnByteChanged;
 
             var context = ArenaContext.Current;
             m_Registry = context != null ? context.Creatures : null;
@@ -183,6 +193,7 @@ namespace Dragoneye.Game
             m_CurrentHp.OnValueChanged -= OnIntChanged;
             m_CurrentApUnits.OnValueChanged -= OnIntChanged;
             m_BuildSlot.OnValueChanged -= OnByteChanged;
+            m_PremadeLevel.OnValueChanged -= OnByteChanged;
 
             if (m_Registry != null)
             {
@@ -200,12 +211,13 @@ namespace Dragoneye.Game
         /// disagrees with the id being replicated.
         /// </summary>
         public void ServerConfigure(ushort creatureId, Party party, byte controllerSlot,
-            byte buildSlot = PartyInfo.Unclaimed)
+            byte buildSlot = PartyInfo.Unclaimed, int level = Progression.FirstLevel)
         {
             m_StartCreatureId = creatureId;
             m_StartParty = party;
             m_StartControllerSlot = controllerSlot;
             m_StartBuildSlot = buildSlot;
+            m_StartLevel = level;
         }
 
         /// <summary>

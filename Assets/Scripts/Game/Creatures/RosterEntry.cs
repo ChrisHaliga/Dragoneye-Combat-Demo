@@ -1,4 +1,5 @@
 using System;
+using Dragoneye.Combat;
 using Unity.Netcode;
 
 namespace Dragoneye.Game
@@ -31,18 +32,39 @@ namespace Dragoneye.Game
         /// </summary>
         public uint ClaimSequence;
 
+        /// <summary>
+        /// What level this creature is fielded at.
+        ///
+        /// On the entry rather than on the definition, because the same goblin is a nuisance in one
+        /// match and a problem in the next. The definition says what it is authored at; this says
+        /// what the host decided for today.
+        /// </summary>
+        public byte Level;
+
         public Party Party => (Party)PartyId;
 
         public bool IsClaimed => ClaimedBySlot != PartyInfo.Unclaimed;
 
-        public RosterEntry(uint entryId, ushort creatureId, Party party)
+        public RosterEntry(uint entryId, ushort creatureId, Party party, int level = 1)
         {
             EntryId = entryId;
             CreatureId = creatureId;
             PartyId = (byte)party;
             ClaimedBySlot = PartyInfo.Unclaimed;
             ClaimSequence = 0;
+            Level = Clamp(level);
         }
+
+        /// <summary>
+        /// Keeps a level inside what the rules can express.
+        ///
+        /// A byte, and never zero: a level-zero creature would have no pool budget and no skills at
+        /// all, which reads as a broken creature rather than a weak one.
+        /// </summary>
+        public static byte Clamp(int level) =>
+            (byte)(level < Progression.FirstLevel
+                ? Progression.FirstLevel
+                : (level > Progression.MaxLevel ? Progression.MaxLevel : level));
 
         public void NetworkSerialize<T>(BufferSerializer<T> serializer) where T : IReaderWriter
         {
@@ -51,6 +73,7 @@ namespace Dragoneye.Game
             serializer.SerializeValue(ref PartyId);
             serializer.SerializeValue(ref ClaimedBySlot);
             serializer.SerializeValue(ref ClaimSequence);
+            serializer.SerializeValue(ref Level);
         }
 
         public bool Equals(RosterEntry other) =>
@@ -58,7 +81,8 @@ namespace Dragoneye.Game
             && CreatureId == other.CreatureId
             && PartyId == other.PartyId
             && ClaimedBySlot == other.ClaimedBySlot
-            && ClaimSequence == other.ClaimSequence;
+            && ClaimSequence == other.ClaimSequence
+            && Level == other.Level;
 
         public override bool Equals(object obj) => obj is RosterEntry other && Equals(other);
 

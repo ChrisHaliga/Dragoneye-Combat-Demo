@@ -365,7 +365,8 @@ namespace Dragoneye.Game
                 // unit reaches every client already on its hex and already the right creature.
                 instance.GetComponent<UnitState>().ServerPlaceAt(cell);
                 instance.GetComponent<CreatureState>()
-                    .ServerConfigure(entry.CreatureId, entry.Party, entry.ClaimedBySlot, buildSlot);
+                    .ServerConfigure(entry.CreatureId, entry.Party, entry.ClaimedBySlot, buildSlot,
+                        entry.Level);
 
                 // The starting pool is authored on the premade definition. A built character will
                 // bring its own from the creator; both arrive here before the spawn so the owning
@@ -375,7 +376,8 @@ namespace Dragoneye.Game
                 if (pool != null)
                 {
                     pool.ServerConfigure(
-                        CreatureState.ProfileFor(buildSlot, entry.CreatureId).StartingPool);
+                        CreatureState.ProfileFor(buildSlot, entry.CreatureId, entry.Level)
+                            .StartingPool);
                 }
 
                 if (owner.HasValue)

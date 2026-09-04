@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using Dragoneye.Combat;
 using Dragoneye.Multiplayer;
 using Unity.Netcode;
 using UnityEngine;
@@ -464,7 +465,7 @@ namespace Dragoneye.Game
             var owner = mine ? "You" : OwnerName(build.Slot);
 
             var detail = new Label(loadout != null
-                ? $"{owner} · {loadout.Vitals.MaxHealth} HP · {loadout.Vitals.MaxAp} AP"
+                ? $"{owner}  ·  LVL {loadout.Vitals.Level}  ·  {loadout.Vitals.MaxHealth} HP"
                 : owner);
             detail.AddToClassList("fighter__owner");
             detail.EnableInClassList("fighter__owner--mine", mine);
@@ -524,7 +525,7 @@ namespace Dragoneye.Game
             name.AddToClassList("fighter__name");
             body.Add(name);
 
-            var owner = new Label(OwnerText(entry, mine));
+            var owner = new Label($"{OwnerText(entry, mine)}  \u00b7  LVL {entry.Level}");
             owner.AddToClassList("fighter__owner");
             owner.EnableInClassList("fighter__owner--mine", mine);
             body.Add(owner);
@@ -535,6 +536,17 @@ namespace Dragoneye.Game
             actions.AddToClassList("fighter__actions");
 
             var entryId = entry.EntryId;
+
+            // The host decides how much of a creature this is. The same goblin is a nuisance in one
+            // match and a problem in the next, and the alternative -- authoring a second goblin --
+            // is a second asset to keep in step with the first.
+            if (isHost)
+            {
+                actions.Add(LevelStep("\u2212", entryId, entry.Level - 1,
+                    entry.Level > Progression.FirstLevel));
+                actions.Add(LevelStep("+", entryId, entry.Level + 1,
+                    entry.Level < Progression.MaxLevel));
+            }
 
             if (mine)
             {
@@ -555,6 +567,25 @@ namespace Dragoneye.Game
 
             card.Add(actions);
             return card;
+        }
+
+        /// <summary>
+        /// One nudge to a creature's level.
+        ///
+        /// Offered rather than applied: <see cref="DraftState"/> clamps whatever arrives, so a
+        /// disabled button here is a courtesy and never the thing keeping a level in range.
+        /// </summary>
+        Button LevelStep(string text, uint entryId, int level, bool enabled)
+        {
+            var button = new Button(() => m_Draft.SetCreatureLevelRpc(entryId, level))
+            {
+                text = text,
+                tooltip = $"Field this creature at level {level}"
+            };
+
+            button.AddToClassList("level-step");
+            button.SetEnabled(enabled);
+            return button;
         }
 
         // ---------- naming ----------
