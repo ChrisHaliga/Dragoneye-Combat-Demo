@@ -96,14 +96,17 @@ replicated state are not.
 | What a click does | `ActionResolver` | none |
 | The opponent | `ICreatureBrain` / `BasicBrain` | none |
 | Round and turn state | `TurnState` | replicated |
+| The board (routes, occupancy, reach) | `ArenaBoard` | none |
 | Running the fight | `CombatDirector` | server only |
+| Closing a won match | `MatchConclusion` | reads replicated state |
 
 - **Order.** Fastest first, ties broken on turn id. The tiebreak is load-bearing: every peer reads
   the same order, and an unstable sort would put two clients in different turns.
 - **Costs.** Moving is 1 AP per step *along a route*, so a wall makes a hex more expensive rather
   than merely further. Attacking is 2 AP at melee range. All of it is in `CombatRules`.
-- **One resolver.** `ActionResolver` prices the hover label *and* decides the click. Two answers to
-  "what would this do" is how a UI ends up promising a move the server refuses.
+- **One resolver, one board.** `ActionResolver` prices the hover label *and* decides the click;
+  `ArenaBoard` answers "what does this route cost" for the client, the server and the brain alike.
+  Two answers to either question is how a UI ends up promising a move the server refuses.
 - **Ending a turn.** Only ever on the player clicking End Turn. The button highlights when nothing
   is affordable; it never ends the turn itself, so AP can be held.
 - **The opponent** is one method behind `ICreatureBrain`. `BasicBrain` hits what is adjacent and

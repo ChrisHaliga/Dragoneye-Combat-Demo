@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using Unity.Collections;
 using Unity.Netcode;
 using UnityEngine;
 
@@ -40,9 +39,6 @@ namespace Dragoneye.Game
 
         /// <summary>Initiative order as creature turn ids. Fastest first.</summary>
         public IReadOnlyList<uint> Order => m_OrderView;
-
-        /// <summary>Index into <see cref="Order"/>, or -1 before the first turn.</summary>
-        public int Index => m_Index.Value;
 
         /// <summary>Rounds completed plus one. Zero before the match starts.</summary>
         public int Round => m_Round.Value;

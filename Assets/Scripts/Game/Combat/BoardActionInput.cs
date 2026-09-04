@@ -1,5 +1,3 @@
-using System;
-using System.Collections.Generic;
 using Dragoneye.Hex.Systems;
 using UnityEngine;
 
@@ -37,16 +35,12 @@ namespace Dragoneye.Game
         [SerializeField]
         CreatureRegistry m_Creatures;
 
-        readonly List<Hex> m_Path = new List<Hex>();
-        readonly HashSet<Hex> m_Blocked = new HashSet<Hex>();
+        ArenaBoard m_Board;
 
         ActionPlan m_Hovered = ActionPlan.Nothing;
 
         /// <summary>The action the cursor is currently over, with its price.</summary>
         public ActionPlan Hovered => m_Hovered;
-
-        /// <summary>Raised when the hovered action changes, so the cursor label can repaint.</summary>
-        public event Action<ActionPlan> HoveredChanged;
 
         /// <summary>
         /// The creature the local player is acting with: the active one, if they control it.
@@ -64,16 +58,8 @@ namespace Dragoneye.Game
                     return null;
                 }
 
-                foreach (var creature in m_Creatures.All)
-                {
-                    if (creature != null && creature.TurnId == turns.ActiveId
-                        && LocalPlayer.Controls(creature))
-                    {
-                        return creature;
-                    }
-                }
-
-                return null;
+                var active = m_Creatures.ByTurnId(turns.ActiveId);
+                return active != null && LocalPlayer.Controls(active) ? active : null;
             }
         }
 
@@ -86,6 +72,8 @@ namespace Dragoneye.Game
                 enabled = false;
                 return;
             }
+
+            m_Board = new ArenaBoard(m_Map, m_Units);
 
             m_Pointer.Clicked += OnClicked;
             m_Pointer.HoverChanged += OnHoverChanged;
@@ -117,7 +105,6 @@ namespace Dragoneye.Game
             }
 
             m_Hovered = plan;
-            HoveredChanged?.Invoke(plan);
         }
 
         ActionPlan Price(Hex hex)
@@ -138,35 +125,7 @@ namespace Dragoneye.Game
                 targetOccupied: occupied,
                 targetIsEnemy: target != null && target.Party != actor.Party,
                 distanceToTarget: Hex.Distance(actor.Cell, hex),
-                moveCost: occupied ? -1 : MoveCost(actor.Cell, hex));
-        }
-
-        /// <summary>
-        /// Steps along the cheapest route, or -1 if there is none.
-        ///
-        /// The same search the server runs. Duplicated work rather than duplicated *rules* -- the
-        /// pathfinder is one implementation used by both sides, so the client's price is the price
-        /// the server will charge.
-        /// </summary>
-        int MoveCost(Hex from, Hex to)
-        {
-            if (m_Map == null || m_Map.Map == null)
-            {
-                return -1;
-            }
-
-            m_Blocked.Clear();
-            foreach (var creature in m_Creatures.All)
-            {
-                if (creature != null && creature.IsAlive && creature.Cell != from)
-                {
-                    m_Blocked.Add(creature.Cell);
-                }
-            }
-
-            return HexPathfinder.TryFindPath(m_Map.Map, from, to, m_Blocked, m_Path)
-                ? m_Path.Count
-                : -1;
+                moveCost: occupied ? -1 : m_Board.CostTo(actor.Cell, hex));
         }
 
         void OnClicked(Hex hex)

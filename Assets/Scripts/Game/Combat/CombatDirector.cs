@@ -44,15 +44,17 @@ namespace Dragoneye.Game
         /// </summary>
         readonly ICreatureBrain m_Brain = new BasicBrain();
 
-        readonly List<Hex> m_Path = new List<Hex>();
-        readonly HashSet<Hex> m_Blocked = new HashSet<Hex>();
-
+        ArenaBoard m_Board;
         Coroutine m_BrainTurn;
 
         /// <summary>The director for the match in progress, or null outside one.</summary>
         public static CombatDirector Current { get; private set; }
 
-        void Awake() => Current = this;
+        void Awake()
+        {
+            Current = this;
+            m_Board = new ArenaBoard(m_Map, m_Units);
+        }
 
         void OnDestroy()
         {
@@ -121,10 +123,12 @@ namespace Dragoneye.Game
         /// <returns>False if the move was refused.</returns>
         public bool ServerMove(CreatureState actor, Hex destination)
         {
-            if (!CanAct(actor) || !TryPath(actor.Cell, destination, out var cost))
+            if (!CanAct(actor))
             {
                 return false;
             }
+
+            var cost = m_Board.CostTo(actor.Cell, destination);
 
             var plan = ActionResolver.Resolve(true, true, actor.CurrentAp,
                 targetOccupied: false, targetIsEnemy: false, distanceToTarget: 0, moveCost: cost);
@@ -222,10 +226,10 @@ namespace Dragoneye.Game
 
             while (budget-- > 0 && CanAct(actor))
             {
-                var decision = m_Brain.Decide(ViewOf(actor), OtherViews(actor), new BoardQuery(this));
+                var decision = m_Brain.Decide(ViewOf(actor), OtherViews(actor), m_Board);
 
                 var acted = decision.Action == BoardAction.Attack
-                    ? ServerAttack(actor, FindByTurnId(decision.TargetId))
+                    ? ServerAttack(actor, CreatureFor(decision.TargetId))
                     : decision.Action == BoardAction.Move && ServerMove(actor, decision.Destination);
 
                 if (!acted)
@@ -309,30 +313,15 @@ namespace Dragoneye.Game
 
         bool IsStillFighting(uint turnId)
         {
-            var creature = FindByTurnId(turnId);
+            var creature = CreatureFor(turnId);
             return creature != null && creature.IsAlive;
         }
 
         CreatureState ActiveCreature() =>
-            TurnState.Current != null ? FindByTurnId(TurnState.Current.ActiveId) : null;
+            TurnState.Current != null ? CreatureFor(TurnState.Current.ActiveId) : null;
 
-        CreatureState FindByTurnId(uint turnId)
-        {
-            if (m_Creatures == null || turnId == 0)
-            {
-                return null;
-            }
-
-            foreach (var creature in m_Creatures.All)
-            {
-                if (creature != null && creature.TurnId == turnId)
-                {
-                    return creature;
-                }
-            }
-
-            return null;
-        }
+        CreatureState CreatureFor(uint turnId) =>
+            m_Creatures != null ? m_Creatures.ByTurnId(turnId) : null;
 
         BrainView ViewOf(CreatureState creature) =>
             new BrainView(creature.TurnId, creature.Cell, creature.Party,
@@ -353,71 +342,5 @@ namespace Dragoneye.Game
             return views;
         }
 
-        /// <summary>
-        /// Occupied hexes, excluding the mover's own so it does not block itself.
-        /// </summary>
-        HashSet<Hex> BlockedFor(Hex origin)
-        {
-            m_Blocked.Clear();
-
-            if (m_Creatures != null)
-            {
-                foreach (var creature in m_Creatures.All)
-                {
-                    if (creature == null || !creature.IsAlive)
-                    {
-                        continue;
-                    }
-
-                    var cell = creature.Cell;
-                    if (cell != origin)
-                    {
-                        m_Blocked.Add(cell);
-                    }
-                }
-            }
-
-            return m_Blocked;
-        }
-
-        bool TryPath(Hex from, Hex to, out int cost)
-        {
-            cost = -1;
-
-            if (m_Map == null || m_Map.Map == null)
-            {
-                return false;
-            }
-
-            if (!HexPathfinder.TryFindPath(m_Map.Map, from, to, BlockedFor(from), m_Path))
-            {
-                return false;
-            }
-
-            cost = m_Path.Count;
-            return true;
-        }
-
-        /// <summary>
-        /// The board as a brain is allowed to see it. A thin adapter rather than handing the brain
-        /// the director, so a brain cannot reach past the three questions it is entitled to ask.
-        /// </summary>
-        sealed class BoardQuery : IBoardQuery
-        {
-            readonly CombatDirector m_Director;
-
-            public BoardQuery(CombatDirector director) => m_Director = director;
-
-            public int CostTo(Hex from, Hex to) =>
-                m_Director.TryPath(from, to, out var cost) ? cost : -1;
-
-            public IReadOnlyList<Hex> PathTo(Hex from, Hex to) =>
-                m_Director.TryPath(from, to, out _)
-                    ? new List<Hex>(m_Director.m_Path)
-                    : System.Array.Empty<Hex>();
-
-            public bool IsOccupied(Hex hex) =>
-                m_Director.m_Units != null && m_Director.m_Units.IsOccupied(hex);
-        }
     }
 }

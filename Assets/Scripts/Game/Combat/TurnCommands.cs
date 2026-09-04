@@ -67,17 +67,10 @@ namespace Dragoneye.Game
                 return false;
             }
 
-            var activeId = TurnState.Current.ActiveId;
+            var active = context.Creatures.ByTurnId(TurnState.Current.ActiveId);
 
-            foreach (var creature in context.Creatures.All)
-            {
-                if (creature != null && creature.TurnId == activeId)
-                {
-                    return LocalPlayer.Controls(creature.ControllerSlot, (byte)entry.Slot);
-                }
-            }
-
-            return false;
+            return active != null
+                && LocalPlayer.Controls(active.ControllerSlot, (byte)entry.Slot);
         }
     }
 }

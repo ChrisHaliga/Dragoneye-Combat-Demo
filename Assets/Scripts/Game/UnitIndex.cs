@@ -33,6 +33,29 @@ namespace Dragoneye.Game
         public bool IsOccupiedByOther(Hex hex, UnitState mover) =>
             m_Occupants.TryGetValue(hex, out var occupant) && occupant != mover;
 
+        /// <summary>
+        /// Copies every occupied hex into <paramref name="into"/>, skipping <paramref name="except"/>.
+        ///
+        /// Exists so pathfinding can be told what blocks a route without every caller rebuilding
+        /// that set from a different source. The exception is the mover: a unit must not be an
+        /// obstacle to itself, which would make every route from its own hex unreachable.
+        /// </summary>
+        public void CopyOccupiedTo(ICollection<Hex> into, Hex except)
+        {
+            if (into == null)
+            {
+                return;
+            }
+
+            foreach (var pair in m_Occupants)
+            {
+                if (pair.Key != except)
+                {
+                    into.Add(pair.Key);
+                }
+            }
+        }
+
         public void Register(UnitState unit) => m_Occupants[unit.Cell] = unit;
 
         public void Unregister(UnitState unit)

@@ -57,5 +57,30 @@ namespace Dragoneye.Game
 
             return result;
         }
+
+        /// <summary>
+        /// The creature with this turn id, or null.
+        ///
+        /// Lives here because three callers wanted it -- the director, the turn bar and the board
+        /// input -- and each had written its own loop. The registry already owns "which creatures
+        /// exist"; answering "which one is this" is the same question.
+        /// </summary>
+        public CreatureState ByTurnId(uint turnId)
+        {
+            if (turnId == 0)
+            {
+                return null;
+            }
+
+            foreach (var creature in m_Creatures)
+            {
+                if (creature != null && creature.TurnId == turnId)
+                {
+                    return creature;
+                }
+            }
+
+            return null;
+        }
     }
 }

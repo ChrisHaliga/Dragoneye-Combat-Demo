@@ -22,6 +22,9 @@ namespace Dragoneye.Game
         [SerializeField]
         CreatureRegistry m_Creatures;
 
+        [SerializeField, Tooltip("Clicking a portrait inspects that creature.")]
+        CreatureSelection m_Selection;
+
         VisualElement m_Order;
         Label m_Round;
         Label m_ActiveName;
@@ -133,7 +136,7 @@ namespace Dragoneye.Game
 
             foreach (var id in turns.Order)
             {
-                var creature = Find(id);
+                var creature = m_Creatures.ByTurnId(id);
                 if (creature == null)
                 {
                     continue;
@@ -150,19 +153,6 @@ namespace Dragoneye.Game
                     m_ActiveName.text = creature.DisplayName;
                 }
             }
-        }
-
-        CreatureState Find(uint turnId)
-        {
-            foreach (var creature in m_Creatures.All)
-            {
-                if (creature != null && creature.TurnId == turnId)
-                {
-                    return creature;
-                }
-            }
-
-            return null;
         }
 
         VisualElement BuildPortrait(CreatureState creature, bool active)
@@ -192,6 +182,15 @@ namespace Dragoneye.Game
             }
 
             root.Add(BuildHealth(creature));
+
+            // Inspecting from the bar, the same gesture the party column already offers. Reading a
+            // creature costs nothing and never touches the turn, so it is allowed at any time --
+            // including during another player's turn.
+            if (m_Selection != null)
+            {
+                root.RegisterCallback<ClickEvent>(_ => m_Selection.Select(creature));
+            }
+
             return root;
         }
 

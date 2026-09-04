@@ -128,7 +128,14 @@ namespace Dragoneye.MultiplayerEditor
                 ("m_Pointer", pointer), ("m_Units", units), ("m_Selection", selection),
                 ("m_Map", map), ("m_Creatures", creatures));
 
-            SetUpHud(creatures, units, map, input);
+            // Closing the match is lifecycle, not presentation, so it is its own component rather
+            // than a few lines inside the HUD.
+            if (host.GetComponent<MatchConclusion>() == null)
+            {
+                host.AddComponent<MatchConclusion>();
+            }
+
+            SetUpHud(creatures, units, map, input, selection);
 
             EditorSceneManager.MarkSceneDirty(scene);
             EditorSceneManager.SaveScene(scene);
@@ -139,7 +146,7 @@ namespace Dragoneye.MultiplayerEditor
         }
 
         static void SetUpHud(CreatureRegistry creatures, UnitIndex units,
-            Dragoneye.Hex.Systems.ArenaMap map, BoardActionInput input)
+            Dragoneye.Hex.Systems.ArenaMap map, BoardActionInput input, CreatureSelection selection)
         {
             var hud = GameObject.Find("Arena HUD");
             if (hud == null || hud.GetComponent<UIDocument>() == null)
@@ -149,7 +156,7 @@ namespace Dragoneye.MultiplayerEditor
             }
 
             var bar = hud.GetComponent<TurnBarView>() ?? hud.AddComponent<TurnBarView>();
-            Assign(bar, ("m_Creatures", creatures));
+            Assign(bar, ("m_Creatures", creatures), ("m_Selection", selection));
 
             var controls = hud.GetComponent<TurnControlsView>() ?? hud.AddComponent<TurnControlsView>();
             Assign(controls, ("m_Input", input), ("m_Map", map), ("m_Units", units));

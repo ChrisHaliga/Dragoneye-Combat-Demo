@@ -1,5 +1,4 @@
 using Dragoneye.Hex.Systems;
-using Dragoneye.Multiplayer;
 using UnityEngine;
 using UnityEngine.UIElements;
 
@@ -7,11 +6,12 @@ namespace Dragoneye.Game
 {
     /// <summary>
     /// The bottom-centre End Turn button, the AP readout above it, the action label that follows the
-    /// cursor, and the banner that closes the match.
+    /// cursor, and the banner announcing the winner.
     ///
-    /// Four small things in one component because they are the same concern from the player's side:
-    /// what can I do right now, and what happens when I stop. Splitting them would mean four
-    /// documents observing the same turn state.
+    /// Draws and nothing else. Every question it asks -- can this creature still do anything, what
+    /// would this click cost, who won -- is answered elsewhere; closing the match once it is over
+    /// belongs to <see cref="MatchConclusion"/>. A view that could end a turn, price an action or
+    /// shut down a session would be a second authority on all three.
     ///
     /// The button highlights when the active creature can no longer afford anything, and that is all
     /// it does. The turn always ends on a click -- never on running out of AP -- so a player can
@@ -30,10 +30,6 @@ namespace Dragoneye.Game
         [SerializeField]
         UnitIndex m_Units;
 
-        [SerializeField, Min(0f), Tooltip("How long the outcome banner is shown before the match "
-             + "closes and everyone returns to the menu.")]
-        float m_OutcomeDwell = 4f;
-
         VisualElement m_Footer;
         VisualElement m_Banner;
         Label m_Ap;
@@ -41,7 +37,7 @@ namespace Dragoneye.Game
         Label m_OutcomeTitle;
         Button m_EndTurn;
 
-        bool m_Closing;
+        ArenaBoard m_Board;
 
         void Start()
         {
@@ -51,6 +47,8 @@ namespace Dragoneye.Game
                 enabled = false;
                 return;
             }
+
+            m_Board = new ArenaBoard(m_Map, m_Units);
 
             var root = GetComponent<UIDocument>().rootVisualElement;
 
@@ -71,7 +69,7 @@ namespace Dragoneye.Game
             }
 
             // The button is the one thing on this document that must take clicks; everything else is
-            // an overlay the board has to be reachable through.
+            // an overlay the board has to stay reachable through.
             CreatureDisplay.MakeClickThrough(root);
 
             m_EndTurn.clicked += OnEndTurnClicked;
@@ -112,51 +110,13 @@ namespace Dragoneye.Game
 
             m_Ap.text = $"{actor.DisplayName} -- {actor.CurrentAp} / {actor.MaxAp} AP";
 
-            // Cheapest possible action, asked of the board rather than assumed: a creature boxed in
-            // by its own allies cannot move even with AP to spare.
             var spent = !CombatRules.CanAffordAnything(
-                actor.CurrentAp, AnyStepAvailable(actor), AnyEnemyInReach(actor));
+                actor.CurrentAp,
+                m_Board.HasOpenNeighbour(actor.Cell),
+                m_Board.HasEnemyInReach(actor.Cell, actor.Party));
 
             m_EndTurn.EnableInClassList("end-turn--spent", spent);
             m_EndTurn.text = spent ? "End Turn (no AP)" : "End Turn";
-        }
-
-        /// <summary>Whether at least one neighbouring hex can be stepped into.</summary>
-        bool AnyStepAvailable(CreatureState actor)
-        {
-            if (m_Map == null || m_Map.Map == null)
-            {
-                return false;
-            }
-
-            foreach (var neighbour in actor.Cell.Neighbors())
-            {
-                if (!m_Units.IsOccupied(neighbour)
-                    && m_Map.Map.TryGetTile(neighbour, out var tile) && tile.IsWalkable)
-                {
-                    return true;
-                }
-            }
-
-            return false;
-        }
-
-        /// <summary>Whether an enemy stands close enough to be hit without moving.</summary>
-        bool AnyEnemyInReach(CreatureState actor)
-        {
-            foreach (var neighbour in actor.Cell.Neighbors())
-            {
-                if (m_Units.TryGet(neighbour, out var occupant))
-                {
-                    var creature = occupant.GetComponent<CreatureState>();
-                    if (creature != null && creature.IsAlive && creature.Party != actor.Party)
-                    {
-                        return true;
-                    }
-                }
-            }
-
-            return false;
         }
 
         /// <summary>
@@ -167,8 +127,7 @@ namespace Dragoneye.Game
         /// </summary>
         void RefreshCursor()
         {
-            var plan = m_Input.Hovered;
-            var text = ActionResolver.Describe(plan);
+            var text = ActionLabels.Describe(m_Input.Hovered);
 
             m_Cursor.text = text;
             m_Cursor.EnableInClassList("is-hidden", string.IsNullOrEmpty(text));
@@ -179,16 +138,14 @@ namespace Dragoneye.Game
             }
 
             var mouse = UnityEngine.InputSystem.Mouse.current;
-            if (mouse == null)
+            if (mouse == null || m_Cursor.panel == null)
             {
                 return;
             }
 
-            var position = mouse.position.ReadValue();
-            var panel = m_Cursor.panel != null
-                ? RuntimePanelUtils.ScreenToPanel(m_Cursor.panel,
-                    new Vector2(position.x, Screen.height - position.y))
-                : Vector2.zero;
+            var screen = mouse.position.ReadValue();
+            var panel = RuntimePanelUtils.ScreenToPanel(m_Cursor.panel,
+                new Vector2(screen.x, Screen.height - screen.y));
 
             m_Cursor.style.left = panel.x + 18f;
             m_Cursor.style.top = panel.y + 12f;
@@ -201,25 +158,11 @@ namespace Dragoneye.Game
 
             m_Banner.EnableInClassList("is-hidden", !over);
 
-            if (!over || m_Closing)
+            if (over)
             {
-                return;
+                m_OutcomeTitle.text = $"{PartyPalette.NameOf(turns.Winner)} win";
             }
-
-            m_Closing = true;
-            m_OutcomeTitle.text = $"{PartyPalette.NameOf(turns.Winner)} win";
-
-            Invoke(nameof(CloseMatch), m_OutcomeDwell);
         }
-
-        /// <summary>
-        /// Ends the match for everyone.
-        ///
-        /// Routed through <see cref="MatchFlow"/> rather than shutting netcode down here, so a solo
-        /// match and a hosted one close the same way and the menu is reached by the one path that
-        /// already knows how to get there.
-        /// </summary>
-        void CloseMatch() => MatchFlow.Instance?.LeaveMatch();
 
         void OnEndTurnClicked()
         {

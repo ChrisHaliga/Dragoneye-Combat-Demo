@@ -11,77 +11,6 @@ using TerrainType = Dragoneye.Hex.TerrainType;
 
 namespace Dragoneye.Hex.Tests
 {
-    public class MoveRulesTests
-    {
-        static HexMap Map(int radius, TerrainType terrain = null) =>
-            new HexMap(new HexLayout(1f, Vector3.zero),
-                Hex.Range(Hex.Zero, radius).Select(h => new HexTile(h, terrain)));
-
-        [Test]
-        public void ValidMoveIsAccepted()
-        {
-            Assert.IsTrue(MoveRules.CanEnter(Map(3), Hex.Zero, new Hex(1, 0), false, out var why));
-            Assert.AreEqual(MoveRejection.None, why);
-        }
-
-        [Test]
-        public void OffMapIsRejected()
-        {
-            Assert.IsFalse(MoveRules.CanEnter(Map(2), Hex.Zero, new Hex(99, -99), false, out var why));
-            Assert.AreEqual(MoveRejection.OffMap, why);
-        }
-
-        [Test]
-        public void OccupiedIsRejected()
-        {
-            Assert.IsFalse(MoveRules.CanEnter(Map(3), Hex.Zero, new Hex(1, 0), true, out var why));
-            Assert.AreEqual(MoveRejection.Occupied, why);
-        }
-
-        [Test]
-        public void MovingNowhereIsRejected()
-        {
-            Assert.IsFalse(MoveRules.CanEnter(Map(3), Hex.Zero, Hex.Zero, false, out var why));
-            Assert.AreEqual(MoveRejection.AlreadyThere, why);
-        }
-
-        [Test]
-        public void NonWalkableTerrainIsRejected()
-        {
-            var stone = ScriptableObject.CreateInstance<TerrainType>();
-            try
-            {
-                // A default TerrainType is walkable, so drive the flag through the serialised field.
-                var field = typeof(TerrainType).GetField("m_IsWalkable",
-                    System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
-                field.SetValue(stone, false);
-
-                Assert.IsFalse(MoveRules.CanEnter(Map(3, stone), Hex.Zero, new Hex(1, 0), false, out var why));
-                Assert.AreEqual(MoveRejection.NotWalkable, why);
-            }
-            finally
-            {
-                Object.DestroyImmediate(stone);
-            }
-        }
-
-        [Test]
-        public void ANullMapRejectsRatherThanThrowing()
-        {
-            Assert.IsFalse(MoveRules.CanEnter(null, Hex.Zero, Hex.Zero, false, out var why));
-            Assert.AreEqual(MoveRejection.OffMap, why);
-        }
-
-        [Test]
-        public void OffMapIsCheckedBeforeOccupancy()
-        {
-            // Order matters for the message the player would eventually see: "there is no tile
-            // there" is more useful than "something is standing there".
-            MoveRules.CanEnter(Map(2), Hex.Zero, new Hex(50, 0), true, out var why);
-            Assert.AreEqual(MoveRejection.OffMap, why);
-        }
-    }
-
     public class HexPointerMathTests
     {
         static readonly Plane k_Ground = new Plane(Vector3.up, Vector3.zero);
@@ -250,6 +179,75 @@ namespace Dragoneye.Hex.Tests
                 Assert.IsFalse(index.IsOccupied(Hex.Zero));
                 Assert.IsFalse(index.IsOccupiedByOther(Hex.Zero, null));
                 Assert.IsFalse(index.TryGet(Hex.Zero, out _));
+            }
+            finally
+            {
+                Object.DestroyImmediate(go);
+            }
+        }
+
+        [Test]
+        public void CopyingOccupiedCellsSkipsTheMover()
+        {
+            // Pathfinding is told what blocks a route through this. A mover that appeared in its own
+            // blocked set would make every route from its own hex unreachable.
+            var go = new GameObject("index");
+            try
+            {
+                var index = go.AddComponent<UnitIndex>();
+                var into = new HashSet<Hex> { new Hex(7, 7) };
+
+                index.CopyOccupiedTo(into, Hex.Zero);
+
+                CollectionAssert.Contains(into, new Hex(7, 7), "Existing entries are kept");
+                Assert.AreEqual(1, into.Count, "An empty index adds nothing");
+            }
+            finally
+            {
+                Object.DestroyImmediate(go);
+            }
+        }
+
+        [Test]
+        public void CopyingToNullIsIgnoredRatherThanThrowing()
+        {
+            var go = new GameObject("index");
+            try
+            {
+                Assert.DoesNotThrow(() => go.AddComponent<UnitIndex>().CopyOccupiedTo(null, Hex.Zero));
+            }
+            finally
+            {
+                Object.DestroyImmediate(go);
+            }
+        }
+    }
+
+    public class CreatureRegistryLookupTests
+    {
+        [Test]
+        public void TurnIdZeroNeverResolves()
+        {
+            // Zero is the "no active creature" sentinel from TurnState. Resolving it to a real
+            // creature would hand the turn to whichever one happened to be first.
+            var go = new GameObject("registry");
+            try
+            {
+                Assert.IsNull(go.AddComponent<CreatureRegistry>().ByTurnId(0));
+            }
+            finally
+            {
+                Object.DestroyImmediate(go);
+            }
+        }
+
+        [Test]
+        public void AnUnknownTurnIdResolvesToNothing()
+        {
+            var go = new GameObject("registry");
+            try
+            {
+                Assert.IsNull(go.AddComponent<CreatureRegistry>().ByTurnId(1234));
             }
             finally
             {

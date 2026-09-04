@@ -111,21 +111,21 @@ namespace Dragoneye.Hex.Tests
                 distanceToTarget: 2, moveCost: 2);
 
             Assert.AreEqual(ActionRefusal.NotYours, plan.Refusal);
-            Assert.IsEmpty(ActionResolver.Describe(plan));
+            Assert.IsEmpty(ActionLabels.Describe(plan));
         }
 
         [Test]
         public void AllowedActionsAlwaysDescribeTheirPrice()
         {
-            StringAssert.Contains("2 AP", ActionResolver.Describe(Move(6, 2)));
+            StringAssert.Contains("2 AP", ActionLabels.Describe(Move(6, 2)));
             StringAssert.Contains($"{CombatRules.AttackApCost} AP",
-                ActionResolver.Describe(Attack(6, 1)));
+                ActionLabels.Describe(Attack(6, 1)));
         }
 
         [Test]
         public void AnUnaffordableActionSaysSo()
         {
-            StringAssert.Contains("not enough", ActionResolver.Describe(Move(1, 5)));
+            StringAssert.Contains("not enough", ActionLabels.Describe(Move(1, 5)));
         }
     }
 }

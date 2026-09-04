@@ -140,34 +140,5 @@ namespace Dragoneye.Game
                 ? new ActionPlan(BoardAction.Move, cost, ActionRefusal.TooExpensive)
                 : new ActionPlan(BoardAction.Move, cost, ActionRefusal.None);
         }
-
-        /// <summary>
-        /// The words shown beside the cursor. Kept next to the rule that produced them so a new
-        /// refusal cannot be added without deciding what it says.
-        /// </summary>
-        public static string Describe(ActionPlan plan)
-        {
-            switch (plan.Refusal)
-            {
-                case ActionRefusal.NotYourTurn:
-                    return "Not your turn";
-                case ActionRefusal.NotYours:
-                    return string.Empty;
-                case ActionRefusal.Unreachable:
-                    return "No route";
-                case ActionRefusal.OutOfRange:
-                    return "Out of range";
-                case ActionRefusal.Friendly:
-                    return string.Empty;
-                case ActionRefusal.NoTarget:
-                    return string.Empty;
-                case ActionRefusal.TooExpensive:
-                    return $"{Name(plan.Action)} -- {plan.Cost} AP (not enough)";
-            }
-
-            return $"{Name(plan.Action)} -- {plan.Cost} AP";
-        }
-
-        static string Name(BoardAction action) => action == BoardAction.Attack ? "Attack" : "Move";
     }
 }
