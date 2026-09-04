@@ -24,5 +24,14 @@ namespace Dragoneye.Game
 
         /// <summary>Slot value meaning "nobody claimed this creature; the computer runs it".</summary>
         public const byte Unclaimed = 255;
+
+        /// <summary>
+        /// The side a player is put on before they say otherwise.
+        ///
+        /// Everyone together, because players arrive expecting to be on the same team and being
+        /// scattered across parties by default is the surprising outcome. Changing sides is a
+        /// decision the board offers, not one it demands before anything else can happen.
+        /// </summary>
+        public const Party Default = Party.Heroes;
     }
 }

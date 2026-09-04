@@ -28,6 +28,15 @@ namespace Dragoneye.Game
 
         int m_Selected = NoSkill;
 
+        // What the bar was last drawn from. A click is a press and a release on the same element,
+        // so rebuilding every frame destroyed the button between the two and nothing was ever
+        // clicked -- the bar looked alive and did nothing at all.
+        uint m_DrawnFor;
+        Ap m_DrawnAp;
+        int m_DrawnPool;
+        int m_DrawnSelected = -1;
+        int m_DrawnCount = -1;
+
         /// <summary>No skill armed; a board click means move or attack.</summary>
         public const int NoSkill = 0;
 
@@ -59,8 +68,14 @@ namespace Dragoneye.Game
             }
         }
 
-        // Rebuilt every frame the actor or its resources change. A skill becomes unusable the moment
-        // AP is spent, and a bar that only repainted on turn change would keep offering it.
+        /// <summary>
+        /// Redrawn when what it is drawing has changed, and not otherwise.
+        ///
+        /// A skill becomes unusable the moment AP is spent or an element leaves the pool, so this
+        /// cannot wait for the turn to change -- but it must not run every frame either. A button is
+        /// clicked by pressing and releasing on the same element, and a bar rebuilt between those
+        /// two events has already thrown away the thing that was pressed.
+        /// </summary>
         void Update()
         {
             if (m_Bar == null)
@@ -72,13 +87,60 @@ namespace Dragoneye.Game
 
             if (actor == null)
             {
-                m_Bar.Clear();
-                m_Reason.text = string.Empty;
-                m_Selected = NoSkill;
+                if (m_DrawnFor != 0 || m_DrawnCount != 0)
+                {
+                    m_Bar.Clear();
+                    m_Reason.text = string.Empty;
+                    m_Selected = NoSkill;
+                    m_DrawnFor = 0;
+                    m_DrawnCount = 0;
+                }
+
                 return;
             }
 
+            var pool = actor.GetComponent<CreaturePool>();
+            var poolHash = pool != null ? Hash(pool.Ledger.Pool) : 0;
+            var count = SkillCount(actor);
+
+            if (m_DrawnFor == actor.TurnId && m_DrawnAp == actor.CurrentAp
+                && m_DrawnPool == poolHash && m_DrawnSelected == m_Selected
+                && m_DrawnCount == count)
+            {
+                return;
+            }
+
+            m_DrawnFor = actor.TurnId;
+            m_DrawnAp = actor.CurrentAp;
+            m_DrawnPool = poolHash;
+            m_DrawnSelected = m_Selected;
+            m_DrawnCount = count;
+
             Rebuild(actor);
+        }
+
+        static int SkillCount(CreatureState actor)
+        {
+            var commands = actor.GetComponent<SkillCommands>();
+            return commands != null ? commands.Skills.Count : 0;
+        }
+
+        /// <summary>
+        /// A cheap stand-in for "the pool changed".
+        ///
+        /// Order-dependent on purpose, so two different spreads holding the same number of elements
+        /// do not collide and leave the bar showing a skill that can no longer be paid for.
+        /// </summary>
+        static int Hash(ElementCounts pool)
+        {
+            var hash = 17;
+
+            foreach (var element in ElementInfo.All)
+            {
+                hash = (hash * 31) + pool[element];
+            }
+
+            return hash;
         }
 
         void Rebuild(CreatureState actor)
@@ -124,7 +186,10 @@ namespace Dragoneye.Game
         {
             var usable = refusal == SkillRefusal.None;
 
-            var button = new VisualElement();
+            // A real Button, not a VisualElement with a click handler: the HUD root is made
+            // click-through so the board underneath stays reachable, and that pass leaves the
+            // framework's own controls alone by type.
+            var button = new Button();
             button.AddToClassList("skill-button");
             button.EnableInClassList("skill-button--unusable", !usable);
             button.EnableInClassList("skill-button--selected", skill.Id == m_Selected);
@@ -132,6 +197,7 @@ namespace Dragoneye.Game
             var name = new Label(skill.Name);
             name.AddToClassList("skill-button__name");
             button.Add(name);
+            button.text = string.Empty;
 
             var costs = new VisualElement();
             costs.AddToClassList("skill-button__cost");
@@ -143,7 +209,7 @@ namespace Dragoneye.Game
             if (skill.ElementCost > 0)
             {
                 var element = new Label(
-                    $"{skill.ElementCost} {ElementInfo.NameOf(skill.Element).Substring(0, 2).ToUpperInvariant()}");
+                    $"{skill.ElementCost} {ElementInfo.ShortNameOf(skill.Element)}");
                 element.AddToClassList("skill-button__element");
                 element.style.color = ElementPalette.ForElement(skill.Element);
                 costs.Add(element);
@@ -155,11 +221,10 @@ namespace Dragoneye.Game
             // explains itself without the player having to look elsewhere.
             button.tooltip = usable ? skill.Description : SkillLabels.Describe(refusal);
 
-            if (usable)
-            {
-                button.RegisterCallback<ClickEvent>(_ =>
-                    m_Selected = m_Selected == skill.Id ? NoSkill : skill.Id);
-            }
+            // Armed on a click, disarmed by clicking it again. The board click that follows is
+            // what aims it; until then nothing has been spent and nothing has happened.
+            button.SetEnabled(usable);
+            button.clicked += () => m_Selected = m_Selected == skill.Id ? NoSkill : skill.Id;
 
             return button;
         }

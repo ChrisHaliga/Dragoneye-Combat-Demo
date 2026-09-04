@@ -1,11 +1,16 @@
 namespace Dragoneye.Combat
 {
-    /// <summary>What clicking a hex would do.</summary>
+    /// <summary>
+    /// What clicking a hex would do.
+    ///
+    /// Moving, and nothing else. There used to be a bare attack here, standing in for skills until
+    /// there were any; now that a weapon grants one, a creature with no skill has no attack, which
+    /// is the correct answer rather than a gap. A click on an occupied hex reads its card.
+    /// </summary>
     public enum BoardAction
     {
         None,
-        Move,
-        Attack
+        Move
     }
 
     /// <summary>Why an action is not available. <see cref="None"/> means it is.</summary>
@@ -16,8 +21,10 @@ namespace Dragoneye.Combat
         NotYours,
         NoTarget,
         Unreachable,
-        OutOfRange,
-        Friendly,
+
+        /// <summary>Somebody is standing there. Clicking reads their card; a skill has to be armed.</summary>
+        Occupied,
+
         TooExpensive
     }
 
@@ -73,16 +80,12 @@ namespace Dragoneye.Combat
         /// <param name="controlsActor">Whether the local player may command the actor at all.</param>
         /// <param name="currentAp">The actor's remaining AP.</param>
         /// <param name="targetOccupied">Whether a creature stands on the hovered hex.</param>
-        /// <param name="targetIsEnemy">
-        /// Whether that creature is on another side. Ignored when the hex is empty.
-        /// </param>
-        /// <param name="distanceToTarget">Hex distance from actor to the hovered hex.</param>
         /// <param name="moveSteps">
         /// Tiles along the cheapest route to the hovered hex, or -1 if there is no route. Ignored
         /// when the hex is occupied. A count of tiles, not a price -- pricing is this method.
         /// </param>
         public static ActionPlan Resolve(bool isActorsTurn, bool controlsActor, Ap currentAp,
-            bool targetOccupied, bool targetIsEnemy, int distanceToTarget, int moveSteps)
+            bool targetOccupied, int moveSteps)
         {
             if (!controlsActor)
             {
@@ -96,32 +99,12 @@ namespace Dragoneye.Combat
 
             if (targetOccupied)
             {
-                return ResolveAttack(currentAp, targetIsEnemy, distanceToTarget);
+                // Nothing to price. Reaching somebody is a skill's job, and which skill is a
+                // decision the player makes on the bar before they click the board.
+                return new ActionPlan(BoardAction.None, Ap.Zero, ActionRefusal.Occupied);
             }
 
             return ResolveMove(currentAp, moveSteps);
-        }
-
-        static ActionPlan ResolveAttack(Ap currentAp, bool targetIsEnemy, int distance)
-        {
-            if (!targetIsEnemy)
-            {
-                // Selecting an ally to read its card is handled elsewhere; there is simply no
-                // action to price here.
-                return new ActionPlan(BoardAction.None, Ap.Zero, ActionRefusal.Friendly);
-            }
-
-            if (!CombatRules.InRange(distance))
-            {
-                // Priced anyway. "Attack -- 2 AP, out of range" tells the player what to fix; a bare
-                // "no action" does not.
-                return new ActionPlan(BoardAction.Attack, CombatRules.AttackCost,
-                    ActionRefusal.OutOfRange);
-            }
-
-            return currentAp < CombatRules.AttackCost
-                ? new ActionPlan(BoardAction.Attack, CombatRules.AttackCost, ActionRefusal.TooExpensive)
-                : new ActionPlan(BoardAction.Attack, CombatRules.AttackCost, ActionRefusal.None);
         }
 
         static ActionPlan ResolveMove(Ap currentAp, int moveSteps)

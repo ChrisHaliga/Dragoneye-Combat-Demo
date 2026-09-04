@@ -46,15 +46,6 @@ namespace Dragoneye.Game
             }
         }
 
-        /// <summary>Client-side entry point. Asks the server to attack the creature on a hex.</summary>
-        public void RequestAttack(Hex target)
-        {
-            if (CanCommand())
-            {
-                RequestAttackRpc(new NetCell(target));
-            }
-        }
-
         /// <summary>
         /// Whether it is worth sending anything at all: this creature is ours and it is its turn.
         ///
@@ -79,30 +70,6 @@ namespace Dragoneye.Game
             if (!CombatDirector.Current.ServerMove(m_Creature, cell.ToHex()))
             {
                 Debug.Log($"[UnitCommands] Move to {cell.ToHex()} refused.", this);
-            }
-        }
-
-        [Rpc(SendTo.Server, InvokePermission = RpcInvokePermission.Owner)]
-        void RequestAttackRpc(NetCell cell, RpcParams rpc = default)
-        {
-            if (!SenderControlsThis(rpc.Receive.SenderClientId) || CombatDirector.Current == null)
-            {
-                return;
-            }
-
-            var context = ArenaContext.Current;
-            if (context == null || context.Units == null
-                || !context.Units.TryGet(cell.ToHex(), out var occupant))
-            {
-                return;
-            }
-
-            // Resolved from the hex rather than taken as a creature reference: the client names a
-            // place, and the server decides what is standing there. A client naming an object
-            // directly could name one that has since moved or died.
-            if (!CombatDirector.Current.ServerAttack(m_Creature, occupant.GetComponent<CreatureState>()))
-            {
-                Debug.Log($"[UnitCommands] Attack on {cell.ToHex()} refused.", this);
             }
         }
 

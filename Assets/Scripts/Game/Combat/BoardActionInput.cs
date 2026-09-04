@@ -119,16 +119,13 @@ namespace Dragoneye.Game
                 return ActionPlan.Nothing;
             }
 
-            var occupied = m_Units.TryGet(hex, out var occupant);
-            var target = occupied ? occupant.GetComponent<CreatureState>() : null;
+            var occupied = m_Units.TryGet(hex, out _);
 
             return ActionResolver.Resolve(
                 isActorsTurn: true,
                 controlsActor: true,
                 currentAp: actor.CurrentAp,
                 targetOccupied: occupied,
-                targetIsEnemy: target != null && target.Party != actor.Party,
-                distanceToTarget: Hex.Distance(actor.Cell, hex),
                 moveSteps: occupied ? -1 : m_Board.CostTo(actor.Cell, hex));
         }
 
@@ -170,11 +167,7 @@ namespace Dragoneye.Game
                 return;
             }
 
-            if (plan.Action == BoardAction.Attack)
-            {
-                commands.RequestAttack(hex);
-            }
-            else if (plan.Action == BoardAction.Move)
+            if (plan.Action == BoardAction.Move)
             {
                 commands.RequestMove(hex);
             }

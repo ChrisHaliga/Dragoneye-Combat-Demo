@@ -11,10 +11,10 @@ namespace Dragoneye.Hex.Tests
     public class ActionResolverTests
     {
         static ActionPlan Move(int wholeAp, int steps) =>
-            ActionResolver.Resolve(true, true, Ap.FromWhole(wholeAp), false, false, 0, steps);
+            ActionResolver.Resolve(true, true, Ap.FromWhole(wholeAp), false, steps);
 
-        static ActionPlan Attack(int wholeAp, int distance, bool enemy = true) =>
-            ActionResolver.Resolve(true, true, Ap.FromWhole(wholeAp), true, enemy, distance, -1);
+        static ActionPlan OnACreature(int wholeAp) =>
+            ActionResolver.Resolve(true, true, Ap.FromWhole(wholeAp), true, -1);
 
         [Test]
         public void MovingCostsOneApPerStep()
@@ -54,50 +54,24 @@ namespace Dragoneye.Hex.Tests
         }
 
         [Test]
-        public void AttackingAnAdjacentEnemyCostsTheAttackPrice()
+        public void AnOccupiedHexOffersNothingToPrice()
         {
-            var plan = Attack(wholeAp: 6, distance: 1);
-
-            Assert.AreEqual(BoardAction.Attack, plan.Action);
-            Assert.AreEqual(CombatRules.AttackCost, plan.Cost);
-            Assert.IsTrue(plan.IsAllowed);
-        }
-
-        [Test]
-        public void AnEnemyOutOfReachIsPricedButRefused()
-        {
-            var plan = Attack(wholeAp: 6, distance: 4);
-
-            Assert.AreEqual(BoardAction.Attack, plan.Action);
-            Assert.AreEqual(ActionRefusal.OutOfRange, plan.Refusal);
-            Assert.IsFalse(plan.IsAllowed);
-        }
-
-        [Test]
-        public void AlliesAreNotTargets()
-        {
-            var plan = Attack(wholeAp: 6, distance: 1, enemy: false);
+            // There is no bare attack any more: reaching somebody is a skill, chosen on the bar
+            // before the board is clicked. A click here reads the creature's card and costs nothing,
+            // so there is nothing for the cursor to price or to explain.
+            var plan = OnACreature(wholeAp: 6);
 
             Assert.AreEqual(BoardAction.None, plan.Action);
-            Assert.AreEqual(ActionRefusal.Friendly, plan.Refusal);
-        }
-
-        [Test]
-        public void AnAttackYouCannotAffordIsRefusedNotHidden()
-        {
-            // One whole point, when an attack costs two.
-            var plan = Attack(wholeAp: 1, distance: 1);
-
-            Assert.IsTrue(plan.IsUnaffordable);
-            Assert.AreEqual(CombatRules.AttackCost, plan.Cost);
+            Assert.AreEqual(ActionRefusal.Occupied, plan.Refusal);
+            Assert.IsFalse(plan.IsAllowed);
+            Assert.IsEmpty(ActionLabels.Describe(plan));
         }
 
         [Test]
         public void NothingIsOfferedWhenItIsNotYourTurn()
         {
             var plan = ActionResolver.Resolve(isActorsTurn: false, controlsActor: true,
-                currentAp: Ap.FromWhole(6), targetOccupied: false, targetIsEnemy: false,
-                distanceToTarget: 2, moveSteps: 2);
+                currentAp: Ap.FromWhole(6), targetOccupied: false, moveSteps: 2);
 
             Assert.AreEqual(ActionRefusal.NotYourTurn, plan.Refusal);
             Assert.IsFalse(plan.IsAllowed);
@@ -109,8 +83,7 @@ namespace Dragoneye.Hex.Tests
             // Checked before the turn, so hovering with an enemy active says nothing at all rather
             // than "not your turn" over every hex on the board.
             var plan = ActionResolver.Resolve(isActorsTurn: true, controlsActor: false,
-                currentAp: Ap.FromWhole(6), targetOccupied: false, targetIsEnemy: false,
-                distanceToTarget: 2, moveSteps: 2);
+                currentAp: Ap.FromWhole(6), targetOccupied: false, moveSteps: 2);
 
             Assert.AreEqual(ActionRefusal.NotYours, plan.Refusal);
             Assert.IsEmpty(ActionLabels.Describe(plan));
@@ -121,8 +94,7 @@ namespace Dragoneye.Hex.Tests
         {
             // Two tiles at half a point each reads as one whole point.
             StringAssert.Contains("1 AP", ActionLabels.Describe(Move(6, 2)));
-            StringAssert.Contains($"{CombatRules.AttackCost} AP",
-                ActionLabels.Describe(Attack(6, 1)));
+            StringAssert.Contains("0.5 AP", ActionLabels.Describe(Move(6, 1)));
         }
 
         [Test]

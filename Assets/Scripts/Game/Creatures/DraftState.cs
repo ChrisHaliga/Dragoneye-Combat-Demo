@@ -40,6 +40,10 @@ namespace Dragoneye.Game
         uint m_NextEntryId = 1;
         uint m_ClaimSequence;
 
+        // How many players had been defaulted onto a side, so the check below is a comparison
+        // rather than a walk of the roster every frame.
+        int m_DefaultedFor = -1;
+
         public static DraftState Current { get; private set; }
 
         public CreatureCatalog Catalog => m_Catalog;
@@ -83,6 +87,43 @@ namespace Dragoneye.Game
             if (Current == this)
             {
                 Current = null;
+            }
+        }
+
+        /// <summary>
+        /// Puts every player who has a slot and no side on the default one.
+        ///
+        /// Players arrive expecting to be on the same team as each other; being scattered across
+        /// parties by default is the surprising outcome, and picking a side is a decision the board
+        /// offers rather than one it demands before anything else can happen.
+        ///
+        /// Polled on the server rather than driven off a roster event, because the draft is spawned
+        /// and the roster is not, so either can exist first. It walks a handful of entries.
+        /// </summary>
+        void Update()
+        {
+            if (!IsServer)
+            {
+                return;
+            }
+
+            var roster = PlayerRoster.Current;
+
+            if (roster == null || roster.Count == m_DefaultedFor)
+            {
+                return;
+            }
+
+            m_DefaultedFor = roster.Count;
+
+            for (var i = 0; i < roster.Count; i++)
+            {
+                var slot = roster.At(i).Slot;
+
+                if (slot >= 0 && slot < PartyInfo.Unclaimed && !HasChosenParty((byte)slot))
+                {
+                    SetChoice((byte)slot, PartyInfo.Default);
+                }
             }
         }
 
@@ -370,8 +411,11 @@ namespace Dragoneye.Game
         }
 
         /// <summary>
-        /// Puts anyone who skipped the draft on a side, alternating, so a solo host still gets an
-        /// opponent and a pair start opposite each other.
+        /// Puts anyone who somehow still has no side on the heroes.
+        ///
+        /// A backstop rather than the normal path: everyone is defaulted to the heroes the moment
+        /// they get a slot, so by the time a match starts this should find nobody. It used to
+        /// alternate sides, which meant the second player to join was silently made the opposition.
         /// </summary>
         void AssignMissingParties(IReadOnlyList<byte> playerSlots)
         {
@@ -384,7 +428,7 @@ namespace Dragoneye.Game
             {
                 if (!HasChosenParty(playerSlots[i]))
                 {
-                    SetChoice(playerSlots[i], i % 2 == 0 ? Party.Heroes : Party.Monsters);
+                    SetChoice(playerSlots[i], PartyInfo.Default);
                 }
             }
         }

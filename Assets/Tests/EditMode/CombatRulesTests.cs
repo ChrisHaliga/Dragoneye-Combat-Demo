@@ -46,26 +46,39 @@ namespace Dragoneye.Hex.Tests
         [Test]
         public void ZeroDistanceIsNotInRange()
         {
-            // Distance zero is the attacker's own hex. Melee reach must not include yourself.
-            Assert.IsFalse(CombatRules.InRange(0));
-            Assert.IsTrue(CombatRules.InRange(1));
-            Assert.IsFalse(CombatRules.InRange(CombatRules.AttackRange + 1));
+            // Distance zero is the user's own hex. Nothing aimed at somebody else reaches it,
+            // however long its reach.
+            Assert.IsFalse(CombatRules.InRange(0, 1));
+            Assert.IsFalse(CombatRules.InRange(0, 9));
+
+            Assert.IsTrue(CombatRules.InRange(1, 1), "melee is one tile");
+            Assert.IsFalse(CombatRules.InRange(2, 1));
+            Assert.IsTrue(CombatRules.InRange(4, 4), "and a bow reaches as far as it says");
         }
 
         [Test]
         public void SpentMeansNoActionIsAffordable()
         {
             Assert.IsFalse(CombatRules.CanAffordAnything(Ap.Zero,
-                anyMoveInRange: true, anyTargetInRange: true));
+                anyMoveInRange: true, anySkillUsable: false));
         }
 
         [Test]
-        public void HalfAPointStillBuysAStepButNotAnAttack()
+        public void HalfAPointStillBuysAStep()
         {
             Assert.IsTrue(CombatRules.CanAffordAnything(Ap.Step,
-                anyMoveInRange: true, anyTargetInRange: true));
+                anyMoveInRange: true, anySkillUsable: false));
             Assert.IsFalse(CombatRules.CanAffordAnything(Ap.Step,
-                anyMoveInRange: false, anyTargetInRange: true));
+                anyMoveInRange: false, anySkillUsable: false));
+        }
+
+        [Test]
+        public void AUsableSkillIsSomethingToDoWhateverTheApSays()
+        {
+            // Whether a skill is affordable is the skill's own question, asked of the same rules
+            // the bar and the server ask. By the time it reaches here it has been answered.
+            Assert.IsTrue(CombatRules.CanAffordAnything(Ap.Zero,
+                anyMoveInRange: false, anySkillUsable: true));
         }
 
         [Test]
@@ -83,7 +96,7 @@ namespace Dragoneye.Hex.Tests
             // The case that makes this a board question rather than an arithmetic one: a creature
             // walled in by its own allies has AP it cannot spend.
             Assert.IsFalse(CombatRules.CanAffordAnything(Ap.FromWhole(99),
-                anyMoveInRange: false, anyTargetInRange: false));
+                anyMoveInRange: false, anySkillUsable: false));
         }
     }
 }

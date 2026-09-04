@@ -14,20 +14,16 @@ namespace Dragoneye.Combat
     /// </summary>
     public static class CombatRules
     {
-        /// <summary>What a single attack costs, whatever the attacker.</summary>
-        public static readonly Ap AttackCost = Ap.FromWhole(2);
-
         /// <summary>What one tile of movement costs. Half a point, per DE-000.</summary>
         public static readonly Ap MoveCostPerTile = Ap.Step;
 
-        /// <summary>Reach in hexes. One is melee: the attacker must be adjacent.</summary>
-        public const int AttackRange = 1;
-
-        /// <summary>Damage a hit deals.</summary>
-        public const int AttackDamage = 5;
-
-        /// <summary>Whether the attacker is close enough, given the distance between the two.</summary>
-        public static bool InRange(int distance) => distance > 0 && distance <= AttackRange;
+        /// <summary>
+        /// Whether a target at this distance is inside a reach.
+        ///
+        /// Zero distance is the user's own hex and never in reach of anything aimed at somebody
+        /// else, which is why this is not a bare comparison.
+        /// </summary>
+        public static bool InRange(int distance, int reach) => distance > 0 && distance <= reach;
 
         /// <summary>What a move of this many steps costs.</summary>
         public static Ap MoveCost(int steps) => steps <= 0 ? Ap.Zero : MoveCostPerTile * steps;
@@ -73,9 +69,9 @@ namespace Dragoneye.Combat
         /// Drives the End Turn button's prompt. It is only a prompt: the turn always ends on the
         /// player's click, never on this returning false.
         /// </summary>
-        public static bool CanAffordAnything(Ap currentAp, bool anyMoveInRange, bool anyTargetInRange)
+        public static bool CanAffordAnything(Ap currentAp, bool anyMoveInRange, bool anySkillUsable)
         {
-            if (anyTargetInRange && currentAp >= AttackCost)
+            if (anySkillUsable)
             {
                 return true;
             }

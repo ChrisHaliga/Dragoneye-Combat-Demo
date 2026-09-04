@@ -20,24 +20,20 @@ namespace Dragoneye.Game
                     return "Not your turn";
                 case ActionRefusal.Unreachable:
                     return "No route";
-                case ActionRefusal.OutOfRange:
-                    return "Out of range";
 
-                // Nothing to say. Hovering your own creature, empty space you already occupy, or the
-                // board during someone else's turn should leave the cursor clean rather than
-                // explaining itself.
+                // Nothing to say. Hovering a creature, empty space you already occupy, or the board
+                // during someone else's turn should leave the cursor clean rather than explaining
+                // itself -- and reaching a creature is now a skill's job, offered on the bar.
                 case ActionRefusal.NotYours:
-                case ActionRefusal.Friendly:
+                case ActionRefusal.Occupied:
                 case ActionRefusal.NoTarget:
                     return string.Empty;
 
                 case ActionRefusal.TooExpensive:
-                    return $"{Name(plan.Action)} -- {plan.Cost} AP (not enough)";
+                    return $"Move -- {plan.Cost} AP (not enough)";
             }
 
-            return $"{Name(plan.Action)} -- {plan.Cost} AP";
+            return $"Move -- {plan.Cost} AP";
         }
-
-        static string Name(BoardAction action) => action == BoardAction.Attack ? "Attack" : "Move";
     }
 }

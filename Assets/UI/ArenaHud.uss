@@ -451,11 +451,13 @@
     margin-bottom: 8px;
 }
 
+/* Wide enough for "1 AP  1 ARC" on one line and tall enough for two lines of text, because both
+   were previously drawn outside a box sized for neither. */
 .skill-button {
-    width: 96px;
-    height: 54px;
+    width: 108px;
+    min-height: 56px;
     margin: 0 4px;
-    padding: 6px 8px;
+    padding: 7px 9px;
     background-color: rgba(0, 0, 0, 0);
     background-image: url("Generated/ui-button.png");
     -unity-slice-left: 11;
@@ -480,25 +482,31 @@
 }
 
 .skill-button__name {
+    flex-grow: 1;
     font-size: 11px;
     -unity-font-style: bold;
     color: rgb(236, 231, 219);
+    white-space: normal;
     overflow: hidden;
-    text-overflow: ellipsis;
 }
 
 .skill-button__cost {
     flex-direction: row;
+    flex-shrink: 0;
     justify-content: space-between;
+    margin-top: 4px;
 }
 
 .skill-button__ap {
+    flex-shrink: 0;
     font-size: 10px;
     -unity-font-style: bold;
     color: rgb(198, 158, 88);
 }
 
 .skill-button__element {
+    flex-shrink: 0;
+    margin-left: 6px;
     font-size: 10px;
     -unity-font-style: bold;
 }

@@ -132,7 +132,7 @@ namespace Dragoneye.Game
             var cost = m_Board.CostTo(actor.Cell, destination);
 
             var plan = ActionResolver.Resolve(true, true, actor.CurrentAp,
-                targetOccupied: false, targetIsEnemy: false, distanceToTarget: 0, moveSteps: cost);
+                targetOccupied: false, moveSteps: cost);
 
             if (!plan.IsAllowed || plan.Action != BoardAction.Move)
             {
@@ -145,39 +145,6 @@ namespace Dragoneye.Game
             }
 
             actor.Unit.ServerSetCell(destination);
-            return true;
-        }
-
-        /// <summary>
-        /// Server only. Resolves an attack and clears the target off the board if it dies.
-        /// </summary>
-        /// <returns>False if the attack was refused.</returns>
-        public bool ServerAttack(CreatureState actor, CreatureState target)
-        {
-            if (!CanAct(actor) || target == null || !target.IsAlive)
-            {
-                return false;
-            }
-
-            var plan = ActionResolver.Resolve(true, true, actor.CurrentAp,
-                targetOccupied: true, targetIsEnemy: target.Party != actor.Party,
-                distanceToTarget: Hex.Distance(actor.Cell, target.Cell), moveSteps: -1);
-
-            if (!plan.IsAllowed || plan.Action != BoardAction.Attack)
-            {
-                return false;
-            }
-
-            if (!actor.ServerSpendAp(plan.Cost))
-            {
-                return false;
-            }
-
-            if (target.ServerApplyDamage(CombatRules.AttackDamage))
-            {
-                Kill(target);
-            }
-
             return true;
         }
 
@@ -350,11 +317,12 @@ namespace Dragoneye.Game
 
             while (budget-- > 0 && CanAct(actor))
             {
-                var decision = m_Brain.Decide(ViewOf(actor), OtherViews(actor), m_Board);
+                var decision = m_Brain.Decide(ViewOf(actor, includeHand: true),
+                    OtherViews(actor), m_Board);
 
-                var acted = decision.Action == BoardAction.Attack
-                    ? ServerAttack(actor, CreatureFor(decision.TargetId))
-                    : decision.Action == BoardAction.Move && ServerMove(actor, decision.Destination);
+                var acted = decision.Action == BrainAction.UseSkill
+                    ? UseSkillOn(actor, decision.SkillId, CreatureFor(decision.TargetId))
+                    : decision.Action == BrainAction.Move && ServerMove(actor, decision.Destination);
 
                 if (!acted)
                 {
@@ -447,9 +415,34 @@ namespace Dragoneye.Game
         CreatureState CreatureFor(uint turnId) =>
             m_Creatures != null ? m_Creatures.ByTurnId(turnId) : null;
 
-        BrainView ViewOf(CreatureState creature) =>
-            new BrainView(creature.TurnId, creature.Cell, creature.Party,
-                creature.CurrentAp, creature.CurrentHp);
+        /// <summary>Aims a brain's chosen skill at a creature, by the same path a player takes.</summary>
+        bool UseSkillOn(CreatureState actor, int skillId, CreatureState target) =>
+            target != null && target.IsAlive
+            && ServerUseSkill(actor, skillId, target.Cell, out _);
+
+        /// <summary>
+        /// A creature as a brain sees it, including what it can do.
+        ///
+        /// Skills and elements are only filled in for the creature being asked to decide. Reading
+        /// another creature's hand would be the brain cheating, and the pool is private to its
+        /// controller for exactly that reason.
+        /// </summary>
+        BrainView ViewOf(CreatureState creature, bool includeHand = false)
+        {
+            if (!includeHand)
+            {
+                return new BrainView(creature.TurnId, creature.Cell, creature.Party,
+                    creature.CurrentAp, creature.CurrentHp);
+            }
+
+            var skills = creature.GetComponent<SkillCommands>();
+            var pool = creature.GetComponent<CreaturePool>();
+
+            return new BrainView(creature.TurnId, creature.Cell, creature.Party,
+                creature.CurrentAp, creature.CurrentHp,
+                skills != null ? skills.Skills : null,
+                pool != null ? pool.Ledger : default);
+        }
 
         List<BrainView> OtherViews(CreatureState actor)
         {

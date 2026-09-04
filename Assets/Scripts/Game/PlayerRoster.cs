@@ -156,6 +156,17 @@ namespace Dragoneye.Game
         }
 
         /// <summary>Reverse lookup: which client holds a slot.</summary>
+        /// <summary>How many players are registered. Every peer agrees.</summary>
+        public int Count => m_Entries.Count;
+
+        /// <summary>
+        /// One registered player by position.
+        ///
+        /// An indexer rather than an enumerable, because the underlying list is a NetworkList and
+        /// handing out an iterator over replicated storage invites holding it across a change.
+        /// </summary>
+        public PlayerEntry At(int index) => m_Entries[index];
+
         public bool TryGetBySlot(int slot, out PlayerEntry entry)
         {
             for (var i = 0; i < m_Entries.Count; i++)

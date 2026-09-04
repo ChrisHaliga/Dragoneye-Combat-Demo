@@ -8,10 +8,14 @@ namespace Dragoneye.Game
     using Hex = Dragoneye.Hex.Hex;
 
     /// <summary>
-    /// One creature as a brain sees it. Coordinates and numbers, no components.
+    /// One creature as a brain sees it. Coordinates, numbers and what it can do -- no components.
     ///
     /// Flat and read-only so a brain cannot reach through it and change the world -- deciding and
     /// doing are separate, which is what lets a decision be tested by asserting on its return value.
+    ///
+    /// It carries the creature's skills and its element ledger because there is no generic attack
+    /// any more: what a creature can do to somebody else is entirely a question of what it knows and
+    /// what it is holding, and a brain that could not see either could only ever decide to walk.
     /// </summary>
     public readonly struct BrainView
     {
@@ -21,43 +25,65 @@ namespace Dragoneye.Game
         public readonly Ap CurrentAp;
         public readonly int CurrentHp;
 
-        public BrainView(uint id, Hex cell, Party party, Ap currentAp, int currentHp)
+        /// <summary>Everything this creature could use, whether or not it can afford it now.</summary>
+        public readonly IReadOnlyList<SkillSpec> Skills;
+
+        /// <summary>What it is holding, so affordability is the same question the server asks.</summary>
+        public readonly ElementLedger Ledger;
+
+        public BrainView(uint id, Hex cell, Party party, Ap currentAp, int currentHp,
+            IReadOnlyList<SkillSpec> skills = null, ElementLedger ledger = default)
         {
             Id = id;
             Cell = cell;
             Party = party;
             CurrentAp = currentAp;
             CurrentHp = currentHp;
+            Skills = skills ?? System.Array.Empty<SkillSpec>();
+            Ledger = ledger;
         }
+    }
+
+    /// <summary>What kind of thing a brain decided to do.</summary>
+    public enum BrainAction
+    {
+        /// <summary>Nothing worth doing. The caller should end the turn.</summary>
+        None,
+
+        Move,
+        UseSkill
     }
 
     /// <summary>What a brain decided to do. One action; the caller asks again afterwards.</summary>
     public readonly struct BrainDecision
     {
-        public readonly BoardAction Action;
+        public readonly BrainAction Action;
 
-        /// <summary>The creature to attack. Meaningful only for <see cref="BoardAction.Attack"/>.</summary>
+        /// <summary>The creature to aim at. Meaningful only for <see cref="BrainAction.UseSkill"/>.</summary>
         public readonly uint TargetId;
 
-        /// <summary>Where to move. Meaningful only for <see cref="BoardAction.Move"/>.</summary>
+        /// <summary>Which skill to use. Meaningful only for <see cref="BrainAction.UseSkill"/>.</summary>
+        public readonly int SkillId;
+
+        /// <summary>Where to move. Meaningful only for <see cref="BrainAction.Move"/>.</summary>
         public readonly Hex Destination;
 
-        BrainDecision(BoardAction action, uint targetId, Hex destination)
+        BrainDecision(BrainAction action, uint targetId, int skillId, Hex destination)
         {
             Action = action;
             TargetId = targetId;
+            SkillId = skillId;
             Destination = destination;
         }
 
-        /// <summary>Nothing worth doing. The caller should end the turn.</summary>
         public static readonly BrainDecision Pass =
-            new BrainDecision(BoardAction.None, 0, default);
+            new BrainDecision(BrainAction.None, 0, 0, default);
 
-        public static BrainDecision Attack(uint targetId) =>
-            new BrainDecision(BoardAction.Attack, targetId, default);
+        public static BrainDecision UseSkill(int skillId, uint targetId) =>
+            new BrainDecision(BrainAction.UseSkill, targetId, skillId, default);
 
         public static BrainDecision MoveTo(Hex destination) =>
-            new BrainDecision(BoardAction.Move, 0, destination);
+            new BrainDecision(BrainAction.Move, 0, 0, destination);
     }
 
     /// <summary>

@@ -34,20 +34,98 @@ namespace Dragoneye.Hex.Tests
             public bool IsOccupied(Hex hex) => m_Occupied.Contains(hex);
         }
 
-        static BrainView Actor(Hex cell, int wholeAp = 6, Party party = Party.Monsters) =>
-            new BrainView(1, cell, party, Ap.FromWhole(wholeAp), 20);
+        /// <summary>
+        /// A melee skill and a ranged one, so "which does it pick" and "how close does it get" are
+        /// both askable. Neither costs an element: the brain's choice is being tested here, not the
+        /// pool, and a creature that cannot pay would only ever walk.
+        /// </summary>
+        static readonly SkillSpec k_Jab = new SkillSpec(1, "Jab", Element.Aero, Ap.FromWhole(1), 0,
+            1, SkillTarget.Creature, new SkillEffect(SkillEffectKind.Damage, 3));
+
+        static readonly SkillSpec k_Cleave = new SkillSpec(2, "Cleave", Element.Geo, Ap.FromWhole(2),
+            0, 1, SkillTarget.Creature, new SkillEffect(SkillEffectKind.Damage, 11));
+
+        static readonly SkillSpec k_Loose = new SkillSpec(3, "Loose", Element.Aero, Ap.FromWhole(1),
+            0, 4, SkillTarget.Creature, new SkillEffect(SkillEffectKind.Damage, 5));
+
+        static BrainView Actor(Hex cell, int wholeAp = 6, Party party = Party.Monsters,
+            params SkillSpec[] skills) =>
+            new BrainView(1, cell, party, Ap.FromWhole(wholeAp), 20,
+                skills.Length > 0 ? skills : new[] { k_Jab });
 
         static BrainView Enemy(uint id, Hex cell, int hp = 20) =>
             new BrainView(id, cell, Party.Heroes, Ap.FromWhole(6), hp);
 
         [Test]
-        public void AttacksAnAdjacentEnemy()
+        public void UsesASkillOnAnAdjacentEnemy()
         {
             var decision = new BasicBrain().Decide(
                 Actor(Hex.Zero), new[] { Enemy(2, new Hex(1, 0)) }, new OpenBoard(new Hex(1, 0)));
 
-            Assert.AreEqual(BoardAction.Attack, decision.Action);
+            Assert.AreEqual(BrainAction.UseSkill, decision.Action);
             Assert.AreEqual(2u, decision.TargetId);
+            Assert.AreEqual(k_Jab.Id, decision.SkillId);
+        }
+
+        [Test]
+        public void PicksTheHardestHittingSkillItCanAfford()
+        {
+            var decision = new BasicBrain().Decide(
+                Actor(Hex.Zero, 6, Party.Monsters, k_Jab, k_Cleave),
+                new[] { Enemy(2, new Hex(1, 0)) }, new OpenBoard(new Hex(1, 0)));
+
+            Assert.AreEqual(k_Cleave.Id, decision.SkillId);
+        }
+
+        [Test]
+        public void FallsBackToWhatItCanStillPayFor()
+        {
+            // One point left: Cleave wants two, so the cheap one is the only thing on offer.
+            var decision = new BasicBrain().Decide(
+                Actor(Hex.Zero, 1, Party.Monsters, k_Jab, k_Cleave),
+                new[] { Enemy(2, new Hex(1, 0)) }, new OpenBoard(new Hex(1, 0)));
+
+            Assert.AreEqual(BrainAction.UseSkill, decision.Action);
+            Assert.AreEqual(k_Jab.Id, decision.SkillId);
+        }
+
+        [Test]
+        public void ReachesFromWhereItStandsWhenItCan()
+        {
+            var decision = new BasicBrain().Decide(
+                Actor(Hex.Zero, 6, Party.Monsters, k_Loose),
+                new[] { Enemy(2, new Hex(3, 0)) }, new OpenBoard(new Hex(3, 0)));
+
+            Assert.AreEqual(BrainAction.UseSkill, decision.Action, "three tiles is inside four");
+        }
+
+        [Test]
+        public void StopsWalkingAsSoonAsSomethingReaches()
+        {
+            // A bow at range four. Closing to melee would arrive with nothing left to loose, which
+            // is the whole reason the walk stops early.
+            var decision = new BasicBrain().Decide(
+                Actor(Hex.Zero, 6, Party.Monsters, k_Loose),
+                new[] { Enemy(2, new Hex(8, 0)) }, new OpenBoard(new Hex(8, 0)));
+
+            Assert.AreEqual(BrainAction.Move, decision.Action);
+            Assert.AreEqual(4, Hex.Distance(decision.Destination, new Hex(8, 0)),
+                "it stops at the edge of its reach rather than walking into melee");
+        }
+
+        [Test]
+        public void ACreatureWithNothingToFightWithWalksUpAndStandsThere()
+        {
+            // Correct, not a gap: there is no generic punch any more, so a creature authored
+            // without an offensive skill has nothing to do once it arrives.
+            var breath = new SkillSpec(9, "Take a Breath", Element.Arcana, Ap.FromWhole(1), 0, 0,
+                SkillTarget.Self, new SkillEffect(SkillEffectKind.ReturnElement, 1));
+
+            var decision = new BasicBrain().Decide(
+                Actor(Hex.Zero, 6, Party.Monsters, breath),
+                new[] { Enemy(2, new Hex(1, 0)) }, new OpenBoard(new Hex(1, 0)));
+
+            Assert.AreNotEqual(BrainAction.UseSkill, decision.Action);
         }
 
         [Test]
@@ -56,7 +134,7 @@ namespace Dragoneye.Hex.Tests
             var decision = new BasicBrain().Decide(
                 Actor(Hex.Zero), new[] { Enemy(2, new Hex(4, 0)) }, new OpenBoard(new Hex(4, 0)));
 
-            Assert.AreEqual(BoardAction.Move, decision.Action);
+            Assert.AreEqual(BrainAction.Move, decision.Action);
             Assert.Less(Hex.Distance(decision.Destination, new Hex(4, 0)), 4,
                 "Moving should close the gap");
         }
@@ -80,7 +158,7 @@ namespace Dragoneye.Hex.Tests
                 Actor(Hex.Zero, wholeAp: 2), new[] { Enemy(2, new Hex(6, 0)) },
                 new OpenBoard(new Hex(6, 0)));
 
-            Assert.AreEqual(BoardAction.Move, decision.Action);
+            Assert.AreEqual(BrainAction.Move, decision.Action);
             // Half a point per tile, so two whole points buys four tiles -- asserted through the
             // rule rather than a literal, so changing the cost does not silently pass a stale test.
             Assert.LessOrEqual(Hex.Distance(Hex.Zero, decision.Destination),
@@ -94,18 +172,19 @@ namespace Dragoneye.Hex.Tests
                 Actor(Hex.Zero, wholeAp: 0), new[] { Enemy(2, new Hex(4, 0)) },
                 new OpenBoard(new Hex(4, 0)));
 
-            Assert.AreEqual(BoardAction.None, decision.Action);
+            Assert.AreEqual(BrainAction.None, decision.Action);
         }
 
         [Test]
-        public void MovesWhenAdjacentButUnableToAffordTheAttack()
+        public void MovesWhenAdjacentButUnableToAffordAnything()
         {
-            // One AP: cannot attack, but should still reposition rather than stand and pass.
+            // Half a point: cannot use even the cheap skill, but should still reposition rather
+            // than stand and pass.
             var decision = new BasicBrain().Decide(
-                Actor(Hex.Zero, wholeAp: 1), new[] { Enemy(2, new Hex(1, 0)) },
-                new OpenBoard(new Hex(1, 0)));
+                new BrainView(1, Hex.Zero, Party.Monsters, Ap.Step, 20, new[] { k_Jab }),
+                new[] { Enemy(2, new Hex(1, 0)) }, new OpenBoard(new Hex(1, 0)));
 
-            Assert.AreNotEqual(BoardAction.Attack, decision.Action);
+            Assert.AreNotEqual(BrainAction.UseSkill, decision.Action);
         }
 
         [Test]
@@ -116,7 +195,7 @@ namespace Dragoneye.Hex.Tests
             var decision = new BasicBrain().Decide(
                 Actor(Hex.Zero), new[] { ally }, new OpenBoard(new Hex(1, 0)));
 
-            Assert.AreEqual(BoardAction.None, decision.Action, "There is no enemy to fight");
+            Assert.AreEqual(BrainAction.None, decision.Action, "There is no enemy to fight");
         }
 
         [Test]
@@ -127,7 +206,7 @@ namespace Dragoneye.Hex.Tests
             var decision = new BasicBrain().Decide(
                 Actor(Hex.Zero), new[] { corpse }, new OpenBoard(new Hex(1, 0)));
 
-            Assert.AreEqual(BoardAction.None, decision.Action);
+            Assert.AreEqual(BrainAction.None, decision.Action);
         }
 
         [Test]
@@ -138,7 +217,7 @@ namespace Dragoneye.Hex.Tests
                 new[] { Enemy(2, new Hex(5, 0)), Enemy(3, new Hex(1, 0)) },
                 new OpenBoard(new Hex(5, 0), new Hex(1, 0)));
 
-            Assert.AreEqual(BoardAction.Attack, decision.Action);
+            Assert.AreEqual(BrainAction.UseSkill, decision.Action);
             Assert.AreEqual(3u, decision.TargetId, "The adjacent one");
         }
 
@@ -148,15 +227,15 @@ namespace Dragoneye.Hex.Tests
             var decision = new BasicBrain().Decide(
                 Actor(Hex.Zero), new BrainView[0], new OpenBoard());
 
-            Assert.AreEqual(BoardAction.None, decision.Action);
+            Assert.AreEqual(BrainAction.None, decision.Action);
         }
 
         [Test]
         public void NullInputsPassRatherThanThrow()
         {
-            Assert.AreEqual(BoardAction.None,
+            Assert.AreEqual(BrainAction.None,
                 new BasicBrain().Decide(Actor(Hex.Zero), null, new OpenBoard()).Action);
-            Assert.AreEqual(BoardAction.None,
+            Assert.AreEqual(BrainAction.None,
                 new BasicBrain().Decide(Actor(Hex.Zero), new BrainView[0], null).Action);
         }
     }

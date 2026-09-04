@@ -80,15 +80,15 @@ namespace Dragoneye.Game
             return false;
         }
 
-        /// <summary>Whether a living enemy stands within attack reach of this hex.</summary>
-        public bool HasEnemyInReach(Hex from, Party party)
+        /// <summary>Whether a living enemy stands within this many tiles of a hex.</summary>
+        public bool HasEnemyInReach(Hex from, Party party, int reach)
         {
-            if (m_Units == null)
+            if (m_Units == null || reach <= 0)
             {
                 return false;
             }
 
-            foreach (var candidate in Hex.Range(from, CombatRules.AttackRange))
+            foreach (var candidate in Hex.Range(from, reach))
             {
                 if (candidate == from || !m_Units.TryGet(candidate, out var occupant))
                 {

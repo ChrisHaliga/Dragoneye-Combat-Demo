@@ -111,10 +111,12 @@ namespace Dragoneye.Game
 
             m_Ap.text = $"{actor.DisplayName} -- {actor.CurrentAp} / {actor.MaxAp} AP";
 
+            // What "nothing left to do" means now depends on what the creature knows: a bow can
+            // still act at four tiles where a dagger cannot act at two.
             var spent = !CombatRules.CanAffordAnything(
                 actor.CurrentAp,
                 m_Board.HasOpenNeighbour(actor.Cell),
-                m_Board.HasEnemyInReach(actor.Cell, actor.Party));
+                AnySkillUsable(actor));
 
             m_EndTurn.EnableInClassList("end-turn--spent", spent);
             m_EndTurn.text = spent ? "End Turn (no AP)" : "End Turn";
@@ -126,6 +128,41 @@ namespace Dragoneye.Game
         /// Positioned in panel coordinates, which are y-down from the top-left, while Unity's input
         /// gives y-up from the bottom-left. Flipping it is the whole reason this is not a one-liner.
         /// </summary>
+        /// <summary>
+        /// Whether anything on the bar could still be used on somebody.
+        ///
+        /// Asked of the same rules the bar and the server ask, so the End Turn prompt cannot say
+        /// "no AP" while a usable skill is still lit. Reach is per skill now: a bow can still act at
+        /// four tiles where a dagger cannot act at two.
+        /// </summary>
+        bool AnySkillUsable(CreatureState actor)
+        {
+            var skills = actor.GetComponent<SkillCommands>();
+            var pool = actor.GetComponent<CreaturePool>();
+
+            if (skills == null || pool == null)
+            {
+                return false;
+            }
+
+            foreach (var skill in skills.Skills)
+            {
+                if (SkillRules.CheckAffordable(skill, true, actor.CurrentAp, pool.Ledger)
+                    != SkillRefusal.None)
+                {
+                    continue;
+                }
+
+                if (skill.Target != SkillTarget.Creature
+                    || m_Board.HasEnemyInReach(actor.Cell, actor.Party, skill.Range))
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
         void RefreshCursor()
         {
             var text = ActionLabels.Describe(m_Input.Hovered);
