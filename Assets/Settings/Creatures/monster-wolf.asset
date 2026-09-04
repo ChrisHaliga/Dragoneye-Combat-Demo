@@ -17,6 +17,18 @@ MonoBehaviour:
   m_Portrait: {fileID: 0}
   m_Species: {fileID: 11400000, guid: 2063cff57027aa64991faa0b8d425938, type: 2}
   m_Class: {fileID: 11400000, guid: b6641c8d1cc267e4e8e6aba65955e29c, type: 2}
+  m_Level: 1
   m_MaxHp: 16
   m_MaxAp: 6
   m_Speed: 9
+  m_StartingPool:
+    Geo: 0
+    Hydro: 0
+    Pyro: 0
+    Aero: 1
+    Lux: 0
+    Nyx: 0
+    Arcana: 0
+  m_LevelUpPicks: 030000000300000003000000
+  m_Skills:
+  - {fileID: 11400000, guid: 93164347dec5e714c85648e200cbd77f, type: 2}

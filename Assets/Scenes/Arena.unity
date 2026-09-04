@@ -321,6 +321,7 @@ GameObject:
   - component: {fileID: 648006341}
   - component: {fileID: 648006340}
   - component: {fileID: 648006342}
+  - component: {fileID: 648006343}
   m_Layer: 0
   m_Name: Arena HUD
   m_TagString: Untagged
@@ -435,6 +436,22 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Dragoneye.Game::Dragoneye.Game.SkillBarView
   m_Input: {fileID: 261654062}
+--- !u!114 &648006343
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 648006334}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: dc25c02e80eda0949b412dd02946cc5e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Dragoneye.Game::Dragoneye.Game.FloatingTextView
+  m_Creatures: {fileID: 261654061}
+  m_Lifetime: 5
+  m_Rise: 1.2
+  m_Height: 1.6
 --- !u!1 &723212526
 GameObject:
   m_ObjectHideFlags: 0

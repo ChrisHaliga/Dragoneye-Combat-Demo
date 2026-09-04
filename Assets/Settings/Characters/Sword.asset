@@ -26,5 +26,5 @@ MonoBehaviour:
     Endurance: 0
   m_Skills:
   - {fileID: 11400000, guid: 033e1b59e526f754fb62a30a8156f229, type: 2}
-  m_Passives: 
   m_Armour: 0
+  m_DamageReduction: 0

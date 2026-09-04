@@ -110,19 +110,30 @@ namespace Dragoneye.Multiplayer
         /// Static, and asked before the screen is opened rather than by it, so the router does not
         /// have to build a screen to find out there is nothing to show.
         /// </summary>
-        public static bool HasLevelsWaiting(SavedCharacter character)
-        {
-            if (character == null || !Progression.Resolve(character.Build.Level, character.Build.Xp).Any)
-            {
-                return false;
-            }
+        public static bool HasLevelsWaiting(SavedCharacter character) =>
+            character != null && Progression.Resolve(character.Build.Level, character.Build.Xp).Any;
 
-            // Put off, and not asked again until something changes. Deciding what a character
-            // becomes is a real decision and a player is allowed to want to make it later -- but
-            // "later" cannot mean "every time you look at a screen", or the offer becomes a door
-            // they have to close on the way to everything else.
-            return s_DeferredId != character.Id || s_DeferredXp != character.Build.Xp;
-        }
+        /// <summary>
+        /// Whether to open it without being asked.
+        ///
+        /// Separate from <see cref="HasLevelsWaiting"/> because they answer different questions.
+        /// That one is about the character and stays true until the levels are spent -- it is what
+        /// decides whether the button is there at all. This one is about the moment, and a player
+        /// who said "later" gets left alone until something changes.
+        /// </summary>
+        public static bool ShouldPrompt(SavedCharacter character) =>
+            HasLevelsWaiting(character)
+            && (s_DeferredId != character.Id || s_DeferredXp != character.Build.Xp);
+
+        /// <summary>
+        /// Whether the screen is on screen right now.
+        ///
+        /// Set by whichever screen is hosting it, and read by anything that has to get out of its
+        /// way -- the draft board sorts above the menu, so without this it would cover the very
+        /// panel the player was sent to. Asking "are levels waiting" instead would have been wrong
+        /// the moment somebody deferred one and then opened it deliberately.
+        /// </summary>
+        public static bool IsShowing { get; set; }
 
         /// <summary>
         /// Records that the player would rather do this another time.

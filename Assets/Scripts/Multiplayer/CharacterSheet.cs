@@ -75,7 +75,7 @@ namespace Dragoneye.Multiplayer
             fill.style.width = Length.Percent(ready ? 100f : 100f * held / needed);
             track.Add(fill);
 
-            var label = new Label(ready ? "READY TO LEVEL" : $"{held} / {needed} XP");
+            var label = new Label(ready ? "READY TO LEVEL UP" : $"{held} / {needed} XP");
             label.AddToClassList("xp-label");
             label.EnableInClassList("xp-label--ready", ready);
 

@@ -35,6 +35,7 @@ namespace Dragoneye.Multiplayer
         CharacterListScreen m_Characters;
         CharacterCreatorScreen m_Creator;
         LevelUpScreen m_LevelUp;
+        Button m_LevelUpButton;
         Label m_Status;
         Label m_PlayingAs;
         VisualElement m_HeroBody;
@@ -126,7 +127,7 @@ namespace Dragoneye.Multiplayer
                 () => Show(MenuScreen.Home));
 
             m_Creator = new CharacterCreatorScreen(root, m_Content, ShowCharacters);
-            m_LevelUp = new LevelUpScreen(root, m_Content, ShowCharacters);
+            m_LevelUp = new LevelUpScreen(root, m_Content, () => Show(MenuScreen.Home));
 
             if (!m_Characters.IsBound || !m_Creator.IsBound || !m_LevelUp.IsBound)
             {
@@ -136,6 +137,13 @@ namespace Dragoneye.Multiplayer
 
             m_PlayingAs = root.Q<Label>("playing-as-label");
             m_HeroBody = root.Q<VisualElement>("home-hero-body");
+            m_LevelUpButton = root.Q<Button>("levelup-open-button");
+
+            if (m_LevelUpButton != null)
+            {
+                m_LevelUpButton.clicked += OpenLevelUp;
+            }
+
             var change = root.Q<Button>("change-character-button");
 
             if (change != null)
@@ -147,21 +155,32 @@ namespace Dragoneye.Multiplayer
         }
 
         /// <summary>
-        /// Opens the level-up screen when the character being played as has earned one.
+        /// Opens the level-up screen when a match has just handed the player one.
         ///
-        /// Asked rather than pushed, because experience is banked by the game assembly while a
-        /// match is running and there is no moment during it when this screen could be shown.
+        /// Only unprompted at boot, which is where a player lands after a fight. Everywhere else it
+        /// is a button on the hero card, because arriving at a screen you asked for and being shown
+        /// a different one is how a player loses track of where they are.
         /// </summary>
         bool ShowLevelUpIfWaiting()
         {
-            if (!LevelUpScreen.HasLevelsWaiting(SelectedCharacter.Current))
+            if (!LevelUpScreen.ShouldPrompt(SelectedCharacter.Current))
             {
                 return false;
             }
 
+            OpenLevelUp();
+            return true;
+        }
+
+        void OpenLevelUp()
+        {
+            if (!LevelUpScreen.HasLevelsWaiting(SelectedCharacter.Current))
+            {
+                return;
+            }
+
             m_LevelUp.Open(SelectedCharacter.Current);
             Show(MenuScreen.LevelUp);
-            return true;
         }
 
         void OnEditCharacter(SavedCharacter existing)
@@ -206,13 +225,6 @@ namespace Dragoneye.Multiplayer
         /// </summary>
         void ShowCharacters()
         {
-            // Checked here as well as at boot: the roster is where a player lands after a match,
-            // and after choosing somebody new who may have levels of their own waiting.
-            if (ShowLevelUpIfWaiting())
-            {
-                return;
-            }
-
             m_Characters.Refresh();
 
             if (m_Characters.HasAny)
@@ -259,6 +271,10 @@ namespace Dragoneye.Multiplayer
             {
                 m_Runner.Changed -= Refresh;
             }
+
+            // The menu scene is going away, so nothing is showing a level-up any more. A static
+            // left true here would hide the draft board for the rest of the session.
+            LevelUpScreen.IsShowing = false;
         }
 
         bool BindPanels(VisualElement root)
@@ -366,6 +382,10 @@ namespace Dragoneye.Multiplayer
                 pair.Value.EnableInClassList("is-hidden", pair.Key != screen);
             }
 
+            // The draft board sorts above this document and would cover the level-up screen, so it
+            // is told what is on screen by the one place that knows.
+            LevelUpScreen.IsShowing = screen == MenuScreen.LevelUp;
+
             if (screen == MenuScreen.Settings)
             {
                 m_Settings.Refresh();
@@ -435,6 +455,14 @@ namespace Dragoneye.Multiplayer
             m_PlayingAs.text = current != null
                 ? DisplayName(current)
                 : "Nobody yet";
+
+            // Offered rather than forced. The bar above it already says the levels are there; this
+            // is where a player goes and spends them when they are ready to.
+            if (m_LevelUpButton != null)
+            {
+                m_LevelUpButton.EnableInClassList("is-hidden",
+                    !LevelUpScreen.HasLevelsWaiting(current));
+            }
 
             if (m_HeroBody == null)
             {

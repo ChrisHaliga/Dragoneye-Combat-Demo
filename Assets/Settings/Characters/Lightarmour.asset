@@ -14,7 +14,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: Dragoneye.Data:Dragoneye.Data:EquipmentAsset
   m_Id: 20
   m_DisplayName: Light armour
-  m_Description: Padding and leather. You will still be quick.
+  m_Description: Padding and leather. One damage off every blow, and you will still
+    be quick.
   m_Slot: 1
   m_Modifiers:
     Toughness: 1
@@ -25,5 +26,5 @@ MonoBehaviour:
     Willpower: 0
     Endurance: 0
   m_Skills: []
-  m_Passives: 
   m_Armour: 1
+  m_DamageReduction: 0

@@ -37,6 +37,7 @@
                         <ui:Label text="PLAYING AS" class="eyebrow" />
                         <ui:Label name="playing-as-label" text="" class="hero__name" />
                         <ui:VisualElement name="home-hero-body" class="hero__body" />
+                        <ui:Button name="levelup-open-button" text="Level up" class="btn btn--primary btn--compact" />
                         <ui:Button name="change-character-button" text="Change character" class="btn btn--ghost btn--compact" />
                     </ui:VisualElement>
                 </ui:VisualElement>

@@ -14,7 +14,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: Dragoneye.Data:Dragoneye.Data:EquipmentAsset
   m_Id: 22
   m_DisplayName: Heavy armour
-  m_Description: Plate. Very hard to hurt, and everyone else has already acted.
+  m_Description: Plate. Four damage off every blow, and everyone else has already
+    acted.
   m_Slot: 1
   m_Modifiers:
     Toughness: 3
@@ -25,5 +26,5 @@ MonoBehaviour:
     Willpower: 0
     Endurance: 0
   m_Skills: []
-  m_Passives: 
   m_Armour: 3
+  m_DamageReduction: 0

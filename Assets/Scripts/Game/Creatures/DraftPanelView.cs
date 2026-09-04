@@ -1,6 +1,5 @@
 using System.Collections.Generic;
 using Dragoneye.Combat;
-using Dragoneye.Data;
 using Dragoneye.Multiplayer;
 using Unity.Netcode;
 using UnityEngine;
@@ -123,12 +122,12 @@ namespace Dragoneye.Game
         /// <summary>
         /// Whether the board should be on screen.
         ///
-        /// A level-up is a decision waiting on this player, drawn on the document underneath this
-        /// one. The board stands aside until it has been dealt with rather than covering it -- which
-        /// is the whole reason the level-up screen does not know which screen is hosting it.
+        /// The level-up screen is drawn on the document underneath this one, so the board stands
+        /// aside while it is open rather than covering the panel the player was just sent to. Asked
+        /// of the screen rather than of the character: a player who put a level-up off and then
+        /// opened it deliberately is looking at it either way.
         /// </summary>
-        static bool ShouldShow() =>
-            IsLive() && !LevelUpScreen.HasLevelsWaiting(SelectedCharacter.Current);
+        static bool ShouldShow() => IsLive() && !LevelUpScreen.IsShowing;
 
         void OnDestroy()
         {

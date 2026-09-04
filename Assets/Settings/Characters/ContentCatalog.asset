@@ -50,4 +50,4 @@ MonoBehaviour:
   - {fileID: 11400000, guid: fefeeeeca6617854181644d90f24fcf6, type: 2}
   m_PointBudget: 20
   m_MaxPerAttribute: 8
-  m_Level: 4
+  m_StartingLevel: 1

@@ -14,7 +14,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: Dragoneye.Data:Dragoneye.Data:EquipmentAsset
   m_Id: 30
   m_DisplayName: Shield
-  m_Description: Advantage when you are the one being asked a question.
+  m_Description: Three damage off anything that reaches you, and it costs you no
+    speed.
   m_Slot: 2
   m_Modifiers:
     Toughness: 1
@@ -25,5 +26,5 @@ MonoBehaviour:
     Willpower: 0
     Endurance: 0
   m_Skills: []
-  m_Passives: 01000000
   m_Armour: 0
+  m_DamageReduction: 3
