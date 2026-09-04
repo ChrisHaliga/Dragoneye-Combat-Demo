@@ -12,5 +12,16 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 5cfbfea8e4bd6234f9cc0efc299d3dc3, type: 3}
   m_Name: Species_Giantkin
   m_EditorClassIdentifier: Dragoneye.Game::Dragoneye.Game.SpeciesDefinition
+  m_Id: 3
   m_DisplayName: Giantkin
-  m_Description: Slow to move and slower to fall.
+  m_Description: Slow to arrive and hard to remove.
+  m_Baseline:
+    Toughness: 1
+    Dexterity: -1
+    Strength: 1
+    Skill: 0
+    Vitality: 0
+    Willpower: 0
+    Endurance: 0
+  m_Skills:
+  - {fileID: 11400000, guid: a013b91b99223bd4e83379f9e358d8e4, type: 2}

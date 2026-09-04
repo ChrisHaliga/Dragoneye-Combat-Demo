@@ -14,8 +14,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: Dragoneye.Data::Dragoneye.Data.SkillAsset
   m_Id: 100
   m_DisplayName: Strike
-  m_Description: A committed swing. Cheap, and it asks a question in Fire.
-  m_Element: 0
+  m_Description: A committed swing. Cheap, and it asks its question in Pyro.
+  m_Element: 2
   m_ApCost: 1
   m_ElementCost: 1
   m_Range: 1

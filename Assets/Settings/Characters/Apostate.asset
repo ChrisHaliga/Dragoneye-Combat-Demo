@@ -1,0 +1,31 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 0}
+  m_Name: Apostate
+  m_EditorClassIdentifier: Dragoneye.Data:Dragoneye.Data:ClassAsset
+  m_Id: 6
+  m_DisplayName: Apostate
+  m_Description: Trained devout, and no longer.
+  m_Baseline:
+    Toughness: 0
+    Dexterity: 0
+    Strength: 0
+    Skill: 0
+    Vitality: 0
+    Willpower: 0
+    Endurance: 0
+  m_Weapons:
+  - {fileID: 11400000, guid: e304023166a860b4089fa9776dd1035b, type: 2}
+  - {fileID: 11400000, guid: d5367f39b0a440f4896fcfc1e950f8ce, type: 2}
+  m_Skills:
+  - {fileID: 11400000, guid: 1bd9bab1c4dab2443adad0f7fc779891, type: 2}
+  - {fileID: 11400000, guid: d3df0d8534ad78d4cb8e75b3ddc7042d, type: 2}

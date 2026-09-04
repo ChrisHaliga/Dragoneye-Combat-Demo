@@ -12,14 +12,18 @@ MonoBehaviour:
   m_Script: {fileID: 0}
   m_Name: Heavyarmour
   m_EditorClassIdentifier: Dragoneye.Data:Dragoneye.Data:EquipmentAsset
-  m_Id: 1
-  m_DisplayName: Item
-  m_Description: 
-  m_Slot: 0
+  m_Id: 22
+  m_DisplayName: Heavy armour
+  m_Description: Plate. Very hard to hurt, and everyone else has already acted.
+  m_Slot: 1
   m_Modifiers:
+    Toughness: 3
+    Dexterity: 0
+    Strength: 0
+    Skill: 0
     Vitality: 0
-    Speed: 0
-    Power: 0
-    Focus: 0
+    Willpower: 0
+    Endurance: 0
   m_Skills: []
   m_Passives: 
+  m_Armour: 3

@@ -10,21 +10,21 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 0}
-  m_Name: Staff
+  m_Name: Mace
   m_EditorClassIdentifier: Dragoneye.Data:Dragoneye.Data:EquipmentAsset
-  m_Id: 14
-  m_DisplayName: Staff
-  m_Description: Focuses what you draw from the pool.
+  m_Id: 15
+  m_DisplayName: Mace
+  m_Description: Blunt and devout. The two go together more often than anyone admits.
   m_Slot: 0
   m_Modifiers:
     Toughness: 0
     Dexterity: 0
-    Strength: 0
+    Strength: 1
     Skill: 0
     Vitality: 0
     Willpower: 1
     Endurance: 0
   m_Skills:
-  - {fileID: 11400000, guid: 52a7d511b6ea7f342a26e9e373d57dd2, type: 2}
+  - {fileID: 11400000, guid: 882740fe99836254f91997dc62db780e, type: 2}
   m_Passives: 
   m_Armour: 0

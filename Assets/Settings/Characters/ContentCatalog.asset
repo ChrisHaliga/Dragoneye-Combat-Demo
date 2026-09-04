@@ -12,29 +12,42 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b773bb96ffb5c6c49947abcfa27bf47b, type: 3}
   m_Name: ContentCatalog
   m_EditorClassIdentifier: Dragoneye.Data::Dragoneye.Data.ContentCatalog
+  m_Species:
+  - {fileID: 11400000, guid: 9c3524b72d6a7a6469f270945bc4d8a3, type: 2}
+  - {fileID: 11400000, guid: 2063cff57027aa64991faa0b8d425938, type: 2}
+  - {fileID: 11400000, guid: b92cd10445fd19f4daf506356eaa5e11, type: 2}
+  - {fileID: 11400000, guid: 7b8e43775eb170c4dbe531406653139e, type: 2}
   m_Classes:
-  - {fileID: 0}
-  - {fileID: 0}
-  - {fileID: 11400000, guid: f8a75e8cb9ea7ec4caa13ca71095c813, type: 2}
+  - {fileID: 11400000, guid: 574ed132d0132cb498fde69e1d82e0c1, type: 2}
+  - {fileID: 11400000, guid: 703cec1488c24674287070088a64410d, type: 2}
+  - {fileID: 11400000, guid: 9166c334fe3ac8045affd4408c7a21dd, type: 2}
+  - {fileID: 11400000, guid: 3d8bf3ff01f41b14688f68f72191beb4, type: 2}
+  - {fileID: 11400000, guid: 7ce8ac9249f186d4bb5fcc55d5ae3b98, type: 2}
+  - {fileID: 11400000, guid: 5cd533ba1569f3e44a5fe41fd5929975, type: 2}
+  - {fileID: 11400000, guid: ae524979a41cd7241a6e6774fa139a9d, type: 2}
   m_Equipment:
-  - {fileID: 0}
-  - {fileID: 0}
-  - {fileID: 0}
-  - {fileID: 0}
-  - {fileID: 0}
-  - {fileID: 0}
-  - {fileID: 0}
-  - {fileID: 0}
-  - {fileID: 0}
+  - {fileID: 11400000, guid: 13433801fd50bb94aaeaeef163af9539, type: 2}
+  - {fileID: 11400000, guid: cad38c69e986fd347a87ecf6b3e2a5f9, type: 2}
+  - {fileID: 11400000, guid: 686a87e6555bce24dab1133314cbbeba, type: 2}
+  - {fileID: 11400000, guid: d5367f39b0a440f4896fcfc1e950f8ce, type: 2}
+  - {fileID: 11400000, guid: e304023166a860b4089fa9776dd1035b, type: 2}
+  - {fileID: 11400000, guid: 5384d91a35e8ccc468b36e2e3a0210af, type: 2}
+  - {fileID: 11400000, guid: c3d982e14c1acc84f9515ad4ec8cb205, type: 2}
+  - {fileID: 11400000, guid: 04e3e80fc72823d4489f2a83db7ce713, type: 2}
+  - {fileID: 11400000, guid: c1a5b5b06c6a72540803230bb19872dd, type: 2}
+  - {fileID: 11400000, guid: 45fb5004849376f40a32ca13e75429c4, type: 2}
   m_Skills:
+  - {fileID: 11400000, guid: a013b91b99223bd4e83379f9e358d8e4, type: 2}
   - {fileID: 11400000, guid: 033e1b59e526f754fb62a30a8156f229, type: 2}
   - {fileID: 11400000, guid: 50e887c1586957747a36566bdbdcd0d5, type: 2}
   - {fileID: 11400000, guid: 42fb897aee082e7449ddc990dd1ff414, type: 2}
   - {fileID: 11400000, guid: 93164347dec5e714c85648e200cbd77f, type: 2}
   - {fileID: 11400000, guid: 52a7d511b6ea7f342a26e9e373d57dd2, type: 2}
+  - {fileID: 11400000, guid: 882740fe99836254f91997dc62db780e, type: 2}
+  - {fileID: 11400000, guid: 1bd9bab1c4dab2443adad0f7fc779891, type: 2}
   - {fileID: 11400000, guid: d3df0d8534ad78d4cb8e75b3ddc7042d, type: 2}
   - {fileID: 11400000, guid: d57f35a51af6b494d9d323120731af2c, type: 2}
-  m_PointBudget: 8
-  m_MinPerStat: 1
-  m_MaxPerStat: 8
+  - {fileID: 11400000, guid: fefeeeeca6617854181644d90f24fcf6, type: 2}
+  m_PointBudget: 20
+  m_MaxPerAttribute: 8
   m_Level: 4

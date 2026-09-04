@@ -15,7 +15,7 @@
             </ui:VisualElement>
         </ui:VisualElement>
 
-        <!-- ---------- home ---------- -->
+        <!-- HOME -->
 
         <ui:VisualElement name="home-panel" class="screen stage is-hidden">
             <ui:VisualElement class="home">
@@ -43,7 +43,7 @@
             </ui:VisualElement>
         </ui:VisualElement>
 
-        <!-- ---------- characters ---------- -->
+        <!-- CHARACTERS -->
 
         <ui:VisualElement name="characters-panel" class="screen stage is-hidden">
             <ui:VisualElement class="stage__head">
@@ -69,7 +69,7 @@
             </ui:VisualElement>
         </ui:VisualElement>
 
-        <!-- ---------- creator ---------- -->
+        <!-- CREATOR -->
 
         <ui:VisualElement name="create-panel" class="screen stage is-hidden">
             <ui:VisualElement class="stage__head">
@@ -119,7 +119,7 @@
             </ui:VisualElement>
         </ui:VisualElement>
 
-        <!-- ---------- settings ---------- -->
+        <!-- SETTINGS -->
 
         <ui:VisualElement name="settings-panel" class="screen stage is-hidden">
             <ui:VisualElement class="stage__head">
@@ -184,7 +184,7 @@
             </ui:VisualElement>
         </ui:VisualElement>
 
-        <!-- ---------- dialogs ---------- -->
+        <!-- DIALOGS -->
 
         <ui:VisualElement name="solo-panel" class="screen screen--centre is-hidden">
             <ui:VisualElement class="dialog">

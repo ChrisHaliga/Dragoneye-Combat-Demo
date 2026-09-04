@@ -10,20 +10,22 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 0}
-  m_Name: Mystic
+  m_Name: Elementalist
   m_EditorClassIdentifier: Dragoneye.Data:Dragoneye.Data:ClassAsset
-  m_Id: 3
-  m_DisplayName: Mystic
+  m_Id: 7
+  m_DisplayName: Elementalist
   m_Description: Deepest reserves on the field. What it does with them is up to the
     pool.
   m_Baseline:
-    Vitality: 2
-    Speed: 1
-    Power: 1
-    Focus: 4
+    Toughness: 0
+    Dexterity: 0
+    Strength: 0
+    Skill: 0
+    Vitality: 0
+    Willpower: 0
+    Endurance: 0
   m_Weapons:
-  - {fileID: 0}
-  - {fileID: 0}
+  - {fileID: 11400000, guid: e304023166a860b4089fa9776dd1035b, type: 2}
   m_Skills:
-  - {fileID: 11400000, guid: d3df0d8534ad78d4cb8e75b3ddc7042d, type: 2}
-  - {fileID: 11400000, guid: d57f35a51af6b494d9d323120731af2c, type: 2}
+  - {fileID: 11400000, guid: fefeeeeca6617854181644d90f24fcf6, type: 2}
+  - {fileID: 11400000, guid: 52a7d511b6ea7f342a26e9e373d57dd2, type: 2}

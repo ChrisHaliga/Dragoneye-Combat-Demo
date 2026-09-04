@@ -12,5 +12,16 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 5cfbfea8e4bd6234f9cc0efc299d3dc3, type: 3}
   m_Name: Species_Human
   m_EditorClassIdentifier: Dragoneye.Game::Dragoneye.Game.SpeciesDefinition
+  m_Id: 1
   m_DisplayName: Human
-  m_Description: Adaptable and disciplined; the backbone of every warband.
+  m_Description: Adaptable, and the only species with nothing to apologise for.
+  m_Baseline:
+    Toughness: 0
+    Dexterity: 0
+    Strength: 0
+    Skill: 0
+    Vitality: 0
+    Willpower: 0
+    Endurance: 0
+  m_Skills:
+  - {fileID: 11400000, guid: a013b91b99223bd4e83379f9e358d8e4, type: 2}

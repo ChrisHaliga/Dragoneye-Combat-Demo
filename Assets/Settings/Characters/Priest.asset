@@ -1,0 +1,31 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 0}
+  m_Name: Priest
+  m_EditorClassIdentifier: Dragoneye.Data:Dragoneye.Data:ClassAsset
+  m_Id: 5
+  m_DisplayName: Priest
+  m_Description: Keeps others standing, and answers in Lux when it must.
+  m_Baseline:
+    Toughness: 0
+    Dexterity: 0
+    Strength: 0
+    Skill: 0
+    Vitality: 0
+    Willpower: 0
+    Endurance: 0
+  m_Weapons:
+  - {fileID: 11400000, guid: 5384d91a35e8ccc468b36e2e3a0210af, type: 2}
+  - {fileID: 11400000, guid: e304023166a860b4089fa9776dd1035b, type: 2}
+  m_Skills:
+  - {fileID: 11400000, guid: d3df0d8534ad78d4cb8e75b3ddc7042d, type: 2}
+  - {fileID: 11400000, guid: 882740fe99836254f91997dc62db780e, type: 2}

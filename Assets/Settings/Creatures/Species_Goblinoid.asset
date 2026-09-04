@@ -12,5 +12,16 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 5cfbfea8e4bd6234f9cc0efc299d3dc3, type: 3}
   m_Name: Species_Goblinoid
   m_EditorClassIdentifier: Dragoneye.Game::Dragoneye.Game.SpeciesDefinition
+  m_Id: 4
   m_DisplayName: Goblinoid
-  m_Description: Small, vicious and far better organised than anyone expects.
+  m_Description: Small, fast, and entirely aware of both.
+  m_Baseline:
+    Toughness: -1
+    Dexterity: 1
+    Strength: 0
+    Skill: 0
+    Vitality: 0
+    Willpower: 0
+    Endurance: 0
+  m_Skills:
+  - {fileID: 11400000, guid: a013b91b99223bd4e83379f9e358d8e4, type: 2}

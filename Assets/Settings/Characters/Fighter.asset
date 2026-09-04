@@ -1,0 +1,30 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 0}
+  m_Name: Fighter
+  m_EditorClassIdentifier: Dragoneye.Data:Dragoneye.Data:ClassAsset
+  m_Id: 3
+  m_DisplayName: Fighter
+  m_Description: No tricks. Enough of that becomes its own trick.
+  m_Baseline:
+    Toughness: 0
+    Dexterity: 0
+    Strength: 0
+    Skill: 0
+    Vitality: 0
+    Willpower: 0
+    Endurance: 0
+  m_Weapons:
+  - {fileID: 11400000, guid: 13433801fd50bb94aaeaeef163af9539, type: 2}
+  - {fileID: 11400000, guid: cad38c69e986fd347a87ecf6b3e2a5f9, type: 2}
+  m_Skills:
+  - {fileID: 11400000, guid: d57f35a51af6b494d9d323120731af2c, type: 2}

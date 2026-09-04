@@ -15,7 +15,7 @@ MonoBehaviour:
   m_Id: 104
   m_DisplayName: Ember
   m_Description: Reaches, and it is expensive in exactly the element it is made of.
-  m_Element: 0
+  m_Element: 2
   m_ApCost: 2
   m_ElementCost: 2
   m_Range: 3

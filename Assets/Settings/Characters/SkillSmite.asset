@@ -10,16 +10,15 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 0cf33f73d5fe1f5499fed1e4fddc1ebf, type: 3}
-  m_Name: SkillRecover
+  m_Name: SkillSmite
   m_EditorClassIdentifier: Dragoneye.Data::Dragoneye.Data.SkillAsset
-  m_Id: 110
-  m_DisplayName: Recover
-  m_Description: Spend a turn staying alive. Hydro, so it competes with nothing you
-    attack with.
-  m_Element: 1
-  m_ApCost: 1
+  m_Id: 105
+  m_DisplayName: Smite
+  m_Description: Light, at a distance, for a price only the devout tend to be holding.
+  m_Element: 4
+  m_ApCost: 2
   m_ElementCost: 1
-  m_Range: 0
-  m_Target: 1
-  m_Effect: 1
-  m_Amount: 6
+  m_Range: 2
+  m_Target: 0
+  m_Effect: 0
+  m_Amount: 8
