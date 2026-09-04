@@ -182,6 +182,105 @@ namespace Dragoneye.Game
         }
 
         /// <summary>
+        /// Server only. Uses a skill, spending both costs and applying the effect.
+        ///
+        /// Both costs come off together or neither does: AP is taken first, and the element spend
+        /// is checked before it so a refused element cannot leave the AP gone. DE-002 requires a
+        /// creature that cannot pay either cost to be unable to use the skill at all.
+        /// </summary>
+        public bool ServerUseSkill(CreatureState actor, int skillId, Hex target,
+            out SkillRefusal refusal)
+        {
+            refusal = SkillRefusal.NoSkill;
+
+            if (!CanAct(actor))
+            {
+                refusal = SkillRefusal.NotYourTurn;
+                return false;
+            }
+
+            var commands = actor.GetComponent<SkillCommands>();
+            var pool = actor.GetComponent<CreaturePool>();
+
+            if (commands == null || pool == null || !commands.TryGetSkill(skillId, out var skill))
+            {
+                return false;
+            }
+
+            var occupant = TargetAt(target);
+            refusal = SkillRules.Check(skill, true, actor.CurrentAp, pool.Ledger,
+                Describe(actor, occupant, target));
+
+            if (refusal != SkillRefusal.None)
+            {
+                return false;
+            }
+
+            // Element first: it is the cost that can still fail on a race, and spending AP before
+            // discovering that would charge for an action that never happened.
+            if (skill.ElementCost > 0
+                && !pool.ServerSpend(skill.Element, skill.ElementCost, out _))
+            {
+                refusal = SkillRefusal.NotEnoughElement;
+                return false;
+            }
+
+            if (!actor.ServerSpendAp(skill.ApCost))
+            {
+                refusal = SkillRefusal.NotEnoughAp;
+                return false;
+            }
+
+            Resolve(actor, skill, occupant);
+            return true;
+        }
+
+        /// <summary>
+        /// Applies a skill once it has been paid for.
+        ///
+        /// Creature-targeted skills are where a clash begins. Until DE-005 exists the effect lands
+        /// directly, which is the same outcome an uncontested clash would produce -- so replacing
+        /// this with a real contest is a change to one method rather than to every skill.
+        /// </summary>
+        void Resolve(CreatureState actor, SkillSpec skill, CreatureState target)
+        {
+            switch (skill.Effect.Kind)
+            {
+                case SkillEffectKind.Damage:
+                    if (target != null && target.ServerApplyDamage(skill.Effect.Amount))
+                    {
+                        Kill(target);
+                    }
+
+                    break;
+
+                case SkillEffectKind.Heal:
+                    actor.ServerHeal(skill.Effect.Amount);
+                    break;
+
+                case SkillEffectKind.RestoreAp:
+                    actor.ServerRestoreAp(Ap.FromWhole(skill.Effect.Amount));
+                    break;
+            }
+        }
+
+        CreatureState TargetAt(Hex hex) =>
+            m_Units != null && m_Units.TryGet(hex, out var occupant)
+                ? occupant.GetComponent<CreatureState>()
+                : null;
+
+        /// <summary>What the rules need to know about whatever is being aimed at.</summary>
+        static SkillTargetInfo Describe(CreatureState actor, CreatureState target, Hex hex)
+        {
+            var distance = Hex.Distance(actor.Cell, hex);
+
+            return target == null
+                ? SkillTargetInfo.Tile(distance)
+                : SkillTargetInfo.Creature(distance, target == actor,
+                    target.Party == actor.Party, target.IsAlive);
+        }
+
+        /// <summary>
         /// Whether this creature may act right now: alive, and the one whose turn it is.
         ///
         /// Ownership and control are the caller's business -- <see cref="UnitCommands"/> checks the

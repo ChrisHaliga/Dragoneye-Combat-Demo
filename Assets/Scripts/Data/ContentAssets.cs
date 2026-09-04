@@ -23,6 +23,30 @@ namespace Dragoneye.Data
     }
 
     /// <summary>An authored class. Baseline stats and the weapons it may carry.</summary>
+    /// <summary>
+    /// Turns a list of assets into the list of ids the rules take.
+    ///
+    /// Nulls are dropped rather than passed through as zero, which is the reserved "nothing" id and
+    /// would silently read as an empty slot.
+    /// </summary>
+    static class ContentIds
+    {
+        public static List<int> SkillIds(List<SkillAsset> assets)
+        {
+            var ids = new List<int>();
+
+            foreach (var asset in assets)
+            {
+                if (asset != null)
+                {
+                    ids.Add(asset.Id);
+                }
+            }
+
+            return ids;
+        }
+    }
+
     [CreateAssetMenu(menuName = "Dragoneye/Class", fileName = "Class")]
     public sealed class ClassAsset : ScriptableObject
     {
@@ -42,6 +66,9 @@ namespace Dragoneye.Data
         [SerializeField, Tooltip("Weapons this class may carry. Anything else fails validation.")]
         List<EquipmentAsset> m_Weapons = new List<EquipmentAsset>();
 
+        [SerializeField, Tooltip("The core skill set. Everything else has to come from equipment.")]
+        List<SkillAsset> m_Skills = new List<SkillAsset>();
+
         public int Id => m_Id;
 
         public string DisplayName => m_DisplayName;
@@ -58,7 +85,8 @@ namespace Dragoneye.Data
                 }
             }
 
-            return new ClassSpec(m_Id, m_DisplayName, m_Baseline.ToBlock(), weaponIds, m_Description);
+            return new ClassSpec(m_Id, m_DisplayName, m_Baseline.ToBlock(), weaponIds,
+                ContentIds.SkillIds(m_Skills), m_Description);
         }
 
         void OnValidate()
@@ -96,6 +124,9 @@ namespace Dragoneye.Data
         [SerializeField, Tooltip("Added to resolved stats. May be negative.")]
         StatValues m_Modifiers;
 
+        [SerializeField, Tooltip("Skills this item grants while equipped. Unequipping removes them.")]
+        List<SkillAsset> m_Skills = new List<SkillAsset>();
+
         public int Id => m_Id;
 
         public string DisplayName => m_DisplayName;
@@ -103,7 +134,8 @@ namespace Dragoneye.Data
         public EquipmentSlot Slot => m_Slot;
 
         public EquipmentSpec ToSpec() =>
-            new EquipmentSpec(m_Id, m_DisplayName, m_Slot, m_Modifiers.ToBlock(), m_Description);
+            new EquipmentSpec(m_Id, m_DisplayName, m_Slot, m_Modifiers.ToBlock(),
+                ContentIds.SkillIds(m_Skills), m_Description);
 
         void OnValidate()
         {

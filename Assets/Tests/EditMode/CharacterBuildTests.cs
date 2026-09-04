@@ -23,6 +23,7 @@ namespace Dragoneye.Hex.Tests
         {
             readonly List<ClassSpec> m_Classes = new List<ClassSpec>();
             readonly List<EquipmentSpec> m_Equipment = new List<EquipmentSpec>();
+            readonly List<SkillSpec> m_Skills = new List<SkillSpec>();
 
             public FakeContent(CharacterRules rules) => Rules = rules;
 
@@ -43,6 +44,16 @@ namespace Dragoneye.Hex.Tests
             {
                 spec = id == CharacterBuild.NoEquipment
                     ? null : m_Equipment.FirstOrDefault(e => e.Id == id);
+                return spec != null;
+            }
+
+            public IReadOnlyList<SkillSpec> Skills => m_Skills;
+
+            public FakeContent With(SkillSpec spec) { m_Skills.Add(spec); return this; }
+
+            public bool TryGetSkill(int id, out SkillSpec spec)
+            {
+                spec = m_Skills.FirstOrDefault(s => s.Id == id);
                 return spec != null;
             }
         }

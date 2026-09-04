@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using Dragoneye.Combat;
+using Dragoneye.Data;
 using UnityEngine;
 
 namespace Dragoneye.Game
@@ -46,6 +47,10 @@ namespace Dragoneye.Game
              + "repeat an element to hold several. Pools deplete and are never restored.")]
         List<Element> m_StartingPool = new List<Element>();
 
+        [SerializeField, Tooltip("What this creature can do. Authored directly, because a premade "
+             + "has no class and equipment to derive a kit from.")]
+        List<SkillAsset> m_Skills = new List<SkillAsset>();
+
         public string Id => m_Id;
 
         public string DisplayName => m_DisplayName;
@@ -69,6 +74,31 @@ namespace Dragoneye.Game
         /// its pool from the choices made in the creator instead -- same shape, different source.
         /// </summary>
         public IReadOnlyList<Element> StartingPool => m_StartingPool;
+
+        /// <summary>
+        /// The skills a premade creature can use.
+        ///
+        /// Authored here for the same reason the pool is: a premade has no build behind it. A player
+        /// character derives the same list from its class and equipment instead, and both end up as
+        /// a set of ids the creature resolves locally.
+        /// </summary>
+        public IReadOnlyList<int> SkillIds
+        {
+            get
+            {
+                var ids = new List<int>();
+
+                foreach (var skill in m_Skills)
+                {
+                    if (skill != null)
+                    {
+                        ids.Add(skill.Id);
+                    }
+                }
+
+                return ids;
+            }
+        }
 
         public string SpeciesName => m_Species != null ? m_Species.DisplayName : "Unknown";
 

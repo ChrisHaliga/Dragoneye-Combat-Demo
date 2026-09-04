@@ -390,3 +390,65 @@
 .element-count--none {
     opacity: 0.35;
 }
+
+/* ---------- skill bar ---------- */
+
+.skill-bar {
+    flex-direction: row;
+    margin-bottom: 8px;
+}
+
+.skill-button {
+    width: 96px;
+    height: 54px;
+    margin: 0 4px;
+    padding: 4px 6px;
+    border-radius: 8px;
+    background-color: rgb(43, 49, 65);
+    border-width: 1px;
+    border-color: rgb(56, 62, 80);
+    justify-content: space-between;
+}
+
+.skill-button:hover {
+    background-color: rgb(56, 63, 82);
+}
+
+/* Unusable, not hidden. The reason line says why, which a missing button could not. */
+.skill-button--unusable {
+    opacity: 0.4;
+}
+
+.skill-button--selected {
+    border-color: rgb(240, 195, 120);
+    background-color: rgb(70, 56, 40);
+}
+
+.skill-button__name {
+    font-size: 11px;
+    -unity-font-style: bold;
+    color: rgb(240, 243, 250);
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.skill-button__cost {
+    flex-direction: row;
+    justify-content: space-between;
+}
+
+.skill-button__ap {
+    font-size: 10px;
+    color: rgb(148, 158, 180);
+}
+
+.skill-button__element {
+    font-size: 10px;
+    -unity-font-style: bold;
+}
+
+.skill-reason {
+    height: 16px;
+    font-size: 11px;
+    color: rgb(226, 122, 63);
+}

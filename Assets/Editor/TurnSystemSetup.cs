@@ -103,11 +103,24 @@ namespace Dragoneye.MultiplayerEditor
                 return false;
             }
 
+            var added = false;
+
             if (prefab.GetComponent<CreaturePool>() == null)
             {
                 prefab.AddComponent<CreaturePool>();
+                added = true;
+            }
+
+            if (prefab.GetComponent<SkillCommands>() == null)
+            {
+                prefab.AddComponent<SkillCommands>();
+                added = true;
+            }
+
+            if (added)
+            {
                 PrefabUtility.SavePrefabAsset(prefab);
-                Debug.Log("Element pool added to the unit prefab.");
+                Debug.Log("Element pool and skill commands added to the unit prefab.");
             }
 
             return true;
@@ -190,6 +203,12 @@ namespace Dragoneye.MultiplayerEditor
 
             var bar = hud.GetComponent<TurnBarView>() ?? hud.AddComponent<TurnBarView>();
             Assign(bar, ("m_Creatures", creatures), ("m_Selection", selection));
+
+            var skills = hud.GetComponent<SkillBarView>() ?? hud.AddComponent<SkillBarView>();
+            Assign(skills, ("m_Input", input));
+
+            // The board input asks the bar what is armed, so it needs the reference back.
+            Assign(input, ("m_SkillBar", skills));
 
             var controls = hud.GetComponent<TurnControlsView>() ?? hud.AddComponent<TurnControlsView>();
             Assign(controls, ("m_Input", input), ("m_Map", map), ("m_Units", units));

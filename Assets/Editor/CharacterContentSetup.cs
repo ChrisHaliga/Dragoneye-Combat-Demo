@@ -49,18 +49,46 @@ namespace Dragoneye.MultiplayerEditor
         {
             EnsureFolder();
 
+            // Skills first: classes and equipment grant them by reference.
+            //
+            // The two self-directed ones are the point of the set. Recover and Meditate are what
+            // make AP a choice rather than a countdown to attacking -- without something worth
+            // spending a turn on that is not an attack, every turn is the same turn.
+            var strike = Skill(100, "Strike", Element.Fire, ap: 1, elementCost: 1, range: 1,
+                SkillTarget.Creature, SkillEffectKind.Damage, 6,
+                "A committed swing. Cheap, and it asks a question in Fire.");
+            var cleave = Skill(101, "Cleave", Element.Earth, ap: 2, elementCost: 2, range: 1,
+                SkillTarget.Creature, SkillEffectKind.Damage, 11,
+                "Slower and dearer, and it ends arguments.");
+            var loose = Skill(102, "Loose", Element.Air, ap: 1, elementCost: 1, range: 4,
+                SkillTarget.Creature, SkillEffectKind.Damage, 5,
+                "From wherever you are standing, which is the whole idea.");
+            var jab = Skill(103, "Jab", Element.Air, ap: 1, elementCost: 0, range: 1,
+                SkillTarget.Creature, SkillEffectKind.Damage, 3,
+                "Costs nothing from the pool. What you use when the pool is what you are short of.");
+            var ember = Skill(104, "Ember", Element.Fire, ap: 2, elementCost: 2, range: 3,
+                SkillTarget.Creature, SkillEffectKind.Damage, 9,
+                "Reaches, and it is expensive in exactly the element it is made of.");
+
+            var recover = Skill(110, "Recover", Element.Water, ap: 1, elementCost: 1, range: 0,
+                SkillTarget.Self, SkillEffectKind.Heal, 6,
+                "Spend a turn staying alive. Water, so it competes with nothing you attack with.");
+            var meditate = Skill(111, "Meditate", Element.Air, ap: 1, elementCost: 0, range: 0,
+                SkillTarget.Self, SkillEffectKind.RestoreAp, 2,
+                "Trade a point now for two later. Only worth it if you have somewhere to spend them.");
+
             // Ids are hand-assigned and permanent: they are written into saved characters and cross
             // the network. Grouped by kind so a new weapon is obviously an 1x.
             var sword = Equipment(10, "Sword", EquipmentSlot.Weapon, 0, 0, 2, 0,
-                "A soldier's blade. Reliable, and heavy enough to matter.");
+                "A soldier's blade. Reliable, and heavy enough to matter.", strike);
             var greataxe = Equipment(11, "Greataxe", EquipmentSlot.Weapon, 0, -1, 3, 0,
-                "Enormous. You will hit first only by accident.");
+                "Enormous. You will hit first only by accident.", strike, cleave);
             var bow = Equipment(12, "Bow", EquipmentSlot.Weapon, 0, 1, 1, 0,
-                "Keeps the fight at the distance you choose.");
+                "Keeps the fight at the distance you choose.", loose);
             var dagger = Equipment(13, "Dagger", EquipmentSlot.Weapon, 0, 2, 1, 0,
-                "Short reach, and you will be somewhere else before it is answered.");
+                "Short reach, and you will be somewhere else before it is answered.", jab);
             var staff = Equipment(14, "Staff", EquipmentSlot.Weapon, 0, 0, 1, 1,
-                "Focuses what you draw from the pool.");
+                "Focuses what you draw from the pool.", ember);
 
             var light = Equipment(20, "Light armour", EquipmentSlot.Armor, 1, 0, 0, 0,
                 "Padding and leather. You will still be quick.");
@@ -73,13 +101,13 @@ namespace Dragoneye.MultiplayerEditor
             {
                 Class(1, "Warrior", 3, 1, 2, 2,
                     "Holds ground. Trades initiative for the health to be wrong once.",
-                    new[] { sword, greataxe }),
+                    new[] { sword, greataxe }, new[] { recover }),
                 Class(2, "Ranger", 2, 3, 2, 1,
                     "Acts first and picks the fight. Cannot afford to be caught.",
-                    new[] { bow, dagger }),
+                    new[] { bow, dagger }, new[] { meditate }),
                 Class(3, "Mystic", 2, 1, 1, 4,
                     "Deepest reserves on the field. What it does with them is up to the pool.",
-                    new[] { staff, dagger })
+                    new[] { staff, dagger }, new[] { recover, meditate })
             };
 
             var equipment = new List<EquipmentAsset>
@@ -87,7 +115,12 @@ namespace Dragoneye.MultiplayerEditor
                 sword, greataxe, bow, dagger, staff, light, medium, heavy
             };
 
-            return Catalog(classes, equipment);
+            var skills = new List<SkillAsset>
+            {
+                strike, cleave, loose, jab, ember, recover, meditate
+            };
+
+            return Catalog(classes, equipment, skills);
         }
 
         static void EnsureFolder()
@@ -120,8 +153,32 @@ namespace Dragoneye.MultiplayerEditor
             return asset;
         }
 
+        static SkillAsset Skill(int id, string name, Element element, int ap, int elementCost,
+            int range, SkillTarget target, SkillEffectKind effect, int amount, string description)
+        {
+            var asset = Upsert<SkillAsset>($"{k_Folder}/Skill{Sanitise(name)}.asset");
+            var serialized = new SerializedObject(asset);
+
+            serialized.FindProperty("m_Id").intValue = id;
+            serialized.FindProperty("m_DisplayName").stringValue = name;
+            serialized.FindProperty("m_Description").stringValue = description;
+            serialized.FindProperty("m_Element").enumValueIndex = (int)element;
+            serialized.FindProperty("m_ApCost").intValue = ap;
+            serialized.FindProperty("m_ElementCost").intValue = elementCost;
+            serialized.FindProperty("m_Range").intValue = range;
+            serialized.FindProperty("m_Target").enumValueIndex = (int)target;
+            serialized.FindProperty("m_Effect").enumValueIndex = (int)effect;
+            serialized.FindProperty("m_Amount").intValue = amount;
+
+            serialized.ApplyModifiedPropertiesWithoutUndo();
+
+            EditorUtility.SetDirty(asset);
+            return asset;
+        }
+
         static EquipmentAsset Equipment(int id, string name, EquipmentSlot slot,
-            int vitality, int speed, int power, int focus, string description)
+            int vitality, int speed, int power, int focus, string description,
+            params SkillAsset[] skills)
         {
             var asset = Upsert<EquipmentAsset>($"{k_Folder}/{Sanitise(name)}.asset");
             var serialized = new SerializedObject(asset);
@@ -132,6 +189,7 @@ namespace Dragoneye.MultiplayerEditor
             serialized.FindProperty("m_Slot").enumValueIndex = (int)slot;
 
             WriteStats(serialized.FindProperty("m_Modifiers"), vitality, speed, power, focus);
+            WriteList(serialized.FindProperty("m_Skills"), skills);
             serialized.ApplyModifiedPropertiesWithoutUndo();
 
             EditorUtility.SetDirty(asset);
@@ -139,7 +197,7 @@ namespace Dragoneye.MultiplayerEditor
         }
 
         static ClassAsset Class(int id, string name, int vitality, int speed, int power, int focus,
-            string description, IReadOnlyList<EquipmentAsset> weapons)
+            string description, IReadOnlyList<EquipmentAsset> weapons, IReadOnlyList<SkillAsset> skills)
         {
             var asset = Upsert<ClassAsset>($"{k_Folder}/{Sanitise(name)}.asset");
             var serialized = new SerializedObject(asset);
@@ -150,6 +208,7 @@ namespace Dragoneye.MultiplayerEditor
 
             WriteStats(serialized.FindProperty("m_Baseline"), vitality, speed, power, focus);
             WriteList(serialized.FindProperty("m_Weapons"), weapons);
+            WriteList(serialized.FindProperty("m_Skills"), skills);
 
             serialized.ApplyModifiedPropertiesWithoutUndo();
 
@@ -158,13 +217,14 @@ namespace Dragoneye.MultiplayerEditor
         }
 
         static ContentCatalog Catalog(IReadOnlyList<ClassAsset> classes,
-            IReadOnlyList<EquipmentAsset> equipment)
+            IReadOnlyList<EquipmentAsset> equipment, IReadOnlyList<SkillAsset> skills)
         {
             var asset = Upsert<ContentCatalog>(k_CatalogPath);
             var serialized = new SerializedObject(asset);
 
             WriteList(serialized.FindProperty("m_Classes"), classes);
             WriteList(serialized.FindProperty("m_Equipment"), equipment);
+            WriteList(serialized.FindProperty("m_Skills"), skills);
 
             // Four stats at a floor of one, plus eight to spend. Deliberately tight: a budget that
             // covers everything is not a choice.
@@ -180,9 +240,8 @@ namespace Dragoneye.MultiplayerEditor
 
             AssetDatabase.SaveAssets();
             AssetDatabase.Refresh();
-
             Debug.Log($"Character content ready: {classes.Count} classes, {equipment.Count} items, "
-                + $"catalog at {k_CatalogPath}.");
+                + $"{skills.Count} skills, catalog at {k_CatalogPath}.");
 
             return asset;
         }

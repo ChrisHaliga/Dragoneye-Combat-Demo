@@ -19,12 +19,13 @@ namespace Dragoneye.Combat
     public sealed class ClassSpec
     {
         public ClassSpec(int id, string name, StatBlock baseline, IReadOnlyList<int> weaponIds,
-            string description = "")
+            IReadOnlyList<int> skillIds = null, string description = "")
         {
             Id = id;
             Name = name ?? string.Empty;
             Baseline = baseline;
             WeaponIds = weaponIds ?? System.Array.Empty<int>();
+            SkillIds = skillIds ?? System.Array.Empty<int>();
             Description = description ?? string.Empty;
         }
 
@@ -38,6 +39,9 @@ namespace Dragoneye.Combat
 
         /// <summary>The weapons this class may carry. A weapon outside this list fails validation.</summary>
         public IReadOnlyList<int> WeaponIds { get; }
+
+        /// <summary>The core skill set. Everything else has to come from equipment.</summary>
+        public IReadOnlyList<int> SkillIds { get; }
 
         public string Description { get; }
 
@@ -65,12 +69,13 @@ namespace Dragoneye.Combat
     public sealed class EquipmentSpec
     {
         public EquipmentSpec(int id, string name, EquipmentSlot slot, StatBlock modifiers,
-            string description = "")
+            IReadOnlyList<int> skillIds = null, string description = "")
         {
             Id = id;
             Name = name ?? string.Empty;
             Slot = slot;
             Modifiers = modifiers;
+            SkillIds = skillIds ?? System.Array.Empty<int>();
             Description = description ?? string.Empty;
         }
 
@@ -83,6 +88,14 @@ namespace Dragoneye.Combat
 
         /// <summary>Added to the resolved stats. May be negative.</summary>
         public StatBlock Modifiers { get; }
+
+        /// <summary>
+        /// Skills this item grants while it is equipped.
+        ///
+        /// The only way to gain a skill beyond the class set. Unequipping removes them, because the
+        /// loadout is resolved from what is equipped rather than accumulated as things are worn.
+        /// </summary>
+        public IReadOnlyList<int> SkillIds { get; }
 
         public string Description { get; }
     }
@@ -130,7 +143,7 @@ namespace Dragoneye.Combat
     /// something in Data answers from assets. This is what lets the validator run identically in a
     /// test, on a client and on the host.
     /// </summary>
-    public interface IContentIndex
+    public interface IContentIndex : ISkillIndex
     {
         CharacterRules Rules { get; }
 

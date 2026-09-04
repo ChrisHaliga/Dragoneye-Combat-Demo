@@ -23,6 +23,9 @@ namespace Dragoneye.Data
         [SerializeField]
         List<EquipmentAsset> m_Equipment = new List<EquipmentAsset>();
 
+        [SerializeField]
+        List<SkillAsset> m_Skills = new List<SkillAsset>();
+
         [Header("Build rules")]
         [SerializeField, Min(0), Tooltip("Points to spend across all stats, beyond the minimum.")]
         int m_PointBudget = 8;
@@ -40,6 +43,8 @@ namespace Dragoneye.Data
         readonly List<EquipmentSpec> m_EquipmentSpecs = new List<EquipmentSpec>();
         readonly Dictionary<int, ClassSpec> m_ClassById = new Dictionary<int, ClassSpec>();
         readonly Dictionary<int, EquipmentSpec> m_EquipmentById = new Dictionary<int, EquipmentSpec>();
+        readonly List<SkillSpec> m_SkillSpecs = new List<SkillSpec>();
+        readonly Dictionary<int, SkillSpec> m_SkillById = new Dictionary<int, SkillSpec>();
 
         CharacterRules m_Rules;
         bool m_Built;
@@ -69,6 +74,21 @@ namespace Dragoneye.Data
                 Build();
                 return m_EquipmentSpecs;
             }
+        }
+
+        public IReadOnlyList<SkillSpec> Skills
+        {
+            get
+            {
+                Build();
+                return m_SkillSpecs;
+            }
+        }
+
+        public bool TryGetSkill(int id, out SkillSpec spec)
+        {
+            Build();
+            return m_SkillById.TryGetValue(id, out spec);
         }
 
         public bool TryGetClass(int id, out ClassSpec spec)
@@ -140,8 +160,29 @@ namespace Dragoneye.Data
             m_EquipmentSpecs.Clear();
             m_ClassById.Clear();
             m_EquipmentById.Clear();
+            m_SkillSpecs.Clear();
+            m_SkillById.Clear();
 
             m_Rules = new CharacterRules(m_PointBudget, m_MinPerStat, m_MaxPerStat, m_Level);
+
+            foreach (var asset in m_Skills)
+            {
+                if (asset == null)
+                {
+                    continue;
+                }
+
+                var spec = asset.ToSpec();
+
+                if (m_SkillById.ContainsKey(spec.Id))
+                {
+                    Debug.LogError($"Duplicate skill id {spec.Id} on '{asset.name}'.", asset);
+                    continue;
+                }
+
+                m_SkillById.Add(spec.Id, spec);
+                m_SkillSpecs.Add(spec);
+            }
 
             foreach (var asset in m_Classes)
             {

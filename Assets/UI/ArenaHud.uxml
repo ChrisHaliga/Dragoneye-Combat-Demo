@@ -10,6 +10,8 @@
 
         <ui:VisualElement name="turn-footer" class="turn-footer">
             <ui:Label name="ap-label" text="" class="turn-footer__ap" />
+            <ui:VisualElement name="skill-bar" class="skill-bar" />
+            <ui:Label name="skill-reason" text="" class="skill-reason" />
             <ui:Button name="end-turn-button" text="End Turn" class="button end-turn" />
         </ui:VisualElement>
 

@@ -204,6 +204,27 @@ namespace Dragoneye.Game
             return true;
         }
 
+        /// <summary>Server only. Restores health, never past the maximum.</summary>
+        public void ServerHeal(int amount)
+        {
+            if (IsServer && IsAlive)
+            {
+                m_CurrentHp.Value = SkillRules.Apply(
+                    new SkillEffect(SkillEffectKind.Heal, amount), m_CurrentHp.Value, MaxHp);
+            }
+        }
+
+        /// <summary>Server only. Restores action points, never past the maximum.</summary>
+        public void ServerRestoreAp(Ap amount)
+        {
+            if (IsServer)
+            {
+                m_CurrentApUnits.Value = SkillRules.Apply(
+                    new SkillEffect(SkillEffectKind.RestoreAp, amount.Units),
+                    m_CurrentApUnits.Value, MaxAp.Units);
+            }
+        }
+
         /// <summary>Server only. Restores AP to full at the start of a turn.</summary>
         public void ServerRefillAp()
         {

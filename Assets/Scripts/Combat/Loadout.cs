@@ -65,12 +65,13 @@ namespace Dragoneye.Combat
     public sealed class Loadout
     {
         public Loadout(ClassSpec classSpec, StatBlock stats, IReadOnlyList<EquipmentSpec> items,
-            IReadOnlyList<Element> startingPool)
+            IReadOnlyList<Element> startingPool, IReadOnlyList<SkillSpec> skills = null)
         {
             Class = classSpec;
             Stats = stats;
             Items = items ?? System.Array.Empty<EquipmentSpec>();
             StartingPool = startingPool ?? System.Array.Empty<Element>();
+            Skills = skills ?? System.Array.Empty<SkillSpec>();
             Vitals = Vitals.From(stats);
         }
 
@@ -86,6 +87,15 @@ namespace Dragoneye.Combat
 
         /// <summary>The elements this creature starts holding. Order is the order they were picked.</summary>
         public IReadOnlyList<Element> StartingPool { get; }
+
+        /// <summary>
+        /// Everything this creature can do: the class set plus every skill its equipment grants.
+        ///
+        /// Resolved from what is equipped rather than accumulated as items are worn, which is what
+        /// makes "no sword, no sword skills" true by construction -- unequipping cannot leave a
+        /// skill behind because nothing ever added one to a running total.
+        /// </summary>
+        public IReadOnlyList<SkillSpec> Skills { get; }
     }
 
     /// <summary>
@@ -122,7 +132,44 @@ namespace Dragoneye.Combat
             // Equipment may subtract -- heavy armour costs speed -- but never below zero, where the
             // derived numbers stop meaning anything.
             return new Loadout(classSpec, stats.ClampedLow(0), items,
-                new List<Element>(build.ElementPicks));
+                new List<Element>(build.ElementPicks), ResolveSkills(classSpec, items, content));
+        }
+
+        /// <summary>
+        /// The class set plus every equipped item grants, in that order, without duplicates.
+        ///
+        /// Order is fixed so two clients list a creature's skills identically. Duplicates are
+        /// dropped rather than stacked: two items granting the same skill grant one skill.
+        /// </summary>
+        static List<SkillSpec> ResolveSkills(ClassSpec classSpec, List<EquipmentSpec> items,
+            ISkillIndex skills)
+        {
+            var resolved = new List<SkillSpec>();
+            var seen = new HashSet<int>();
+
+            if (classSpec != null)
+            {
+                AddAll(classSpec.SkillIds, skills, resolved, seen);
+            }
+
+            foreach (var item in items)
+            {
+                AddAll(item.SkillIds, skills, resolved, seen);
+            }
+
+            return resolved;
+        }
+
+        static void AddAll(IReadOnlyList<int> ids, ISkillIndex skills, List<SkillSpec> into,
+            HashSet<int> seen)
+        {
+            foreach (var id in ids)
+            {
+                if (seen.Add(id) && skills.TryGetSkill(id, out var spec))
+                {
+                    into.Add(spec);
+                }
+            }
         }
 
         static void Collect(IContentIndex content, int id, List<EquipmentSpec> into)

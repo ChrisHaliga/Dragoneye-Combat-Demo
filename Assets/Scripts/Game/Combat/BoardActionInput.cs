@@ -36,6 +36,9 @@ namespace Dragoneye.Game
         [SerializeField]
         CreatureRegistry m_Creatures;
 
+        [SerializeField, Tooltip("Which skill, if any, the next board click uses.")]
+        SkillBarView m_SkillBar;
+
         ArenaBoard m_Board;
 
         ActionPlan m_Hovered = ActionPlan.Nothing;
@@ -131,14 +134,29 @@ namespace Dragoneye.Game
 
         void OnClicked(Hex hex)
         {
-            // Inspecting comes first and is always allowed. Reading an enemy's card mid-turn is a
-            // normal thing to want, and it costs nothing.
+            // Inspecting comes first and is always allowed. Reading a card mid-turn is a normal
+            // thing to want, and it costs nothing.
             if (m_Units.TryGet(hex, out var occupant))
             {
                 m_Selection.Select(occupant.GetComponent<CreatureState>());
             }
 
             var actor = Actor;
+
+            // An armed skill takes the click. Move and attack are what a click means when nothing
+            // is armed, so the bar decides which of the three a hex press is.
+            if (actor != null && m_SkillBar != null && m_SkillBar.SelectedSkill != SkillBarView.NoSkill)
+            {
+                var skills = actor.GetComponent<SkillCommands>();
+
+                if (skills != null)
+                {
+                    skills.RequestUse(m_SkillBar.SelectedSkill, hex);
+                }
+
+                m_SkillBar.ClearSelection();
+                return;
+            }
             var plan = Price(hex);
 
             if (actor == null || !plan.IsAllowed)
