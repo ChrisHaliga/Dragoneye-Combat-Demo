@@ -162,7 +162,6 @@ namespace Dragoneye.Multiplayer
         /// </summary>
         void BuildForm()
         {
-            m_PortraitChoices.Clear();
             m_Identity.Clear();
             m_Attributes.Clear();
             m_Elements.Clear();
@@ -251,7 +250,6 @@ namespace Dragoneye.Multiplayer
                     m_Build.PortraitId = Portraits.Current.DefaultFor(m_Build.SpeciesId);
                 }
 
-                m_PortraitControls.Clear();
                 BuildPortraitControls();
                 Refresh();
             });
@@ -375,6 +373,11 @@ namespace Dragoneye.Multiplayer
         /// </summary>
         void BuildPortraitControls()
         {
+            // Cleared first, because this is called again whenever the choice or the species
+            // changes. Without it, picking a face appended a second row of the same faces.
+            m_PortraitControls.Clear();
+            m_PortraitChoices.Clear();
+
             var library = Portraits.Current;
             var choices = library != null ? library.ForSpecies(m_Build.SpeciesId) : null;
 
@@ -399,6 +402,15 @@ namespace Dragoneye.Multiplayer
             m_PortraitControls.Add(row);
         }
 
+        /// <summary>Moves the gold edge to whichever face is being worn.</summary>
+        void MarkChosen()
+        {
+            foreach (var pair in m_PortraitChoices)
+            {
+                pair.Value.EnableInClassList("portrait-choice--chosen", pair.Key == m_Build.PortraitId);
+            }
+        }
+
         VisualElement PortraitChoice(PortraitEntry entry)
         {
             var choice = new VisualElement();
@@ -407,10 +419,12 @@ namespace Dragoneye.Multiplayer
             choice.style.backgroundImage = new StyleBackground(entry.Image);
             choice.tooltip = entry.Name;
 
+            // Only the highlight moves. Rebuilding the row would throw away the element that was
+            // just clicked, which is the same mistake that once left the skill bar unclickable.
             choice.RegisterCallback<ClickEvent>(_ =>
             {
                 m_Build.PortraitId = entry.Id;
-                BuildPortraitControls();
+                MarkChosen();
                 Refresh();
             });
 

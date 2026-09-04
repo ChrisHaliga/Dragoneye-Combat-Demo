@@ -110,10 +110,17 @@ namespace Dragoneye.Game
             var rect = sprite.textureRect;
             var page = sprite.texture;
 
+            // The middle square of it, because the token is round and stretching a tall picture
+            // across a circle squashes the face. Cropping loses the edges of a portrait, which is
+            // the part nobody was looking at.
+            var side = Mathf.Min(rect.width, rect.height);
+            var left = rect.x + ((rect.width - side) * 0.5f);
+            var bottom = rect.y + ((rect.height - side) * 0.5f);
+
             texture = page;
             scaleOffset = new Vector4(
-                rect.width / page.width, rect.height / page.height,
-                rect.x / page.width, rect.y / page.height);
+                side / page.width, side / page.height,
+                left / page.width, bottom / page.height);
 
             return true;
         }
