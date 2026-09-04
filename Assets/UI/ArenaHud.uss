@@ -403,6 +403,26 @@
     color: rgb(255, 244, 234);
 }
 
+/* ---------- floating notes ---------- */
+
+.floating-layer {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+}
+
+/* Absolute, because every one of these is placed from a world position each frame rather than
+   laid out. Gold and bold, at a size that reads over a lit board without covering the creature. */
+.floating-note {
+    position: absolute;
+    font-size: 16px;
+    -unity-font-style: bold;
+    letter-spacing: 1px;
+    color: rgb(226, 191, 122);
+}
+
 /* ---------- cursor ---------- */
 
 .cursor-action {
@@ -442,6 +462,43 @@
     font-size: 12px;
     letter-spacing: 3px;
     color: rgb(139, 147, 165);
+}
+
+/* ---------- experience ---------- */
+
+/* The same bar the menu draws, because it answers the same question in the same shape. Only a
+   character somebody brought has one: a premade does not level and has nowhere to put it. */
+.xp {
+    margin: 4px 0 10px 0;
+}
+
+.xp-track {
+    height: 7px;
+    background-color: rgb(24, 27, 35);
+    border-width: 1px;
+    border-color: rgb(52, 59, 76);
+    overflow: hidden;
+}
+
+.xp-fill {
+    height: 100%;
+    background-color: rgb(120, 148, 200);
+}
+
+.xp-fill--ready {
+    background-color: rgb(226, 191, 122);
+}
+
+.xp-label {
+    margin-top: 3px;
+    font-size: 9px;
+    -unity-font-style: bold;
+    letter-spacing: 2px;
+    color: rgb(120, 128, 146);
+}
+
+.xp-label--ready {
+    color: rgb(226, 191, 122);
 }
 
 /* ---------- element counters ---------- */

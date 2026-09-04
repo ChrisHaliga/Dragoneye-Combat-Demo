@@ -160,6 +160,11 @@ namespace Dragoneye.Multiplayer
             CharacterSheet.Stats(stats, loadout.Vitals);
             titles.Add(stats);
 
+            var xp = new VisualElement();
+            xp.AddToClassList("xp");
+            CharacterSheet.Experience(xp, character.Build.Level, character.Build.Xp);
+            titles.Add(xp);
+
             head.Add(titles);
             m_Sheet.Add(head);
 

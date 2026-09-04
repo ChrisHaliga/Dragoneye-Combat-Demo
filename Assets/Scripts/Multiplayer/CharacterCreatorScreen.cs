@@ -45,6 +45,7 @@ namespace Dragoneye.Multiplayer
         readonly Label m_PortraitInitial;
         readonly VisualElement m_Portrait;
         readonly VisualElement m_Stats;
+        readonly VisualElement m_Xp;
         readonly VisualElement m_Pool;
         readonly VisualElement m_Skills;
         readonly Button m_Save;
@@ -92,6 +93,7 @@ namespace Dragoneye.Multiplayer
             m_PortraitInitial = root.Q<Label>("create-portrait-initial");
             m_Portrait = root.Q<VisualElement>("create-portrait");
             m_Stats = root.Q<VisualElement>("create-stats");
+            m_Xp = root.Q<VisualElement>("create-xp");
             m_Pool = root.Q<VisualElement>("create-pool");
             m_Skills = root.Q<VisualElement>("create-skills");
             m_Save = root.Q<Button>("create-save-button");
@@ -700,6 +702,12 @@ namespace Dragoneye.Multiplayer
             RefreshPortrait();
 
             CharacterSheet.Stats(m_Stats, loadout.Vitals);
+
+            if (m_Xp != null)
+            {
+                CharacterSheet.Experience(m_Xp, m_Build.Level, m_Build.Xp);
+            }
+
             CharacterSheet.Attributes(m_Attrs, loadout.Attributes, m_Build.Attributes);
             CharacterSheet.Pool(m_Pool, m_Build.StartingPool, m_Build.PoolBudget());
 

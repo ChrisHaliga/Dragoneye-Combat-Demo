@@ -879,6 +879,43 @@
     color: rgb(236, 231, 219);
 }
 
+/* ---------- experience ---------- */
+
+.xp {
+    margin: 6px 0 2px 0;
+}
+
+.xp-track {
+    height: 7px;
+    background-color: rgb(24, 27, 35);
+    border-width: 1px;
+    border-color: rgb(52, 59, 76);
+    overflow: hidden;
+}
+
+.xp-fill {
+    height: 100%;
+    background-color: rgb(120, 148, 200);
+}
+
+/* Enough to level. Gold, because it is the same "there is a decision waiting" the menu uses
+   everywhere else, and a full blue bar reads as merely finished. */
+.xp-fill--ready {
+    background-color: rgb(226, 191, 122);
+}
+
+.xp-label {
+    margin-top: 3px;
+    font-size: 9px;
+    -unity-font-style: bold;
+    letter-spacing: 2px;
+    color: rgb(120, 128, 146);
+}
+
+.xp-label--ready {
+    color: rgb(226, 191, 122);
+}
+
 /* The seven resolved attributes, wrapped into a grid of small tiles.
 
    Resolved rather than bought: the middle column already shows what the player is spending, and the

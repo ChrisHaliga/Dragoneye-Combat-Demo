@@ -51,6 +51,39 @@ namespace Dragoneye.Multiplayer
         }
 
         /// <summary>
+        /// How far this character is towards its next level.
+        ///
+        /// A bar rather than a number, because the question a player asks is "am I close", and two
+        /// numbers separated by a slash makes them do the division. What it takes doubles every
+        /// level, so the same eight experience is a full bar at level three and a quarter of one at
+        /// level five -- which is exactly what the bar shows and the pair of numbers hides.
+        /// </summary>
+        public static void Experience(VisualElement into, int level, int xp)
+        {
+            into.Clear();
+
+            var needed = Progression.XpToLeave(level);
+            var held = xp < 0 ? 0 : xp;
+            var ready = held >= needed;
+
+            var track = new VisualElement();
+            track.AddToClassList("xp-track");
+
+            var fill = new VisualElement();
+            fill.AddToClassList("xp-fill");
+            fill.EnableInClassList("xp-fill--ready", ready);
+            fill.style.width = Length.Percent(ready ? 100f : 100f * held / needed);
+            track.Add(fill);
+
+            var label = new Label(ready ? "READY TO LEVEL" : $"{held} / {needed} XP");
+            label.AddToClassList("xp-label");
+            label.EnableInClassList("xp-label--ready", ready);
+
+            into.Add(track);
+            into.Add(label);
+        }
+
+        /// <summary>
         /// The seven resolved attributes.
         ///
         /// <paramref name="bought"/> is what the player actually paid for; where the resolved value

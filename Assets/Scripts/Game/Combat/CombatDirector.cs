@@ -414,7 +414,8 @@ namespace Dragoneye.Game
                 return;
             }
 
-            characters.ServerAwardXp(killer.BuildSlot, Progression.XpForKill(victim.Level));
+            characters.ServerAwardXp(killer.BuildSlot, Progression.XpForKill(victim.Level),
+                killer.TurnId);
         }
 
         /// <summary>Ends the match when only one side is left standing.</summary>

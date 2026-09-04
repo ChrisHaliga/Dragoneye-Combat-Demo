@@ -268,6 +268,16 @@ namespace Dragoneye.Game
         /// <summary>Raised on every peer when somebody's earnings change.</summary>
         public event Action XpChanged;
 
+        /// <summary>
+        /// Raised on every peer when a creature has just earned something, with what and where.
+        ///
+        /// Separate from <see cref="XpChanged"/> because they answer different questions. That one
+        /// is state -- how much does this slot have -- and is replicated so a late joiner agrees.
+        /// This is a moment: it says a number appeared over a particular creature, and a peer that
+        /// missed it has missed a number rather than a rule.
+        /// </summary>
+        public event Action<uint, int> XpShown;
+
         /// <summary>What a slot's character has earned this match.</summary>
         public int XpFor(byte slot)
         {
@@ -288,11 +298,21 @@ namespace Dragoneye.Game
         /// Only a character its owner brought earns anything. A premade somebody claimed for the
         /// afternoon is not theirs to level, and the computer has nowhere to put it.
         /// </summary>
-        public void ServerAwardXp(byte slot, int amount)
+        /// <param name="shownOver">
+        /// The creature to float the number over. Presentation, and deliberately part of the same
+        /// call: one thing happened, and splitting it into an award and an announcement would let
+        /// the two drift apart.
+        /// </param>
+        public void ServerAwardXp(byte slot, int amount, uint shownOver = 0)
         {
             if (!IsServer || slot == PartyInfo.Unclaimed || amount <= 0)
             {
                 return;
+            }
+
+            if (shownOver != 0)
+            {
+                ShowXpRpc(shownOver, amount);
             }
 
             for (var i = 0; i < m_Xp.Count; i++)
@@ -318,6 +338,9 @@ namespace Dragoneye.Game
         /// last kill lands: the arena's HUD dies with the scene and the menu has not loaded yet.
         /// This object outlives both.
         /// </summary>
+        [Rpc(SendTo.Everyone)]
+        void ShowXpRpc(uint turnId, int amount) => XpShown?.Invoke(turnId, amount);
+
         void OnXpChanged(NetworkListEvent<XpAward> _)
         {
             var roster = PlayerRoster.Current;

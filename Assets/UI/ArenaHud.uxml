@@ -18,6 +18,10 @@
 
         <ui:Label name="cursor-action" text="" class="cursor-action" />
 
+        <!-- Numbers that rise off a creature and fade. Positioned from the world every frame, so
+             the layer is a full-screen canvas with nothing of its own in it. -->
+        <ui:VisualElement name="floating-text" class="floating-layer" picking-mode="Ignore" />
+
         <ui:VisualElement name="outcome-banner" class="outcome is-hidden">
             <ui:Label name="outcome-title" text="" class="outcome__title" />
             <ui:Label name="outcome-note" text="Returning to the menu..." class="outcome__note" />
@@ -53,6 +57,8 @@
                     <ui:Label name="card-speed" text="0" class="stat-row__value" />
                 </ui:VisualElement>
             </ui:VisualElement>
+
+            <ui:VisualElement name="card-xp" class="xp" />
 
             <ui:Label name="card-elements-title" text="" class="card__elements-title" />
             <ui:VisualElement name="card-elements" class="card__elements" />

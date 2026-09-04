@@ -1,5 +1,6 @@
-using Dragoneye.Data;
 using Dragoneye.Combat;
+using Dragoneye.Data;
+using Dragoneye.Multiplayer;
 using UnityEngine;
 using UnityEngine.UIElements;
 
@@ -26,6 +27,7 @@ namespace Dragoneye.Game
         VisualElement m_ApPips;
         Label m_Name;
         VisualElement m_Portrait;
+        VisualElement m_Xp;
         Label m_Subtitle;
         Label m_Controller;
         Label m_Hp;
@@ -54,6 +56,7 @@ namespace Dragoneye.Game
             m_ApPips = root.Q<VisualElement>("card-ap-pips");
             m_Name = root.Q<Label>("card-name");
             m_Portrait = root.Q<VisualElement>("card-portrait");
+            m_Xp = root.Q<VisualElement>("card-xp");
             m_Subtitle = root.Q<Label>("card-subtitle");
             m_Controller = root.Q<Label>("card-controller");
             m_Hp = root.Q<Label>("card-hp");
@@ -159,7 +162,41 @@ namespace Dragoneye.Game
             m_Description.text = definition != null ? definition.Description : string.Empty;
 
             BuildPips(creature.CurrentAp, creature.MaxAp);
+            BuildExperience(creature);
             BuildElements();
+        }
+
+        /// <summary>
+        /// How far this character is towards its next level, including what it has earned today.
+        ///
+        /// Only for a character somebody brought. A premade does not level and has nowhere to put
+        /// experience, so it gets no bar rather than an empty one.
+        ///
+        /// The build carries what the character walked in with and the match tally carries what it
+        /// has earned since, because banking writes to the owner's save file rather than back into
+        /// the replicated build -- so the two have to be added here to read as one number.
+        /// </summary>
+        void BuildExperience(CreatureState creature)
+        {
+            if (m_Xp == null)
+            {
+                return;
+            }
+
+            var characters = PlayerCharacters.Current;
+            var build = characters != null && creature.IsPlayerCharacter
+                ? characters.BuildFor(creature.BuildSlot)
+                : null;
+
+            m_Xp.EnableInClassList("is-hidden", build == null);
+
+            if (build == null)
+            {
+                return;
+            }
+
+            CharacterSheet.Experience(m_Xp, build.Level,
+                build.Xp + characters.XpFor(creature.BuildSlot));
         }
 
         /// <summary>

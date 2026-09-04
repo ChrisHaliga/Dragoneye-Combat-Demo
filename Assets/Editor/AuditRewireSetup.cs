@@ -55,15 +55,20 @@ namespace Dragoneye.MultiplayerEditor
             var panel = hud.GetComponent<PartyPanelView>() ?? hud.AddComponent<PartyPanelView>();
             var card = hud.GetComponent<CreatureCardView>() ?? hud.AddComponent<CreatureCardView>();
 
+            // A third reader of the same document: the numbers that rise off a creature when it
+            // earns something. It needs the registry to find whose head to sit over.
+            var floating = hud.GetComponent<FloatingTextView>() ?? hud.AddComponent<FloatingTextView>();
+
             Assign(panel, ("m_Selection", selection), ("m_Creatures", creatures));
             Assign(card, ("m_Selection", selection));
+            Assign(floating, ("m_Creatures", creatures));
 
             EditorSceneManager.MarkSceneDirty(scene);
             EditorSceneManager.SaveScene(scene);
             AssetDatabase.SaveAssets();
 
-            Debug.Log($"Arena rewired: {stripped} dead component(s) removed, registry and HUD views wired. "
-                + "Delete Assets/Editor/AuditRewireSetup.cs once you have verified play mode.");
+            Debug.Log($"Arena rewired: {stripped} dead component(s) removed, "
+                + "registry and HUD views wired.");
         }
 
         static void Assign(Object target, params (string Path, Object Value)[] fields)

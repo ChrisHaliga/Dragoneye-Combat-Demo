@@ -108,6 +108,7 @@
                         <ui:Label name="create-summary-name" text="Unnamed" class="sheet__name" />
                         <ui:Label name="create-summary-class" text="" class="sheet__class" />
                         <ui:VisualElement name="create-stats" class="statline" />
+                        <ui:VisualElement name="create-xp" class="xp" />
                         <ui:VisualElement name="create-attrs" class="attr-grid" />
                         <ui:Label text="POOL" class="col__title col__title--spaced" />
                         <ui:VisualElement name="create-pool" class="gem-row" />
@@ -152,6 +153,7 @@
                         <ui:Label name="levelup-summary-name" text="" class="sheet__name" />
                         <ui:Label name="levelup-summary-class" text="" class="sheet__class" />
                         <ui:VisualElement name="levelup-stats" class="statline" />
+                        <ui:VisualElement name="levelup-xp-bar" class="xp" />
                         <ui:VisualElement name="levelup-attrs" class="attr-grid" />
                         <ui:Label text="POOL" class="col__title col__title--spaced" />
                         <ui:VisualElement name="levelup-pool" class="gem-row" />

@@ -37,6 +37,7 @@ namespace Dragoneye.Multiplayer
         readonly Label m_SummaryName;
         readonly Label m_SummaryClass;
         readonly VisualElement m_Stats;
+        readonly VisualElement m_XpBar;
         readonly VisualElement m_Attrs;
         readonly VisualElement m_Pool;
         readonly VisualElement m_Skills;
@@ -72,6 +73,7 @@ namespace Dragoneye.Multiplayer
             m_SummaryName = root.Q<Label>("levelup-summary-name");
             m_SummaryClass = root.Q<Label>("levelup-summary-class");
             m_Stats = root.Q<VisualElement>("levelup-stats");
+            m_XpBar = root.Q<VisualElement>("levelup-xp-bar");
             m_Attrs = root.Q<VisualElement>("levelup-attrs");
             m_Pool = root.Q<VisualElement>("levelup-pool");
             m_Skills = root.Q<VisualElement>("levelup-skills");
@@ -210,6 +212,7 @@ namespace Dragoneye.Multiplayer
             m_SummaryClass.text = CharacterSheet.Describe(loadout);
 
             CharacterSheet.Stats(m_Stats, loadout.Vitals);
+            CharacterSheet.Experience(m_XpBar, m_Build.Level, m_Build.Xp);
             CharacterSheet.Attributes(m_Attrs, loadout.Attributes, m_Build.Attributes);
             CharacterSheet.Pool(m_Pool, m_Build.StartingPool, budget);
             CharacterSheet.Skills(m_Skills, loadout);
