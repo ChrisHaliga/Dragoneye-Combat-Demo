@@ -42,6 +42,15 @@
 
 .portrait-list {
     max-height: 420px;
+    overflow: hidden;
+}
+
+/* Never squeezed to fit. A flex item shrinks by default, and in a column that costs it height the
+   text inside does not give back -- so a full party used to draw its names outside their cards. */
+.portrait-list > *,
+.card__stats > *,
+.skill-bar > * {
+    flex-shrink: 0;
 }
 
 .portrait {

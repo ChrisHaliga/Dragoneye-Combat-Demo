@@ -55,13 +55,13 @@
 }
 
 .rule--head {
-    margin: 0 56px 18px 56px;
+    margin: 0 56px 12px 56px;
 }
 
 /* ---------- stages ---------- */
 
 .stage {
-    padding: 34px 0 0 0;
+    padding: 20px 0 0 0;
 }
 
 .stage__head {
@@ -71,7 +71,7 @@
 }
 
 .stage__title {
-    font-size: 30px;
+    font-size: 26px;
     -unity-font-style: bold;
     letter-spacing: 6px;
     color: rgb(232, 226, 212);
@@ -110,7 +110,7 @@
 .stage__foot {
     flex-direction: row;
     align-items: center;
-    padding: 18px 56px 28px 56px;
+    padding: 14px 56px 18px 56px;
 }
 
 /* ---------- the title card ---------- */
@@ -222,11 +222,11 @@
     -unity-font-style: bold;
     letter-spacing: 3px;
     color: rgb(198, 158, 88);
-    margin-bottom: 10px;
+    margin-bottom: 6px;
 }
 
 .col__title--spaced {
-    margin-top: 14px;
+    margin-top: 8px;
 }
 
 .field-label {
@@ -234,7 +234,7 @@
     -unity-font-style: bold;
     letter-spacing: 2px;
     color: rgb(139, 147, 165);
-    margin-bottom: 5px;
+    margin-bottom: 4px;
 }
 
 /* Kept for the settings note and anything else that used the old name. */
@@ -458,7 +458,7 @@
 }
 
 .sheet__name {
-    font-size: 26px;
+    font-size: 22px;
     -unity-font-style: bold;
     color: rgb(236, 231, 219);
 }
@@ -483,6 +483,11 @@
     -unity-text-align: middle-center;
     font-size: 13px;
     color: rgb(90, 98, 118);
+}
+
+.sheet-scroll {
+    flex-grow: 1;
+    flex-basis: 0;
 }
 
 .sheet__columns {
@@ -510,7 +515,7 @@
 
 .portrait--large {
     width: 100%;
-    height: 220px;
+    height: 160px;
 }
 
 .portrait--sheet {
@@ -528,7 +533,7 @@
 
 .portrait__controls {
     flex-direction: row;
-    margin-top: 10px;
+    margin-top: 8px;
 }
 
 .portrait__controls > .btn {
@@ -556,6 +561,24 @@
     margin-right: 26px;
 }
 
+/* Nothing inside a column may be squeezed to make the column fit.
+
+   A flex item shrinks by default, and in a column that shrinks its *height*. So a column running
+   even slightly over its space did not clip or scroll -- every card in it silently lost height
+   while the text inside kept its own, and the text drew outside its frame. That is what "the stats
+   do not fit in their boxes" was: not a box too small for its text, but a box crushed by its
+   parent, with the well image squashed to a letterbox and the number hanging out underneath.
+
+   Refusing to shrink turns a column that does not fit into one that is visibly clipped, which is a
+   bug that can be seen and measured rather than one that quietly mangles every frame on screen. */
+.col > *,
+.group > *,
+.statline > .stat,
+.sheet__column > *,
+.attr-grid > .attr {
+    flex-shrink: 0;
+}
+
 .col--identity {
     width: 230px;
 }
@@ -577,7 +600,7 @@
     flex-shrink: 1;
     flex-basis: 0;
     overflow: hidden;
-    padding: 24px;
+    padding: 18px;
     margin-right: 0;
     background-image: url("Generated/ui-panel.png");
     -unity-slice-left: 16;
@@ -605,7 +628,7 @@
 /* ---------- fields ---------- */
 
 .field-group {
-    margin-bottom: 10px;
+    margin-bottom: 6px;
 }
 
 .text-input {
@@ -613,7 +636,7 @@
 }
 
 .text-input .unity-base-text-field__input {
-    height: 38px;
+    height: 34px;
     padding-left: 12px;
     padding-right: 12px;
     font-size: 14px;
@@ -641,7 +664,7 @@
 }
 
 .dropdown .unity-base-popup-field__input {
-    height: 34px;
+    height: 32px;
     padding-left: 12px;
     font-size: 13px;
     color: rgb(220, 224, 234);
@@ -663,9 +686,9 @@
 .alloc-row {
     flex-direction: row;
     align-items: center;
-    min-height: 36px;
+    min-height: 30px;
     padding: 4px 10px;
-    margin-bottom: 4px;
+    margin-bottom: 2px;
     background-image: url("Generated/ui-card.png");
     -unity-slice-left: 14;
     -unity-slice-right: 14;
@@ -690,8 +713,8 @@
 }
 
 .step-button {
-    width: 26px;
-    height: 26px;
+    width: 20px;
+    height: 20px;
     padding: 0;
     margin: 0;
     font-size: 15px;
@@ -715,7 +738,7 @@
 }
 
 .budget {
-    margin-bottom: 12px;
+    margin-bottom: 10px;
     font-size: 12px;
     letter-spacing: 1px;
     color: rgb(139, 147, 165);
@@ -737,9 +760,9 @@
 .element-row {
     flex-direction: row;
     align-items: center;
-    min-height: 34px;
-    padding: 3px 8px;
-    margin-bottom: 3px;
+    min-height: 24px;
+    padding: 2px 8px;
+    margin-bottom: 2px;
     background-image: url("Generated/ui-card.png");
     -unity-slice-left: 14;
     -unity-slice-right: 14;
@@ -790,9 +813,9 @@
 }
 
 .gem {
-    width: 34px;
-    height: 34px;
-    margin: 0 8px 8px 0;
+    width: 26px;
+    height: 26px;
+    margin: 0 6px 5px 0;
     background-image: url("Generated/ui-gem.png");
     justify-content: center;
 }
@@ -815,14 +838,14 @@
    label-and-value lines indistinguishable from the settings screen. */
 .statline {
     flex-direction: row;
-    margin: 16px 0 4px 0;
+    margin: 12px 0 4px 0;
 }
 
 .stat {
     flex-grow: 1;
     flex-basis: 0;
     margin-right: 6px;
-    padding: 8px 2px 9px 2px;
+    padding: 6px 2px 7px 2px;
     align-items: center;
     background-image: url("Generated/ui-well.png");
     -unity-slice-left: 11;
@@ -840,7 +863,7 @@
 
 .stat__value {
     margin-top: 1px;
-    font-size: 21px;
+    font-size: 18px;
     -unity-font-style: bold;
     color: rgb(236, 231, 219);
 }
@@ -857,8 +880,8 @@
 }
 
 .attr {
-    width: 25%;
-    padding: 5px 0;
+    width: 14.2%;
+    padding: 2px 0;
     align-items: center;
 }
 
@@ -870,7 +893,7 @@
 }
 
 .attr__value {
-    font-size: 15px;
+    font-size: 14px;
     -unity-font-style: bold;
     color: rgb(220, 224, 234);
 }
@@ -907,9 +930,9 @@
     flex-direction: row;
     justify-content: space-between;
     align-items: center;
-    min-height: 26px;
-    padding: 4px 8px;
-    margin-bottom: 2px;
+    min-height: 24px;
+    padding: 3px 8px;
+    margin-bottom: 1px;
     background-image: url("Generated/ui-card.png");
     -unity-slice-left: 14;
     -unity-slice-right: 14;

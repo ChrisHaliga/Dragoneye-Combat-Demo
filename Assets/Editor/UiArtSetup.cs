@@ -43,9 +43,6 @@ namespace Dragoneye.MultiplayerEditor
         static readonly Color32 k_Ember = new Color32(196, 88, 40, 255);
         static readonly Color32 k_EmberHot = new Color32(226, 112, 54, 255);
 
-        [MenuItem("ClaudeCode/Set Up UI Art")]
-        static void FromMenu() => Run();
-
         /// <summary>Runs the whole step. Called directly by the master setup.</summary>
         internal static void Run()
         {

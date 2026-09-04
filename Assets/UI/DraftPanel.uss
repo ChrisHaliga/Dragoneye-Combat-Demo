@@ -171,9 +171,16 @@
     color: rgb(139, 147, 165);
 }
 
+/* Clipped rather than crushed. A flex item shrinks by default, so a column holding more
+   combatants than it has room for used to squeeze every card until the names drew outside them. */
 .party__list {
     flex-grow: 1;
     margin-top: 6px;
+    overflow: hidden;
+}
+
+.party__list > * {
+    flex-shrink: 0;
 }
 
 .party__empty {

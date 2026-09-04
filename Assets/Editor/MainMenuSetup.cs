@@ -20,15 +20,6 @@ namespace Dragoneye.MultiplayerEditor
         /// <summary>The document MainMenuUI drives. The menu scene has more than one.</summary>
         const string k_MenuDocument = "SessionMenu";
 
-        [MenuItem("ClaudeCode/Rewire Main Menu")]
-        static void SetUp()
-        {
-            if (EditorSceneManager.SaveCurrentModifiedScenesIfUserWantsTo())
-            {
-                Run();
-            }
-        }
-
         /// <summary>Runs the whole step. Called directly by the master setup.</summary>
         internal static void Run()
         {

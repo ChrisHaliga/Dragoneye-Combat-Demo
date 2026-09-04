@@ -19,15 +19,6 @@ namespace Dragoneye.MultiplayerEditor
         const string k_MatchPrefab = "Assets/NGO_Minimal_Setup/DraftState.prefab";
         const string k_UnitPrefab = "Assets/NGO_Minimal_Setup/Unit.prefab";
 
-        [MenuItem("ClaudeCode/Set Up Turn System")]
-        static void SetUp()
-        {
-            if (EditorSceneManager.SaveCurrentModifiedScenesIfUserWantsTo())
-            {
-                Run();
-            }
-        }
-
         /// <summary>Runs the whole step. Called directly by the master setup.</summary>
         internal static void Run()
         {

@@ -6,22 +6,15 @@ using UnityEngine;
 namespace Dragoneye.MultiplayerEditor
 {
     /// <summary>
-    /// One-off scaffolding for the audit refactor: clears the components whose scripts were removed,
-    /// adds the scene-scoped creature registry, and puts the two HUD views where the single one was.
-    /// Delete this file once it has run.
+    /// The arena's wiring: clears the components whose scripts were removed, adds the scene-scoped
+    /// creature registry, and puts the two HUD views where the single one was.
+    ///
+    /// Written for one change but kept, because it is idempotent and it is what configures the arena
+    /// scene in a fresh clone. <see cref="SetUpEverything"/> runs it; it has no menu item of its own.
     /// </summary>
     static class AuditRewireSetup
     {
         const string k_ArenaScene = "Assets/Scenes/Arena.unity";
-
-        [MenuItem("ClaudeCode/Rewire Arena After Audit")]
-        static void SetUp()
-        {
-            if (EditorSceneManager.SaveCurrentModifiedScenesIfUserWantsTo())
-            {
-                Run();
-            }
-        }
 
         /// <summary>Runs the whole step. Called directly by the master setup.</summary>
         internal static void Run()

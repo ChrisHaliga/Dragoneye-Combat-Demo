@@ -101,14 +101,19 @@
                 </ui:VisualElement>
 
                 <ui:VisualElement class="col col--sheet">
-                    <ui:Label name="create-summary-name" text="Unnamed" class="sheet__name" />
-                    <ui:Label name="create-summary-class" text="" class="sheet__class" />
-                    <ui:VisualElement name="create-stats" class="statline" />
-                    <ui:VisualElement name="create-attrs" class="attr-grid" />
-                    <ui:Label text="POOL" class="col__title col__title--spaced" />
-                    <ui:VisualElement name="create-pool" class="gem-row" />
-                    <ui:Label text="SKILLS" class="col__title col__title--spaced" />
-                    <ui:VisualElement name="create-skills" class="group" />
+                    <!-- Scrolls, but only when it has to: how many skills a character ends up with
+                         depends on its species, class and kit, so this is the one column whose
+                         height is not knowable in advance. -->
+                    <ui:ScrollView name="create-sheet-scroll" mode="Vertical" class="sheet-scroll">
+                        <ui:Label name="create-summary-name" text="Unnamed" class="sheet__name" />
+                        <ui:Label name="create-summary-class" text="" class="sheet__class" />
+                        <ui:VisualElement name="create-stats" class="statline" />
+                        <ui:VisualElement name="create-attrs" class="attr-grid" />
+                        <ui:Label text="POOL" class="col__title col__title--spaced" />
+                        <ui:VisualElement name="create-pool" class="gem-row" />
+                        <ui:Label text="SKILLS" class="col__title col__title--spaced" />
+                        <ui:VisualElement name="create-skills" class="group" />
+                    </ui:ScrollView>
                 </ui:VisualElement>
             </ui:VisualElement>
 

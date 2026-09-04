@@ -5,15 +5,18 @@ using UnityEngine;
 namespace Dragoneye.MultiplayerEditor
 {
     /// <summary>
-    /// Runs every outstanding setup step, in the order they depend on each other.
+    /// Runs every setup step, in the order they depend on each other.
     ///
-    /// The steps exist separately because each was written for one change and each is safe to
-    /// re-run; this is the one command that applies all of them to a clone that has had none. Order
-    /// is not incidental -- the turn system reads references the arena rewire assigns, and the
+    /// The only menu item in the project, deliberately. The steps exist as separate files because
+    /// each was written for one change, but each is idempotent and none of them is ever the right
+    /// one to run alone -- having six entries in the menu only raised the question of which of them
+    /// was stale. There is one answer now: run this, or run nothing.
+    ///
+    /// Order is not incidental: the turn system reads references the arena rewire assigns, and the
     /// content step needs the menu component the menu rewire adds.
     ///
-    /// Every step is idempotent, so running this on an already-configured project is a no-op that
-    /// re-saves the same scenes.
+    /// Running it on an already-configured project is a no-op that re-saves the same scenes, so
+    /// when in doubt, run it.
     /// </summary>
     static class SetUpEverything
     {
