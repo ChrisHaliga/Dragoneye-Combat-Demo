@@ -457,6 +457,14 @@ namespace Dragoneye.Multiplayer
             subtitle.AddToClassList("hero__class");
             m_HeroBody.Add(subtitle);
 
+            // Under the level it is counting towards, and above the stats it will change. This is
+            // the last screen before a match and the first one after, so it is where a player finds
+            // out whether one more fight is worth it.
+            var xp = new VisualElement();
+            xp.AddToClassList("xp");
+            CharacterSheet.Experience(xp, current.Build.Level, current.Build.Xp);
+            m_HeroBody.Add(xp);
+
             var stats = new VisualElement();
             stats.AddToClassList("statline");
             CharacterSheet.Stats(stats, loadout.Vitals);
