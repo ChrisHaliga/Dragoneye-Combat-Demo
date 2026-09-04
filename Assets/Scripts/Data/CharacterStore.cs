@@ -264,6 +264,7 @@ namespace Dragoneye.Data
             public int[] ElementPicks;
             public int WeaponId;
             public int ArmorId;
+            public int OffhandId;
             public string PortraitFile;
 
             public static Record From(SavedCharacter character)
@@ -288,6 +289,7 @@ namespace Dragoneye.Data
                     ElementPicks = picks,
                     WeaponId = build.WeaponId,
                     ArmorId = build.ArmorId,
+                    OffhandId = build.OffhandId,
                     PortraitFile = ""
                 };
             }
@@ -300,7 +302,8 @@ namespace Dragoneye.Data
                     ClassId = ClassId,
                     Allocation = new StatBlock(Vitality, Speed, Power, Focus),
                     WeaponId = WeaponId,
-                    ArmorId = ArmorId
+                    ArmorId = ArmorId,
+                    OffhandId = OffhandId
                 };
 
                 if (ElementPicks != null)

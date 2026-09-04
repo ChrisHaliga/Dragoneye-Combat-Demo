@@ -24,6 +24,7 @@ namespace Dragoneye.MultiplayerEditor
         const string k_Folder = "Assets/Settings/Characters";
         const string k_CatalogPath = k_Folder + "/ContentCatalog.asset";
         const string k_MenuScene = "Assets/Scenes/MainMenu.unity";
+        const string k_ArenaScene = "Assets/Scenes/Arena.unity";
 
         [MenuItem("ClaudeCode/Set Up Character Content")]
         static void SetUpFromMenu()
@@ -39,10 +40,15 @@ namespace Dragoneye.MultiplayerEditor
         {
             var catalog = BuildContent();
 
-            if (catalog != null)
+            if (catalog == null)
             {
-                WireMenu(catalog);
+                return;
             }
+
+            // The arena first, then the menu: WireMenu leaves the menu scene open, and reopening it
+            // to do the arena afterwards would discard that.
+            WireArena(catalog);
+            WireMenu(catalog);
         }
 
         static ContentCatalog BuildContent()
@@ -90,6 +96,10 @@ namespace Dragoneye.MultiplayerEditor
             var staff = Equipment(14, "Staff", EquipmentSlot.Weapon, 0, 0, 1, 1,
                 "Focuses what you draw from the pool.", ember);
 
+            var shield = Equipment(30, "Shield", EquipmentSlot.Offhand, 1, 0, 0, 0,
+                "Advantage when you are the one being asked a question.",
+                new SkillAsset[0], Passive.DefendAdvantage);
+
             var light = Equipment(20, "Light armour", EquipmentSlot.Armor, 1, 0, 0, 0,
                 "Padding and leather. You will still be quick.");
             var medium = Equipment(21, "Medium armour", EquipmentSlot.Armor, 3, -1, 0, 0,
@@ -112,7 +122,7 @@ namespace Dragoneye.MultiplayerEditor
 
             var equipment = new List<EquipmentAsset>
             {
-                sword, greataxe, bow, dagger, staff, light, medium, heavy
+                sword, greataxe, bow, dagger, staff, light, medium, heavy, shield
             };
 
             var skills = new List<SkillAsset>
@@ -178,7 +188,13 @@ namespace Dragoneye.MultiplayerEditor
 
         static EquipmentAsset Equipment(int id, string name, EquipmentSlot slot,
             int vitality, int speed, int power, int focus, string description,
-            params SkillAsset[] skills)
+            params SkillAsset[] skills) =>
+            Equipment(id, name, slot, vitality, speed, power, focus, description, skills,
+                new Passive[0]);
+
+        static EquipmentAsset Equipment(int id, string name, EquipmentSlot slot,
+            int vitality, int speed, int power, int focus, string description,
+            IReadOnlyList<SkillAsset> skills, params Passive[] passives)
         {
             var asset = Upsert<EquipmentAsset>($"{k_Folder}/{Sanitise(name)}.asset");
             var serialized = new SerializedObject(asset);
@@ -190,6 +206,7 @@ namespace Dragoneye.MultiplayerEditor
 
             WriteStats(serialized.FindProperty("m_Modifiers"), vitality, speed, power, focus);
             WriteList(serialized.FindProperty("m_Skills"), skills);
+            WriteEnums(serialized.FindProperty("m_Passives"), passives);
             serialized.ApplyModifiedPropertiesWithoutUndo();
 
             EditorUtility.SetDirty(asset);
@@ -254,6 +271,23 @@ namespace Dragoneye.MultiplayerEditor
             stats.FindPropertyRelative("Focus").intValue = focus;
         }
 
+        /// <summary>
+        /// Writes enum values by their underlying number.
+        ///
+        /// Not <c>enumValueIndex</c>, which is the position in the declaration rather than the
+        /// value. They agree only for enums numbered from zero with no gaps -- <see cref="Passive"/>
+        /// starts at one, so writing the index there would store the wrong passive or none at all.
+        /// </summary>
+        static void WriteEnums(SerializedProperty list, IReadOnlyList<Passive> values)
+        {
+            list.arraySize = values.Count;
+
+            for (var i = 0; i < values.Count; i++)
+            {
+                list.GetArrayElementAtIndex(i).intValue = (int)values[i];
+            }
+        }
+
         static void WriteList<T>(SerializedProperty list, IReadOnlyList<T> items)
             where T : ScriptableObject
         {
@@ -292,6 +326,30 @@ namespace Dragoneye.MultiplayerEditor
             EditorSceneManager.SaveScene(scene);
 
             Debug.Log("Menu wired to the content catalog.");
+        }
+
+        /// <summary>
+        /// Hands the catalog to the arena, which owns the skill seam while a match is loaded.
+        /// </summary>
+        static void WireArena(ContentCatalog catalog)
+        {
+            var scene = EditorSceneManager.OpenScene(k_ArenaScene, OpenSceneMode.Single);
+            var context = Object.FindAnyObjectByType<Dragoneye.Game.ArenaContext>();
+
+            if (context == null)
+            {
+                Debug.LogError("No ArenaContext in the arena; run the arena rewire first.");
+                return;
+            }
+
+            var serialized = new SerializedObject(context);
+            serialized.FindProperty("m_Content").objectReferenceValue = catalog;
+            serialized.ApplyModifiedPropertiesWithoutUndo();
+
+            EditorSceneManager.MarkSceneDirty(scene);
+            EditorSceneManager.SaveScene(scene);
+
+            Debug.Log("Arena wired to the content catalog.");
         }
 
         static string Sanitise(string name) => name.Replace(" ", string.Empty);

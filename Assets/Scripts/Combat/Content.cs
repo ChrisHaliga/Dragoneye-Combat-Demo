@@ -6,7 +6,10 @@ namespace Dragoneye.Combat
     public enum EquipmentSlot
     {
         Weapon = 0,
-        Armor = 1
+        Armor = 1,
+
+        /// <summary>The other hand. A shield lives here, so carrying one does not cost armour.</summary>
+        Offhand = 2
     }
 
     /// <summary>
@@ -69,13 +72,15 @@ namespace Dragoneye.Combat
     public sealed class EquipmentSpec
     {
         public EquipmentSpec(int id, string name, EquipmentSlot slot, StatBlock modifiers,
-            IReadOnlyList<int> skillIds = null, string description = "")
+            IReadOnlyList<int> skillIds = null, IReadOnlyList<Passive> passives = null,
+            string description = "")
         {
             Id = id;
             Name = name ?? string.Empty;
             Slot = slot;
             Modifiers = modifiers;
             SkillIds = skillIds ?? System.Array.Empty<int>();
+            Passives = passives ?? System.Array.Empty<Passive>();
             Description = description ?? string.Empty;
         }
 
@@ -96,6 +101,15 @@ namespace Dragoneye.Combat
         /// loadout is resolved from what is equipped rather than accumulated as things are worn.
         /// </summary>
         public IReadOnlyList<int> SkillIds { get; }
+
+        /// <summary>
+        /// Persistent effects this item grants while equipped.
+        ///
+        /// Data the rules read, not behaviour the item performs. A shield grants
+        /// <see cref="Passive.DefendAdvantage"/>; the clash asks the loadout whether the defender
+        /// has it, and never learns a shield was involved.
+        /// </summary>
+        public IReadOnlyList<Passive> Passives { get; }
 
         public string Description { get; }
     }

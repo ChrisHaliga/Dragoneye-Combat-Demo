@@ -45,6 +45,8 @@ namespace Dragoneye.Multiplayer
                     return "Your class cannot carry that weapon.";
                 case BuildProblem.ArmorUnknown:
                     return "That armour no longer exists.";
+                case BuildProblem.OffhandUnknown:
+                    return "That offhand item no longer exists.";
                 case BuildProblem.ItemInWrongSlot:
                     return "That item does not fit the slot it is in.";
                 default:

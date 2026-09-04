@@ -17,6 +17,7 @@ namespace Dragoneye.Combat
         WeaponUnknown,
         WeaponNotForClass,
         ArmorUnknown,
+        OffhandUnknown,
         ItemInWrongSlot
     }
 
@@ -174,19 +175,27 @@ namespace Dragoneye.Combat
                 }
             }
 
-            if (build.ArmorId == CharacterBuild.NoEquipment)
+            // Going without armour or an offhand is a real choice, not an omission.
+            CheckSlot(build.ArmorId, EquipmentSlot.Armor, BuildProblem.ArmorUnknown, content, faults);
+            CheckSlot(build.OffhandId, EquipmentSlot.Offhand, BuildProblem.OffhandUnknown,
+                content, faults);
+        }
+
+        static void CheckSlot(int id, EquipmentSlot slot, BuildProblem unknown,
+            IContentIndex content, List<BuildFault> faults)
+        {
+            if (id == CharacterBuild.NoEquipment)
             {
-                // Going without armour is a real choice, not an omission.
                 return;
             }
 
-            if (!content.TryGetEquipment(build.ArmorId, out var armor))
+            if (!content.TryGetEquipment(id, out var spec))
             {
-                faults.Add(new BuildFault(BuildProblem.ArmorUnknown, build.ArmorId));
+                faults.Add(new BuildFault(unknown, id));
             }
-            else if (armor.Slot != EquipmentSlot.Armor)
+            else if (spec.Slot != slot)
             {
-                faults.Add(new BuildFault(BuildProblem.ItemInWrongSlot, build.ArmorId));
+                faults.Add(new BuildFault(BuildProblem.ItemInWrongSlot, id));
             }
         }
     }

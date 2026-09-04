@@ -65,8 +65,10 @@ namespace Dragoneye.Combat
     public sealed class Loadout
     {
         public Loadout(ClassSpec classSpec, StatBlock stats, IReadOnlyList<EquipmentSpec> items,
-            IReadOnlyList<Element> startingPool, IReadOnlyList<SkillSpec> skills = null)
+            IReadOnlyList<Element> startingPool, IReadOnlyList<SkillSpec> skills = null,
+            PassiveSet passives = null)
         {
+            Passives = passives ?? PassiveSet.Empty;
             Class = classSpec;
             Stats = stats;
             Items = items ?? System.Array.Empty<EquipmentSpec>();
@@ -96,6 +98,14 @@ namespace Dragoneye.Combat
         /// skill behind because nothing ever added one to a running total.
         /// </summary>
         public IReadOnlyList<SkillSpec> Skills { get; }
+
+        /// <summary>
+        /// Every passive this creature holds, from whatever granted it.
+        ///
+        /// The clash asks this rather than inspecting the equipment list, so a second source of
+        /// passives later -- a class, a status -- needs no change where they are read.
+        /// </summary>
+        public PassiveSet Passives { get; }
     }
 
     /// <summary>
@@ -120,6 +130,7 @@ namespace Dragoneye.Combat
             var items = new List<EquipmentSpec>();
             Collect(content, build.WeaponId, items);
             Collect(content, build.ArmorId, items);
+            Collect(content, build.OffhandId, items);
 
             var stats = classSpec != null ? classSpec.Baseline : StatBlock.Zero;
             stats += build.Allocation;
@@ -132,7 +143,8 @@ namespace Dragoneye.Combat
             // Equipment may subtract -- heavy armour costs speed -- but never below zero, where the
             // derived numbers stop meaning anything.
             return new Loadout(classSpec, stats.ClampedLow(0), items,
-                new List<Element>(build.ElementPicks), ResolveSkills(classSpec, items, content));
+                new List<Element>(build.ElementPicks), ResolveSkills(classSpec, items, content),
+                ResolvePassives(items));
         }
 
         /// <summary>
@@ -158,6 +170,19 @@ namespace Dragoneye.Combat
             }
 
             return resolved;
+        }
+
+        /// <summary>Every passive on every equipped item, deduplicated by the set itself.</summary>
+        static PassiveSet ResolvePassives(List<EquipmentSpec> items)
+        {
+            var passives = new List<Passive>();
+
+            foreach (var item in items)
+            {
+                passives.AddRange(item.Passives);
+            }
+
+            return new PassiveSet(passives);
         }
 
         static void AddAll(IReadOnlyList<int> ids, ISkillIndex skills, List<SkillSpec> into,

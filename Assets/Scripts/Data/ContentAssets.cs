@@ -127,6 +127,10 @@ namespace Dragoneye.Data
         [SerializeField, Tooltip("Skills this item grants while equipped. Unequipping removes them.")]
         List<SkillAsset> m_Skills = new List<SkillAsset>();
 
+        [SerializeField, Tooltip("Persistent effects this item grants. Read by the rules that care; "
+             + "the item does not perform them.")]
+        List<Passive> m_Passives = new List<Passive>();
+
         public int Id => m_Id;
 
         public string DisplayName => m_DisplayName;
@@ -135,7 +139,7 @@ namespace Dragoneye.Data
 
         public EquipmentSpec ToSpec() =>
             new EquipmentSpec(m_Id, m_DisplayName, m_Slot, m_Modifiers.ToBlock(),
-                ContentIds.SkillIds(m_Skills), m_Description);
+                ContentIds.SkillIds(m_Skills), m_Passives, m_Description);
 
         void OnValidate()
         {

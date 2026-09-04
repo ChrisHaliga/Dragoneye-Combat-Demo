@@ -35,6 +35,7 @@ namespace Dragoneye.Multiplayer
         readonly VisualElement m_Portrait;
         readonly VisualElement m_Stats;
         readonly VisualElement m_Pool;
+        readonly VisualElement m_Skills;
         readonly Button m_Save;
         readonly Button m_Cancel;
 
@@ -73,6 +74,7 @@ namespace Dragoneye.Multiplayer
             m_Portrait = root.Q<VisualElement>("create-portrait");
             m_Stats = root.Q<VisualElement>("create-stats");
             m_Pool = root.Q<VisualElement>("create-pool");
+            m_Skills = root.Q<VisualElement>("create-skills");
             m_Save = root.Q<Button>("create-save-button");
             m_Cancel = root.Q<Button>("create-cancel-button");
 
@@ -158,6 +160,7 @@ namespace Dragoneye.Multiplayer
             m_Form.Add(MenuControls.Heading("3 · Equipment"));
             m_Form.Add(EquipmentField("Weapon", EquipmentSlot.Weapon));
             m_Form.Add(EquipmentField("Armour", EquipmentSlot.Armor));
+            m_Form.Add(EquipmentField("Offhand", EquipmentSlot.Offhand));
         }
 
         VisualElement NameField()
@@ -387,7 +390,7 @@ namespace Dragoneye.Multiplayer
 
             var options = Options(slot);
             var names = new List<string>();
-            var current = slot == EquipmentSlot.Weapon ? m_Build.WeaponId : m_Build.ArmorId;
+            var current = Equipped(slot);
             var index = 0;
 
             for (var i = 0; i < options.Count; i++)
@@ -404,17 +407,7 @@ namespace Dragoneye.Multiplayer
             dropdown.AddToClassList("dropdown");
             dropdown.RegisterValueChangedCallback(_ =>
             {
-                var picked = Id(options[Mathf.Clamp(dropdown.index, 0, options.Count - 1)]);
-
-                if (slot == EquipmentSlot.Weapon)
-                {
-                    m_Build.WeaponId = picked;
-                }
-                else
-                {
-                    m_Build.ArmorId = picked;
-                }
-
+                Equip(slot, Id(options[Mathf.Clamp(dropdown.index, 0, options.Count - 1)]));
                 Refresh();
             });
 
@@ -446,6 +439,26 @@ namespace Dragoneye.Multiplayer
             }
 
             return options;
+        }
+
+        int Equipped(EquipmentSlot slot)
+        {
+            switch (slot)
+            {
+                case EquipmentSlot.Weapon: return m_Build.WeaponId;
+                case EquipmentSlot.Armor: return m_Build.ArmorId;
+                default: return m_Build.OffhandId;
+            }
+        }
+
+        void Equip(EquipmentSlot slot, int id)
+        {
+            switch (slot)
+            {
+                case EquipmentSlot.Weapon: m_Build.WeaponId = id; break;
+                case EquipmentSlot.Armor: m_Build.ArmorId = id; break;
+                default: m_Build.OffhandId = id; break;
+            }
         }
 
         static int Id(EquipmentSpec spec) => spec == null ? CharacterBuild.NoEquipment : spec.Id;
@@ -567,6 +580,7 @@ namespace Dragoneye.Multiplayer
             }
 
             RefreshPool(rules);
+            RefreshSkills(loadout);
         }
 
         void RefreshPortrait()
@@ -610,6 +624,56 @@ namespace Dragoneye.Multiplayer
                 }
 
                 m_Pool.Add(chip);
+            }
+        }
+
+        /// <summary>
+        /// The skills this build resolves to, and any passives it holds.
+        ///
+        /// DE-003 asks for a creature's usable skills to be visibly the sum of class and
+        /// equipment. Showing the resolved list rather than the class list is what makes that
+        /// visible: swap the weapon and the list changes under the player's hand.
+        /// </summary>
+        void RefreshSkills(Loadout loadout)
+        {
+            if (m_Skills == null)
+            {
+                return;
+            }
+
+            m_Skills.Clear();
+
+            if (loadout.Skills.Count == 0)
+            {
+                var none = new Label("Nothing equipped grants a skill.");
+                none.AddToClassList("skill-line--none");
+                m_Skills.Add(none);
+            }
+
+            foreach (var skill in loadout.Skills)
+            {
+                var line = new VisualElement();
+                line.AddToClassList("skill-line");
+
+                var name = new Label(skill.Name);
+                name.AddToClassList("skill-line__name");
+
+                var cost = new Label(skill.ElementCost > 0
+                    ? $"{skill.ApCost} AP · {skill.ElementCost} {ElementInfo.NameOf(skill.Element)}"
+                    : $"{skill.ApCost} AP");
+                cost.AddToClassList("skill-line__cost");
+                cost.style.color = ElementPalette.ForElement(skill.Element);
+
+                line.Add(name);
+                line.Add(cost);
+                m_Skills.Add(line);
+            }
+
+            if (loadout.Passives.Has(Passive.DefendAdvantage))
+            {
+                var passive = new Label("Advantage when defending");
+                passive.AddToClassList("passive-line");
+                m_Skills.Add(passive);
             }
         }
 

@@ -34,6 +34,8 @@ namespace Dragoneye.Combat
 
         public int ArmorId = NoEquipment;
 
+        public int OffhandId = NoEquipment;
+
         public CharacterBuild() { }
 
         public CharacterBuild(CharacterBuild other)
@@ -48,6 +50,7 @@ namespace Dragoneye.Combat
             Allocation = other.Allocation;
             WeaponId = other.WeaponId;
             ArmorId = other.ArmorId;
+            OffhandId = other.OffhandId;
             ElementPicks.AddRange(other.ElementPicks);
         }
 

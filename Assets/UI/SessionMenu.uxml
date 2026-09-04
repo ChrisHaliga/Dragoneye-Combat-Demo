@@ -36,6 +36,8 @@
                     <ui:VisualElement name="create-stats" class="create-stats" />
                     <ui:Label text="Starting pool" class="section-heading" />
                     <ui:VisualElement name="create-pool" class="create-pool" />
+                    <ui:Label text="Skills" class="section-heading" />
+                    <ui:VisualElement name="create-skills" class="create-skills" />
                 </ui:VisualElement>
             </ui:VisualElement>
 
