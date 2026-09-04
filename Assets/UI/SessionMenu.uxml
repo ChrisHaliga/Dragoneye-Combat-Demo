@@ -2,193 +2,273 @@
     <ui:VisualElement name="root" class="root">
         <Style src="SessionMenu.uss" />
 
-        <ui:VisualElement name="start-panel" class="start">
-            <ui:Label text="DRAGONEYE" class="start__title" />
-            <ui:Label text="Press any key" class="start__prompt" />
-        </ui:VisualElement>
+        <!-- Every screen fills the window and is stacked on the same spot. Two archetypes: a stage,
+             which uses the whole frame, and a dialog, which centres a plate in it. Nothing is a
+             420px card floating in the middle of an empty screen any more. -->
 
-        <ui:VisualElement name="characters-panel" class="panel panel--wide is-hidden">
-            <ui:Label text="Your characters" class="title" />
-            <ui:Label name="characters-note" text="" class="subtitle" />
-
-            <ui:ScrollView name="character-list" class="character-list" />
-
-            <ui:VisualElement class="button-row">
-                <ui:Button name="character-delete-button" text="Delete" class="button button--ghost" />
-                <ui:Button name="character-edit-button" text="Edit" class="button button--ghost" />
-                <ui:Button name="character-new-button" text="New character" class="button" />
-                <ui:Button name="character-play-button" text="Play" class="button button--primary" />
+        <ui:VisualElement name="start-panel" class="screen screen--centre">
+            <ui:VisualElement class="start">
+                <ui:Label text="DRAGONEYE" class="start__title" />
+                <ui:VisualElement class="rule rule--long" />
+                <ui:Label text="C O M B A T" class="start__sub" />
+                <ui:Label name="start-prompt" text="PRESS ANY KEY" class="start__prompt" />
             </ui:VisualElement>
         </ui:VisualElement>
 
-        <ui:VisualElement name="create-panel" class="panel panel--create is-hidden">
-            <ui:Label name="create-title" text="New character" class="title" />
+        <!-- ---------- home ---------- -->
 
-            <ui:VisualElement class="create-columns">
-                <ui:ScrollView name="create-form" class="create-form" />
+        <ui:VisualElement name="home-panel" class="screen stage is-hidden">
+            <ui:VisualElement class="home">
+                <ui:VisualElement class="home__left">
+                    <ui:Label text="DRAGONEYE" class="home__mark" />
+                    <ui:VisualElement class="rule" />
 
-                <ui:VisualElement name="create-summary" class="create-summary">
-                    <ui:VisualElement name="create-portrait" class="create-portrait">
-                        <ui:Label name="create-portrait-initial" text="?" class="create-portrait__initial" />
+                    <ui:VisualElement class="menu-stack">
+                        <ui:Button name="singleplayer-button" text="Singleplayer" class="btn btn--menu btn--primary" />
+                        <ui:Button name="multiplayer-button" text="Multiplayer" class="btn btn--menu" />
+                        <ui:Button name="test-mode-button" text="Test Mode" class="btn btn--menu" />
+                        <ui:Button name="settings-button" text="Settings" class="btn btn--menu" />
+                        <ui:Button name="quit-button" text="Quit" class="btn btn--menu btn--ghost" />
                     </ui:VisualElement>
-                    <ui:Label name="create-summary-name" text="Unnamed" class="create-summary__name" />
-                    <ui:Label name="create-summary-class" text="" class="create-summary__class" />
-                    <ui:VisualElement name="create-stats" class="create-stats" />
-                    <ui:Label text="Starting pool" class="section-heading" />
-                    <ui:VisualElement name="create-pool" class="create-pool" />
-                    <ui:Label text="Skills" class="section-heading" />
-                    <ui:VisualElement name="create-skills" class="create-skills" />
+                </ui:VisualElement>
+
+                <ui:VisualElement class="home__right">
+                    <ui:VisualElement name="home-hero" class="hero">
+                        <ui:Label text="PLAYING AS" class="eyebrow" />
+                        <ui:Label name="playing-as-label" text="" class="hero__name" />
+                        <ui:VisualElement name="home-hero-body" class="hero__body" />
+                        <ui:Button name="change-character-button" text="Change character" class="btn btn--ghost btn--compact" />
+                    </ui:VisualElement>
+                </ui:VisualElement>
+            </ui:VisualElement>
+        </ui:VisualElement>
+
+        <!-- ---------- characters ---------- -->
+
+        <ui:VisualElement name="characters-panel" class="screen stage is-hidden">
+            <ui:VisualElement class="stage__head">
+                <ui:Label text="YOUR CHARACTERS" class="stage__title" />
+                <ui:Label name="characters-note" text="" class="stage__note" />
+            </ui:VisualElement>
+            <ui:VisualElement class="rule rule--head" />
+
+            <ui:VisualElement class="stage__body">
+                <ui:VisualElement class="rail">
+                    <ui:ScrollView name="character-list" class="rail__list" />
+                    <ui:Button name="character-new-button" text="New character" class="btn rail__new" />
+                </ui:VisualElement>
+
+                <ui:VisualElement name="character-sheet" class="sheet" />
+            </ui:VisualElement>
+
+            <ui:VisualElement class="stage__foot">
+                <ui:Button name="character-delete-button" text="Delete" class="btn btn--ghost" />
+                <ui:VisualElement class="spacer" />
+                <ui:Button name="character-edit-button" text="Edit" class="btn" />
+                <ui:Button name="character-play-button" text="Play" class="btn btn--primary btn--wide" />
+            </ui:VisualElement>
+        </ui:VisualElement>
+
+        <!-- ---------- creator ---------- -->
+
+        <ui:VisualElement name="create-panel" class="screen stage is-hidden">
+            <ui:VisualElement class="stage__head">
+                <ui:Label name="create-title" text="NEW CHARACTER" class="stage__title" />
+                <ui:Label name="create-faults" text="" class="stage__fault" />
+            </ui:VisualElement>
+            <ui:VisualElement class="rule rule--head" />
+
+            <ui:VisualElement class="stage__body">
+                <ui:VisualElement class="col col--identity">
+                    <ui:VisualElement name="create-portrait" class="portrait portrait--large">
+                        <ui:Label name="create-portrait-initial" text="?" class="portrait__initial" />
+                    </ui:VisualElement>
+                    <ui:VisualElement name="create-portrait-controls" class="portrait__controls" />
+                    <ui:VisualElement name="create-identity" class="group" />
+                </ui:VisualElement>
+
+                <ui:VisualElement class="col col--attributes">
+                    <ui:Label text="ATTRIBUTES" class="col__title" />
+                    <ui:Label name="create-budget" text="" class="budget" />
+                    <ui:VisualElement name="create-attributes" class="group" />
+                </ui:VisualElement>
+
+                <ui:VisualElement class="col col--kit">
+                    <ui:Label text="STARTING ELEMENTS" class="col__title" />
+                    <ui:VisualElement name="create-elements" class="group" />
+                    <ui:Label text="EQUIPMENT" class="col__title col__title--spaced" />
+                    <ui:VisualElement name="create-equipment" class="group" />
+                </ui:VisualElement>
+
+                <ui:VisualElement class="col col--sheet">
+                    <ui:Label name="create-summary-name" text="Unnamed" class="sheet__name" />
+                    <ui:Label name="create-summary-class" text="" class="sheet__class" />
+                    <ui:VisualElement name="create-stats" class="statline" />
+                    <ui:VisualElement name="create-attrs" class="attr-grid" />
+                    <ui:Label text="POOL" class="col__title col__title--spaced" />
+                    <ui:VisualElement name="create-pool" class="gem-row" />
+                    <ui:Label text="SKILLS" class="col__title col__title--spaced" />
+                    <ui:VisualElement name="create-skills" class="group" />
                 </ui:VisualElement>
             </ui:VisualElement>
 
-            <ui:Label name="create-faults" text="" class="create-faults" />
-
-            <ui:VisualElement class="button-row">
-                <ui:Button name="create-cancel-button" text="Cancel" class="button button--ghost" />
-                <ui:Button name="create-save-button" text="Save character" class="button button--primary" />
+            <ui:VisualElement class="stage__foot">
+                <ui:Button name="create-cancel-button" text="Cancel" class="btn btn--ghost" />
+                <ui:VisualElement class="spacer" />
+                <ui:Button name="create-save-button" text="Save character" class="btn btn--primary btn--wide" />
             </ui:VisualElement>
         </ui:VisualElement>
 
-        <ui:VisualElement name="home-panel" class="panel is-hidden">
-            <ui:Label text="Dragoneye Combat" class="title" />
+        <!-- ---------- settings ---------- -->
 
-            <ui:VisualElement class="playing-as">
-                <ui:Label name="playing-as-label" text="" class="playing-as__name" />
-                <ui:Button name="change-character-button" text="Change" class="button button--ghost button--compact" />
+        <ui:VisualElement name="settings-panel" class="screen stage is-hidden">
+            <ui:VisualElement class="stage__head">
+                <ui:Label text="SETTINGS" class="stage__title" />
+            </ui:VisualElement>
+            <ui:VisualElement class="rule rule--head" />
+
+            <ui:VisualElement class="stage__body stage__body--centred">
+                <ui:VisualElement class="col col--settings">
+                    <ui:Label text="DISPLAY" class="col__title" />
+
+                    <ui:VisualElement class="setting-row">
+                        <ui:Label text="Window mode" class="setting-row__label" />
+                        <ui:DropdownField name="mode-dropdown" class="setting-row__control dropdown" />
+                    </ui:VisualElement>
+
+                    <ui:VisualElement class="setting-row">
+                        <ui:Label text="Monitor" class="setting-row__label" />
+                        <ui:DropdownField name="monitor-dropdown" class="setting-row__control dropdown" />
+                    </ui:VisualElement>
+
+                    <ui:VisualElement class="setting-row">
+                        <ui:Label text="Resolution" class="setting-row__label" />
+                        <ui:DropdownField name="resolution-dropdown" class="setting-row__control dropdown" />
+                    </ui:VisualElement>
+
+                    <ui:Label name="display-note" text="" class="setting-note" />
+                </ui:VisualElement>
+
+                <ui:VisualElement class="col col--settings">
+                    <ui:Label text="CAMERA" class="col__title" />
+
+                    <ui:VisualElement class="setting-row">
+                        <ui:Label text="Pan speed" class="setting-row__label" />
+                        <ui:Slider name="pan-slider" low-value="0.25" high-value="3" class="setting-row__control slider" />
+                        <ui:Label name="pan-value" text="1.00x" class="setting-row__value" />
+                    </ui:VisualElement>
+
+                    <ui:VisualElement class="setting-row">
+                        <ui:Label text="Zoom speed" class="setting-row__label" />
+                        <ui:Slider name="zoom-slider" low-value="0.25" high-value="3" class="setting-row__control slider" />
+                        <ui:Label name="zoom-value" text="1.00x" class="setting-row__value" />
+                    </ui:VisualElement>
+
+                    <ui:VisualElement class="setting-row">
+                        <ui:Label text="Orbit speed" class="setting-row__label" />
+                        <ui:Slider name="orbit-slider" low-value="0.25" high-value="3" class="setting-row__control slider" />
+                        <ui:Label name="orbit-value" text="1.00x" class="setting-row__value" />
+                    </ui:VisualElement>
+
+                    <ui:VisualElement class="setting-row">
+                        <ui:Label text="Invert orbit drag" class="setting-row__label" />
+                        <ui:Toggle name="invert-toggle" class="setting-row__control" />
+                    </ui:VisualElement>
+                </ui:VisualElement>
             </ui:VisualElement>
 
-            <ui:VisualElement class="menu-stack">
-                <ui:Button name="singleplayer-button" text="Singleplayer" class="button button--primary button--menu" />
-                <ui:Button name="multiplayer-button" text="Multiplayer" class="button button--menu" />
-                <ui:Button name="test-mode-button" text="Test Mode" class="button button--menu" />
-                <ui:Button name="settings-button" text="Settings" class="button button--menu" />
-                <ui:Button name="quit-button" text="Quit" class="button button--ghost button--menu" />
+            <ui:VisualElement class="stage__foot">
+                <ui:Button name="settings-reset-button" text="Reset to defaults" class="btn btn--ghost" />
+                <ui:VisualElement class="spacer" />
+                <ui:Button name="settings-back-button" text="Back" class="btn btn--primary btn--wide" />
             </ui:VisualElement>
         </ui:VisualElement>
 
-        <ui:VisualElement name="solo-panel" class="panel is-hidden">
-            <ui:Label text="Singleplayer" class="title" />
-            <ui:Label text="Pick your side and claim your creatures, then start." class="subtitle" />
+        <!-- ---------- dialogs ---------- -->
 
-            <ui:Button name="solo-start-button" text="Start match" class="button button--primary" />
-            <ui:Button name="solo-back-button" text="Back" class="button button--ghost back-button" />
+        <ui:VisualElement name="solo-panel" class="screen screen--centre is-hidden">
+            <ui:VisualElement class="dialog">
+                <ui:Label text="SINGLEPLAYER" class="dialog__title" />
+                <ui:VisualElement class="rule" />
+                <ui:Label text="Pick your side and claim your creatures, then start." class="dialog__note" />
+
+                <ui:Button name="solo-start-button" text="Start match" class="btn btn--primary btn--block" />
+                <ui:Button name="solo-back-button" text="Back" class="btn btn--ghost btn--block" />
+            </ui:VisualElement>
         </ui:VisualElement>
 
-        <ui:VisualElement name="multiplayer-panel" class="panel is-hidden">
-            <ui:Label text="Multiplayer" class="title" />
-            <ui:Label text="Play over the internet with a join code." class="subtitle" />
+        <ui:VisualElement name="multiplayer-panel" class="screen screen--centre is-hidden">
+            <ui:VisualElement class="dialog">
+                <ui:Label text="MULTIPLAYER" class="dialog__title" />
+                <ui:VisualElement class="rule" />
+                <ui:Label text="Play over the internet with a join code." class="dialog__note" />
 
-            <ui:VisualElement class="menu-stack">
-                <ui:Button name="host-menu-button" text="Host a game" class="button button--primary button--menu" />
-                <ui:Button name="join-menu-button" text="Join a game" class="button button--menu" />
+                <ui:Button name="host-menu-button" text="Host a game" class="btn btn--primary btn--block" />
+                <ui:Button name="join-menu-button" text="Join a game" class="btn btn--block" />
+                <ui:Button name="multiplayer-back-button" text="Back" class="btn btn--ghost btn--block" />
             </ui:VisualElement>
-
-            <ui:Button name="multiplayer-back-button" text="Back" class="button button--ghost back-button" />
         </ui:VisualElement>
 
-        <ui:VisualElement name="host-panel" class="panel is-hidden">
-            <ui:Label text="Host a game" class="title" />
-            <ui:Label text="You will get a join code to share once the lobby opens." class="subtitle" />
+        <ui:VisualElement name="host-panel" class="screen screen--centre is-hidden">
+            <ui:VisualElement class="dialog">
+                <ui:Label text="HOST A GAME" class="dialog__title" />
+                <ui:VisualElement class="rule" />
+                <ui:Label text="You will get a join code to share once the lobby opens." class="dialog__note" />
 
-            <ui:VisualElement class="field-group">
-                <ui:Label text="Your name" class="field-label" />
-                <ui:TextField name="host-name-field" max-length="20" class="text-input" />
+                <ui:VisualElement class="field-group">
+                    <ui:Label text="Your name" class="field-label" />
+                    <ui:TextField name="host-name-field" max-length="20" class="text-input" />
+                </ui:VisualElement>
+
+                <ui:Button name="host-button" text="Open lobby" class="btn btn--primary btn--block" />
+                <ui:Button name="host-back-button" text="Back" class="btn btn--ghost btn--block" />
             </ui:VisualElement>
-
-            <ui:Button name="host-button" text="Open lobby" class="button button--primary" />
-            <ui:Button name="host-back-button" text="Back" class="button button--ghost back-button" />
         </ui:VisualElement>
 
-        <ui:VisualElement name="join-panel" class="panel is-hidden">
-            <ui:Label text="Join a game" class="title" />
-            <ui:Label text="Ask the host for their six-character join code." class="subtitle" />
+        <ui:VisualElement name="join-panel" class="screen screen--centre is-hidden">
+            <ui:VisualElement class="dialog">
+                <ui:Label text="JOIN A GAME" class="dialog__title" />
+                <ui:VisualElement class="rule" />
+                <ui:Label text="Ask the host for their six-character join code." class="dialog__note" />
 
-            <ui:VisualElement class="field-group">
-                <ui:Label text="Your name" class="field-label" />
-                <ui:TextField name="join-name-field" max-length="20" class="text-input" />
-            </ui:VisualElement>
+                <ui:VisualElement class="field-group">
+                    <ui:Label text="Your name" class="field-label" />
+                    <ui:TextField name="join-name-field" max-length="20" class="text-input" />
+                </ui:VisualElement>
 
-            <ui:VisualElement class="field-group">
-                <ui:Label text="Join code" class="field-label" />
-                <ui:TextField name="code-field" max-length="6" class="text-input text-input--code" />
-            </ui:VisualElement>
-
-            <ui:Button name="join-button" text="Join game" class="button button--primary" />
-            <ui:Button name="join-back-button" text="Back" class="button button--ghost back-button" />
-        </ui:VisualElement>
-
-        <ui:VisualElement name="lobby-panel" class="panel is-hidden">
-            <ui:Label text="Lobby" class="title" />
-
-            <ui:VisualElement class="code-card">
-                <ui:VisualElement class="code-card__text">
+                <ui:VisualElement class="field-group">
                     <ui:Label text="Join code" class="field-label" />
-                    <ui:Label name="code-label" text="------" class="code-card__code" />
+                    <ui:TextField name="code-field" max-length="6" class="text-input text-input--code" />
                 </ui:VisualElement>
-                <ui:Button name="copy-button" text="Copy" class="button button--ghost button--compact" />
-            </ui:VisualElement>
 
-            <ui:Label name="roster-label" text="Players" class="field-label" />
-            <ui:ScrollView name="player-list" class="player-list" />
-
-            <ui:Toggle name="ready-toggle" text="I'm ready" class="ready-toggle" />
-
-            <ui:VisualElement class="button-row">
-                <ui:Button name="leave-button" text="Leave" class="button button--ghost" />
-                <ui:Button name="start-button" text="Start match" class="button button--primary" />
+                <ui:Button name="join-button" text="Join game" class="btn btn--primary btn--block" />
+                <ui:Button name="join-back-button" text="Back" class="btn btn--ghost btn--block" />
             </ui:VisualElement>
         </ui:VisualElement>
 
-        <ui:VisualElement name="settings-panel" class="panel panel--wide is-hidden">
-            <ui:Label text="Settings" class="title" />
+        <ui:VisualElement name="lobby-panel" class="screen screen--centre is-hidden">
+            <ui:VisualElement class="dialog dialog--wide">
+                <ui:Label text="LOBBY" class="dialog__title" />
+                <ui:VisualElement class="rule" />
 
-            <ui:Label text="Display" class="section-heading" />
+                <ui:VisualElement class="code-card">
+                    <ui:VisualElement>
+                        <ui:Label text="JOIN CODE" class="eyebrow" />
+                        <ui:Label name="code-label" text="------" class="code-card__code" />
+                    </ui:VisualElement>
+                    <ui:Button name="copy-button" text="Copy" class="btn btn--ghost btn--compact" />
+                </ui:VisualElement>
 
-            <ui:VisualElement class="setting-row">
-                <ui:Label text="Window mode" class="setting-row__label" />
-                <ui:DropdownField name="mode-dropdown" class="setting-row__control dropdown" />
-            </ui:VisualElement>
+                <ui:Label name="roster-label" text="PLAYERS" class="eyebrow" />
+                <ui:ScrollView name="player-list" class="player-list" />
 
-            <ui:VisualElement class="setting-row">
-                <ui:Label text="Monitor" class="setting-row__label" />
-                <ui:DropdownField name="monitor-dropdown" class="setting-row__control dropdown" />
-            </ui:VisualElement>
+                <ui:Toggle name="ready-toggle" text="I am ready" class="ready-toggle" />
 
-            <ui:VisualElement class="setting-row">
-                <ui:Label text="Resolution" class="setting-row__label" />
-                <ui:DropdownField name="resolution-dropdown" class="setting-row__control dropdown" />
-            </ui:VisualElement>
-
-            <ui:Label name="display-note" text="" class="setting-note" />
-
-            <ui:Label text="Controls" class="section-heading" />
-
-            <ui:VisualElement class="setting-row">
-                <ui:Label text="Pan speed" class="setting-row__label" />
-                <ui:Slider name="pan-slider" low-value="0.25" high-value="3" class="setting-row__control slider" />
-                <ui:Label name="pan-value" text="1.00x" class="setting-row__value" />
-            </ui:VisualElement>
-
-            <ui:VisualElement class="setting-row">
-                <ui:Label text="Zoom speed" class="setting-row__label" />
-                <ui:Slider name="zoom-slider" low-value="0.25" high-value="3" class="setting-row__control slider" />
-                <ui:Label name="zoom-value" text="1.00x" class="setting-row__value" />
-            </ui:VisualElement>
-
-            <ui:VisualElement class="setting-row">
-                <ui:Label text="Orbit speed" class="setting-row__label" />
-                <ui:Slider name="orbit-slider" low-value="0.25" high-value="3" class="setting-row__control slider" />
-                <ui:Label name="orbit-value" text="1.00x" class="setting-row__value" />
-            </ui:VisualElement>
-
-            <ui:VisualElement class="setting-row">
-                <ui:Label text="Invert orbit drag" class="setting-row__label" />
-                <ui:Toggle name="invert-toggle" class="setting-row__control" />
-            </ui:VisualElement>
-
-            <ui:VisualElement class="button-row">
-                <ui:Button name="settings-reset-button" text="Reset to defaults" class="button button--ghost" />
-                <ui:Button name="settings-back-button" text="Back" class="button button--primary" />
+                <ui:VisualElement class="stage__foot stage__foot--flush">
+                    <ui:Button name="leave-button" text="Leave" class="btn btn--ghost" />
+                    <ui:VisualElement class="spacer" />
+                    <ui:Button name="start-button" text="Start match" class="btn btn--primary btn--wide" />
+                </ui:VisualElement>
             </ui:VisualElement>
         </ui:VisualElement>
 

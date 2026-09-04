@@ -32,6 +32,7 @@ namespace Dragoneye.MultiplayerEditor
             //   2. the turn system wires the director and bar onto those
             //   3. the menu gains MainMenuUI
             //   4. content is authored and handed to it
+            Step("UI art", UiArtSetup.Run);
             Step("Arena rewire", AuditRewireSetup.Run);
             Step("Turn system", TurnSystemSetup.Run);
             Step("Main menu", MainMenuSetup.Run);

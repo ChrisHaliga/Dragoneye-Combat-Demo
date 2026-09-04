@@ -30,7 +30,13 @@ namespace Dragoneye.Multiplayer
         readonly ContentCatalog m_Content;
         readonly Action m_OnDone;
 
-        readonly ScrollView m_Form;
+        readonly VisualElement m_Identity;
+        readonly VisualElement m_Attributes;
+        readonly VisualElement m_Elements;
+        readonly VisualElement m_Equipment;
+        readonly VisualElement m_PortraitControls;
+        readonly Label m_Budget;
+        readonly VisualElement m_Attrs;
         readonly Label m_Title;
         readonly Label m_Faults;
         readonly Label m_SummaryName;
@@ -50,7 +56,6 @@ namespace Dragoneye.Multiplayer
         readonly Dictionary<Attribute, Button> m_AttributePlus = new Dictionary<Attribute, Button>();
 
         CharacterBuild m_Build;
-        Label m_Budget;
         string m_EditingId;
 
         // What the summary draws and what gets saved. May be the store's texture (when editing) or
@@ -69,7 +74,13 @@ namespace Dragoneye.Multiplayer
             m_Content = content;
             m_OnDone = onDone;
 
-            m_Form = root.Q<ScrollView>("create-form");
+            m_Identity = root.Q<VisualElement>("create-identity");
+            m_Attributes = root.Q<VisualElement>("create-attributes");
+            m_Elements = root.Q<VisualElement>("create-elements");
+            m_Equipment = root.Q<VisualElement>("create-equipment");
+            m_PortraitControls = root.Q<VisualElement>("create-portrait-controls");
+            m_Budget = root.Q<Label>("create-budget");
+            m_Attrs = root.Q<VisualElement>("create-attrs");
             m_Title = root.Q<Label>("create-title");
             m_Faults = root.Q<Label>("create-faults");
             m_SummaryName = root.Q<Label>("create-summary-name");
@@ -82,7 +93,9 @@ namespace Dragoneye.Multiplayer
             m_Save = root.Q<Button>("create-save-button");
             m_Cancel = root.Q<Button>("create-cancel-button");
 
-            IsBound = m_Form != null && m_Title != null && m_Faults != null && m_SummaryName != null
+            IsBound = m_Identity != null && m_Attributes != null && m_Elements != null
+                && m_Equipment != null && m_PortraitControls != null && m_Budget != null
+                && m_Attrs != null && m_Title != null && m_Faults != null && m_SummaryName != null
                 && m_SummaryClass != null && m_PortraitInitial != null && m_Portrait != null
                 && m_Stats != null && m_Pool != null && m_Save != null && m_Cancel != null;
 
@@ -109,14 +122,14 @@ namespace Dragoneye.Multiplayer
 
             if (classes.Count == 0)
             {
-                m_Title.text = "No classes are authored";
-                m_Form.Clear();
+                m_Title.text = "NO CLASSES ARE AUTHORED";
+                m_Identity.Clear();
                 m_Save.SetEnabled(false);
                 return;
             }
 
             m_EditingId = existing != null ? existing.Id : null;
-            m_Title.text = existing != null ? "Edit character" : "New character";
+            m_Title.text = existing != null ? "EDIT CHARACTER" : "NEW CHARACTER";
 
             m_Build = existing != null
                 ? new CharacterBuild(existing.Build)
@@ -132,40 +145,46 @@ namespace Dragoneye.Multiplayer
         // ---------- form ----------
 
         /// <summary>
-        /// Rebuilds the whole form.
+        /// Fills the four columns.
         ///
         /// Called when the class changes as well as on open, because the weapon list is class
         /// specific and a dropdown holding another class's weapons is worse than a rebuild that
         /// costs nothing on a screen this size.
+        ///
+        /// Everything is placed into a column rather than appended to one scrolling form. A screen
+        /// with a scrollbar down the middle of it is a web page; a character sheet fits.
         /// </summary>
         void BuildForm()
         {
-            m_Form.Clear();
+            m_Identity.Clear();
+            m_Attributes.Clear();
+            m_Elements.Clear();
+            m_Equipment.Clear();
+            m_PortraitControls.Clear();
 
-            m_Form.Add(MenuControls.Heading("1 · Identity"));
-            m_Form.Add(NameField());
-            m_Form.Add(SpeciesField());
-            m_Form.Add(ClassField());
-            m_Form.Add(MenuControls.Heading("Attributes"));
-            m_Form.Add(BudgetLine());
+            m_Identity.Add(NameField());
+            m_Identity.Add(SpeciesField());
+            m_Identity.Add(ClassField());
 
             foreach (var stat in AttributeInfo.All)
             {
-                m_Form.Add(AttributeRow(stat));
+                m_Attributes.Add(AttributeRow(stat));
             }
 
-            m_Form.Add(MenuControls.Heading("Elements"));
-            m_Form.Add(MenuControls.Note("Any spread totalling your level. This is what you can "
-                + "answer with, and Take a Breath is the only way to get one back mid-fight."));
-            m_Form.Add(ElementPicker());
+            m_ElementValues.Clear();
+            m_ElementMinus.Clear();
+            m_ElementPlus.Clear();
 
-            m_Form.Add(MenuControls.Heading("2 · Portrait"));
-            m_Form.Add(PortraitRow());
+            foreach (var element in ElementInfo.All)
+            {
+                m_Elements.Add(ElementRow(element));
+            }
 
-            m_Form.Add(MenuControls.Heading("3 · Equipment"));
-            m_Form.Add(EquipmentField("Weapon", EquipmentSlot.Weapon));
-            m_Form.Add(EquipmentField("Armour", EquipmentSlot.Armor));
-            m_Form.Add(EquipmentField("Offhand", EquipmentSlot.Offhand));
+            m_Equipment.Add(EquipmentField("Weapon", EquipmentSlot.Weapon));
+            m_Equipment.Add(EquipmentField("Armour", EquipmentSlot.Armor));
+            m_Equipment.Add(EquipmentField("Offhand", EquipmentSlot.Offhand));
+
+            BuildPortraitControls();
         }
 
         VisualElement NameField()
@@ -286,13 +305,6 @@ namespace Dragoneye.Multiplayer
             return group;
         }
 
-        VisualElement BudgetLine()
-        {
-            m_Budget = new Label();
-            m_Budget.AddToClassList("budget-line");
-            return m_Budget;
-        }
-
         VisualElement AttributeRow(Attribute stat)
         {
             var row = new VisualElement();
@@ -329,52 +341,43 @@ namespace Dragoneye.Multiplayer
             Refresh();
         }
 
-        /// <summary>
-        /// The starting pool as a spread rather than a list of picks.
-        ///
-        /// Any combination that totals the level is legal, so four of one element and one each of
-        /// four others are both valid at level four. Stepping each element up and down is the only
-        /// control that makes that obvious -- a pick list would imply an order that does not exist.
-        /// </summary>
-        VisualElement ElementPicker()
-        {
-            var group = new VisualElement();
-
-            foreach (var element in ElementInfo.All)
-            {
-                group.Add(ElementRow(element));
-            }
-
-            return group;
-        }
+        readonly Dictionary<Element, VisualElement> m_ElementRows =
+            new Dictionary<Element, VisualElement>();
 
         readonly Dictionary<Element, Label> m_ElementValues = new Dictionary<Element, Label>();
         readonly Dictionary<Element, Button> m_ElementMinus = new Dictionary<Element, Button>();
         readonly Dictionary<Element, Button> m_ElementPlus = new Dictionary<Element, Button>();
 
+        /// <summary>
+        /// One element, its gem lit by how much of it is held.
+        ///
+        /// A gem rather than a coloured word: a pool is a hand of resources a player counts at a
+        /// glance mid-fight, and seven colour-coded labels read as a legend instead.
+        /// </summary>
         VisualElement ElementRow(Element element)
         {
             var row = new VisualElement();
-            row.AddToClassList("alloc-row");
+            row.AddToClassList("element-row");
 
-            var label = new Label(ElementInfo.NameOf(element));
-            label.AddToClassList("alloc-row__label");
-            label.style.color = ElementPalette.ForElement(element);
+            var gem = new VisualElement();
+            gem.AddToClassList("element-row__gem");
+            gem.style.unityBackgroundImageTintColor = ElementPalette.ForElement(element);
+            row.Add(gem);
+
+            var label = new Label(ElementInfo.NameOf(element).ToUpperInvariant());
+            label.AddToClassList("element-row__name");
             row.Add(label);
-
-            var spacer = new VisualElement();
-            spacer.AddToClassList("alloc-row__effect");
-            row.Add(spacer);
 
             var minus = MenuControls.StepButton("-", () => AdjustPool(element, -1));
             var value = new Label();
-            value.AddToClassList("alloc-row__value");
+            value.AddToClassList("element-row__value");
             var plus = MenuControls.StepButton("+", () => AdjustPool(element, +1));
 
             row.Add(minus);
             row.Add(value);
             row.Add(plus);
 
+            m_ElementRows[element] = row;
             m_ElementValues[element] = value;
             m_ElementMinus[element] = minus;
             m_ElementPlus[element] = plus;
@@ -389,21 +392,25 @@ namespace Dragoneye.Multiplayer
             Refresh();
         }
 
-        VisualElement PortraitRow()
+        /// <summary>
+        /// The controls under the portrait: a path, a browse button where one is available, and a
+        /// way to take it off again.
+        ///
+        /// Sits under the picture rather than in a numbered step, because it is the picture's
+        /// controls and putting them anywhere else was what made this screen read as a web form.
+        /// </summary>
+        void BuildPortraitControls()
         {
-            var group = new VisualElement();
-
-            var row = new VisualElement();
-            row.AddToClassList("portrait-row");
-
             var path = new TextField();
             path.AddToClassList("text-input");
             path.RegisterValueChangedCallback(evt => LoadPortrait(evt.newValue));
-            row.Add(path);
+
+            var row = new VisualElement();
+            row.AddToClassList("portrait__controls");
 
             if (PortraitBrowser.IsAvailable)
             {
-                row.Add(MenuControls.TextButton("Browse", "button button--compact", () =>
+                row.Add(MenuControls.TextButton("Browse", "btn btn--compact", () =>
                 {
                     if (PortraitBrowser.TryPick(out var picked))
                     {
@@ -412,23 +419,20 @@ namespace Dragoneye.Multiplayer
                     }
                 }));
             }
+            else
+            {
+                // No file dialog here, so the path has to be typed. It only earns its space then.
+                m_PortraitControls.Add(path);
+            }
 
-            group.Add(row);
+            row.Add(MenuControls.TextButton("Remove", "btn btn--ghost btn--compact", () =>
+            {
+                ReplaceDecoded(null);
+                path.SetValueWithoutNotify(string.Empty);
+                Refresh();
+            }));
 
-            group.Add(MenuControls.Note(PortraitBrowser.IsAvailable
-                ? "PNG or JPG. Stored with your character on this machine; other players see your "
-                    + "initial instead."
-                : "Paste the full path to a PNG or JPG. Stored with your character on this machine."));
-
-            group.Add(MenuControls.TextButton("Remove portrait", "button button--ghost button--compact",
-                () =>
-                {
-                    ReplaceDecoded(null);
-                    path.SetValueWithoutNotify(string.Empty);
-                    Refresh();
-                }));
-
-            return group;
+            m_PortraitControls.Add(row);
         }
 
         void LoadPortrait(string path)
@@ -601,6 +605,7 @@ namespace Dragoneye.Multiplayer
             BuildValidator.Validate(m_Build, m_Content, m_FaultBuffer);
 
             RefreshAttributes(rules);
+            RefreshElements(rules);
             RefreshSummary(loadout, rules);
 
             m_Faults.text = BuildFaultText.Summarise(m_FaultBuffer);
@@ -614,12 +619,13 @@ namespace Dragoneye.Multiplayer
             if (m_Budget != null)
             {
                 m_Budget.text = remaining == 0
-                    ? $"All {rules.PointBudget} points spent."
+                    ? $"ALL {rules.PointBudget} POINTS SPENT"
                     : remaining > 0
-                        ? $"{remaining} of {rules.PointBudget} points left."
-                        : $"{-remaining} points over budget.";
+                        ? $"{remaining} OF {rules.PointBudget} POINTS LEFT"
+                        : $"{-remaining} POINTS OVER BUDGET";
 
-                m_Budget.EnableInClassList("budget-line--over", remaining < 0);
+                m_Budget.EnableInClassList("budget--over", remaining < 0);
+                m_Budget.EnableInClassList("budget--spent", remaining == 0);
             }
 
             foreach (var stat in AttributeInfo.All)
@@ -646,29 +652,59 @@ namespace Dragoneye.Multiplayer
             }
         }
 
+        /// <summary>
+        /// Repaints the element rows: the value, whether it can still be stepped, and whether the
+        /// row is lit at all.
+        ///
+        /// Dimming an element the character does not hold is what makes the pool read as a hand
+        /// rather than as seven fields that all happen to be zero.
+        /// </summary>
+        void RefreshElements(CharacterRules rules)
+        {
+            var pool = m_Build.StartingPool;
+
+            foreach (var element in ElementInfo.All)
+            {
+                var held = pool[element];
+
+                if (m_ElementValues.TryGetValue(element, out var label))
+                {
+                    label.text = held.ToString();
+                }
+
+                if (m_ElementRows.TryGetValue(element, out var row))
+                {
+                    row.EnableInClassList("element-row--empty", held == 0);
+                }
+
+                if (m_ElementMinus.TryGetValue(element, out var minus))
+                {
+                    minus.SetEnabled(held > 0);
+                }
+
+                // The pool is exactly the level, so the last one spent is the last one available.
+                if (m_ElementPlus.TryGetValue(element, out var plus))
+                {
+                    plus.SetEnabled(pool.Total < rules.Level);
+                }
+            }
+        }
+
         void RefreshSummary(Loadout loadout, CharacterRules rules)
         {
             m_SummaryName.text = string.IsNullOrWhiteSpace(m_Build.Name) ? "Unnamed" : m_Build.Name;
-            m_SummaryClass.text = loadout.Class != null
-                ? $"{loadout.Class.Name} · Level {rules.Level}"
-                : "No class";
+            m_SummaryClass.text = CharacterSheet.Describe(loadout, rules.Level);
 
             RefreshPortrait();
 
-            m_Stats.Clear();
-            m_Stats.Add(MenuControls.ReadoutRow("LVL", loadout.Vitals.Level.ToString()));
-            m_Stats.Add(MenuControls.ReadoutRow("HP", loadout.Vitals.MaxHealth.ToString()));
-            m_Stats.Add(MenuControls.ReadoutRow("AP", loadout.Vitals.MaxAp.ToString()));
-            m_Stats.Add(MenuControls.ReadoutRow("SPD", loadout.Vitals.Speed.ToString()));
+            CharacterSheet.Stats(m_Stats, loadout.Vitals);
+            CharacterSheet.Attributes(m_Attrs, loadout.Attributes, m_Build.Attributes);
+            CharacterSheet.Pool(m_Pool, m_Build.StartingPool, rules.Level);
 
-            foreach (var attribute in AttributeInfo.All)
+            if (m_Skills != null)
             {
-                m_Stats.Add(MenuControls.ReadoutRow(AttributeInfo.ShortNameOf(attribute),
-                    loadout.Attributes[attribute].ToString()));
+                CharacterSheet.Skills(m_Skills, loadout);
             }
-
-            RefreshPool(rules);
-            RefreshSkills(loadout);
         }
 
         void RefreshPortrait()
@@ -680,99 +716,6 @@ namespace Dragoneye.Multiplayer
                 : new StyleBackground();
 
             m_PortraitInitial.text = has ? string.Empty : MenuControls.Initial(m_Build.Name);
-        }
-
-        /// <summary>
-        /// The pool as one chip per element held, with the running total against the level.
-        ///
-        /// The shape is free and the size is not, so the total is what needs saying. Showing empty
-        /// slots would imply a fixed number of picks, which is exactly what this is not.
-        /// </summary>
-        void RefreshPool(CharacterRules rules)
-        {
-            m_Pool.Clear();
-
-            var pool = m_Build.StartingPool;
-
-            foreach (var element in ElementInfo.All)
-            {
-                var held = pool[element];
-
-                if (held <= 0)
-                {
-                    continue;
-                }
-
-                var chip = new Label(ElementInfo.ShortNameOf(element) + " " + held);
-                chip.AddToClassList("pool-chip");
-
-                var color = ElementPalette.ForElement(element);
-                chip.style.color = color;
-                chip.style.borderTopColor = chip.style.borderBottomColor =
-                    chip.style.borderLeftColor = chip.style.borderRightColor = color;
-
-                m_Pool.Add(chip);
-            }
-
-            if (pool.Total == rules.Level)
-            {
-                return;
-            }
-
-            var total = new Label(pool.Total + " of " + rules.Level);
-            total.AddToClassList("pool-chip");
-            total.AddToClassList("pool-chip--empty");
-            m_Pool.Add(total);
-        }
-
-        /// <summary>
-        /// The skills this build resolves to, and any passives it holds.
-        ///
-        /// DE-003 asks for a creature's usable skills to be visibly the sum of class and
-        /// equipment. Showing the resolved list rather than the class list is what makes that
-        /// visible: swap the weapon and the list changes under the player's hand.
-        /// </summary>
-        void RefreshSkills(Loadout loadout)
-        {
-            if (m_Skills == null)
-            {
-                return;
-            }
-
-            m_Skills.Clear();
-
-            if (loadout.Skills.Count == 0)
-            {
-                var none = new Label("Nothing equipped grants a skill.");
-                none.AddToClassList("skill-line--none");
-                m_Skills.Add(none);
-            }
-
-            foreach (var skill in loadout.Skills)
-            {
-                var line = new VisualElement();
-                line.AddToClassList("skill-line");
-
-                var name = new Label(skill.Name);
-                name.AddToClassList("skill-line__name");
-
-                var cost = new Label(skill.ElementCost > 0
-                    ? $"{skill.ApCost} AP · {skill.ElementCost} {ElementInfo.NameOf(skill.Element)}"
-                    : $"{skill.ApCost} AP");
-                cost.AddToClassList("skill-line__cost");
-                cost.style.color = ElementPalette.ForElement(skill.Element);
-
-                line.Add(name);
-                line.Add(cost);
-                m_Skills.Add(line);
-            }
-
-            if (loadout.Passives.Has(Passive.DefendAdvantage))
-            {
-                var passive = new Label("Advantage when defending");
-                passive.AddToClassList("passive-line");
-                m_Skills.Add(passive);
-            }
         }
 
         // ---------- saving ----------

@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using Dragoneye.Combat;
 using Dragoneye.Data;
 using UnityEngine;
 using UnityEngine.UIElements;
@@ -35,6 +36,7 @@ namespace Dragoneye.Multiplayer
         CharacterCreatorScreen m_Creator;
         Label m_Status;
         Label m_PlayingAs;
+        VisualElement m_HeroBody;
         Button m_SingleplayerButton;
         Button m_MultiplayerButton;
         MenuScreen m_Screen = MenuScreen.Start;
@@ -126,6 +128,7 @@ namespace Dragoneye.Multiplayer
             }
 
             m_PlayingAs = root.Q<Label>("playing-as-label");
+            m_HeroBody = root.Q<VisualElement>("home-hero-body");
             var change = root.Q<Button>("change-character-button");
 
             if (change != null)
@@ -405,7 +408,12 @@ namespace Dragoneye.Multiplayer
             }
         }
 
-        /// <summary>Who the player is currently playing as, on the main menu.</summary>
+        /// <summary>
+        /// Who the player is currently playing as, drawn as a card rather than announced in a line.
+        ///
+        /// The main menu's one piece of content: everything else on this screen is a button, and a
+        /// menu with nothing on it but buttons is a menu the player has no reason to look at.
+        /// </summary>
         void RefreshPlayingAs()
         {
             if (m_PlayingAs == null)
@@ -416,8 +424,62 @@ namespace Dragoneye.Multiplayer
             var current = SelectedCharacter.Current;
 
             m_PlayingAs.text = current != null
-                ? $"Playing as {current.Build.Name}"
-                : "No character chosen";
+                ? DisplayName(current)
+                : "Nobody yet";
+
+            if (m_HeroBody == null)
+            {
+                return;
+            }
+
+            m_HeroBody.Clear();
+
+            if (current == null || m_Content == null)
+            {
+                m_HeroBody.Add(Note("Choose a character before you play."));
+                return;
+            }
+
+            m_HeroBody.Add(HeroPortrait(current));
+
+            var loadout = LoadoutResolver.Resolve(current.Build, m_Content);
+
+            var subtitle = new Label(CharacterSheet.Describe(loadout, m_Content.Rules.Level));
+            subtitle.AddToClassList("hero__class");
+            m_HeroBody.Add(subtitle);
+
+            var stats = new VisualElement();
+            stats.AddToClassList("statline");
+            CharacterSheet.Stats(stats, loadout.Vitals);
+            m_HeroBody.Add(stats);
+        }
+
+        static string DisplayName(SavedCharacter character) =>
+            string.IsNullOrWhiteSpace(character.Build.Name) ? "Unnamed" : character.Build.Name;
+
+        static Label Note(string text)
+        {
+            var label = new Label(text);
+            label.AddToClassList("setting-note");
+            return label;
+        }
+
+        static VisualElement HeroPortrait(SavedCharacter character)
+        {
+            var portrait = new VisualElement();
+            portrait.AddToClassList("portrait");
+            portrait.AddToClassList("hero__portrait");
+
+            if (character.Portrait != null)
+            {
+                portrait.style.backgroundImage = new StyleBackground(character.Portrait);
+                return portrait;
+            }
+
+            var initial = new Label(MenuControls.Initial(character.Build.Name));
+            initial.AddToClassList("portrait__initial");
+            portrait.Add(initial);
+            return portrait;
         }
 
         /// <summary>

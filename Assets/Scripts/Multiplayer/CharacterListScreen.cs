@@ -22,6 +22,7 @@ namespace Dragoneye.Multiplayer
         readonly Action m_OnPlay;
 
         readonly ScrollView m_List;
+        readonly VisualElement m_Sheet;
         readonly Label m_Note;
         readonly Button m_New;
         readonly Button m_Edit;
@@ -46,13 +47,14 @@ namespace Dragoneye.Multiplayer
             m_OnPlay = onPlay;
 
             m_List = root.Q<ScrollView>("character-list");
+            m_Sheet = root.Q<VisualElement>("character-sheet");
             m_Note = root.Q<Label>("characters-note");
             m_New = root.Q<Button>("character-new-button");
             m_Play = root.Q<Button>("character-play-button");
             m_Delete = root.Q<Button>("character-delete-button");
             m_Edit = root.Q<Button>("character-edit-button");
 
-            IsBound = m_List != null && m_Note != null && m_New != null
+            IsBound = m_List != null && m_Sheet != null && m_Note != null && m_New != null
                 && m_Play != null && m_Delete != null && m_Edit != null;
 
             if (!IsBound)
@@ -97,8 +99,8 @@ namespace Dragoneye.Multiplayer
             m_List.Clear();
 
             m_Note.text = m_Characters.Count == 0
-                ? "You have not made a character yet."
-                : $"{m_Characters.Count} saved. Pick who you are playing as.";
+                ? "NO CHARACTERS YET"
+                : $"{m_Characters.Count} SAVED";
 
             foreach (var character in m_Characters)
             {
@@ -110,6 +112,111 @@ namespace Dragoneye.Multiplayer
             m_Play.SetEnabled(selected != null);
             m_Delete.SetEnabled(selected != null);
             m_Edit.SetEnabled(selected != null);
+
+            RebuildSheet(selected);
+        }
+
+        /// <summary>
+        /// The right half of the screen: whoever is selected, drawn full size.
+        ///
+        /// The list is a list of names; this is the character. Picking who to play as means
+        /// comparing what they can do, and a row three lines tall cannot show that -- which is why
+        /// the roster used to be a scrolling box of rows with nothing to read.
+        /// </summary>
+        void RebuildSheet(SavedCharacter character)
+        {
+            m_Sheet.Clear();
+
+            if (character == null || m_Content == null)
+            {
+                var empty = new Label(m_Characters.Count == 0
+                    ? "Make a character to begin."
+                    : "Pick a character.");
+                empty.AddToClassList("sheet__empty");
+                m_Sheet.Add(empty);
+                return;
+            }
+
+            var loadout = LoadoutResolver.Resolve(character.Build, m_Content);
+
+            var head = new VisualElement();
+            head.AddToClassList("sheet__head");
+            head.Add(SheetPortrait(character));
+
+            var titles = new VisualElement();
+            titles.style.flexGrow = 1;
+
+            var name = new Label(string.IsNullOrWhiteSpace(character.Build.Name)
+                ? "Unnamed" : character.Build.Name);
+            name.AddToClassList("sheet__name");
+            titles.Add(name);
+
+            var subtitle = new Label(CharacterSheet.Describe(loadout, m_Content.Rules.Level));
+            subtitle.AddToClassList("sheet__class");
+            titles.Add(subtitle);
+
+            var stats = new VisualElement();
+            stats.AddToClassList("statline");
+            CharacterSheet.Stats(stats, loadout.Vitals);
+            titles.Add(stats);
+
+            head.Add(titles);
+            m_Sheet.Add(head);
+
+            var columns = new VisualElement();
+            columns.AddToClassList("sheet__columns");
+            columns.Add(SheetColumn("ATTRIBUTES", attrs =>
+                CharacterSheet.Attributes(attrs, loadout.Attributes), "attr-grid"));
+            columns.Add(SheetColumn("POOL", pool =>
+                CharacterSheet.Pool(pool, character.Build.StartingPool, m_Content.Rules.Level),
+                "gem-row"));
+            columns.Add(SheetColumn("SKILLS", skills =>
+                CharacterSheet.Skills(skills, loadout), "group"));
+            m_Sheet.Add(columns);
+
+            if (!BuildValidator.IsValid(character.Build, m_Content))
+            {
+                var warning = new Label("This character is not playable as it stands. Edit it.");
+                warning.AddToClassList("character-row__invalid");
+                m_Sheet.Add(warning);
+            }
+        }
+
+        /// <summary>A titled block in the sheet, filled by whoever knows how to draw it.</summary>
+        static VisualElement SheetColumn(string title, System.Action<VisualElement> fill,
+            string bodyClass)
+        {
+            var column = new VisualElement();
+            column.AddToClassList("sheet__column");
+
+            var heading = new Label(title);
+            heading.AddToClassList("col__title");
+            column.Add(heading);
+
+            var body = new VisualElement();
+            body.AddToClassList(bodyClass);
+            fill(body);
+            column.Add(body);
+
+            return column;
+        }
+
+        static VisualElement SheetPortrait(SavedCharacter character)
+        {
+            var portrait = new VisualElement();
+            portrait.AddToClassList("portrait");
+            portrait.AddToClassList("portrait--sheet");
+
+            if (character.Portrait != null)
+            {
+                portrait.style.backgroundImage = new StyleBackground(character.Portrait);
+                return portrait;
+            }
+
+            var initial = new Label(MenuControls.Initial(character.Build.Name));
+            initial.AddToClassList("portrait__initial");
+            portrait.Add(initial);
+            return portrait;
         }
 
         VisualElement BuildRow(SavedCharacter character)
@@ -185,8 +292,9 @@ namespace Dragoneye.Multiplayer
             var className = loadout.Class != null ? loadout.Class.Name : "No class";
             var level = m_Content.Rules.Level;
 
-            return $"{className}  ·  Level {level}  ·  "
-                + $"{loadout.Vitals.MaxHealth} HP  ·  {loadout.Vitals.MaxAp} AP";
+            var species = loadout.Species != null ? loadout.Species.Name : "?";
+
+            return $"{species}  ·  {className}  ·  LVL {level}".ToUpperInvariant();
         }
 
         SavedCharacter Selected()

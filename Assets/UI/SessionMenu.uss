@@ -1,48 +1,601 @@
-/* UI Toolkit stylesheet. USS is a subset of CSS: selectors, cascade and inheritance
-   work as you'd expect, but layout is always flexbox and lengths are px or %. */
+/* The menu's look.
+
+   USS is a subset of CSS: selectors, cascade and inheritance work as you would expect, but layout
+   is always flexbox and lengths are px or %. There are no gradients, no shadows and no bevels --
+   so everything with depth in it is a nine-sliced image baked by UiArtSetup, and this file only
+   places them.
+
+   Two archetypes. A stage uses the whole window: a head with a title and a gold rule, a body of
+   columns, and a foot of actions pinned to the bottom. A dialog centres a single plate for the
+   handful of screens that really are one question. Nothing is a narrow card floating in an empty
+   window. */
+
+/* ---------- foundation ---------- */
 
 .root {
     flex-grow: 1;
+    background-image: url("Generated/ui-backdrop.png");
+    -unity-background-scale-mode: scale-and-crop;
+}
+
+/* Screens are stacked on the same spot and swapped by class, so the layout never reflows when one
+   is shown -- and a screen can use the full frame without fighting the ones behind it. */
+.screen {
+    position: absolute;
+    left: 0;
+    top: 0;
+    right: 0;
+    bottom: 0;
+}
+
+.screen--centre {
     align-items: center;
     justify-content: center;
-    background-color: rgba(12, 14, 20, 0.55);
 }
 
-/* ---------- panels ---------- */
-
-.panel {
-    width: 420px;
-    padding: 28px;
-    border-radius: 14px;
-    background-color: rgb(24, 27, 36);
-    border-width: 1px;
-    border-color: rgb(48, 53, 68);
+.is-hidden {
+    display: none;
 }
 
-.title {
+.spacer {
+    flex-grow: 1;
+}
+
+/* ---------- the gold rule ---------- */
+
+.rule {
+    height: 9px;
+    margin: 10px 0;
+    background-image: url("Generated/ui-rule.png");
+}
+
+.rule--long {
+    width: 520px;
+    margin: 18px 0;
+}
+
+.rule--head {
+    margin: 0 56px 18px 56px;
+}
+
+/* ---------- stages ---------- */
+
+.stage {
+    padding: 34px 0 0 0;
+}
+
+.stage__head {
+    flex-direction: row;
+    align-items: flex-end;
+    padding: 0 56px;
+}
+
+.stage__title {
+    font-size: 30px;
+    -unity-font-style: bold;
+    letter-spacing: 6px;
+    color: rgb(232, 226, 212);
+}
+
+.stage__note {
+    flex-grow: 1;
+    margin-left: 18px;
+    padding-bottom: 4px;
+    font-size: 12px;
+    letter-spacing: 1px;
+    color: rgb(139, 147, 165);
+    -unity-text-align: middle-right;
+}
+
+.stage__fault {
+    flex-grow: 1;
+    margin-left: 18px;
+    padding-bottom: 4px;
+    font-size: 12px;
+    color: rgb(226, 122, 63);
+    white-space: normal;
+    -unity-text-align: middle-right;
+}
+
+.stage__body {
+    flex-grow: 1;
+    flex-direction: row;
+    padding: 0 56px;
+}
+
+.stage__body--centred {
+    justify-content: center;
+}
+
+.stage__foot {
+    flex-direction: row;
+    align-items: center;
+    padding: 18px 56px 28px 56px;
+}
+
+.stage__foot--flush {
+    padding: 16px 0 0 0;
+}
+
+/* ---------- the title card ---------- */
+
+.start {
+    align-items: center;
+}
+
+.start__title {
+    font-size: 78px;
+    -unity-font-style: bold;
+    letter-spacing: 20px;
+    /* The letterspacing is applied after the last character too, so the word sits off-centre
+       without pulling it back by half a space. */
+    margin-left: 20px;
+    color: rgb(236, 231, 219);
+}
+
+.start__sub {
+    font-size: 14px;
+    letter-spacing: 12px;
+    margin-left: 12px;
+    color: rgb(198, 158, 88);
+}
+
+.start__prompt {
+    margin-top: 54px;
+    font-size: 12px;
+    letter-spacing: 5px;
+    color: rgb(120, 128, 146);
+}
+
+/* ---------- home ---------- */
+
+.home {
+    flex-grow: 1;
+    flex-direction: row;
+    align-items: center;
+    padding: 0 90px 40px 90px;
+}
+
+.home__left {
+    width: 380px;
+}
+
+.home__mark {
+    font-size: 44px;
+    -unity-font-style: bold;
+    letter-spacing: 10px;
+    color: rgb(236, 231, 219);
+}
+
+.home__right {
+    flex-grow: 1;
+    align-items: flex-end;
+}
+
+.menu-stack {
+    margin-top: 10px;
+}
+
+.hero {
+    width: 300px;
+    padding: 26px 24px;
+    background-image: url("Generated/ui-panel.png");
+    -unity-slice-left: 16;
+    -unity-slice-right: 16;
+    -unity-slice-top: 16;
+    -unity-slice-bottom: 16;
+}
+
+.hero__name {
+    margin: 6px 0 4px 0;
+    font-size: 22px;
+    -unity-font-style: bold;
+    color: rgb(232, 226, 212);
+    white-space: normal;
+}
+
+.hero__body {
+    margin-bottom: 18px;
+}
+
+.hero__portrait {
+    width: 100%;
+    height: 170px;
+    margin-bottom: 12px;
+}
+
+.hero__class {
+    margin-bottom: 6px;
+    font-size: 11px;
+    letter-spacing: 2px;
+    color: rgb(198, 158, 88);
+    white-space: normal;
+}
+
+/* ---------- type ---------- */
+
+.eyebrow {
+    font-size: 10px;
+    -unity-font-style: bold;
+    letter-spacing: 3px;
+    color: rgb(198, 158, 88);
+}
+
+.col__title {
+    font-size: 11px;
+    -unity-font-style: bold;
+    letter-spacing: 3px;
+    color: rgb(198, 158, 88);
+    margin-bottom: 10px;
+}
+
+.col__title--spaced {
+    margin-top: 20px;
+}
+
+.field-label {
+    font-size: 10px;
+    -unity-font-style: bold;
+    letter-spacing: 2px;
+    color: rgb(139, 147, 165);
+    margin-bottom: 5px;
+}
+
+/* Kept for the settings note and anything else that used the old name. */
+.section-heading {
+    font-size: 11px;
+    -unity-font-style: bold;
+    letter-spacing: 3px;
+    color: rgb(198, 158, 88);
+    margin-top: 18px;
+    margin-bottom: 10px;
+}
+
+/* ---------- buttons ---------- */
+
+.btn {
+    height: 40px;
+    margin: 0 0 0 10px;
+    padding: 0 20px;
+    font-size: 12px;
+    -unity-font-style: bold;
+    letter-spacing: 1px;
+    color: rgb(220, 224, 234);
+    background-color: rgba(0, 0, 0, 0);
+    background-image: url("Generated/ui-button.png");
+    -unity-slice-left: 11;
+    -unity-slice-right: 11;
+    -unity-slice-top: 11;
+    -unity-slice-bottom: 11;
+    border-width: 0;
+    transition-property: color;
+    transition-duration: 0.1s;
+}
+
+.btn:hover {
+    background-image: url("Generated/ui-button-hot.png");
+    color: rgb(245, 247, 252);
+}
+
+.btn:disabled {
+    opacity: 0.35;
+}
+
+.btn--primary {
+    background-image: url("Generated/ui-button-primary.png");
+    color: rgb(255, 244, 234);
+}
+
+.btn--primary:hover {
+    background-image: url("Generated/ui-button-primary.png");
+    color: rgb(255, 255, 255);
+}
+
+.btn--ghost {
+    background-image: none;
+    background-color: rgba(0, 0, 0, 0);
+    color: rgb(139, 147, 165);
+}
+
+.btn--ghost:hover {
+    background-image: url("Generated/ui-button.png");
+    color: rgb(220, 224, 234);
+}
+
+.btn--compact {
+    height: 30px;
+    padding: 0 14px;
+    font-size: 11px;
+}
+
+.btn--wide {
+    width: 200px;
+}
+
+.btn--block {
+    margin: 0 0 10px 0;
+    height: 44px;
+}
+
+.btn--menu {
+    height: 50px;
+    width: 100%;
+    margin: 0 0 10px 0;
+    font-size: 14px;
+    letter-spacing: 2px;
+    -unity-text-align: middle-left;
+    padding-left: 26px;
+}
+
+/* ---------- panels and wells ---------- */
+
+.panel-skin {
+    background-image: url("Generated/ui-panel.png");
+    -unity-slice-left: 16;
+    -unity-slice-right: 16;
+    -unity-slice-top: 16;
+    -unity-slice-bottom: 16;
+}
+
+.well {
+    background-image: url("Generated/ui-well.png");
+    -unity-slice-left: 11;
+    -unity-slice-right: 11;
+    -unity-slice-top: 11;
+    -unity-slice-bottom: 11;
+}
+
+/* ---------- the character rail ---------- */
+
+.rail {
+    width: 340px;
+    margin-right: 26px;
+}
+
+.rail__list {
+    flex-grow: 1;
+    padding: 8px;
+    background-image: url("Generated/ui-well.png");
+    -unity-slice-left: 11;
+    -unity-slice-right: 11;
+    -unity-slice-top: 11;
+    -unity-slice-bottom: 11;
+}
+
+.rail__new {
+    margin: 12px 0 0 0;
+    height: 42px;
+}
+
+.character-row {
+    flex-direction: row;
+    align-items: center;
+    padding: 12px;
+    margin-bottom: 6px;
+    background-image: url("Generated/ui-card.png");
+    -unity-slice-left: 14;
+    -unity-slice-right: 14;
+    -unity-slice-top: 14;
+    -unity-slice-bottom: 14;
+}
+
+.character-row:hover {
+    -unity-background-image-tint-color: rgb(150, 160, 185);
+}
+
+/* The selected row is lit rather than merely tinted: it is the one thing on the screen the rest of
+   the panel is describing, so it has to win. */
+.character-row--selected {
+    background-image: url("Generated/ui-button-primary.png");
+    -unity-slice-left: 11;
+    -unity-slice-right: 11;
+    -unity-slice-top: 11;
+    -unity-slice-bottom: 11;
+    -unity-background-image-tint-color: rgb(120, 92, 74);
+}
+
+.character-row--selected:hover {
+    -unity-background-image-tint-color: rgb(150, 112, 88);
+}
+
+.character-row__portrait {
+    width: 52px;
+    height: 52px;
+    margin-right: 14px;
+    background-image: url("Generated/ui-well.png");
+    -unity-slice-left: 11;
+    -unity-slice-right: 11;
+    -unity-slice-top: 11;
+    -unity-slice-bottom: 11;
+    -unity-background-scale-mode: scale-and-crop;
+    justify-content: center;
+}
+
+.character-row__initial {
+    font-size: 22px;
+    -unity-font-style: bold;
+    color: rgb(120, 128, 146);
+    -unity-text-align: middle-center;
+}
+
+.character-row__body {
+    flex-grow: 1;
+}
+
+.character-row__name {
+    font-size: 16px;
+    -unity-font-style: bold;
+    color: rgb(236, 231, 219);
+}
+
+.character-row__detail {
+    margin-top: 2px;
+    font-size: 11px;
+    letter-spacing: 1px;
+    color: rgb(139, 147, 165);
+}
+
+.character-row__invalid {
+    margin-top: 2px;
+    font-size: 10px;
+    -unity-font-style: bold;
+    letter-spacing: 1px;
+    color: rgb(226, 122, 63);
+}
+
+/* ---------- the character sheet ---------- */
+
+.sheet {
+    flex-grow: 1;
+    padding: 30px 34px;
+    background-image: url("Generated/ui-panel.png");
+    -unity-slice-left: 16;
+    -unity-slice-right: 16;
+    -unity-slice-top: 16;
+    -unity-slice-bottom: 16;
+}
+
+.sheet__head {
+    flex-direction: row;
+}
+
+.sheet__name {
     font-size: 26px;
     -unity-font-style: bold;
-    color: rgb(240, 243, 250);
-    margin-bottom: 4px;
+    color: rgb(236, 231, 219);
 }
 
-.subtitle {
-    font-size: 13px;
-    color: rgb(148, 158, 180);
-    margin-bottom: 20px;
+.sheet__class {
+    margin-top: 2px;
+    font-size: 12px;
+    letter-spacing: 2px;
+    color: rgb(198, 158, 88);
     white-space: normal;
+}
+
+.sheet__blurb {
+    margin-top: 12px;
+    font-size: 12px;
+    color: rgb(139, 147, 165);
+    white-space: normal;
+}
+
+.sheet__empty {
+    flex-grow: 1;
+    -unity-text-align: middle-center;
+    font-size: 13px;
+    color: rgb(90, 98, 118);
+}
+
+.sheet__columns {
+    flex-direction: row;
+    margin-top: 6px;
+}
+
+.sheet__column {
+    flex-grow: 1;
+    flex-basis: 0;
+    margin-right: 26px;
+}
+
+/* ---------- portraits ---------- */
+
+.portrait {
+    background-image: url("Generated/ui-well.png");
+    -unity-slice-left: 11;
+    -unity-slice-right: 11;
+    -unity-slice-top: 11;
+    -unity-slice-bottom: 11;
+    -unity-background-scale-mode: scale-and-crop;
+    justify-content: center;
+}
+
+.portrait--large {
+    width: 100%;
+    height: 220px;
+}
+
+.portrait--sheet {
+    width: 150px;
+    height: 180px;
+    margin-right: 24px;
+}
+
+.portrait__initial {
+    font-size: 56px;
+    -unity-font-style: bold;
+    color: rgb(72, 80, 98);
+    -unity-text-align: middle-center;
+}
+
+.portrait__controls {
+    flex-direction: row;
+    margin-top: 10px;
+}
+
+.portrait__controls > .btn {
+    flex-grow: 1;
+    flex-basis: 0;
+    margin: 0 0 0 8px;
+}
+
+.portrait__controls > .btn:disabled {
+    opacity: 0.3;
+}
+
+/* ---------- creator columns ---------- */
+
+.col {
+    flex-grow: 1;
+    flex-basis: 0;
+    margin-right: 26px;
+}
+
+.col--identity {
+    flex-grow: 0;
+    width: 230px;
+}
+
+.col--attributes {
+    flex-grow: 0;
+    width: 300px;
+}
+
+.col--kit {
+    flex-grow: 0;
+    width: 270px;
+}
+
+.col--sheet {
+    padding: 24px;
+    margin-right: 0;
+    background-image: url("Generated/ui-panel.png");
+    -unity-slice-left: 16;
+    -unity-slice-right: 16;
+    -unity-slice-top: 16;
+    -unity-slice-bottom: 16;
+}
+
+.col--settings {
+    flex-grow: 0;
+    width: 420px;
+    padding: 26px;
+    margin: 0 13px;
+    background-image: url("Generated/ui-panel.png");
+    -unity-slice-left: 16;
+    -unity-slice-right: 16;
+    -unity-slice-top: 16;
+    -unity-slice-bottom: 16;
+}
+
+.group {
+    margin-bottom: 4px;
 }
 
 /* ---------- fields ---------- */
 
 .field-group {
-    margin-bottom: 14px;
-}
-
-.field-label {
-    font-size: 12px;
-    color: rgb(148, 158, 180);
-    margin-bottom: 6px;
+    margin-bottom: 10px;
 }
 
 .text-input {
@@ -51,106 +604,369 @@
 
 .text-input .unity-base-text-field__input {
     height: 38px;
-    padding-left: 10px;
-    padding-right: 10px;
+    padding-left: 12px;
+    padding-right: 12px;
     font-size: 14px;
-    color: rgb(240, 243, 250);
-    background-color: rgb(16, 18, 25);
-    border-radius: 8px;
+    color: rgb(236, 231, 219);
+    background-color: rgb(11, 13, 18);
+    border-radius: 0;
     border-width: 1px;
-    border-color: rgb(56, 62, 80);
+    border-color: rgb(52, 59, 76);
 }
 
 .text-input .unity-base-text-field__input:focus {
-    border-color: rgb(226, 122, 63);
+    border-color: rgb(198, 158, 88);
 }
 
 .text-input--code .unity-base-text-field__input {
-    font-size: 20px;
+    font-size: 22px;
     -unity-font-style: bold;
     -unity-text-align: middle-center;
-    letter-spacing: 6px;
+    letter-spacing: 8px;
+    color: rgb(226, 191, 122);
 }
 
-/* ---------- buttons ---------- */
-
-.button {
-    height: 42px;
+.dropdown {
     margin: 0;
-    padding: 0 16px;
-    font-size: 14px;
-    -unity-font-style: bold;
-    color: rgb(226, 232, 245);
-    background-color: rgb(43, 49, 65);
-    border-radius: 8px;
-    border-width: 0;
-    transition-property: background-color;
-    transition-duration: 0.12s;
 }
 
-.button:hover {
-    background-color: rgb(56, 63, 82);
-}
-
-.button:disabled {
-    opacity: 0.4;
-}
-
-.button--primary {
-    background-color: rgb(198, 88, 38);
-    color: rgb(255, 246, 240);
-}
-
-.button--primary:hover {
-    background-color: rgb(226, 108, 52);
-}
-
-.button--ghost {
-    background-color: rgba(0, 0, 0, 0);
+.dropdown .unity-base-popup-field__input {
+    height: 34px;
+    padding-left: 12px;
+    font-size: 13px;
+    color: rgb(220, 224, 234);
+    background-color: rgb(11, 13, 18);
+    border-radius: 0;
     border-width: 1px;
-    border-color: rgb(56, 62, 80);
+    border-color: rgb(52, 59, 76);
 }
 
-.button--compact {
-    height: 32px;
-    font-size: 12px;
+.dropdown .unity-base-popup-field__input:hover {
+    border-color: rgb(96, 108, 134);
 }
 
-.button-row {
-    flex-direction: row;
-    justify-content: space-between;
-    margin-top: 16px;
-}
+/* ---------- attribute allocation ---------- */
 
-.button-row > .button {
-    flex-grow: 1;
-    flex-basis: 0;
-}
-
-/* USS has no structural pseudo-classes (:first-child etc.), so target by name. */
-#leave-button {
-    margin-right: 10px;
-}
-
-/* ---------- divider ---------- */
-
-.divider {
+.alloc-row {
     flex-direction: row;
     align-items: center;
-    margin-top: 18px;
-    margin-bottom: 18px;
+    height: 34px;
+    padding: 0 10px;
+    margin-bottom: 4px;
+    background-image: url("Generated/ui-card.png");
+    -unity-slice-left: 14;
+    -unity-slice-right: 14;
+    -unity-slice-top: 14;
+    -unity-slice-bottom: 14;
 }
 
-.divider__rule {
+.alloc-row__label {
+    width: 44px;
+    font-size: 12px;
+    -unity-font-style: bold;
+    letter-spacing: 1px;
+    color: rgb(198, 158, 88);
+}
+
+.alloc-row__effect {
     flex-grow: 1;
-    height: 1px;
-    background-color: rgb(48, 53, 68);
+    font-size: 11px;
+    color: rgb(120, 128, 146);
+    overflow: hidden;
 }
 
-.divider__label {
+.alloc-row__value {
+    width: 34px;
+    font-size: 17px;
+    -unity-font-style: bold;
+    color: rgb(236, 231, 219);
+    -unity-text-align: middle-center;
+}
+
+.step-button {
+    width: 26px;
+    height: 26px;
+    padding: 0;
+    margin: 0;
+    font-size: 15px;
+    -unity-font-style: bold;
+    color: rgb(220, 224, 234);
+    background-color: rgba(0, 0, 0, 0);
+    background-image: url("Generated/ui-button.png");
+    -unity-slice-left: 11;
+    -unity-slice-right: 11;
+    -unity-slice-top: 11;
+    -unity-slice-bottom: 11;
+    border-width: 0;
+}
+
+.step-button:hover {
+    background-image: url("Generated/ui-button-hot.png");
+}
+
+.step-button:disabled {
+    opacity: 0.25;
+}
+
+.budget {
+    margin-bottom: 12px;
+    font-size: 12px;
+    letter-spacing: 1px;
+    color: rgb(139, 147, 165);
+}
+
+.budget--over {
+    color: rgb(226, 122, 63);
+    -unity-font-style: bold;
+}
+
+.budget--spent {
+    color: rgb(198, 158, 88);
+}
+
+/* ---------- elements ---------- */
+
+/* A row per element rather than a wrap of pills: seven is a fixed set, and a fixed set laid out in
+   a fixed order is read as a hand of resources instead of a bag of tags. */
+.element-row {
+    flex-direction: row;
+    align-items: center;
+    height: 30px;
+    padding: 0 8px;
+    margin-bottom: 3px;
+    background-image: url("Generated/ui-card.png");
+    -unity-slice-left: 14;
+    -unity-slice-right: 14;
+    -unity-slice-top: 14;
+    -unity-slice-bottom: 14;
+}
+
+.element-row__gem {
+    width: 18px;
+    height: 18px;
+    margin-right: 10px;
+    background-image: url("Generated/ui-gem.png");
+}
+
+.element-row__name {
+    flex-grow: 1;
+    font-size: 12px;
+    -unity-font-style: bold;
+    letter-spacing: 1px;
+    color: rgb(200, 206, 220);
+}
+
+.element-row__value {
+    width: 28px;
+    font-size: 16px;
+    -unity-font-style: bold;
+    color: rgb(236, 231, 219);
+    -unity-text-align: middle-center;
+}
+
+.element-row--empty .element-row__gem {
+    opacity: 0.22;
+}
+
+.element-row--empty .element-row__name {
+    color: rgb(100, 108, 126);
+}
+
+.element-row--empty .element-row__value {
+    color: rgb(84, 92, 110);
+}
+
+/* A read-only run of gems, for the sheet. Each gem carries its count, so a pool of four Hydro is
+   one gem reading "4" rather than four identical chips. */
+.gem-row {
+    flex-direction: row;
+    flex-wrap: wrap;
+}
+
+.gem {
+    width: 34px;
+    height: 34px;
+    margin: 0 8px 8px 0;
+    background-image: url("Generated/ui-gem.png");
+    justify-content: center;
+}
+
+.gem__count {
+    font-size: 13px;
+    -unity-font-style: bold;
+    color: rgb(16, 18, 24);
+    -unity-text-align: middle-center;
+}
+
+.gem-row__empty {
     font-size: 11px;
-    color: rgb(110, 120, 142);
-    margin: 0 10px;
+    color: rgb(100, 108, 126);
+}
+
+/* ---------- stats ---------- */
+
+/* Four numbers, big, in a row of wells. These are the character, and they were previously a list of
+   label-and-value lines indistinguishable from the settings screen. */
+.statline {
+    flex-direction: row;
+    margin: 16px 0 4px 0;
+}
+
+.stat {
+    flex-grow: 1;
+    flex-basis: 0;
+    height: 54px;
+    margin-right: 6px;
+    padding-top: 5px;
+    align-items: center;
+    background-image: url("Generated/ui-well.png");
+    -unity-slice-left: 11;
+    -unity-slice-right: 11;
+    -unity-slice-top: 11;
+    -unity-slice-bottom: 11;
+}
+
+.stat__label {
+    font-size: 9px;
+    -unity-font-style: bold;
+    letter-spacing: 2px;
+    color: rgb(139, 147, 165);
+}
+
+.stat__value {
+    margin-top: 1px;
+    font-size: 21px;
+    -unity-font-style: bold;
+    color: rgb(236, 231, 219);
+}
+
+/* The seven resolved attributes, wrapped into a grid of small tiles.
+
+   Resolved rather than bought: the middle column already shows what the player is spending, and the
+   difference between the two is the species baseline and the kit, which is the thing worth seeing
+   here. */
+.attr-grid {
+    flex-direction: row;
+    flex-wrap: wrap;
+    margin-top: 4px;
+}
+
+.attr {
+    width: 25%;
+    padding: 5px 0;
+    align-items: center;
+}
+
+.attr__label {
+    font-size: 9px;
+    -unity-font-style: bold;
+    letter-spacing: 1px;
+    color: rgb(139, 147, 165);
+}
+
+.attr__value {
+    font-size: 15px;
+    -unity-font-style: bold;
+    color: rgb(220, 224, 234);
+}
+
+/* Raised above what was bought: something -- a species, a sword -- is adding to it. */
+.attr--boosted .attr__value {
+    color: rgb(198, 158, 88);
+}
+
+.attr--reduced .attr__value {
+    color: rgb(196, 108, 84);
+}
+
+/* ---------- readouts and skills ---------- */
+
+.resolved-row {
+    flex-direction: row;
+    justify-content: space-between;
+    padding: 3px 0;
+}
+
+.resolved-row__label {
+    font-size: 12px;
+    color: rgb(139, 147, 165);
+}
+
+.resolved-row__value {
+    font-size: 12px;
+    -unity-font-style: bold;
+    color: rgb(220, 224, 234);
+}
+
+.skill-line {
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    height: 26px;
+    padding: 0 8px;
+    margin-bottom: 3px;
+    background-image: url("Generated/ui-card.png");
+    -unity-slice-left: 14;
+    -unity-slice-right: 14;
+    -unity-slice-top: 14;
+    -unity-slice-bottom: 14;
+}
+
+.skill-line__name {
+    font-size: 12px;
+    color: rgb(220, 224, 234);
+}
+
+.skill-line__cost {
+    font-size: 11px;
+    -unity-font-style: bold;
+    color: rgb(198, 158, 88);
+}
+
+.skill-line--none {
+    font-size: 11px;
+    color: rgb(100, 108, 126);
+    white-space: normal;
+    background-image: none;
+    padding: 0;
+    height: auto;
+}
+
+.passive-line {
+    margin-top: 6px;
+    font-size: 11px;
+    color: rgb(198, 158, 88);
+    white-space: normal;
+}
+
+/* ---------- dialogs ---------- */
+
+.dialog {
+    width: 460px;
+    padding: 32px 34px 30px 34px;
+    background-image: url("Generated/ui-panel.png");
+    -unity-slice-left: 16;
+    -unity-slice-right: 16;
+    -unity-slice-top: 16;
+    -unity-slice-bottom: 16;
+}
+
+.dialog--wide {
+    width: 560px;
+}
+
+.dialog__title {
+    font-size: 22px;
+    -unity-font-style: bold;
+    letter-spacing: 5px;
+    color: rgb(236, 231, 219);
+}
+
+.dialog__note {
+    margin-bottom: 20px;
+    font-size: 12px;
+    color: rgb(139, 147, 165);
+    white-space: normal;
 }
 
 /* ---------- lobby ---------- */
@@ -159,56 +975,67 @@
     flex-direction: row;
     align-items: center;
     justify-content: space-between;
-    padding: 12px 14px;
-    margin-bottom: 18px;
-    border-radius: 10px;
-    background-color: rgb(16, 18, 25);
-    border-width: 1px;
-    border-color: rgb(48, 53, 68);
+    padding: 12px 16px;
+    margin-bottom: 20px;
+    background-image: url("Generated/ui-well.png");
+    -unity-slice-left: 11;
+    -unity-slice-right: 11;
+    -unity-slice-top: 11;
+    -unity-slice-bottom: 11;
 }
 
 .code-card__code {
-    font-size: 24px;
+    margin-top: 4px;
+    font-size: 26px;
     -unity-font-style: bold;
-    letter-spacing: 5px;
-    color: rgb(240, 195, 120);
+    letter-spacing: 7px;
+    color: rgb(226, 191, 122);
 }
 
 .player-list {
-    height: 168px;
-    margin-bottom: 14px;
-    border-radius: 10px;
-    background-color: rgb(16, 18, 25);
-    border-width: 1px;
-    border-color: rgb(48, 53, 68);
+    height: 176px;
+    margin: 8px 0 14px 0;
+    padding: 6px;
+    background-image: url("Generated/ui-well.png");
+    -unity-slice-left: 11;
+    -unity-slice-right: 11;
+    -unity-slice-top: 11;
+    -unity-slice-bottom: 11;
 }
 
 .player-row {
     flex-direction: row;
     align-items: center;
     justify-content: space-between;
-    padding: 10px 14px;
-    border-bottom-width: 1px;
-    border-bottom-color: rgb(32, 36, 48);
+    height: 36px;
+    padding: 0 12px;
+    margin-bottom: 4px;
+    background-image: url("Generated/ui-card.png");
+    -unity-slice-left: 14;
+    -unity-slice-right: 14;
+    -unity-slice-top: 14;
+    -unity-slice-bottom: 14;
 }
 
 .player-row__name {
-    font-size: 14px;
-    color: rgb(226, 232, 245);
+    font-size: 13px;
+    color: rgb(220, 224, 234);
     overflow: hidden;
     text-overflow: ellipsis;
 }
 
 .player-row__tag {
-    font-size: 11px;
-    color: rgb(148, 158, 180);
+    font-size: 10px;
+    letter-spacing: 1px;
+    color: rgb(139, 147, 165);
     margin-left: 8px;
 }
 
 .player-row__state {
-    font-size: 12px;
+    font-size: 10px;
     -unity-font-style: bold;
-    color: rgb(148, 158, 180);
+    letter-spacing: 2px;
+    color: rgb(120, 128, 146);
 }
 
 .player-row__state--ready {
@@ -220,66 +1047,23 @@
 }
 
 .ready-toggle .unity-toggle__text {
-    font-size: 14px;
-    color: rgb(226, 232, 245);
+    font-size: 13px;
+    color: rgb(220, 224, 234);
     margin-left: 8px;
-}
-
-/* ---------- status ---------- */
-
-.status {
-    margin-top: 14px;
-    max-width: 420px;
-    font-size: 12px;
-    color: rgb(148, 158, 180);
-    white-space: normal;
-    -unity-text-align: middle-center;
-}
-
-.is-hidden {
-    display: none;
-}
-
-/* ---------- menu screens ---------- */
-
-.panel--wide {
-    width: 520px;
-}
-
-.menu-stack {
-    margin-top: 4px;
-}
-
-.button--menu {
-    height: 46px;
-    margin-bottom: 10px;
-}
-
-.back-button {
-    margin-top: 18px;
 }
 
 /* ---------- settings ---------- */
 
-.section-heading {
-    font-size: 12px;
-    -unity-font-style: bold;
-    letter-spacing: 2px;
-    color: rgb(110, 120, 142);
-    margin-top: 18px;
-    margin-bottom: 10px;
-}
-
 .setting-row {
     flex-direction: row;
     align-items: center;
-    margin-bottom: 10px;
+    margin-bottom: 12px;
 }
 
 .setting-row__label {
-    width: 140px;
-    font-size: 13px;
-    color: rgb(200, 208, 224);
+    width: 130px;
+    font-size: 12px;
+    color: rgb(200, 206, 220);
 }
 
 .setting-row__control {
@@ -288,391 +1072,58 @@
     margin: 0;
 }
 
-/* Fixed width and right alignment so the numbers do not shuffle the slider as they change. */
+/* Fixed width and right aligned so the numbers do not shuffle the slider as they change. */
 .setting-row__value {
     width: 52px;
     margin-left: 10px;
     font-size: 12px;
-    color: rgb(148, 158, 180);
+    -unity-font-style: bold;
+    color: rgb(198, 158, 88);
     -unity-text-align: middle-right;
 }
 
-.dropdown .unity-base-popup-field__input {
-    height: 32px;
-    padding-left: 10px;
-    font-size: 13px;
-    color: rgb(226, 232, 245);
-    background-color: rgb(16, 18, 25);
-    border-radius: 8px;
-    border-width: 1px;
-    border-color: rgb(56, 62, 80);
-}
-
 .slider .unity-base-slider__tracker {
-    height: 4px;
-    background-color: rgb(16, 18, 25);
+    height: 3px;
+    background-color: rgb(11, 13, 18);
     border-width: 1px;
-    border-color: rgb(48, 53, 68);
+    border-color: rgb(42, 48, 62);
 }
 
 .slider .unity-base-slider__dragger {
-    width: 16px;
-    height: 16px;
-    margin-top: -7px;
-    border-radius: 8px;
-    background-color: rgb(198, 88, 38);
+    width: 14px;
+    height: 14px;
+    margin-top: -6px;
+    border-radius: 0;
+    background-color: rgb(198, 158, 88);
     border-width: 0;
 }
 
 .setting-note {
     font-size: 11px;
-    color: rgb(110, 120, 142);
+    color: rgb(100, 108, 126);
     white-space: normal;
-    margin-top: 2px;
+    margin-top: 6px;
 }
 
 /* Loud enough to be read before the player concludes the dropdowns are broken. */
 .setting-note--warning {
-    padding: 8px 10px;
-    margin-top: 6px;
-    margin-bottom: 4px;
-    border-radius: 6px;
-    color: rgb(240, 195, 120);
-    background-color: rgba(240, 195, 120, 0.1);
-    border-left-width: 2px;
-    border-left-color: rgb(240, 195, 120);
-}
-
-/* ---------- start screen ---------- */
-
-.start {
-    align-items: center;
-    justify-content: center;
-}
-
-.start__title {
-    font-size: 64px;
-    -unity-font-style: bold;
-    letter-spacing: 12px;
-    color: rgb(240, 243, 250);
-}
-
-.start__prompt {
-    margin-top: 18px;
-    font-size: 14px;
-    letter-spacing: 4px;
-    color: rgb(148, 158, 180);
-}
-
-/* ---------- character list ---------- */
-
-.character-list {
-    height: 260px;
-    margin: 8px 0 4px 0;
-    border-radius: 10px;
-    background-color: rgb(16, 18, 25);
-    border-width: 1px;
-    border-color: rgb(48, 53, 68);
-}
-
-.character-row {
-    flex-direction: row;
-    align-items: center;
     padding: 10px 12px;
-    border-bottom-width: 1px;
-    border-bottom-color: rgb(32, 36, 48);
+    margin-top: 8px;
+    color: rgb(226, 191, 122);
+    background-color: rgba(198, 158, 88, 0.1);
+    border-left-width: 2px;
+    border-left-color: rgb(198, 158, 88);
 }
 
-.character-row--selected {
-    background-color: rgba(198, 88, 38, 0.18);
-}
+/* ---------- status ---------- */
 
-.character-row__portrait {
-    width: 44px;
-    height: 44px;
-    margin-right: 12px;
-    border-radius: 6px;
-    background-color: rgb(24, 27, 36);
-    border-width: 1px;
-    border-color: rgb(56, 62, 80);
-    -unity-background-scale-mode: scale-and-crop;
-    justify-content: center;
-}
-
-.character-row__initial {
-    font-size: 18px;
-    -unity-font-style: bold;
-    color: rgb(200, 208, 224);
+.status {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 12px;
+    font-size: 12px;
+    color: rgb(139, 147, 165);
+    white-space: normal;
     -unity-text-align: middle-center;
-}
-
-.character-row__body {
-    flex-grow: 1;
-}
-
-.character-row__name {
-    font-size: 15px;
-    -unity-font-style: bold;
-    color: rgb(240, 243, 250);
-}
-
-.character-row__detail {
-    font-size: 12px;
-    color: rgb(148, 158, 180);
-}
-
-.character-row__invalid {
-    font-size: 11px;
-    color: rgb(226, 122, 63);
-}
-
-/* ---------- creator ---------- */
-
-.panel--create {
-    width: 760px;
-}
-
-.create-columns {
-    flex-direction: row;
-}
-
-.create-form {
-    flex-grow: 1;
-    height: 380px;
-    padding-right: 12px;
-}
-
-.create-summary {
-    width: 236px;
-    padding: 14px;
-    border-radius: 10px;
-    background-color: rgb(16, 18, 25);
-    border-width: 1px;
-    border-color: rgb(48, 53, 68);
-}
-
-.create-portrait {
-    height: 132px;
-    margin-bottom: 10px;
-    border-radius: 8px;
-    background-color: rgb(24, 27, 36);
-    border-width: 1px;
-    border-color: rgb(56, 62, 80);
-    justify-content: center;
-    -unity-background-scale-mode: scale-and-crop;
-}
-
-.create-portrait__initial {
-    font-size: 40px;
-    -unity-font-style: bold;
-    color: rgb(90, 98, 118);
-    -unity-text-align: middle-center;
-}
-
-.create-summary__name {
-    font-size: 17px;
-    -unity-font-style: bold;
-    color: rgb(240, 243, 250);
-}
-
-.create-summary__class {
-    font-size: 12px;
-    color: rgb(148, 158, 180);
-    margin-bottom: 10px;
-    white-space: normal;
-}
-
-.create-stats {
-    margin-bottom: 6px;
-}
-
-.resolved-row {
-    flex-direction: row;
-    justify-content: space-between;
-    padding: 3px 0;
-}
-
-.resolved-row__label {
-    font-size: 12px;
-    color: rgb(148, 158, 180);
-}
-
-.resolved-row__value {
-    font-size: 12px;
-    -unity-font-style: bold;
-    color: rgb(226, 232, 245);
-}
-
-/* The pool wraps: a level-eight character is eight chips and the column is narrow. */
-.create-pool {
-    flex-direction: row;
-    flex-wrap: wrap;
-}
-
-.pool-chip {
-    padding: 3px 8px;
-    margin: 0 4px 4px 0;
-    border-radius: 10px;
-    font-size: 11px;
-    -unity-font-style: bold;
-    background-color: rgb(24, 27, 36);
-    border-width: 1px;
-}
-
-.pool-chip--empty {
-    color: rgb(90, 98, 118);
-    border-color: rgb(48, 53, 68);
-}
-
-/* ---------- creator form rows ---------- */
-
-.alloc-row {
-    flex-direction: row;
-    align-items: center;
-    margin-bottom: 6px;
-}
-
-.alloc-row__label {
-    width: 96px;
-    font-size: 13px;
-    color: rgb(200, 208, 224);
-}
-
-.alloc-row__effect {
-    flex-grow: 1;
-    font-size: 11px;
-    color: rgb(110, 120, 142);
-}
-
-.alloc-row__value {
-    width: 34px;
-    font-size: 14px;
-    -unity-font-style: bold;
-    color: rgb(240, 243, 250);
-    -unity-text-align: middle-center;
-}
-
-.step-button {
-    width: 28px;
-    height: 28px;
-    padding: 0;
-    font-size: 16px;
-    -unity-font-style: bold;
-    color: rgb(226, 232, 245);
-    background-color: rgb(43, 49, 65);
-    border-radius: 6px;
-    border-width: 0;
-}
-
-.step-button:hover {
-    background-color: rgb(56, 63, 82);
-}
-
-.step-button:disabled {
-    opacity: 0.3;
-}
-
-.budget-line {
-    font-size: 12px;
-    color: rgb(148, 158, 180);
-    margin-bottom: 10px;
-}
-
-.budget-line--over {
-    color: rgb(226, 122, 63);
-    -unity-font-style: bold;
-}
-
-.element-buttons {
-    flex-direction: row;
-    flex-wrap: wrap;
-    margin-bottom: 6px;
-}
-
-.element-button {
-    height: 32px;
-    padding: 0 12px;
-    margin: 0 6px 6px 0;
-    font-size: 12px;
-    -unity-font-style: bold;
-    color: rgb(226, 232, 245);
-    background-color: rgb(43, 49, 65);
-    border-radius: 8px;
-    border-width: 1px;
-    border-color: rgb(56, 62, 80);
-}
-
-.element-button:hover {
-    background-color: rgb(56, 63, 82);
-}
-
-.create-faults {
-    min-height: 18px;
-    margin-top: 6px;
-    font-size: 12px;
-    color: rgb(226, 122, 63);
-    white-space: normal;
-}
-
-.portrait-row {
-    flex-direction: row;
-    align-items: center;
-    margin-bottom: 8px;
-}
-
-.portrait-row > .text-input {
-    flex-grow: 1;
-    margin-right: 8px;
-}
-
-/* Who you are playing as, on the main menu. Small, because it is a reminder rather than a control. */
-.playing-as {
-    flex-direction: row;
-    align-items: center;
-    justify-content: space-between;
-    padding: 8px 10px;
-    margin-bottom: 16px;
-    border-radius: 8px;
-    background-color: rgb(16, 18, 25);
-    border-width: 1px;
-    border-color: rgb(48, 53, 68);
-}
-
-.playing-as__name {
-    font-size: 13px;
-    color: rgb(200, 208, 224);
-}
-
-/* Skills the build resolves to. Visibly the sum of class and equipment -- unequip and one leaves. */
-.create-skills {
-    margin-bottom: 4px;
-}
-
-.skill-line {
-    flex-direction: row;
-    justify-content: space-between;
-    padding: 2px 0;
-}
-
-.skill-line__name {
-    font-size: 12px;
-    color: rgb(226, 232, 245);
-}
-
-.skill-line__cost {
-    font-size: 11px;
-    color: rgb(148, 158, 180);
-}
-
-.skill-line--none {
-    font-size: 11px;
-    color: rgb(110, 120, 142);
-    white-space: normal;
-}
-
-.passive-line {
-    margin-top: 4px;
-    font-size: 11px;
-    color: rgb(240, 195, 120);
-    white-space: normal;
 }
