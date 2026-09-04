@@ -38,6 +38,7 @@ namespace Dragoneye.MultiplayerEditor
             Step("UI art", UiArtSetup.Run);
             Step("Arena rewire", AuditRewireSetup.Run);
             Step("Arena visuals", ArenaVisualsSetup.Run);
+            Step("Board tokens", TokenSetup.Run);
             Step("Turn system", TurnSystemSetup.Run);
             Step("Main menu", MainMenuSetup.Run);
             Step("Character content", CharacterContentSetup.Run);

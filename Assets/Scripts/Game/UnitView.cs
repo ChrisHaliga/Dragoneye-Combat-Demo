@@ -36,6 +36,10 @@ namespace Dragoneye.Game
         [SerializeField, Tooltip("The renderer that takes the party colour.")]
         Renderer m_Body;
 
+        [SerializeField, Tooltip("The disc on top of the token that wears the portrait. Hidden "
+             + "when this creature has no picture available on this machine.")]
+        Renderer m_Portrait;
+
         [SerializeField, Tooltip("World units per second. One tile is about 1.7 units.")]
         float m_Speed = 6f;
 
@@ -51,7 +55,11 @@ namespace Dragoneye.Game
         UnitState m_State;
         CreatureState m_Creature;
         MaterialPropertyBlock m_PropertyBlock;
+        MaterialPropertyBlock m_PortraitBlock;
         int m_ColorPropertyId;
+
+        static readonly int k_BaseMap = Shader.PropertyToID("_BaseMap");
+        static readonly int k_BaseMapSt = Shader.PropertyToID("_BaseMap_ST");
 
         Vector3 m_Target;
         bool m_Placed;
@@ -61,6 +69,7 @@ namespace Dragoneye.Game
             m_State = GetComponent<UnitState>();
             m_Creature = GetComponent<CreatureState>();
             m_PropertyBlock = new MaterialPropertyBlock();
+            m_PortraitBlock = new MaterialPropertyBlock();
             m_ColorPropertyId = Shader.PropertyToID(m_ColorProperty);
 
             if (m_Body == null)
@@ -161,6 +170,38 @@ namespace Dragoneye.Game
             m_Body.GetPropertyBlock(m_PropertyBlock);
             m_PropertyBlock.SetColor(m_ColorPropertyId, color);
             m_Body.SetPropertyBlock(m_PropertyBlock);
+
+            RepaintPortrait();
+        }
+
+        /// <summary>
+        /// Puts this creature's face on the top of its token.
+        ///
+        /// The disc is hidden rather than blanked when there is no picture: an empty white circle
+        /// on top of a coloured checker reads as a bug, and the bare top of the token does not.
+        ///
+        /// Set through a property block for the same reason the body colour is -- one material for
+        /// every token on the board, and no instance leaked per creature.
+        /// </summary>
+        void RepaintPortrait()
+        {
+            if (m_Portrait == null || m_Creature == null)
+            {
+                return;
+            }
+
+            if (!CreatureDisplay.TryPortraitTexture(m_Creature, out var texture, out var scaleOffset))
+            {
+                m_Portrait.enabled = false;
+                return;
+            }
+
+            m_Portrait.enabled = true;
+
+            m_Portrait.GetPropertyBlock(m_PortraitBlock);
+            m_PortraitBlock.SetTexture(k_BaseMap, texture);
+            m_PortraitBlock.SetVector(k_BaseMapSt, scaleOffset);
+            m_Portrait.SetPropertyBlock(m_PortraitBlock);
         }
     }
 }

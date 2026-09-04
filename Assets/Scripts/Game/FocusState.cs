@@ -7,9 +7,11 @@ namespace Dragoneye.Game
     /// <summary>
     /// The replicated identity of one player's focus point: which slot it belongs to.
     ///
-    /// Data and network lifecycle only. It renders nothing -- <see cref="FocusView"/> observes this
-    /// and does that -- so the rules of who owns what stay readable without wading through
-    /// material and label code.
+    /// Data and network lifecycle only. It renders nothing, and nothing renders it any more: the
+    /// disc and the floating name that used to sit on this are gone, because a coloured puck told a
+    /// player nothing they could act on and the name over it answered a question nobody asked.
+    /// What survives is the point the camera follows, which is the whole reason it is replicated --
+    /// so the rules of who owns what stay readable without wading through material and label code.
     ///
     /// The name is not replicated here: <see cref="PlayerRoster"/> already carries it for every
     /// player, and duplicating it would mean two sources that can disagree.

@@ -35,7 +35,7 @@ namespace Dragoneye.Game
     /// change colour mid-session, and two players can collide on the same colour after a reconnect.
     /// A slot is assigned once, by the server, and never moves.
     ///
-    /// The roster is also where a name belongs: <see cref="FocusView"/> reads from here rather than
+    /// The roster is also where a name belongs: the turn bar reads from here rather than
     /// from the session, which keeps the game assembly out of the lobby's business and avoids the
     /// one-round-trip "Player 0" flash while a name replicates.
     /// </summary>

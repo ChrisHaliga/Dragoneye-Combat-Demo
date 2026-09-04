@@ -83,6 +83,40 @@ namespace Dragoneye.Game
         }
 
         /// <summary>
+        /// The same picture, as a texture and the part of it to use.
+        ///
+        /// For the board token, which paints a mesh rather than an element. A sprite may be one
+        /// region of a larger page, so the rect comes back with it -- handing the whole page to a
+        /// disc would show a creature its neighbours.
+        /// </summary>
+        /// <returns>False when this creature has no picture available on this machine.</returns>
+        public static bool TryPortraitTexture(CreatureState creature, out Texture texture,
+            out Vector4 scaleOffset)
+        {
+            scaleOffset = new Vector4(1f, 1f, 0f, 0f);
+            texture = null;
+
+            var definition = creature.Definition;
+            var sprite = definition != null ? definition.Portrait : null;
+
+            if (sprite != null && sprite.texture != null)
+            {
+                var rect = sprite.textureRect;
+                var page = sprite.texture;
+
+                texture = page;
+                scaleOffset = new Vector4(
+                    rect.width / page.width, rect.height / page.height,
+                    rect.x / page.width, rect.y / page.height);
+
+                return true;
+            }
+
+            texture = OwnPortrait(creature);
+            return texture != null;
+        }
+
+        /// <summary>
         /// The portrait of the character this player is playing as, when this creature is it.
         ///
         /// Matched on the build slot rather than on control: a player who has also claimed a premade
