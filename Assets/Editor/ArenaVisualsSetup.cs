@@ -12,9 +12,10 @@ namespace Dragoneye.MultiplayerEditor
     /// it answered a question nobody was asking -- whose turn it is now reads under the turn order,
     /// where it belongs.
     ///
-    /// An editor step rather than a runtime one, because the right way to stop drawing something is
-    /// to remove it from the prefab, not to add a script whose whole job is to switch it off every
-    /// time it loads.
+    /// Housekeeping, not the rule. <see cref="FocusPoint"/> is what guarantees a focus point has
+    /// no appearance, because that guarantee cannot depend on somebody having run a menu item -- and
+    /// it did not, which is how a disc labelled "Player" survived being deleted twice. This deletes
+    /// the objects from the asset so they are not sitting there being switched off forever.
     /// </summary>
     static class ArenaVisualsSetup
     {

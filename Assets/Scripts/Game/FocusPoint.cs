@@ -34,6 +34,27 @@ namespace Dragoneye.Game
         public Vector3 Position => transform.position;
 
         /// <summary>
+        /// A focus point has no appearance, and this is what makes that true.
+        ///
+        /// It used to wear a coloured disc with the owner's name floating over it. Neither told a
+        /// player anything they could act on -- whose turn it is reads under the turn order now,
+        /// where it answers a question somebody is actually asking.
+        ///
+        /// Enforced here rather than left to the prefab, because this is the component that decides
+        /// what a focus point is. A prefab can be re-pointed, duplicated, or simply not have had the
+        /// setup step run on it, and every one of those brings the puck back. The step still strips
+        /// the dead objects out of the asset; this is what makes the outcome independent of whether
+        /// anybody ran it.
+        /// </summary>
+        void Awake()
+        {
+            foreach (var renderer in GetComponentsInChildren<Renderer>(true))
+            {
+                renderer.enabled = false;
+            }
+        }
+
+        /// <summary>
         /// Confines the focus point. Supplied at runtime so it adapts to whatever arena is loaded
         /// without knowing anything about maps.
         /// </summary>
