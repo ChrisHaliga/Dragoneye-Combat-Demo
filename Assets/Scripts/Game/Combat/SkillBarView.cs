@@ -182,6 +182,33 @@ namespace Dragoneye.Game
                 : string.Empty;
         }
 
+        /// <summary>
+        /// Arms a skill, or uses it outright when there is nothing to aim it at.
+        ///
+        /// Something you do to yourself has one possible target, and making the player then click
+        /// their own piece to confirm it is a step that answers no question. Everything aimed at
+        /// somebody else is armed and takes the next board click, and clicking an armed skill again
+        /// puts it away.
+        /// </summary>
+        void OnSkillClicked(SkillSpec skill)
+        {
+            if (skill.Target != SkillTarget.Self)
+            {
+                m_Selected = m_Selected == skill.Id ? NoSkill : skill.Id;
+                return;
+            }
+
+            var actor = m_Input.Actor;
+            var commands = actor != null ? actor.GetComponent<SkillCommands>() : null;
+
+            if (commands != null)
+            {
+                commands.RequestUse(skill.Id, actor.Cell);
+            }
+
+            m_Selected = NoSkill;
+        }
+
         VisualElement BuildButton(SkillSpec skill, SkillRefusal refusal)
         {
             var usable = refusal == SkillRefusal.None;
@@ -221,10 +248,8 @@ namespace Dragoneye.Game
             // explains itself without the player having to look elsewhere.
             button.tooltip = usable ? skill.Description : SkillLabels.Describe(refusal);
 
-            // Armed on a click, disarmed by clicking it again. The board click that follows is
-            // what aims it; until then nothing has been spent and nothing has happened.
             button.SetEnabled(usable);
-            button.clicked += () => m_Selected = m_Selected == skill.Id ? NoSkill : skill.Id;
+            button.clicked += () => OnSkillClicked(skill);
 
             return button;
         }

@@ -175,6 +175,16 @@ namespace Dragoneye.Game
             }
 
             var occupant = TargetAt(target);
+
+            // Walking into range is part of using a skill, not a separate order the client sends
+            // first. Doing it here is what keeps the promise the cursor made -- "Strike, 1.5 + 1
+            // AP" is one decision, and a client that could send the two halves separately could be
+            // interrupted between them and left standing in the open having paid for nothing.
+            if (!ServerCloseTo(actor, skill, target, out refusal))
+            {
+                return false;
+            }
+
             refusal = SkillRules.Check(skill, true, actor.CurrentAp, pool.Ledger,
                 Describe(actor, occupant, target));
 
@@ -200,6 +210,78 @@ namespace Dragoneye.Game
 
             Resolve(actor, skill, occupant);
             return true;
+        }
+
+        /// <summary>
+        /// Moves the actor to somewhere this skill would reach, if it does not already.
+        ///
+        /// Affordability is checked against the whole price before a single step is taken. A
+        /// creature that walks halfway and then discovers it cannot pay has spent its turn on
+        /// nothing, which is exactly the failure the combined plan exists to avoid.
+        ///
+        /// Self-directed skills never move: the one place they reach from is where the creature is
+        /// standing.
+        /// </summary>
+        bool ServerCloseTo(CreatureState actor, SkillSpec skill, Hex target, out SkillRefusal refusal)
+        {
+            refusal = SkillRefusal.None;
+
+            if (skill.Target == SkillTarget.Self
+                || CombatRules.InRange(Hex.Distance(actor.Cell, target), skill.Range))
+            {
+                return true;
+            }
+
+            var steps = m_Board.StepsToReach(actor.Cell, target, skill.Range);
+
+            if (steps < 0)
+            {
+                refusal = SkillRefusal.OutOfRange;
+                return false;
+            }
+
+            var walk = CombatRules.MoveCost(steps);
+
+            if (actor.CurrentAp < walk + skill.ApCost)
+            {
+                refusal = SkillRefusal.NotEnoughAp;
+                return false;
+            }
+
+            return ServerWalkToReach(actor, skill, target);
+        }
+
+        /// <summary>
+        /// Takes the cheapest route to somewhere within reach, one step at a time.
+        ///
+        /// The destination is recomputed rather than remembered, because <see cref="ServerMove"/>
+        /// prices its own route and the cheapest tile to end on is the one the search already found.
+        /// Stops the moment the target is in reach, which is what stops a bow walking into melee.
+        /// </summary>
+        bool ServerWalkToReach(CreatureState actor, SkillSpec skill, Hex target)
+        {
+            var best = default(Hex);
+            var bestSteps = int.MaxValue;
+
+            foreach (var candidate in Hex.Range(target, skill.Range))
+            {
+                if (candidate == target || m_Board.IsOccupied(candidate))
+                {
+                    continue;
+                }
+
+                var steps = m_Board.CostTo(actor.Cell, candidate);
+
+                if (steps < 0 || steps >= bestSteps)
+                {
+                    continue;
+                }
+
+                bestSteps = steps;
+                best = candidate;
+            }
+
+            return bestSteps != int.MaxValue && ServerMove(actor, best);
         }
 
         /// <summary>

@@ -30,10 +30,29 @@ namespace Dragoneye.Game
                     return string.Empty;
 
                 case ActionRefusal.TooExpensive:
-                    return $"Move -- {plan.Cost} AP (not enough)";
+                    return $"{Name(plan)} (not enough)";
             }
 
-            return $"Move -- {plan.Cost} AP";
+            return Name(plan);
+        }
+
+        /// <summary>
+        /// What the click would do and what it costs, with the walk named separately.
+        ///
+        /// "Strike -- 1.5 + 1 AP" rather than "Strike -- 2.5 AP", because half of that price is
+        /// avoidable by standing somewhere else first and the player cannot tell which half from a
+        /// single number.
+        /// </summary>
+        static string Name(ActionPlan plan)
+        {
+            if (plan.Action != BoardAction.UseSkill || plan.Skill == null)
+            {
+                return $"Move -- {plan.Cost} AP";
+            }
+
+            return plan.MoveCost.IsZero
+                ? $"{plan.Skill.Name} -- {plan.Cost} AP"
+                : $"{plan.Skill.Name} -- {plan.MoveCost} + {plan.Skill.ApCost} AP";
         }
     }
 }

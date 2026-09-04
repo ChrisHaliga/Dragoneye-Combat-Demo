@@ -10,7 +10,10 @@ namespace Dragoneye.Combat
     public enum BoardAction
     {
         None,
-        Move
+        Move,
+
+        /// <summary>Use the armed skill, walking into range first if that is what it takes.</summary>
+        UseSkill
     }
 
     /// <summary>Why an action is not available. <see cref="None"/> means it is.</summary>
@@ -39,16 +42,31 @@ namespace Dragoneye.Combat
     {
         public readonly BoardAction Action;
 
-        /// <summary>In half-units, so a move of three tiles costs 3 and reads as "1.5 AP".</summary>
+        /// <summary>Everything the click costs, in half-units. Walking included.</summary>
         public readonly Ap Cost;
+
+        /// <summary>
+        /// The walking half of it, which is zero when the target is already in reach.
+        ///
+        /// Kept apart from the total so the cursor can say "Move 1.5 + Strike 1" rather than a bare
+        /// 2.5 -- the two halves are separately worth knowing, because one of them is avoidable by
+        /// standing somewhere else first.
+        /// </summary>
+        public readonly Ap MoveCost;
+
+        /// <summary>The skill being aimed, when there is one. Null for a plain move.</summary>
+        public readonly SkillSpec Skill;
 
         public readonly ActionRefusal Refusal;
 
-        public ActionPlan(BoardAction action, Ap cost, ActionRefusal refusal)
+        public ActionPlan(BoardAction action, Ap cost, ActionRefusal refusal,
+            Ap moveCost = default, SkillSpec skill = null)
         {
             Action = action;
             Cost = cost;
             Refusal = refusal;
+            MoveCost = moveCost;
+            Skill = skill;
         }
 
         /// <summary>True when the click would actually do something.</summary>
@@ -105,6 +123,58 @@ namespace Dragoneye.Combat
             }
 
             return ResolveMove(currentAp, moveSteps);
+        }
+
+        /// <summary>
+        /// Prices a click while a skill is armed.
+        ///
+        /// Walking is folded into the action rather than offered separately: with a skill in hand a
+        /// click means "use this on that", and the steps in between are part of the price. That is
+        /// also why a click on empty ground offers nothing -- a misclick beside an enemy should not
+        /// quietly spend the turn walking there.
+        /// </summary>
+        /// <param name="stepsToReach">
+        /// Tiles along the cheapest route to the nearest hex the skill would reach from. Zero when
+        /// the target is already in reach, -1 when there is no such hex.
+        /// </param>
+        public static ActionPlan ResolveSkill(bool isActorsTurn, bool controlsActor, Ap currentAp,
+            SkillSpec skill, bool targetIsCreature, bool targetIsEnemy, int stepsToReach)
+        {
+            if (!controlsActor)
+            {
+                return new ActionPlan(BoardAction.None, Ap.Zero, ActionRefusal.NotYours);
+            }
+
+            if (!isActorsTurn)
+            {
+                return new ActionPlan(BoardAction.None, Ap.Zero, ActionRefusal.NotYourTurn);
+            }
+
+            if (skill == null)
+            {
+                return ActionPlan.Nothing;
+            }
+
+            // What a creature-directed skill is for. Aiming one at bare ground is not a cheaper
+            // version of aiming it at somebody, it is nothing at all.
+            if (skill.Target == SkillTarget.Creature && (!targetIsCreature || !targetIsEnemy))
+            {
+                return new ActionPlan(BoardAction.None, Ap.Zero, ActionRefusal.NoTarget,
+                    skill: skill);
+            }
+
+            if (stepsToReach < 0)
+            {
+                return new ActionPlan(BoardAction.UseSkill, skill.ApCost, ActionRefusal.Unreachable,
+                    skill: skill);
+            }
+
+            var move = CombatRules.MoveCost(stepsToReach);
+            var total = move + skill.ApCost;
+
+            return currentAp < total
+                ? new ActionPlan(BoardAction.UseSkill, total, ActionRefusal.TooExpensive, move, skill)
+                : new ActionPlan(BoardAction.UseSkill, total, ActionRefusal.None, move, skill);
         }
 
         static ActionPlan ResolveMove(Ap currentAp, int moveSteps)

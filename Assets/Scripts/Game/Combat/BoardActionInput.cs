@@ -43,6 +43,14 @@ namespace Dragoneye.Game
 
         ActionPlan m_Hovered = ActionPlan.Nothing;
 
+        // Working out where to stand to reach somebody costs a route search per candidate tile, so
+        // it is done when the question changes rather than once a frame. Everything else about a
+        // plan -- what it costs, whether it is affordable -- is cheap and still repriced live.
+        Hex? m_ReachFrom;
+        Hex m_ReachTarget;
+        int m_ReachSkill;
+        int m_ReachSteps = -1;
+
         /// <summary>The action the cursor is currently over, with its price.</summary>
         public ActionPlan Hovered => m_Hovered;
 
@@ -119,6 +127,13 @@ namespace Dragoneye.Game
                 return ActionPlan.Nothing;
             }
 
+            var armed = ArmedSkill(actor);
+
+            if (armed != null)
+            {
+                return PriceSkill(actor, armed, hex);
+            }
+
             var occupied = m_Units.TryGet(hex, out _);
 
             return ActionResolver.Resolve(
@@ -127,6 +142,59 @@ namespace Dragoneye.Game
                 currentAp: actor.CurrentAp,
                 targetOccupied: occupied,
                 moveSteps: occupied ? -1 : m_Board.CostTo(actor.Cell, hex));
+        }
+
+        /// <summary>The skill the bar has armed, resolved against what this creature knows.</summary>
+        SkillSpec ArmedSkill(CreatureState actor)
+        {
+            if (m_SkillBar == null || m_SkillBar.SelectedSkill == SkillBarView.NoSkill)
+            {
+                return null;
+            }
+
+            var skills = actor.GetComponent<SkillCommands>();
+
+            return skills != null && skills.TryGetSkill(m_SkillBar.SelectedSkill, out var spec)
+                ? spec
+                : null;
+        }
+
+        ActionPlan PriceSkill(CreatureState actor, SkillSpec skill, Hex hex)
+        {
+            var occupied = m_Units.TryGet(hex, out var occupant);
+            var target = occupied ? occupant.GetComponent<CreatureState>() : null;
+
+            return ActionResolver.ResolveSkill(
+                isActorsTurn: true,
+                controlsActor: true,
+                currentAp: actor.CurrentAp,
+                skill: skill,
+                targetIsCreature: target != null,
+                targetIsEnemy: target != null && target.Party != actor.Party,
+                stepsToReach: StepsToReach(actor, skill, hex));
+        }
+
+        /// <summary>
+        /// How far the actor would have to walk to bring this skill to bear, cached.
+        ///
+        /// Recomputed when the actor moves, the target changes or a different skill is armed --
+        /// which is every input that could change the answer, and none of the ones that happen
+        /// sixty times a second while nothing does.
+        /// </summary>
+        int StepsToReach(CreatureState actor, SkillSpec skill, Hex hex)
+        {
+            if (m_ReachFrom.HasValue && m_ReachFrom.Value == actor.Cell
+                && m_ReachTarget == hex && m_ReachSkill == skill.Id)
+            {
+                return m_ReachSteps;
+            }
+
+            m_ReachFrom = actor.Cell;
+            m_ReachTarget = hex;
+            m_ReachSkill = skill.Id;
+            m_ReachSteps = m_Board.StepsToReach(actor.Cell, hex, skill.Range);
+
+            return m_ReachSteps;
         }
 
         void OnClicked(Hex hex)
@@ -140,10 +208,23 @@ namespace Dragoneye.Game
 
             var actor = Actor;
 
-            // An armed skill takes the click. Move and attack are what a click means when nothing
-            // is armed, so the bar decides which of the three a hex press is.
-            if (actor != null && m_SkillBar != null && m_SkillBar.SelectedSkill != SkillBarView.NoSkill)
+            if (actor == null)
             {
+                return;
+            }
+
+            var plan = Price(hex);
+
+            // An armed skill takes the click, and takes the walk with it. Moving is what a click
+            // means only when nothing is armed -- so a misclick on the ground beside an enemy costs
+            // nothing rather than quietly spending the turn walking there.
+            if (plan.Action == BoardAction.UseSkill)
+            {
+                if (!plan.IsAllowed)
+                {
+                    return;
+                }
+
                 var skills = actor.GetComponent<SkillCommands>();
 
                 if (skills != null)
@@ -154,9 +235,8 @@ namespace Dragoneye.Game
                 m_SkillBar.ClearSelection();
                 return;
             }
-            var plan = Price(hex);
 
-            if (actor == null || !plan.IsAllowed)
+            if (!plan.IsAllowed)
             {
                 return;
             }

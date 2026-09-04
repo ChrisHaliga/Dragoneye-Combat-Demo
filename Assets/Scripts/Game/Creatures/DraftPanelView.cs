@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using Dragoneye.Combat;
+using Dragoneye.Data;
 using Dragoneye.Multiplayer;
 using Unity.Netcode;
 using UnityEngine;
@@ -103,8 +104,10 @@ namespace Dragoneye.Game
             }
 
             // Netcode starting or stopping is what shows and hides this screen, and neither raises
-            // anything worth subscribing to from here.
-            if (IsLive() != m_Live)
+            // anything worth subscribing to from here. Compared against the same question Refresh
+            // answers, or the board would rebuild every frame it was standing aside -- which is how
+            // a click gets destroyed between the press and the release.
+            if (ShouldShow() != m_Live)
             {
                 Refresh();
             }
@@ -116,6 +119,16 @@ namespace Dragoneye.Game
             var manager = NetworkManager.Singleton;
             return manager != null && (manager.IsListening || manager.IsConnectedClient);
         }
+
+        /// <summary>
+        /// Whether the board should be on screen.
+        ///
+        /// A level-up is a decision waiting on this player, drawn on the document underneath this
+        /// one. The board stands aside until it has been dealt with rather than covering it -- which
+        /// is the whole reason the level-up screen does not know which screen is hosting it.
+        /// </summary>
+        static bool ShouldShow() =>
+            IsLive() && !LevelUpScreen.HasLevelsWaiting(SelectedCharacter.Current);
 
         void OnDestroy()
         {
@@ -300,7 +313,7 @@ namespace Dragoneye.Game
             // The screen is up whenever netcode is, not only once the draft object has replicated.
             // A client that has connected but has not yet received the draft still needs the join
             // code, the player list and a way out, and a host still needs to see that it worked.
-            var live = IsLive();
+            var live = ShouldShow();
             m_Live = live;
 
             m_Panel.EnableInClassList("is-hidden", !live);

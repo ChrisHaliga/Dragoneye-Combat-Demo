@@ -162,6 +162,36 @@ namespace Dragoneye.Multiplayer
         }
 
         /// <summary>
+        /// Ends the match and goes back to the lobby, with the session left standing.
+        ///
+        /// What a finished match should do. Leaving tears down the session, which is right when a
+        /// player quits and wrong when a fight simply ended: the party is still assembled, the join
+        /// code is still worth something, and everyone is about to argue over the next roster.
+        ///
+        /// Driven through the netcode scene manager for the same reason the arena load is -- the
+        /// host decides, and clients follow rather than each racing to a scene of their own.
+        /// </summary>
+        public void ReturnToLobby()
+        {
+            var networkManager = NetworkManager.Singleton;
+
+            if (networkManager == null || !networkManager.IsListening)
+            {
+                // No session left to go back to: a client whose host has gone, or a match that was
+                // never networked at all. The menu is the only place there is.
+                ReturnToMenu();
+                return;
+            }
+
+            if (!networkManager.IsServer)
+            {
+                return;
+            }
+
+            networkManager.SceneManager.LoadScene(m_MenuScene, LoadSceneMode.Single);
+        }
+
+        /// <summary>
         /// Ends whatever kind of match is running and returns to the menu.
         ///
         /// The caller does not need to know whether a UGS session is involved: leaving a session

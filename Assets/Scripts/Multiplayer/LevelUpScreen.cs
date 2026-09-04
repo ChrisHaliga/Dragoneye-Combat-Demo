@@ -21,6 +21,11 @@ namespace Dragoneye.Multiplayer
     /// The arithmetic is <see cref="Progression"/>'s and the check is
     /// <see cref="BuildValidator"/>'s. This screen only asks them, on every step, so a Confirm that
     /// is offered is a save that will be accepted.
+    ///
+    /// Nothing here knows where it is being shown. It takes a root to bind against, a catalog, and
+    /// somewhere to go when it is finished -- so the same screen can hang off the lobby today, a
+    /// pause menu tomorrow, and an end-of-fight panel after that. <see cref="HasLevelsWaiting"/> is
+    /// the question any of those hosts asks before opening it.
     /// </summary>
     public sealed class LevelUpScreen
     {
@@ -92,7 +97,11 @@ namespace Dragoneye.Multiplayer
             }
 
             m_Confirm.clicked += OnConfirmClicked;
-            m_Later.clicked += () => m_OnDone?.Invoke();
+            m_Later.clicked += () =>
+            {
+                Defer(m_Character);
+                m_OnDone?.Invoke();
+            };
         }
 
         /// <summary>
@@ -101,8 +110,40 @@ namespace Dragoneye.Multiplayer
         /// Static, and asked before the screen is opened rather than by it, so the router does not
         /// have to build a screen to find out there is nothing to show.
         /// </summary>
-        public static bool HasLevelsWaiting(SavedCharacter character) =>
-            character != null && Progression.Resolve(character.Build.Level, character.Build.Xp).Any;
+        public static bool HasLevelsWaiting(SavedCharacter character)
+        {
+            if (character == null || !Progression.Resolve(character.Build.Level, character.Build.Xp).Any)
+            {
+                return false;
+            }
+
+            // Put off, and not asked again until something changes. Deciding what a character
+            // becomes is a real decision and a player is allowed to want to make it later -- but
+            // "later" cannot mean "every time you look at a screen", or the offer becomes a door
+            // they have to close on the way to everything else.
+            return s_DeferredId != character.Id || s_DeferredXp != character.Build.Xp;
+        }
+
+        /// <summary>
+        /// Records that the player would rather do this another time.
+        ///
+        /// Against the experience they had when they said so, so earning more asks again. Static
+        /// because it is a fact about this sitting rather than about the save file, and it should
+        /// not survive a restart -- a player who comes back tomorrow should be offered it again.
+        /// </summary>
+        public static void Defer(SavedCharacter character)
+        {
+            if (character == null)
+            {
+                return;
+            }
+
+            s_DeferredId = character.Id;
+            s_DeferredXp = character.Build.Xp;
+        }
+
+        static string s_DeferredId;
+        static int s_DeferredXp;
 
         /// <summary>Opens on a character that has levels waiting.</summary>
         public void Open(SavedCharacter character)

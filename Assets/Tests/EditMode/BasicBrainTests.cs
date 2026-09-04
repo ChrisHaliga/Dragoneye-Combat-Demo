@@ -48,6 +48,15 @@ namespace Dragoneye.Hex.Tests
         static readonly SkillSpec k_Loose = new SkillSpec(3, "Loose", Element.Aero, Ap.FromWhole(1),
             0, 4, SkillTarget.Creature, new SkillEffect(SkillEffectKind.Damage, 5));
 
+        /// <summary>Costs an element, so a creature holding none cannot use it.</summary>
+        static readonly SkillSpec k_Strike = new SkillSpec(4, "Strike", Element.Pyro,
+            Ap.FromWhole(1), 1, 1, SkillTarget.Creature,
+            new SkillEffect(SkillEffectKind.Damage, 6));
+
+        static readonly SkillSpec k_Breath = new SkillSpec(5, "Take a Breath", Element.Arcana,
+            Ap.FromWhole(1), 0, 0, SkillTarget.Self,
+            new SkillEffect(SkillEffectKind.ReturnElement, 1));
+
         static BrainView Actor(Hex cell, int wholeAp = 6, Party party = Party.Monsters,
             params SkillSpec[] skills) =>
             new BrainView(1, cell, party, Ap.FromWhole(wholeAp), 20,
@@ -111,6 +120,70 @@ namespace Dragoneye.Hex.Tests
             Assert.AreEqual(BrainAction.Move, decision.Action);
             Assert.AreEqual(4, Hex.Distance(decision.Destination, new Hex(8, 0)),
                 "it stops at the edge of its reach rather than walking into melee");
+        }
+
+        // ---------- the state machine ----------
+
+        [Test]
+        public void StrikesWhenSomethingItHoldsReaches()
+        {
+            var plan = BasicBrain.Assess(
+                Actor(Hex.Zero, 6, Party.Monsters, k_Jab), Enemy(2, new Hex(1, 0)));
+
+            Assert.AreEqual(BrainState.Striking, plan.State);
+            Assert.AreEqual(k_Jab.Id, plan.Skill.Id);
+        }
+
+        [Test]
+        public void ClosesWhenItCouldActButNotFromHere()
+        {
+            var plan = BasicBrain.Assess(
+                Actor(Hex.Zero, 6, Party.Monsters, k_Jab), Enemy(2, new Hex(5, 0)));
+
+            Assert.AreEqual(BrainState.Closing, plan.State);
+        }
+
+        [Test]
+        public void RecoversRatherThanWalkingWhenItCanPayForNothing()
+        {
+            // A skill it cannot afford and a breath it can. Walking closer would put it next to
+            // somebody it still could not hit; getting the element back is the only thing that
+            // changes the situation.
+            ElementLedger.Starting(new ElementCounts(0, 0, 1, 0, 0, 0, 0))
+                .TrySpend(Element.Pyro, 1, out var spent, out _);
+
+            var actor = new BrainView(1, Hex.Zero, Party.Monsters, Ap.FromWhole(6), 20,
+                new[] { k_Strike, k_Breath }, spent);
+
+            var plan = BasicBrain.Assess(actor, Enemy(2, new Hex(5, 0)));
+
+            Assert.AreEqual(BrainState.Recovering, plan.State);
+            Assert.AreEqual(k_Breath.Id, plan.Skill.Id);
+            Assert.AreEqual(1u, plan.TargetId, "aimed at itself, because that is what it acts on");
+        }
+
+        [Test]
+        public void DoesNotStandAroundBreathingWhileItCanStillFight()
+        {
+            var actor = new BrainView(1, Hex.Zero, Party.Monsters, Ap.FromWhole(6), 20,
+                new[] { k_Jab, k_Breath });
+
+            Assert.AreEqual(BrainState.Striking, BasicBrain.Assess(actor, Enemy(2, new Hex(1, 0))).State);
+        }
+
+        [Test]
+        public void IdlesWithNobodyToFight()
+        {
+            Assert.AreEqual(BrainState.Idle,
+                BasicBrain.Assess(Actor(Hex.Zero), null).State);
+        }
+
+        [Test]
+        public void IdlesWithNothingLeftToSpend()
+        {
+            var actor = new BrainView(1, Hex.Zero, Party.Monsters, Ap.Zero, 20, new[] { k_Jab });
+
+            Assert.AreEqual(BrainState.Idle, BasicBrain.Assess(actor, Enemy(2, new Hex(5, 0))).State);
         }
 
         [Test]

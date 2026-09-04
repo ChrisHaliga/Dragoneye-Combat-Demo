@@ -97,6 +97,83 @@ namespace Dragoneye.Hex.Tests
             StringAssert.Contains("0.5 AP", ActionLabels.Describe(Move(6, 1)));
         }
 
+        // ---------- an armed skill ----------
+
+        static readonly SkillSpec k_Strike = new SkillSpec(1, "Strike", Element.Pyro,
+            Ap.FromWhole(1), 0, 1, SkillTarget.Creature,
+            new SkillEffect(SkillEffectKind.Damage, 6));
+
+        static ActionPlan Aim(int wholeAp, int steps, bool enemy = true, bool creature = true) =>
+            ActionResolver.ResolveSkill(true, true, Ap.FromWhole(wholeAp), k_Strike,
+                targetIsCreature: creature, targetIsEnemy: enemy, stepsToReach: steps);
+
+        [Test]
+        public void AnEnemyAlreadyInReachCostsTheSkillAlone()
+        {
+            var plan = Aim(wholeAp: 6, steps: 0);
+
+            Assert.AreEqual(BoardAction.UseSkill, plan.Action);
+            Assert.AreEqual(k_Strike.ApCost, plan.Cost);
+            Assert.IsTrue(plan.MoveCost.IsZero);
+            Assert.IsTrue(plan.IsAllowed);
+        }
+
+        [Test]
+        public void WalkingIntoReachIsPartOfThePrice()
+        {
+            // Three tiles at half a point each, then the skill. The halves are kept apart because
+            // one of them is avoidable by standing somewhere else first.
+            var plan = Aim(wholeAp: 6, steps: 3);
+
+            Assert.AreEqual(CombatRules.MoveCost(3) + k_Strike.ApCost, plan.Cost);
+            Assert.AreEqual(CombatRules.MoveCost(3), plan.MoveCost);
+            Assert.IsTrue(plan.IsAllowed);
+
+            var label = ActionLabels.Describe(plan);
+            StringAssert.Contains("Strike", label);
+            StringAssert.Contains($"{CombatRules.MoveCost(3)} + {k_Strike.ApCost} AP", label);
+        }
+
+        [Test]
+        public void AnApproachItCannotAffordIsPricedAndRefused()
+        {
+            // Enough for the walk or the swing, but not for both. Priced anyway, so the player can
+            // see they are one point short rather than being told nothing.
+            var plan = Aim(wholeAp: 1, steps: 3);
+
+            Assert.AreEqual(BoardAction.UseSkill, plan.Action);
+            Assert.IsTrue(plan.IsUnaffordable);
+            StringAssert.Contains("not enough", ActionLabels.Describe(plan));
+        }
+
+        [Test]
+        public void BareGroundIsNotATargetForSomethingAimedAtACreature()
+        {
+            // The misclick this exists to stop: with a skill armed, clicking the tile beside an
+            // enemy must not quietly spend the turn walking there.
+            var plan = Aim(wholeAp: 6, steps: 0, creature: false);
+
+            Assert.AreEqual(BoardAction.None, plan.Action);
+            Assert.AreEqual(ActionRefusal.NoTarget, plan.Refusal);
+        }
+
+        [Test]
+        public void AlliesAreNotTargetsEither()
+        {
+            var plan = Aim(wholeAp: 6, steps: 0, enemy: false);
+
+            Assert.AreEqual(BoardAction.None, plan.Action);
+        }
+
+        [Test]
+        public void AnEnemyWithNowhereToStandIsRefused()
+        {
+            var plan = Aim(wholeAp: 6, steps: -1);
+
+            Assert.AreEqual(ActionRefusal.Unreachable, plan.Refusal);
+            Assert.IsFalse(plan.IsAllowed);
+        }
+
         [Test]
         public void AnUnaffordableActionSaysSo()
         {

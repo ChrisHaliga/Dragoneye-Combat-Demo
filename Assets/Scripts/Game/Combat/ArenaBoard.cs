@@ -61,6 +61,45 @@ namespace Dragoneye.Game
         /// Asked rather than assumed from AP: a creature walled in by its own allies has points it
         /// cannot spend, and the End Turn prompt would otherwise never fire for it.
         /// </summary>
+        /// <summary>
+        /// The cheapest route to somewhere this target could be reached from, in tiles.
+        ///
+        /// Zero when the actor is already close enough, and -1 when no such tile can be walked to.
+        /// The ring is searched outward from the target, so a creature closing on somebody walks the
+        /// shortest distance that does the job rather than all the way to melee.
+        ///
+        /// One route search per candidate tile, which is thirty-seven at reach three -- affordable
+        /// on a board this size, and asked once per hover rather than once per frame.
+        /// </summary>
+        public int StepsToReach(Hex from, Hex target, int reach)
+        {
+            if (CombatRules.InRange(Hex.Distance(from, target), reach))
+            {
+                return 0;
+            }
+
+            var best = -1;
+
+            foreach (var candidate in Hex.Range(target, reach))
+            {
+                if (candidate == target || m_Units.IsOccupied(candidate))
+                {
+                    continue;
+                }
+
+                var steps = CostTo(from, candidate);
+
+                if (steps < 0 || (best >= 0 && steps >= best))
+                {
+                    continue;
+                }
+
+                best = steps;
+            }
+
+            return best;
+        }
+
         public bool HasOpenNeighbour(Hex from)
         {
             if (!IsReady)

@@ -46,10 +46,12 @@ namespace Dragoneye.Game
         /// <summary>
         /// Every peer closes itself.
         ///
-        /// The outcome is replicated, so each client reaches this independently and leaves under its
-        /// own steam. Routing through <see cref="MatchFlow"/> rather than shutting netcode down here
-        /// means a solo match and a hosted one end by the same path -- the one that already knows
-        /// how to get back to the menu.
+        /// Back to the lobby rather than out of the session: a fight ending is not a player leaving.
+        /// The party is still assembled and the next roster is about to be argued over, so the
+        /// board they argue over it on should still be there.
+        ///
+        /// The outcome is replicated, so each peer reaches this independently. Only the host
+        /// actually drives the scene change; the rest follow it.
         /// </summary>
         void Close()
         {
@@ -57,11 +59,11 @@ namespace Dragoneye.Game
 
             if (flow == null)
             {
-                Debug.LogError("No MatchFlow; the match cannot return to the menu.", this);
+                Debug.LogError("No MatchFlow; the match cannot return to the lobby.", this);
                 return;
             }
 
-            flow.LeaveMatch();
+            flow.ReturnToLobby();
         }
     }
 }

@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using Dragoneye.Combat;
 using Dragoneye.Data;
+using Dragoneye.Game;
 using Dragoneye.Multiplayer;
 using UnityEditor;
 using UnityEditor.SceneManagement;
@@ -175,7 +176,111 @@ namespace Dragoneye.MultiplayerEditor
                 breath, strike, cleave, loose, jab, ember, smite, drain, recover, meditate, focus
             };
 
+            // The premades were authored before skills existed, back when every creature had a
+            // generic attack. They have carried empty skill lists and empty pools ever since, which
+            // is why they walked up to a hero and stood there: the only thing they knew was Take a
+            // Breath, and with nothing spent there was nothing to take back.
+            Creatures(strike, cleave, loose, jab, smite, recover, breath);
+
             return Catalog(species, classes, equipment, skills);
+        }
+
+        /// <summary>
+        /// Gives the premade creatures something to do, and a pool to do it with.
+        ///
+        /// Only the four fields that make a creature act are written -- level, pool, skills and what
+        /// it buys as it levels. Health, speed, species and class stay as they were authored, so
+        /// re-running this does not quietly undo somebody's tuning.
+        ///
+        /// Pools cost exactly the creature's level, the same budget a player spends. Levels are what
+        /// the creature reads as: a recruit is a level one, a sergeant is a level three, and the
+        /// host can move either on the board.
+        /// </summary>
+        static void Creatures(SkillAsset strike, SkillAsset cleave, SkillAsset loose, SkillAsset jab,
+            SkillAsset smite, SkillAsset recover, SkillAsset breath)
+        {
+            // Rank and file: one cheap skill, one element, nothing clever.
+            Creature("guard-recruit", 1, Pool(pyro: 1), Element.Pyro, strike, cleave);
+            Creature("monster-goblin", 1, Pool(aero: 1), Element.Aero, jab, cleave);
+            Creature("monster-wolf", 1, Pool(aero: 1), Element.Aero, jab);
+
+            // Skirmishers: reach, and enough pool to use it twice.
+            Creature("bandit-scout", 2, Pool(aero: 2), Element.Aero, loose);
+            Creature("guard-archer", 2, Pool(aero: 2), Element.Aero, loose);
+            Creature("hero-ranger", 2, Pool(aero: 2), Element.Aero, loose, jab);
+            Creature("bandit-cutpurse", 2, Pool(aero: 2), Element.Aero, jab, loose);
+
+            // The heavies. Cleave wants level three, so this is the first rank that has it.
+            Creature("bandit-brute", 3, Pool(geo: 1, pyro: 2), Element.Geo, strike, cleave);
+            Creature("guard-sergeant", 3, Pool(geo: 1, pyro: 2), Element.Pyro, strike, cleave);
+            Creature("monster-ogre", 3, Pool(geo: 2, pyro: 1), Element.Geo, strike, cleave);
+            Creature("hero-knight", 3, Pool(hydro: 1, pyro: 2), Element.Pyro, strike, cleave, recover);
+
+            // One Lux is two points, which is most of a level-three budget. That is the trade.
+            Creature("hero-cleric", 3, Pool(hydro: 1, lux: 1), Element.Lux, smite, recover);
+        }
+
+        /// <summary>
+        /// Writes the four fields that decide what a creature does.
+        ///
+        /// Take a Breath is not in these lists: every species already grants it, and authoring it
+        /// again here would be the same skill from two sources pretending to be two skills.
+        /// </summary>
+        static void Creature(string id, int level, ElementValues pool, Element buys,
+            params SkillAsset[] skills)
+        {
+            var path = $"{k_SpeciesFolder}/{id}.asset";
+            var asset = AssetDatabase.LoadAssetAtPath<CreatureDefinition>(path);
+
+            if (asset == null)
+            {
+                Debug.LogWarning($"No creature at {path}; it was not given skills.");
+                return;
+            }
+
+            var serialized = new SerializedObject(asset);
+
+            serialized.FindProperty("m_Level").intValue = level;
+            WriteElements(serialized.FindProperty("m_StartingPool"), pool);
+            WriteList(serialized.FindProperty("m_Skills"), skills);
+
+            // What it spends the budget on if the host fields it above its authored level. Three
+            // deep, which is further than anybody is likely to push a bandit.
+            var picks = serialized.FindProperty("m_LevelUpPicks");
+            picks.arraySize = 3;
+
+            for (var i = 0; i < 3; i++)
+            {
+                picks.GetArrayElementAtIndex(i).intValue = (int)buys;
+            }
+
+            serialized.ApplyModifiedPropertiesWithoutUndo();
+            EditorUtility.SetDirty(asset);
+        }
+
+        /// <summary>An element spread by name, for the same reason <see cref="Attr"/> exists.</summary>
+        static ElementValues Pool(int geo = 0, int hydro = 0, int pyro = 0, int aero = 0,
+            int lux = 0, int nyx = 0, int arcana = 0) =>
+            new ElementValues
+            {
+                Geo = geo,
+                Hydro = hydro,
+                Pyro = pyro,
+                Aero = aero,
+                Lux = lux,
+                Nyx = nyx,
+                Arcana = arcana
+            };
+
+        static void WriteElements(SerializedProperty block, ElementValues values)
+        {
+            block.FindPropertyRelative("Geo").intValue = values.Geo;
+            block.FindPropertyRelative("Hydro").intValue = values.Hydro;
+            block.FindPropertyRelative("Pyro").intValue = values.Pyro;
+            block.FindPropertyRelative("Aero").intValue = values.Aero;
+            block.FindPropertyRelative("Lux").intValue = values.Lux;
+            block.FindPropertyRelative("Nyx").intValue = values.Nyx;
+            block.FindPropertyRelative("Arcana").intValue = values.Arcana;
         }
 
         /// <summary>
