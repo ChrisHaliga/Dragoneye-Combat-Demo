@@ -485,6 +485,17 @@
     color: rgb(90, 98, 118);
 }
 
+/* Where the character started and where it ended, in one line, because that is the whole news.
+   Three levels at once is one heading rather than three identical screens. */
+.levelup__arc {
+    margin-top: 6px;
+    font-size: 19px;
+    -unity-font-style: bold;
+    letter-spacing: 2px;
+    color: rgb(226, 191, 122);
+    white-space: normal;
+}
+
 .sheet-scroll {
     flex-grow: 1;
     flex-basis: 0;

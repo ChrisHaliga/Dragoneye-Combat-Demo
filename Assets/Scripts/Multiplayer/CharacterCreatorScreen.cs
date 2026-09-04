@@ -56,6 +56,8 @@ namespace Dragoneye.Multiplayer
         readonly Dictionary<Attribute, Button> m_AttributeMinus = new Dictionary<Attribute, Button>();
         readonly Dictionary<Attribute, Button> m_AttributePlus = new Dictionary<Attribute, Button>();
 
+        ElementPicker m_Picker;
+
         CharacterBuild m_Build;
         string m_EditingId;
 
@@ -174,14 +176,7 @@ namespace Dragoneye.Multiplayer
                 m_Attributes.Add(AttributeRow(stat));
             }
 
-            m_ElementValues.Clear();
-            m_ElementMinus.Clear();
-            m_ElementPlus.Clear();
-
-            foreach (var element in ElementInfo.All)
-            {
-                m_Elements.Add(ElementRow(element));
-            }
+            m_Picker = new ElementPicker(m_Elements, AdjustPool);
 
             m_Equipment.Add(EquipmentField("Weapon", EquipmentSlot.Weapon));
             m_Equipment.Add(EquipmentField("Armour", EquipmentSlot.Armor));
@@ -346,56 +341,6 @@ namespace Dragoneye.Multiplayer
             m_Build.Attributes =
                 m_Build.Attributes.With(attribute, m_Build.Attributes[attribute] + delta);
             Refresh();
-        }
-
-        readonly Dictionary<Element, VisualElement> m_ElementRows =
-            new Dictionary<Element, VisualElement>();
-
-        readonly Dictionary<Element, Label> m_ElementValues = new Dictionary<Element, Label>();
-        readonly Dictionary<Element, Button> m_ElementMinus = new Dictionary<Element, Button>();
-        readonly Dictionary<Element, Button> m_ElementPlus = new Dictionary<Element, Button>();
-
-        /// <summary>
-        /// One element, its gem lit by how much of it is held.
-        ///
-        /// A gem rather than a coloured word: a pool is a hand of resources a player counts at a
-        /// glance mid-fight, and seven colour-coded labels read as a legend instead.
-        /// </summary>
-        VisualElement ElementRow(Element element)
-        {
-            var row = new VisualElement();
-            row.AddToClassList("element-row");
-
-            // What it costs is a tooltip rather than a column, because the price never changes and
-            // seven fixed numbers down the middle of the column would read as part of the pool.
-            var cost = ElementPricing.CostOf(element);
-            row.tooltip = $"{ElementInfo.NameOf(element)} costs {cost} "
-                + (cost == 1 ? "point" : "points") + " of the pool budget";
-
-            var gem = new VisualElement();
-            gem.AddToClassList("element-row__gem");
-            gem.style.unityBackgroundImageTintColor = ElementPalette.ForElement(element);
-            row.Add(gem);
-
-            var label = new Label(ElementInfo.NameOf(element).ToUpperInvariant());
-            label.AddToClassList("element-row__name");
-            row.Add(label);
-
-            var minus = MenuControls.StepButton("-", () => AdjustPool(element, -1));
-            var value = new Label();
-            value.AddToClassList("element-row__value");
-            var plus = MenuControls.StepButton("+", () => AdjustPool(element, +1));
-
-            row.Add(minus);
-            row.Add(value);
-            row.Add(plus);
-
-            m_ElementRows[element] = row;
-            m_ElementValues[element] = value;
-            m_ElementMinus[element] = minus;
-            m_ElementPlus[element] = plus;
-
-            return row;
         }
 
         void AdjustPool(Element element, int delta)
@@ -725,48 +670,26 @@ namespace Dragoneye.Multiplayer
         /// Dimming an element the character does not hold is what makes the pool read as a hand
         /// rather than as seven fields that all happen to be zero.
         /// </summary>
+        /// <summary>
+        /// Repaints the element rows against the budget a character of this level has.
+        ///
+        /// The heading carries the budget rather than a line of its own: this is the tightest
+        /// column on the screen, and a budget nobody has overspent is worth no vertical space.
+        /// </summary>
         void RefreshElements(CharacterRules rules)
         {
-            var pool = m_Build.StartingPool;
             var budget = m_Build.PoolBudget();
 
-            // On the heading rather than on a line of its own: the column is the tightest on the
-            // screen, and a budget nobody has overspent is worth no vertical space at all.
             if (m_ElementsTitle != null)
             {
-                var left = ElementPricing.Remaining(pool, budget);
+                var left = ElementPricing.Remaining(m_Build.StartingPool, budget);
 
                 m_ElementsTitle.text = left == 0
                     ? $"STARTING ELEMENTS  \u00b7  {budget} PT SPENT"
                     : $"STARTING ELEMENTS  \u00b7  {left} OF {budget} LEFT";
             }
 
-            foreach (var element in ElementInfo.All)
-            {
-                var held = pool[element];
-
-                if (m_ElementValues.TryGetValue(element, out var label))
-                {
-                    label.text = held.ToString();
-                }
-
-                if (m_ElementRows.TryGetValue(element, out var row))
-                {
-                    row.EnableInClassList("element-row--empty", held == 0);
-                }
-
-                if (m_ElementMinus.TryGetValue(element, out var minus))
-                {
-                    minus.SetEnabled(held > 0);
-                }
-
-                // Afford, not count: Arcana takes three of the budget and Geo takes one, so the
-                // last point left buys some of these and not others.
-                if (m_ElementPlus.TryGetValue(element, out var plus))
-                {
-                    plus.SetEnabled(ElementPricing.CanAdd(pool, element, budget));
-                }
-            }
+            m_Picker.Refresh(m_Build.StartingPool, budget);
         }
 
         void RefreshSummary(Loadout loadout, CharacterRules rules)

@@ -210,6 +210,31 @@ namespace Dragoneye.Game
     }
 
     /// <summary>
+    /// Experience one player's character has earned so far this match.
+    ///
+    /// A running total per slot rather than an event per kill, so a client that joined late, missed
+    /// a message or replayed one banks the same amount either way. What is written to disk is the
+    /// difference between this and what has already been banked.
+    /// </summary>
+    public struct XpAward : INetworkSerializable, IEquatable<XpAward>
+    {
+        public byte Slot;
+        public int Xp;
+
+        public void NetworkSerialize<T>(BufferSerializer<T> serializer) where T : IReaderWriter
+        {
+            serializer.SerializeValue(ref Slot);
+            serializer.SerializeValue(ref Xp);
+        }
+
+        public bool Equals(XpAward other) => Slot == other.Slot && Xp == other.Xp;
+
+        public override bool Equals(object obj) => obj is XpAward other && Equals(other);
+
+        public override int GetHashCode() => Slot ^ Xp;
+    }
+
+    /// <summary>
     /// The characters players brought to this match, one per slot.
     ///
     /// A player's character is theirs: it is submitted by them, permanently claimed by them, and
@@ -230,6 +255,7 @@ namespace Dragoneye.Game
         ContentCatalog m_Content;
 
         readonly NetworkList<NetBuild> m_Builds = new NetworkList<NetBuild>();
+        readonly NetworkList<XpAward> m_Xp = new NetworkList<XpAward>();
         readonly List<NetBuild> m_View = new List<NetBuild>();
         readonly List<BuildFault> m_Faults = new List<BuildFault>();
 
@@ -238,6 +264,74 @@ namespace Dragoneye.Game
 
         /// <summary>Raised on every peer when a character is submitted or replaced.</summary>
         public event Action Changed;
+
+        /// <summary>Raised on every peer when somebody's earnings change.</summary>
+        public event Action XpChanged;
+
+        /// <summary>What a slot's character has earned this match.</summary>
+        public int XpFor(byte slot)
+        {
+            for (var i = 0; i < m_Xp.Count; i++)
+            {
+                if (m_Xp[i].Slot == slot)
+                {
+                    return m_Xp[i].Xp;
+                }
+            }
+
+            return 0;
+        }
+
+        /// <summary>
+        /// Server only. Adds to what a slot has earned.
+        ///
+        /// Only a character its owner brought earns anything. A premade somebody claimed for the
+        /// afternoon is not theirs to level, and the computer has nowhere to put it.
+        /// </summary>
+        public void ServerAwardXp(byte slot, int amount)
+        {
+            if (!IsServer || slot == PartyInfo.Unclaimed || amount <= 0)
+            {
+                return;
+            }
+
+            for (var i = 0; i < m_Xp.Count; i++)
+            {
+                if (m_Xp[i].Slot != slot)
+                {
+                    continue;
+                }
+
+                var existing = m_Xp[i];
+                existing.Xp += amount;
+                m_Xp[i] = existing;
+                return;
+            }
+
+            m_Xp.Add(new XpAward { Slot = slot, Xp = amount });
+        }
+
+        /// <summary>
+        /// Banks whatever this player has earned, every time the total moves.
+        ///
+        /// Here rather than in a screen, because there is no screen guaranteed to be alive when the
+        /// last kill lands: the arena's HUD dies with the scene and the menu has not loaded yet.
+        /// This object outlives both.
+        /// </summary>
+        void OnXpChanged(NetworkListEvent<XpAward> _)
+        {
+            var roster = PlayerRoster.Current;
+            var manager = NetworkManager.Singleton;
+
+            if (roster != null && manager != null
+                && roster.TryGet(manager.LocalClientId, out var entry) && entry.Slot >= 0
+                && entry.Slot <= byte.MaxValue)
+            {
+                CharacterProgress.Bank(entry.Slot, XpFor((byte)entry.Slot));
+            }
+
+            XpChanged?.Invoke();
+        }
 
         /// <summary>Every submitted character, in submission order.</summary>
         public IReadOnlyList<NetBuild> All => m_View;
@@ -260,12 +354,19 @@ namespace Dragoneye.Game
             SkillCatalog.Current = m_Content;
 
             m_Builds.OnListChanged += OnListChanged;
+            m_Xp.OnListChanged += OnXpChanged;
+
+            // A fresh match starts a fresh tally, so a total that begins again at one is not read
+            // as the last match's total having gone backwards.
+            CharacterProgress.Reset();
+
             RebuildView();
         }
 
         public override void OnNetworkDespawn()
         {
             m_Builds.OnListChanged -= OnListChanged;
+            m_Xp.OnListChanged -= OnXpChanged;
 
             if (Current != this)
             {

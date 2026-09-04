@@ -17,6 +17,9 @@ namespace Dragoneye.Multiplayer
         /// <summary>Building or editing one of them.</summary>
         CreateCharacter,
 
+        /// <summary>A character has earned levels and has points to spend on them.</summary>
+        LevelUp,
+
         /// <summary>The main menu proper, once the player knows who they are.</summary>
         Home,
 

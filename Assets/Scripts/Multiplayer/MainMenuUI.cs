@@ -34,6 +34,7 @@ namespace Dragoneye.Multiplayer
         SettingsScreen m_Settings;
         CharacterListScreen m_Characters;
         CharacterCreatorScreen m_Creator;
+        LevelUpScreen m_LevelUp;
         Label m_Status;
         Label m_PlayingAs;
         VisualElement m_HeroBody;
@@ -99,9 +100,16 @@ namespace Dragoneye.Multiplayer
 
             ApplyAvailability();
 
-            // Two ways in: a character already chosen skips the roster, otherwise this is a
-            // fresh launch and they start at the title. A session that survived a match needs no
-            // third case -- the draft board covers whichever of them is showing.
+            // A character that came back from a match with levels waiting takes priority over
+            // everything: it is the first thing that happened to the player and the only screen
+            // with a decision on it. Otherwise a character already chosen skips the roster, and a
+            // fresh launch starts at the title. A session that survived a match needs no case of
+            // its own -- the draft board covers whichever screen is showing.
+            if (ShowLevelUpIfWaiting())
+            {
+                return;
+            }
+
             Show(SelectedCharacter.HasSelection ? MenuScreen.Home : MenuScreen.Start);
         }
 
@@ -118,8 +126,9 @@ namespace Dragoneye.Multiplayer
                 () => Show(MenuScreen.Home));
 
             m_Creator = new CharacterCreatorScreen(root, m_Content, ShowCharacters);
+            m_LevelUp = new LevelUpScreen(root, m_Content, ShowCharacters);
 
-            if (!m_Characters.IsBound || !m_Creator.IsBound)
+            if (!m_Characters.IsBound || !m_Creator.IsBound || !m_LevelUp.IsBound)
             {
                 Debug.LogError("Character markup is missing controls; check SessionMenu.uxml.", this);
                 return false;
@@ -134,6 +143,24 @@ namespace Dragoneye.Multiplayer
                 change.clicked += ShowCharacters;
             }
 
+            return true;
+        }
+
+        /// <summary>
+        /// Opens the level-up screen when the character being played as has earned one.
+        ///
+        /// Asked rather than pushed, because experience is banked by the game assembly while a
+        /// match is running and there is no moment during it when this screen could be shown.
+        /// </summary>
+        bool ShowLevelUpIfWaiting()
+        {
+            if (!LevelUpScreen.HasLevelsWaiting(SelectedCharacter.Current))
+            {
+                return false;
+            }
+
+            m_LevelUp.Open(SelectedCharacter.Current);
+            Show(MenuScreen.LevelUp);
             return true;
         }
 
@@ -179,6 +206,13 @@ namespace Dragoneye.Multiplayer
         /// </summary>
         void ShowCharacters()
         {
+            // Checked here as well as at boot: the roster is where a player lands after a match,
+            // and after choosing somebody new who may have levels of their own waiting.
+            if (ShowLevelUpIfWaiting())
+            {
+                return;
+            }
+
             m_Characters.Refresh();
 
             if (m_Characters.HasAny)
@@ -232,6 +266,7 @@ namespace Dragoneye.Multiplayer
             m_Panels[MenuScreen.Start] = root.Q<VisualElement>("start-panel");
             m_Panels[MenuScreen.Characters] = root.Q<VisualElement>("characters-panel");
             m_Panels[MenuScreen.CreateCharacter] = root.Q<VisualElement>("create-panel");
+            m_Panels[MenuScreen.LevelUp] = root.Q<VisualElement>("levelup-panel");
             m_Panels[MenuScreen.Home] = root.Q<VisualElement>("home-panel");
             m_Panels[MenuScreen.Multiplayer] = root.Q<VisualElement>("multiplayer-panel");
             m_Panels[MenuScreen.Host] = root.Q<VisualElement>("host-panel");

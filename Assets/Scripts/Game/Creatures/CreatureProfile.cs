@@ -17,7 +17,7 @@ namespace Dragoneye.Game
     public readonly struct CreatureProfile
     {
         public static readonly CreatureProfile Unknown = new CreatureProfile(
-            "Unknown", 1, Ap.Zero, 0, null, ElementCounts.Empty);
+            "Unknown", 1, Ap.Zero, 0, null, ElementCounts.Empty, Progression.FirstLevel);
 
         public readonly string Name;
         public readonly int MaxHealth;
@@ -26,8 +26,12 @@ namespace Dragoneye.Game
         public readonly IReadOnlyList<int> SkillIds;
         public readonly ElementCounts StartingPool;
 
+        /// <summary>What killing this is worth, and what it was strong enough to be.</summary>
+        public readonly int Level;
+
         public CreatureProfile(string name, int maxHealth, Ap maxAp, int initiative,
-            IReadOnlyList<int> skillIds, ElementCounts startingPool)
+            IReadOnlyList<int> skillIds, ElementCounts startingPool,
+            int level = Progression.FirstLevel)
         {
             Name = string.IsNullOrEmpty(name) ? "Unknown" : name;
             MaxHealth = maxHealth < 1 ? 1 : maxHealth;
@@ -35,6 +39,7 @@ namespace Dragoneye.Game
             Initiative = initiative;
             SkillIds = skillIds ?? System.Array.Empty<int>();
             StartingPool = startingPool;
+            Level = level < Progression.FirstLevel ? Progression.FirstLevel : level;
         }
 
         /// <summary>An authored premade.</summary>
@@ -43,7 +48,7 @@ namespace Dragoneye.Game
                 ? Unknown
                 : new CreatureProfile(definition.DisplayName, definition.MaxHp,
                     Ap.FromWhole(definition.MaxAp), definition.Speed,
-                    definition.SkillIds, definition.StartingPool);
+                    definition.SkillIds, definition.StartingPool, definition.Level);
 
         /// <summary>
         /// A character somebody built.
@@ -66,7 +71,7 @@ namespace Dragoneye.Game
             }
 
             return new CreatureProfile(name, loadout.Vitals.MaxHealth, loadout.Vitals.MaxAp,
-                loadout.Vitals.Speed, skillIds, loadout.StartingPool);
+                loadout.Vitals.Speed, skillIds, loadout.StartingPool, loadout.Vitals.Level);
         }
     }
 }

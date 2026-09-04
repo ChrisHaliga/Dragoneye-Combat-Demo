@@ -100,6 +100,9 @@ namespace Dragoneye.Game
 
         public int Speed => Profile.Initiative;
 
+        /// <summary>What this creature is worth to whoever kills it.</summary>
+        public int Level => Profile.Level;
+
         /// <summary>What this creature can do. Empty until the catalog is available.</summary>
         public IReadOnlyList<int> SkillIds => Profile.SkillIds;
 

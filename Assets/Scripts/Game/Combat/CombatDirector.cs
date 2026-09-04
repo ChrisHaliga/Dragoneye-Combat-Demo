@@ -214,9 +214,14 @@ namespace Dragoneye.Game
             switch (skill.Effect.Kind)
             {
                 case SkillEffectKind.Damage:
-                    if (target != null && target.ServerApplyDamage(skill.Effect.Amount))
+                    // Reduction comes off here rather than inside the creature, because what a blow
+                    // lands is a rule about the pair of them and the creature only knows its own
+                    // health. Floored at zero, so armour that outweighs a hit stops it rather than
+                    // healing the defender.
+                    if (target != null && target.ServerApplyDamage(
+                            CombatRules.DamageAfter(skill.Effect.Amount, ReductionOf(target))))
                     {
-                        Kill(target);
+                        Kill(target, actor);
                     }
 
                     break;
@@ -357,8 +362,37 @@ namespace Dragoneye.Game
         /// Removed from the order before despawning, because the despawn tears down the component
         /// the order would otherwise be asked about.
         /// </summary>
-        void Kill(CreatureState creature)
+        /// <summary>
+        /// What the defender takes off every blow: its armour, plus anything else it is wearing.
+        ///
+        /// Resolved from the build rather than replicated, because every peer already has what it
+        /// needs to work it out and only the server ever asks.
+        /// </summary>
+        static int ReductionOf(CreatureState creature)
         {
+            var characters = PlayerCharacters.Current;
+
+            if (characters == null || !creature.IsPlayerCharacter)
+            {
+                // A premade has no equipment to resolve. Authored damage reduction for them is a
+                // decision nobody has taken yet, and pretending otherwise would be inventing one.
+                return 0;
+            }
+
+            var loadout = characters.LoadoutFor(creature.BuildSlot);
+            return loadout != null ? loadout.DamageReduction : 0;
+        }
+
+        /// <summary>
+        /// Takes a dead creature off the board, and pays whoever put it there.
+        ///
+        /// The killer earns the victim's level, and only a character its owner brought can keep it:
+        /// a premade somebody claimed for the afternoon is not theirs to level.
+        /// </summary>
+        void Kill(CreatureState creature, CreatureState killer)
+        {
+            AwardXp(killer, creature);
+
             TurnState.Current?.ServerRemove(creature.TurnId);
 
             var networkObject = creature.GetComponent<NetworkObject>();
@@ -368,6 +402,19 @@ namespace Dragoneye.Game
             }
 
             ResolveOutcome();
+        }
+
+        static void AwardXp(CreatureState killer, CreatureState victim)
+        {
+            var characters = PlayerCharacters.Current;
+
+            if (killer == null || victim == null || characters == null
+                || !killer.IsPlayerCharacter || killer.Party == victim.Party)
+            {
+                return;
+            }
+
+            characters.ServerAwardXp(killer.BuildSlot, Progression.XpForKill(victim.Level));
         }
 
         /// <summary>Ends the match when only one side is left standing.</summary>

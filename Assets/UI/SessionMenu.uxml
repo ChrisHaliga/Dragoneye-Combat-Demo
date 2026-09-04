@@ -124,6 +124,50 @@
             </ui:VisualElement>
         </ui:VisualElement>
 
+        <!-- LEVEL UP -->
+
+        <ui:VisualElement name="levelup-panel" class="screen stage is-hidden">
+            <ui:VisualElement class="stage__head">
+                <ui:Label text="LEVEL UP" class="stage__title" />
+                <ui:Label name="levelup-fault" text="" class="stage__fault" />
+            </ui:VisualElement>
+            <ui:VisualElement class="rule rule--head" />
+
+            <ui:VisualElement class="stage__body">
+                <ui:VisualElement class="col col--identity">
+                    <ui:Label name="levelup-name" text="" class="sheet__name" />
+                    <ui:Label name="levelup-arc" text="" class="levelup__arc" />
+                    <ui:Label name="levelup-xp" text="" class="sheet__class" />
+                    <ui:Label text="UNLOCKED" class="col__title col__title--spaced" />
+                    <ui:VisualElement name="levelup-unlocked" class="group" />
+                </ui:VisualElement>
+
+                <ui:VisualElement class="col col--kit">
+                    <ui:Label name="levelup-elements-title" text="SPEND YOUR POINTS" class="col__title" />
+                    <ui:VisualElement name="levelup-elements" class="group" />
+                </ui:VisualElement>
+
+                <ui:VisualElement class="col col--sheet">
+                    <ui:ScrollView name="levelup-sheet-scroll" mode="Vertical" class="sheet-scroll">
+                        <ui:Label name="levelup-summary-name" text="" class="sheet__name" />
+                        <ui:Label name="levelup-summary-class" text="" class="sheet__class" />
+                        <ui:VisualElement name="levelup-stats" class="statline" />
+                        <ui:VisualElement name="levelup-attrs" class="attr-grid" />
+                        <ui:Label text="POOL" class="col__title col__title--spaced" />
+                        <ui:VisualElement name="levelup-pool" class="gem-row" />
+                        <ui:Label text="SKILLS" class="col__title col__title--spaced" />
+                        <ui:VisualElement name="levelup-skills" class="group" />
+                    </ui:ScrollView>
+                </ui:VisualElement>
+            </ui:VisualElement>
+
+            <ui:VisualElement class="stage__foot">
+                <ui:Button name="levelup-later-button" text="Later" class="btn btn--ghost" />
+                <ui:VisualElement class="spacer" />
+                <ui:Button name="levelup-confirm-button" text="Confirm" class="btn btn--primary btn--wide" />
+            </ui:VisualElement>
+        </ui:VisualElement>
+
         <!-- SETTINGS -->
 
         <ui:VisualElement name="settings-panel" class="screen stage is-hidden">

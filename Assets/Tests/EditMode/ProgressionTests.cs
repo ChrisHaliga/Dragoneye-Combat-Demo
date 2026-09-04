@@ -203,6 +203,56 @@ namespace Dragoneye.Hex.Tests
             Assert.IsTrue(loadout.Skills.Any(s => s.Id == 101));
         }
 
+        // ---------- what a level costs the player ----------
+
+        [Test]
+        public void LevellingLeavesThePoolShortUntilTheNewPointIsSpent()
+        {
+            // The whole of what a level buys. A character carried up to two still holds a level-one
+            // pool, and is not finished until the point that came with the level has been spent.
+            var build = Levelled(2, new ElementCounts(1, 0, 0, 0, 0, 0, 0));
+
+            CollectionAssert.Contains(Problems(build), BuildProblem.PoolWrongSize);
+        }
+
+        [Test]
+        public void SpendingItMakesTheBuildWholeAgain()
+        {
+            var build = Levelled(2, new ElementCounts(2, 0, 0, 0, 0, 0, 0));
+
+            CollectionAssert.DoesNotContain(Problems(build), BuildProblem.PoolWrongSize);
+        }
+
+        [Test]
+        public void ADearElementTakesMoreThanOneLevelToAffordOnItsOwn()
+        {
+            // Arcana is three points, so a level-two character cannot hold one instead of two Geo.
+            CollectionAssert.Contains(
+                Problems(Levelled(2, new ElementCounts(0, 0, 0, 0, 0, 0, 1))),
+                BuildProblem.PoolWrongSize);
+
+            CollectionAssert.DoesNotContain(
+                Problems(Levelled(3, new ElementCounts(0, 0, 0, 0, 0, 0, 1))),
+                BuildProblem.PoolWrongSize);
+        }
+
+        static CharacterBuild Levelled(int level, ElementCounts pool) =>
+            new CharacterBuild
+            {
+                Name = "Ansel",
+                SpeciesId = 1,
+                ClassId = 1,
+                Level = level,
+                StartingPool = pool
+            };
+
+        static System.Collections.Generic.List<BuildProblem> Problems(CharacterBuild build)
+        {
+            var faults = new List<BuildFault>();
+            BuildValidator.Validate(build, Content(), faults);
+            return faults.Select(f => f.Problem).ToList();
+        }
+
         // ---------- species action points ----------
 
         [Test]

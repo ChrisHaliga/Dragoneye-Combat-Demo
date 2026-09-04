@@ -37,8 +37,10 @@ namespace Dragoneye.Multiplayer
                 case BuildProblem.UnderBudget:
                     return $"Spend {Points(fault.Value)}.";
                 case BuildProblem.PoolWrongSize:
-                    return $"Your starting pool must total {fault.Value} "
-                        + $"element{(fault.Value == 1 ? "" : "s")}.";
+                    // Points, not elements. Arcana costs three of them and Geo costs one, so a
+                    // count would send the player to fix the wrong thing.
+                    return $"Your pool must cost exactly {fault.Value} "
+                        + $"point{(fault.Value == 1 ? "" : "s")}.";
                 case BuildProblem.PoolElementUnknown:
                     return "One of your pool choices is not a real element.";
                 case BuildProblem.WeaponUnknown:
