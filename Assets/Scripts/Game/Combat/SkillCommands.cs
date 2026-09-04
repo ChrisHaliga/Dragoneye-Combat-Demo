@@ -30,6 +30,7 @@ namespace Dragoneye.Game
         CreatureState m_Creature;
         ushort m_ResolvedId;
         byte m_ResolvedSlot;
+        int m_ResolvedLevel;
         bool m_Resolved;
 
         void Awake() => m_Creature = GetComponent<CreatureState>();
@@ -37,9 +38,11 @@ namespace Dragoneye.Game
         /// <summary>
         /// Everything this creature can do, resolved locally and cached.
         ///
-        /// Keyed on both the creature id and the build slot, because either can be the source. A
-        /// premade is named by its id and a player character by its slot -- caching on the id alone
-        /// would give every built character the same empty list, since their id is never set.
+        /// Keyed on the creature id, the build slot and the level, because all three decide the
+        /// answer. A premade is named by its id and a player character by its slot -- caching on the
+        /// id alone would give every built character the same empty list, since their id is never
+        /// set -- and the level is what a skill requirement is measured against, so a level that
+        /// replicates a frame later has to invalidate what was worked out before it arrived.
         /// </summary>
         public IReadOnlyList<SkillSpec> Skills
         {
@@ -47,23 +50,31 @@ namespace Dragoneye.Game
             {
                 var id = m_Creature != null ? m_Creature.CreatureId : (ushort)0;
                 var slot = m_Creature != null ? m_Creature.BuildSlot : PartyInfo.Unclaimed;
+                var level = m_Creature != null ? m_Creature.Level : Progression.FirstLevel;
 
-                if (m_Resolved && m_ResolvedId == id && m_ResolvedSlot == slot)
+                if (m_Resolved && m_ResolvedId == id && m_ResolvedSlot == slot
+                    && m_ResolvedLevel == level)
                 {
                     return m_Skills;
                 }
 
                 m_Skills.Clear();
-                m_ResolvedId = id;
-                m_ResolvedSlot = slot;
-                m_Resolved = true;
 
                 var catalog = SkillCatalog.Current;
 
+                // Not cached until there was something to resolve against. Marking it resolved here
+                // and returning an empty list -- which is what this used to do -- left the creature
+                // permanently unable to do anything, because the answer was remembered before the
+                // question could be asked.
                 if (m_Creature == null || catalog == null)
                 {
                     return m_Skills;
                 }
+
+                m_ResolvedId = id;
+                m_ResolvedSlot = slot;
+                m_ResolvedLevel = level;
+                m_Resolved = true;
 
                 foreach (var skillId in m_Creature.SkillIds)
                 {

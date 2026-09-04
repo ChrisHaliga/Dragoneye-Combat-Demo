@@ -249,15 +249,28 @@ namespace Dragoneye.Hex.Tests
         }
 
         [Test]
-        public void MovesWhenAdjacentButUnableToAffordAnything()
+        public void StandsStillRatherThanPacingWhenItCannotAffordAnything()
         {
-            // Half a point: cannot use even the cheap skill, but should still reposition rather
-            // than stand and pass.
+            // Half a point: adjacent, and cannot use even the cheap skill. Every tile around the
+            // enemy is a legal destination and none of them is an improvement, so a brain that
+            // moved here would shuffle back and forth until its AP ran out.
             var decision = new BasicBrain().Decide(
                 new BrainView(1, Hex.Zero, Party.Monsters, Ap.Step, 20, new[] { k_Jab }),
                 new[] { Enemy(2, new Hex(1, 0)) }, new OpenBoard(new Hex(1, 0)));
 
-            Assert.AreNotEqual(BrainAction.UseSkill, decision.Action);
+            Assert.AreEqual(BrainAction.None, decision.Action);
+        }
+
+        [Test]
+        public void NeverStepsSomewhereNoCloserThanWhereItStands()
+        {
+            // The same guard from further out: a creature with nothing it can pay for is adjacent
+            // and staying there, rather than circling the enemy for the rest of the turn.
+            var decision = new BasicBrain().Decide(
+                new BrainView(1, Hex.Zero, Party.Monsters, Ap.FromWhole(6), 20, new SkillSpec[0]),
+                new[] { Enemy(2, new Hex(1, 0)) }, new OpenBoard(new Hex(1, 0)));
+
+            Assert.AreEqual(BrainAction.None, decision.Action);
         }
 
         [Test]

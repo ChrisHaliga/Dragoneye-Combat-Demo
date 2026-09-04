@@ -320,16 +320,24 @@ namespace Dragoneye.Game
 
             var last = (steps < bestPath.Count ? steps : bestPath.Count) - 1;
             var reach = Reach(actor);
+            var destination = bestPath[last];
 
             for (var i = 0; i <= last; i++)
             {
                 if (CombatRules.InRange(Hex.Distance(bestPath[i], enemy.Cell), reach))
                 {
-                    return BrainDecision.MoveTo(bestPath[i]);
+                    destination = bestPath[i];
+                    break;
                 }
             }
 
-            return BrainDecision.MoveTo(bestPath[last]);
+            // Only ever a step that gets closer. Without this, a creature standing next to an enemy
+            // it cannot afford to hit shuffles between the tiles around it -- every one of them is a
+            // legal destination, none of them is an improvement, and it paces until the AP runs out.
+            // Ending the turn is the honest answer: there is nothing it can do from anywhere.
+            return Hex.Distance(destination, enemy.Cell) < Hex.Distance(actor.Cell, enemy.Cell)
+                ? BrainDecision.MoveTo(destination)
+                : BrainDecision.Pass;
         }
     }
 }

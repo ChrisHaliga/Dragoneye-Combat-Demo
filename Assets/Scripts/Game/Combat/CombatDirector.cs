@@ -48,6 +48,9 @@ namespace Dragoneye.Game
         ArenaBoard m_Board;
         Coroutine m_BrainTurn;
 
+        // Creatures already complained about, so a toothless one does not warn every round.
+        readonly HashSet<uint> m_Warned = new HashSet<uint>();
+
         /// <summary>The director for the match in progress, or null outside one.</summary>
         public static CombatDirector Current { get; private set; }
 
@@ -383,6 +386,7 @@ namespace Dragoneye.Game
 
             if (active.IsComputerControlled)
             {
+                WarnIfToothless(active);
                 m_BrainTurn = StartCoroutine(RunBrainTurn(active));
             }
         }
@@ -427,6 +431,31 @@ namespace Dragoneye.Game
 
             m_BrainTurn = null;
             ServerEndTurn();
+        }
+
+        /// <summary>
+        /// Says so, once, when a computer creature has nothing it could ever do.
+        ///
+        /// A creature with an empty skill list walks up to somebody and ends its turn, which looks
+        /// exactly like a broken brain and is in fact missing content. The premades ship with their
+        /// skills authored by the setup step, so the usual cause is that it has not been run.
+        /// </summary>
+        void WarnIfToothless(CreatureState actor)
+        {
+            if (!m_Warned.Add(actor.TurnId))
+            {
+                return;
+            }
+
+            var skills = actor.GetComponent<SkillCommands>();
+
+            if (skills != null && skills.Skills.Count > 0)
+            {
+                return;
+            }
+
+            Debug.LogWarning($"{actor.DisplayName} has no skills, so it can only walk. "
+                + "Premade creatures are authored by ClaudeCode > Set Up Everything.", this);
         }
 
         void StopBrainTurn()
