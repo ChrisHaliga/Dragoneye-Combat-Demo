@@ -268,15 +268,7 @@ namespace Dragoneye.Game
         /// <summary>Raised on every peer when somebody's earnings change.</summary>
         public event Action XpChanged;
 
-        /// <summary>
-        /// Raised on every peer when a creature has just earned something, with what and where.
-        ///
-        /// Separate from <see cref="XpChanged"/> because they answer different questions. That one
-        /// is state -- how much does this slot have -- and is replicated so a late joiner agrees.
-        /// This is a moment: it says a number appeared over a particular creature, and a peer that
-        /// missed it has missed a number rather than a rule.
-        /// </summary>
-        public event Action<uint, int> XpShown;
+
 
         /// <summary>What a slot's character has earned this match.</summary>
         public int XpFor(byte slot)
@@ -339,7 +331,8 @@ namespace Dragoneye.Game
         /// This object outlives both.
         /// </summary>
         [Rpc(SendTo.Everyone)]
-        void ShowXpRpc(uint turnId, int amount) => XpShown?.Invoke(turnId, amount);
+        void ShowXpRpc(uint turnId, int amount) =>
+            CombatNotices.Raise(turnId, $"+{amount} XP", NoticeTone.Gain);
 
         void OnXpChanged(NetworkListEvent<XpAward> _)
         {

@@ -39,6 +39,14 @@ namespace Dragoneye.Game
              + "can be followed rather than resolving in a single frame.")]
         float m_BrainActionDelay = 0.45f;
 
+        [SerializeField, Min(0f), Tooltip("Extra pause after a computer creature uses a skill, so "
+             + "what it did can be read before the next thing happens.")]
+        float m_BrainSkillDwell = 1.6f;
+
+        [SerializeField, Min(0f), Tooltip("Longest a turn will wait for a unit to finish walking "
+             + "before carrying on regardless.")]
+        float m_MoveWaitLimit = 4f;
+
         /// <summary>
         /// Swapped wholesale to change the opponent. Not serialised: brains are code, not assets,
         /// and a ScriptableObject wrapper would be indirection for a choice nobody is authoring yet.
@@ -299,12 +307,10 @@ namespace Dragoneye.Game
             switch (skill.Effect.Kind)
             {
                 case SkillEffectKind.Damage:
-                    // Reduction comes off here rather than inside the creature, because what a blow
-                    // lands is a rule about the pair of them and the creature only knows its own
-                    // health. Floored at zero, so armour that outweighs a hit stops it rather than
-                    // healing the defender.
+                    // The blow and the protection go in together, so what lands and what is
+                    // announced over the defender's head are the same subtraction.
                     if (target != null && target.ServerApplyDamage(
-                            CombatRules.DamageAfter(skill.Effect.Amount, ReductionOf(target))))
+                            skill.Effect.Amount, ReductionOf(target)))
                     {
                         Kill(target, actor);
                     }
@@ -420,7 +426,15 @@ namespace Dragoneye.Game
                     break;
                 }
 
-                yield return new WaitForSeconds(m_BrainActionDelay);
+                // The rules resolved the instant the decision was made; the board has not caught up
+                // yet. Waiting for it is the difference between a turn a player can follow and four
+                // creatures teleporting at once -- which is what this looked like, because the
+                // director never asked whether anything had finished being drawn.
+                yield return WalkedIt(actor);
+
+                yield return new WaitForSeconds(decision.Action == BrainAction.UseSkill
+                    ? m_BrainSkillDwell
+                    : m_BrainActionDelay);
             }
 
             if (budget <= 0)
@@ -456,6 +470,31 @@ namespace Dragoneye.Game
 
             Debug.LogWarning($"{actor.DisplayName} has no skills, so it can only walk. "
                 + "Premade creatures are authored by ClaudeCode > Set Up Everything.", this);
+        }
+
+        /// <summary>
+        /// Waits until this creature has finished walking to where the rules already put it.
+        ///
+        /// Capped, and tolerant of there being no view at all. A headless server draws nothing and
+        /// must not sit here forever waiting for an animation that will never play; a client whose
+        /// unit is stuck should lose a second, not the match.
+        /// </summary>
+        IEnumerator WalkedIt(CreatureState actor)
+        {
+            var view = actor != null ? actor.GetComponent<UnitView>() : null;
+
+            if (view == null)
+            {
+                yield break;
+            }
+
+            var waited = 0f;
+
+            while (view != null && view.IsMoving && waited < m_MoveWaitLimit)
+            {
+                waited += Time.deltaTime;
+                yield return null;
+            }
         }
 
         void StopBrainTurn()

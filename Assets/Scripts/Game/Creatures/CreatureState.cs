@@ -313,17 +313,33 @@ namespace Dragoneye.Game
         /// Server only. Applies damage.
         /// </summary>
         /// <returns>True if this killed the creature, so the caller can clear it off the board.</returns>
-        public bool ServerApplyDamage(int damage)
+        public bool ServerApplyDamage(int damage, int reduction = 0)
         {
             if (!IsServer || !IsAlive)
             {
                 return false;
             }
 
-            m_CurrentHp.Value = CombatRules.Damaged(m_CurrentHp.Value, damage);
+            // The reduction is applied here rather than by the caller so that what lands and what is
+            // announced cannot disagree: one subtraction, one number, told to everybody.
+            var landed = CombatRules.DamageAfter(damage, reduction);
+
+            m_CurrentHp.Value = CombatRules.Damaged(m_CurrentHp.Value, damage, reduction);
+            ShowDamageRpc(landed, damage, reduction);
 
             return !IsAlive;
         }
+
+        /// <summary>
+        /// Tells every peer what this creature just took, and why it was not worse.
+        ///
+        /// The numbers cross the wire, not the sentence: each client words it for itself, so the
+        /// rules never carry English and a translation later changes one file.
+        /// </summary>
+        [Rpc(SendTo.Everyone)]
+        void ShowDamageRpc(int landed, int raw, int reduction) =>
+            CombatNotices.Raise(TurnId, CombatNotices.Damage(landed, raw, reduction),
+                NoticeTone.Loss);
 
         void OnIdChanged(ushort previous, ushort current)
         {

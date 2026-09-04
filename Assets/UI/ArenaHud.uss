@@ -414,13 +414,19 @@
 }
 
 /* Absolute, because every one of these is placed from a world position each frame rather than
-   laid out. Gold and bold, at a size that reads over a lit board without covering the creature. */
+   laid out. Bold, at a size that reads over a lit board without covering the creature. */
 .floating-note {
     position: absolute;
     font-size: 16px;
     -unity-font-style: bold;
     letter-spacing: 1px;
     color: rgb(226, 191, 122);
+}
+
+/* Something taken rather than gained. The same red the health bar uses, so a number and a bar
+   falling together are obviously the same event. */
+.floating-note--loss {
+    color: rgb(226, 108, 96);
 }
 
 /* ---------- cursor ---------- */

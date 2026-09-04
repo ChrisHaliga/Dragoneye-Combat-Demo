@@ -36,8 +36,6 @@ namespace Dragoneye.Game
         [SerializeField, Tooltip("The renderer that takes the party colour.")]
         Renderer m_Body;
 
-        [SerializeField, Tooltip("The disc on top of the token that wears the portrait. Hidden "
-             + "when this creature has no picture available on this machine.")]
         Renderer m_Portrait;
 
         [SerializeField, Tooltip("World units per second. One tile is about 1.7 units.")]
@@ -64,6 +62,16 @@ namespace Dragoneye.Game
         Vector3 m_Target;
         bool m_Placed;
 
+        /// <summary>
+        /// Whether this unit is still walking to where it already is, as far as the rules go.
+        ///
+        /// The data never waits for the view -- a creature occupies its new cell the instant the
+        /// server says so. This is for pacing only: something that wants a turn to be watchable can
+        /// ask whether the last move has finished being drawn before starting the next one.
+        /// </summary>
+        public bool IsMoving =>
+            m_Placed && (transform.position - m_Target).sqrMagnitude > 0.0004f;
+
         void Awake()
         {
             m_State = GetComponent<UnitState>();
@@ -76,7 +84,92 @@ namespace Dragoneye.Game
             {
                 Debug.LogError($"{nameof(UnitView)} has no body renderer assigned.", this);
                 enabled = false;
+                return;
             }
+
+            BuildToken();
+        }
+
+        /// <summary>
+        /// Reshapes this unit into a token: a short cylinder wearing a disc for its face.
+        ///
+        /// A checker rather than a figure. The board is read from above at a shallow angle, where a
+        /// standing capsule is a coloured smudge that hides the tile behind it and says nothing
+        /// about who is standing there. A flat disc reads as a piece on a board, and the face is the
+        /// part a player recognises.
+        ///
+        /// Done here rather than baked into the prefab because a shape a unit is made of is what a
+        /// unit *is*, and because the editor step that used to do it failed silently -- leaving the
+        /// meshes on disk, the prefab untouched, and capsules on the board with nothing to say why.
+        ///
+        /// Everything is positioned against the ground offset rather than assuming it, so the
+        /// token's base lands on the tile whatever the prefab happens to say.
+        /// </summary>
+        void BuildToken()
+        {
+            var baseY = -m_GroundOffset;
+
+            var bodyTransform = m_Body.transform;
+            var filter = m_Body.GetComponent<MeshFilter>();
+
+            if (filter != null)
+            {
+                filter.sharedMesh = CreatureToken.Cylinder;
+            }
+
+            // Unity's cylinder is two units tall, hence the halving.
+            bodyTransform.localScale = new Vector3(
+                CreatureToken.Radius * 2f, CreatureToken.Height * 0.5f, CreatureToken.Radius * 2f);
+            bodyTransform.localPosition = new Vector3(0f, baseY + (CreatureToken.Height * 0.5f), 0f);
+
+            // The rings sit just under the token's lip, where they read as a base rather than as
+            // something the token is hovering over.
+            Sit(transform.Find("Party Ring"), baseY + 0.004f);
+            Sit(transform.Find("Player Accent"), baseY + 0.008f);
+
+            m_Portrait = BuildPortrait(baseY);
+        }
+
+        static void Sit(Transform ring, float height)
+        {
+            if (ring != null)
+            {
+                ring.localPosition = new Vector3(0f, height, 0f);
+            }
+        }
+
+        /// <summary>
+        /// The disc that wears the face.
+        ///
+        /// It borrows the body's material rather than finding a shader of its own: a shader looked
+        /// up by name is a shader that can be stripped out of a build for not being referenced, and
+        /// the disc faces the light anyway so lit and unlit look the same on it.
+        /// </summary>
+        Renderer BuildPortrait(float baseY)
+        {
+            var existing = transform.Find("Portrait");
+            var portrait = existing != null
+                ? existing.gameObject
+                : new GameObject("Portrait");
+
+            portrait.transform.SetParent(transform, false);
+            portrait.transform.localPosition = new Vector3(0f, baseY + CreatureToken.Height + 0.004f, 0f);
+            portrait.transform.localRotation = Quaternion.identity;
+
+            var size = CreatureToken.Radius * 2f * CreatureToken.PortraitInset;
+            portrait.transform.localScale = new Vector3(size, 1f, size);
+
+            var filter = portrait.GetComponent<MeshFilter>() ?? portrait.AddComponent<MeshFilter>();
+            filter.sharedMesh = CreatureToken.Disc;
+
+            var renderer = portrait.GetComponent<MeshRenderer>()
+                ?? portrait.AddComponent<MeshRenderer>();
+
+            renderer.sharedMaterial = m_Body.sharedMaterial;
+            renderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            renderer.receiveShadows = false;
+
+            return renderer;
         }
 
         void OnEnable()

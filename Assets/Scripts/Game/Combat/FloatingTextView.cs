@@ -25,6 +25,9 @@ namespace Dragoneye.Game
             public Label Label;
             public uint TurnId;
             public float Age;
+
+            /// <summary>How many notes were already on this creature when this one appeared.</summary>
+            public int Stack;
         }
 
         [SerializeField]
@@ -42,7 +45,6 @@ namespace Dragoneye.Game
         readonly List<Note> m_Notes = new List<Note>();
 
         VisualElement m_Layer;
-        PlayerCharacters m_Characters;
 
         void Start()
         {
@@ -53,50 +55,51 @@ namespace Dragoneye.Game
             {
                 Debug.LogError($"{nameof(FloatingTextView)} is missing its layer or registry.", this);
                 enabled = false;
-            }
-        }
-
-        void OnDestroy() => Unbind();
-
-        // The characters object is spawned, so it appears some frames after this component does.
-        // Polling for it beats an ordering assumption that would leave the notes never arriving.
-        void Update()
-        {
-            if (m_Characters != PlayerCharacters.Current)
-            {
-                Unbind();
-                m_Characters = PlayerCharacters.Current;
-
-                if (m_Characters != null)
-                {
-                    m_Characters.XpShown += OnXpShown;
-                }
+                return;
             }
 
-            Advance(Time.deltaTime);
+            // A static channel rather than a spawned object's event: notes come from creatures and
+            // from the match, both of which appear and vanish on their own schedule, and a view
+            // that had to chase each source would miss the ones raised before it caught up.
+            CombatNotices.Raised += OnNotice;
         }
 
-        void Unbind()
-        {
-            if (m_Characters != null)
-            {
-                m_Characters.XpShown -= OnXpShown;
-            }
-        }
+        void OnDestroy() => CombatNotices.Raised -= OnNotice;
 
-        void OnXpShown(uint turnId, int amount)
+        void Update() => Advance(Time.deltaTime);
+
+        void OnNotice(uint turnId, string text, NoticeTone tone)
         {
-            if (m_Layer == null || amount <= 0)
+            if (m_Layer == null)
             {
                 return;
             }
 
-            var label = new Label($"+{amount} XP");
+            var label = new Label(text);
             label.AddToClassList("floating-note");
+            label.EnableInClassList("floating-note--loss", tone == NoticeTone.Loss);
             label.pickingMode = PickingMode.Ignore;
 
+            // Stacked, so two things happening to one creature in the same breath do not draw on
+            // top of each other and read as neither.
             m_Layer.Add(label);
-            m_Notes.Add(new Note { Label = label, TurnId = turnId });
+            m_Notes.Add(new Note { Label = label, TurnId = turnId, Stack = StackFor(turnId) });
+        }
+
+        /// <summary>How many notes are already riding on this creature.</summary>
+        int StackFor(uint turnId)
+        {
+            var count = 0;
+
+            foreach (var note in m_Notes)
+            {
+                if (note.TurnId == turnId)
+                {
+                    count++;
+                }
+            }
+
+            return count;
         }
 
         /// <summary>
@@ -138,7 +141,7 @@ namespace Dragoneye.Game
                 }
 
                 var world = creature.transform.position
-                    + Vector3.up * (m_Height + (m_Rise * life));
+                    + Vector3.up * (m_Height + (m_Rise * life) + (note.Stack * 0.35f));
 
                 var panel = RuntimePanelUtils.CameraTransformWorldToPanel(
                     m_Layer.panel, world, camera);

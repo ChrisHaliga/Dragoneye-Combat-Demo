@@ -646,10 +646,11 @@
     margin: 0;
 }
 
+/* Tall enough for the descenders. A 14px line in a 34px box was clipping the tails off g and y,
+   because the inner text element is sized to the font and then centred in whatever is left. */
 .text-input .unity-base-text-field__input {
-    height: 34px;
-    padding-left: 12px;
-    padding-right: 12px;
+    height: 38px;
+    padding: 4px 12px;
     font-size: 14px;
     color: rgb(236, 231, 219);
     background-color: rgb(11, 13, 18);
@@ -662,11 +663,14 @@
     border-color: rgb(198, 158, 88);
 }
 
+/* The same box and the same size as every other field: a join code is six characters, not a
+   headline, and 22px with eight of letter-spacing did not fit the box it was given. What sets it
+   apart is the colour and the spacing between the characters, which is what makes a code easy to
+   read aloud. */
 .text-input--code .unity-base-text-field__input {
-    font-size: 22px;
     -unity-font-style: bold;
     -unity-text-align: middle-center;
-    letter-spacing: 8px;
+    letter-spacing: 4px;
     color: rgb(226, 191, 122);
 }
 

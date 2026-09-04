@@ -51,7 +51,16 @@ namespace Dragoneye.Multiplayer
             }
         }
 
-        void Awake() => Instance = this;
+        void Awake()
+        {
+            Instance = this;
+
+            // A netcode connection is a heartbeat, and an unfocused window that stops running stops
+            // answering it -- which reads as the other player hanging on a loading screen rather
+            // than as anything to do with focus. Set in Player Settings as well, because this only
+            // covers a process that got as far as loading Bootstrap.
+            Application.runInBackground = true;
+        }
 
         void Start()
         {
