@@ -36,15 +36,21 @@ namespace Dragoneye.Data
         [SerializeField, Tooltip("What being this species lets you do, whatever else you are.")]
         List<SkillAsset> m_Skills = new List<SkillAsset>();
 
+        [SerializeField, Min(1), Tooltip("Action points a turn before Endurance is added. How much "
+             + "a thing gets through in a turn is a fact about what it is.")]
+        int m_BaseAp = 4;
+
         public int Id => m_Id;
 
         public string DisplayName => m_DisplayName;
 
         public string Description => m_Description;
 
+        public int BaseAp => m_BaseAp;
+
         public SpeciesSpec ToSpec() =>
             new SpeciesSpec(m_Id, m_DisplayName, m_Baseline.ToBlock(),
-                ContentIds.SkillIds(m_Skills), m_Description);
+                ContentIds.SkillIds(m_Skills), m_Description, m_BaseAp);
 
         /// <summary>
         /// The skills this species grants, as ids.

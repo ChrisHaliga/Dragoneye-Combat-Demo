@@ -74,7 +74,7 @@ namespace Dragoneye.Hex.Tests
                 .With(new EquipmentSpec(SwordId, "Sword", EquipmentSlot.Weapon, AttributeBlock.Zero))
                 .With(new EquipmentSpec(BowId, "Bow", EquipmentSlot.Weapon, AttributeBlock.Zero))
                 .With(new EquipmentSpec(PlateId, "Plate", EquipmentSlot.Armor, AttributeBlock.Zero,
-                    null, null, ArmourClass.Heavy));
+                    null, ArmourClass.Heavy));
 
         /// <summary>
         /// A build that passes, so each case below can break exactly one thing.
@@ -85,12 +85,13 @@ namespace Dragoneye.Hex.Tests
         static CharacterBuild Valid(IContentIndex content)
         {
             content.TryGetClass(1, out var guardian);
-            var build = CharacterBuild.StartingFrom(content.Species[0], guardian);
+            var build = CharacterBuild.StartingFrom(content.Species[0], guardian, Level);
             build.Name = "Ansel";
 
             // 1 + 2 = 3 each on four attributes is 12; 1 + 2 + 3 = 6 more on one is 18; two more
             // single steps bring it to 20.
             build.Attributes = new AttributeBlock(3, 3, 3, 3, 4, 2, 2);
+            // Four points of pool at level four. All four of these are a point each.
             build.StartingPool = new ElementCounts(2, 1, 1, 0, 0, 0, 0);
 
             return build;
@@ -169,11 +170,16 @@ namespace Dragoneye.Hex.Tests
         }
 
         [Test]
-        public void ActionPointsNeverFallBelowTheFloor()
+        public void ActionPointsAreTheSpeciesBasePlusEndurance()
         {
-            // 4 + END, floored at 8 -- so Endurance only starts buying points once it clears four.
+            // No floor any more. A floor and an authored base are two answers to the same question,
+            // and with both in place the authored one did nothing until Endurance had cleared the
+            // floor on its own -- which made "AP is species dependent" untrue in every real build.
             var weak = Vitals.From(AttributeBlock.Uniform(1), 1, ArmourClass.None);
-            Assert.AreEqual(Ap.FromWhole(8), weak.MaxAp);
+            Assert.AreEqual(Ap.FromWhole(5), weak.MaxAp, "the default base of four, plus one END");
+
+            var brisk = Vitals.From(AttributeBlock.Uniform(1), 1, ArmourClass.None, baseAp: 6);
+            Assert.AreEqual(Ap.FromWhole(7), brisk.MaxAp, "a species that says otherwise is obeyed");
 
             var strong = Vitals.From(
                 AttributeBlock.Uniform(1).With(Attribute.Endurance, 6), 1, ArmourClass.None);
@@ -242,11 +248,11 @@ namespace Dragoneye.Hex.Tests
         }
 
         [Test]
-        public void ThePoolMustTotalTheLevelInAnyShape()
+        public void ThePoolMustCostTheLevelInAnyShape()
         {
             var content = Content();
 
-            // Four of one element is as legal as one each of four.
+            // Four of one cheap element is as legal as one each of four.
             var narrow = Valid(content);
             narrow.StartingPool = new ElementCounts(0, 4, 0, 0, 0, 0, 0);
             CollectionAssert.IsEmpty(Problems(narrow, content));
@@ -255,6 +261,17 @@ namespace Dragoneye.Hex.Tests
             broad.StartingPool = new ElementCounts(1, 1, 1, 1, 0, 0, 0);
             CollectionAssert.IsEmpty(Problems(broad, content));
 
+            // And so is one Arcana and one Geo: three plus one is the same four points. Depth
+            // against rarity is the decision, and the budget is what both are measured in.
+            var rare = Valid(content);
+            rare.StartingPool = new ElementCounts(1, 0, 0, 0, 0, 0, 1);
+            CollectionAssert.IsEmpty(Problems(rare, content));
+
+            // Two Lux costs four even though it is only two gems.
+            var opposed = Valid(content);
+            opposed.StartingPool = new ElementCounts(0, 0, 0, 0, 2, 0, 0);
+            CollectionAssert.IsEmpty(Problems(opposed, content));
+
             var short_ = Valid(content);
             short_.StartingPool = new ElementCounts(1, 0, 0, 0, 0, 0, 0);
             CollectionAssert.Contains(Problems(short_, content), BuildProblem.PoolWrongSize);
@@ -262,6 +279,11 @@ namespace Dragoneye.Hex.Tests
             var over = Valid(content);
             over.StartingPool = new ElementCounts(9, 0, 0, 0, 0, 0, 0);
             CollectionAssert.Contains(Problems(over, content), BuildProblem.PoolWrongSize);
+
+            // Four gems that cost more than four points is over budget, not exactly right.
+            var expensive = Valid(content);
+            expensive.StartingPool = new ElementCounts(0, 0, 0, 0, 0, 0, 4);
+            CollectionAssert.Contains(Problems(expensive, content), BuildProblem.PoolWrongSize);
         }
 
         [Test]

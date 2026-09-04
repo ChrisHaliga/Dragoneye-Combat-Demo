@@ -2,13 +2,39 @@ using System.Collections.Generic;
 
 namespace Dragoneye.Combat
 {
-    /// <summary>How much a suit of armour slows its wearer. Subtracted from Speed.</summary>
+    /// <summary>How heavy a suit of armour is. Costs Speed, and stops damage.</summary>
     public enum ArmourClass
     {
         None = 0,
         Light = 1,
         Medium = 2,
         Heavy = 3
+    }
+
+    /// <summary>
+    /// What armour does.
+    ///
+    /// Two separate things, which is why the class is an enum rather than a pair of numbers on each
+    /// asset: the speed it costs is its ordinal, and the damage it stops is this table. Heavy
+    /// armour stopping four rather than three is a tuning decision that belongs in one place, not
+    /// spread across every suit somebody authors.
+    /// </summary>
+    public static class ArmourRules
+    {
+        /// <summary>Damage a suit of this class takes off every blow that lands on its wearer.</summary>
+        public static int ReductionFor(ArmourClass armour)
+        {
+            switch (armour)
+            {
+                case ArmourClass.Light: return 1;
+                case ArmourClass.Medium: return 2;
+                case ArmourClass.Heavy: return 4;
+                default: return 0;
+            }
+        }
+
+        /// <summary>Speed this costs its wearer.</summary>
+        public static int SpeedCostOf(ArmourClass armour) => (int)armour;
     }
 
     /// <summary>
@@ -25,10 +51,14 @@ namespace Dragoneye.Combat
         /// <summary>Health every creature has before its attributes are counted.</summary>
         public const int BaseHealth = 3;
 
-        /// <summary>Action points before Endurance, and the floor the total cannot fall below.</summary>
-        public const int BaseAp = 4;
-
-        public const int MinimumAp = 8;
+        /// <summary>
+        /// Action points before Endurance, for a species that does not say otherwise.
+        ///
+        /// A default rather than the rule. What a creature can get through in a turn is a fact about
+        /// what it is, so the number it starts from lives on <see cref="SpeciesSpec"/>; this is what
+        /// a species written without one gets.
+        /// </summary>
+        public const int DefaultBaseAp = 4;
 
         public readonly int Level;
         public readonly int MaxHealth;
@@ -51,20 +81,22 @@ namespace Dragoneye.Combat
         /// Resolves attributes into the stats a fight uses.
         ///
         /// HP = 3 + LVL + VIT + TGH.
-        /// AP = max(4 + END, 8), so Endurance only starts buying points once it clears the floor --
-        /// which is deliberate: everybody gets a workable turn, and Endurance is what takes you past it.
+        /// AP = the species base + END. There is no floor under it any more: a floor and an authored
+        /// base are two answers to the same question, and with both in place the authored one did
+        /// nothing until Endurance had already cleared the floor on its own.
         /// SPD = DEX + END - armour class, so heavier protection costs initiative.
         /// </summary>
-        public static Vitals From(AttributeBlock attributes, int level, ArmourClass armour)
+        public static Vitals From(AttributeBlock attributes, int level, ArmourClass armour,
+            int baseAp = DefaultBaseAp)
         {
             var health = BaseHealth + level + attributes.Vitality + attributes.Toughness;
-            var ap = BaseAp + attributes.Endurance;
+            var ap = (baseAp < 1 ? 1 : baseAp) + attributes.Endurance;
 
             return new Vitals(
                 level,
                 health < 1 ? 1 : health,
-                Ap.FromWhole(ap < MinimumAp ? MinimumAp : ap),
-                attributes.Dexterity + attributes.Endurance - (int)armour);
+                Ap.FromWhole(ap < 1 ? 1 : ap),
+                attributes.Dexterity + attributes.Endurance - ArmourRules.SpeedCostOf(armour));
         }
     }
 
@@ -81,7 +113,7 @@ namespace Dragoneye.Combat
     {
         public Loadout(SpeciesSpec species, ClassSpec classSpec, AttributeBlock attributes, int level,
             ArmourClass armour, IReadOnlyList<EquipmentSpec> items, ElementCounts startingPool,
-            IReadOnlyList<SkillSpec> skills = null, PassiveSet passives = null)
+            IReadOnlyList<SkillSpec> skills = null)
         {
             Species = species;
             Class = classSpec;
@@ -90,8 +122,27 @@ namespace Dragoneye.Combat
             Items = items ?? System.Array.Empty<EquipmentSpec>();
             StartingPool = startingPool;
             Skills = skills ?? System.Array.Empty<SkillSpec>();
-            Passives = passives ?? PassiveSet.Empty;
-            Vitals = Vitals.From(attributes, level, armour);
+            Vitals = Vitals.From(attributes, level, armour,
+                species != null ? species.BaseAp : Vitals.DefaultBaseAp);
+            DamageReduction = ResolveReduction(armour, Items);
+        }
+
+        /// <summary>
+        /// Damage taken off every blow that lands: what the armour stops, plus anything else worn
+        /// that stops damage without being armour.
+        /// </summary>
+        public int DamageReduction { get; }
+
+        static int ResolveReduction(ArmourClass armour, IReadOnlyList<EquipmentSpec> items)
+        {
+            var total = ArmourRules.ReductionFor(armour);
+
+            for (var i = 0; i < items.Count; i++)
+            {
+                total += items[i].DamageReduction;
+            }
+
+            return total;
         }
 
         /// <summary>What the creature is. Null when the build names a species that no longer exists.</summary>
@@ -122,13 +173,6 @@ namespace Dragoneye.Combat
         /// </summary>
         public IReadOnlyList<SkillSpec> Skills { get; }
 
-        /// <summary>
-        /// Every passive this creature holds, from whatever granted it.
-        ///
-        /// The clash asks this rather than inspecting the equipment list, so a second source of
-        /// passives later -- a class, a status -- needs no change where they are read.
-        /// </summary>
-        public PassiveSet Passives { get; }
     }
 
     /// <summary>
@@ -145,8 +189,8 @@ namespace Dragoneye.Combat
         {
             if (build == null || content == null)
             {
-                return new Loadout(null, null, AttributeBlock.Zero, 1, ArmourClass.None, null,
-                    ElementCounts.Empty);
+                return new Loadout(null, null, AttributeBlock.Zero, Progression.FirstLevel,
+                    ArmourClass.None, null, ElementCounts.Empty);
             }
 
             content.TryGetSpecies(build.SpeciesId, out var species);
@@ -180,12 +224,13 @@ namespace Dragoneye.Combat
                 }
             }
 
+            var level = build.Level < Progression.FirstLevel ? Progression.FirstLevel : build.Level;
+
             // Equipment may subtract, but never below zero, where the derived numbers stop meaning
             // anything.
-            return new Loadout(species, classSpec, attributes.ClampedLow(0), content.Rules.Level,
+            return new Loadout(species, classSpec, attributes.ClampedLow(0), level,
                 armour, items, build.StartingPool,
-                ResolveSkills(species, classSpec, items, build.LearnedSkillIds, content),
-                ResolvePassives(items));
+                ResolveSkills(species, classSpec, items, build.LearnedSkillIds, content, level));
         }
 
         /// <summary>
@@ -198,46 +243,41 @@ namespace Dragoneye.Combat
         /// one skill.
         /// </summary>
         static List<SkillSpec> ResolveSkills(SpeciesSpec species, ClassSpec classSpec,
-            List<EquipmentSpec> items, IReadOnlyList<int> learned, ISkillIndex skills)
+            List<EquipmentSpec> items, IReadOnlyList<int> learned, ISkillIndex skills, int level)
         {
             var resolved = new List<SkillSpec>();
             var seen = new HashSet<int>();
 
             if (species != null)
             {
-                AddAll(species.SkillIds, skills, resolved, seen);
+                AddAll(species.SkillIds, skills, resolved, seen, level);
             }
 
             if (classSpec != null)
             {
-                AddAll(classSpec.SkillIds, skills, resolved, seen);
+                AddAll(classSpec.SkillIds, skills, resolved, seen, level);
             }
 
             foreach (var item in items)
             {
-                AddAll(item.SkillIds, skills, resolved, seen);
+                AddAll(item.SkillIds, skills, resolved, seen, level);
             }
 
-            AddAll(learned, skills, resolved, seen);
+            AddAll(learned, skills, resolved, seen, level);
 
             return resolved;
         }
 
-        /// <summary>Every passive on every equipped item, deduplicated by the set itself.</summary>
-        static PassiveSet ResolvePassives(List<EquipmentSpec> items)
-        {
-            var passives = new List<Passive>();
-
-            foreach (var item in items)
-            {
-                passives.AddRange(item.Passives);
-            }
-
-            return new PassiveSet(passives);
-        }
-
+        /// <summary>
+        /// Adds the skills a creature of this level is entitled to, in order, without duplicates.
+        ///
+        /// A skill above the creature's level is left out rather than included and disabled. It is
+        /// not a choice the player is being offered yet, and it is the resolved list that the
+        /// creation sheet, the arena bar and the server all read -- so leaving it out here is what
+        /// makes "not until you are high enough" true everywhere at once.
+        /// </summary>
         static void AddAll(IReadOnlyList<int> ids, ISkillIndex skills, List<SkillSpec> into,
-            HashSet<int> seen)
+            HashSet<int> seen, int level)
         {
             if (ids == null)
             {
@@ -246,7 +286,8 @@ namespace Dragoneye.Combat
 
             foreach (var id in ids)
             {
-                if (seen.Add(id) && skills.TryGetSkill(id, out var spec))
+                if (seen.Add(id) && skills.TryGetSkill(id, out var spec)
+                    && spec.LevelRequired <= level)
                 {
                     into.Add(spec);
                 }

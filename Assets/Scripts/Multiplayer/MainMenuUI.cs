@@ -418,7 +418,7 @@ namespace Dragoneye.Multiplayer
 
             var loadout = LoadoutResolver.Resolve(current.Build, m_Content);
 
-            var subtitle = new Label(CharacterSheet.Describe(loadout, m_Content.Rules.Level));
+            var subtitle = new Label(CharacterSheet.Describe(loadout));
             subtitle.AddToClassList("hero__class");
             m_HeroBody.Add(subtitle);
 

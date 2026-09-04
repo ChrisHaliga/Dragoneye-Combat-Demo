@@ -44,13 +44,21 @@ namespace Dragoneye.Data
         [SerializeField, Min(0)]
         int m_Amount = 5;
 
+        [SerializeField, Min(1), Tooltip("The level a creature reaches before this is theirs. A "
+             + "skill above a creature's level is left out of its list entirely, not greyed out.")]
+        int m_LevelRequired = 1;
+
         public int Id => m_Id;
 
         public string DisplayName => m_DisplayName;
 
+        /// <summary>Exposed so premade creatures can filter their authored list by level.</summary>
+        public int LevelRequired => m_LevelRequired;
+
         public SkillSpec ToSpec() =>
             new SkillSpec(m_Id, m_DisplayName, m_Element, Ap.FromWhole(m_ApCost), m_ElementCost,
-                m_Range, m_Target, new SkillEffect(m_Effect, m_Amount), m_Description);
+                m_Range, m_Target, new SkillEffect(m_Effect, m_Amount), m_Description,
+                m_LevelRequired);
 
         void OnValidate()
         {

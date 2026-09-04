@@ -24,13 +24,15 @@ namespace Dragoneye.Combat
     public sealed class SpeciesSpec
     {
         public SpeciesSpec(int id, string name, AttributeBlock baseline,
-            IReadOnlyList<int> skillIds = null, string description = "")
+            IReadOnlyList<int> skillIds = null, string description = "",
+            int baseAp = Vitals.DefaultBaseAp)
         {
             Id = id;
             Name = name ?? string.Empty;
             Baseline = baseline;
             SkillIds = skillIds ?? System.Array.Empty<int>();
             Description = description ?? string.Empty;
+            BaseAp = baseAp < 1 ? 1 : baseAp;
         }
 
         /// <summary>Stable, hand-assigned. It crosses the network and is written into saved builds.</summary>
@@ -43,6 +45,15 @@ namespace Dragoneye.Combat
 
         /// <summary>What being this species lets you do, whatever else you are.</summary>
         public IReadOnlyList<int> SkillIds { get; }
+
+        /// <summary>
+        /// Action points a turn before Endurance is counted.
+        ///
+        /// On the species rather than in <see cref="Vitals"/> because how much a thing can do in a
+        /// turn is a fact about what it is. Every species authored today has four; the field exists
+        /// so that something quick or something ponderous does not need a rule of its own.
+        /// </summary>
+        public int BaseAp { get; }
 
         public string Description { get; }
     }
@@ -107,8 +118,8 @@ namespace Dragoneye.Combat
     public sealed class EquipmentSpec
     {
         public EquipmentSpec(int id, string name, EquipmentSlot slot, AttributeBlock modifiers,
-            IReadOnlyList<int> skillIds = null, IReadOnlyList<Passive> passives = null,
-            ArmourClass armour = ArmourClass.None, string description = "")
+            IReadOnlyList<int> skillIds = null, ArmourClass armour = ArmourClass.None,
+            string description = "", int damageReduction = 0)
         {
             Armour = armour;
             Id = id;
@@ -116,8 +127,8 @@ namespace Dragoneye.Combat
             Slot = slot;
             Modifiers = modifiers;
             SkillIds = skillIds ?? System.Array.Empty<int>();
-            Passives = passives ?? System.Array.Empty<Passive>();
             Description = description ?? string.Empty;
+            DamageReduction = damageReduction < 0 ? 0 : damageReduction;
         }
 
         /// <summary>Stable, hand-assigned. Zero is reserved to mean "nothing equipped".</summary>
@@ -142,13 +153,14 @@ namespace Dragoneye.Combat
         public IReadOnlyList<int> SkillIds { get; }
 
         /// <summary>
-        /// Persistent effects this item grants while equipped.
+        /// Damage this item soaks on top of whatever its armour class soaks.
         ///
-        /// Data the rules read, not behaviour the item performs. A shield grants
-        /// <see cref="Passive.DefendAdvantage"/>; the clash asks the loadout whether the defender
-        /// has it, and never learns a shield was involved.
+        /// For things that protect without being armour -- a shield, which is worn in the offhand so
+        /// that carrying one costs no speed. Armour itself leaves this at zero and takes its
+        /// reduction from its class, so the rule "medium armour stops two" lives in
+        /// <see cref="ArmourRules"/> and not in ten separate assets that could disagree.
         /// </summary>
-        public IReadOnlyList<Passive> Passives { get; }
+        public int DamageReduction { get; }
 
         public string Description { get; }
     }
@@ -161,11 +173,13 @@ namespace Dragoneye.Combat
     /// </summary>
     public sealed class CharacterRules
     {
-        public CharacterRules(int pointBudget, int maxPerAttribute, int level)
+        public CharacterRules(int pointBudget, int maxPerAttribute, int startingLevel)
         {
             PointBudget = pointBudget < 0 ? 0 : pointBudget;
             MaxPerAttribute = maxPerAttribute < PointBuy.Floor ? PointBuy.Floor : maxPerAttribute;
-            Level = level < 1 ? 1 : level;
+            StartingLevel = startingLevel < Progression.FirstLevel
+                ? Progression.FirstLevel
+                : startingLevel;
         }
 
         /// <summary>Points available to spend across every stat.</summary>
@@ -175,12 +189,12 @@ namespace Dragoneye.Combat
         public int MaxPerAttribute { get; }
 
         /// <summary>
-        /// How many element resources make up the starting pool -- one per level.
+        /// The level a newly created character starts at.
         ///
-        /// Fixed for everyone rather than per character. Progression is out of scope; this is the
-        /// dial that decides how deep a pool is, and it belongs with the point budget.
+        /// Only the starting point. A character's level lives on the character from then on, because
+        /// it is the thing experience changes -- see <see cref="Progression"/>.
         /// </summary>
-        public int Level { get; }
+        public int StartingLevel { get; }
 
         /// <summary>Where a fresh character starts: every attribute at the floor.</summary>
         public AttributeBlock StartingAttributes => AttributeBlock.Uniform(PointBuy.Floor);

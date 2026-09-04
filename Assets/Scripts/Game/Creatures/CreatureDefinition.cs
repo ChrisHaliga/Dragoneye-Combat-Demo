@@ -34,6 +34,10 @@ namespace Dragoneye.Game
         [SerializeField]
         ClassDefinition m_Class;
 
+        [SerializeField, Min(1), Tooltip("The level this creature is authored at. The host may "
+             + "raise it when setting up a match; everything below scales from here.")]
+        int m_Level = 1;
+
         [SerializeField, Min(1)]
         int m_MaxHp = 20;
 
@@ -46,6 +50,10 @@ namespace Dragoneye.Game
         [SerializeField, Tooltip("Elements this creature starts holding. Any spread; the total is "
              + "this creature's level.")]
         ElementValues m_StartingPool;
+
+        [SerializeField, Tooltip("What this creature spends its element budget on as it levels, "
+             + "in order. A premade has nobody to ask, so its level-up choices are authored here.")]
+        List<Element> m_LevelUpPicks = new List<Element>();
 
         [SerializeField, Tooltip("What this creature can do. Authored directly, because a premade "
              + "has no class and equipment to derive a kit from.")]
@@ -61,7 +69,46 @@ namespace Dragoneye.Game
 
         public ClassDefinition Class => m_Class;
 
+        /// <summary>The level this creature was authored at.</summary>
+        public int Level => m_Level;
+
         public int MaxHp => m_MaxHp;
+
+        /// <summary>
+        /// Health at a level the host chose rather than the one this was authored at.
+        ///
+        /// One per level, which is the same thing the built-character formula gives: HP counts the
+        /// level directly. A premade authored at level three and fielded at five is two tougher,
+        /// not rebuilt from attributes it does not have.
+        /// </summary>
+        public int MaxHpAt(int level) =>
+            Mathf.Max(1, m_MaxHp + (Mathf.Max(Progression.FirstLevel, level) - m_Level));
+
+        /// <summary>
+        /// The pool a creature of this level holds: what it starts with, then its authored picks in
+        /// order, for as long as the budget stretches.
+        ///
+        /// Taken in order and stopped at the first one that will not fit rather than skipped over,
+        /// so a designer reads the list as a plan and not as a set. An expensive pick that has to
+        /// wait a level is the same decision a player makes in the creator.
+        /// </summary>
+        public ElementCounts PoolFor(int level)
+        {
+            var pool = m_StartingPool.ToCounts();
+            var budget = Progression.PoolBudget(level);
+
+            foreach (var pick in m_LevelUpPicks)
+            {
+                if (!ElementPricing.CanAdd(pool, pick, budget))
+                {
+                    break;
+                }
+
+                pool = pool.With(pick, pool[pick] + 1);
+            }
+
+            return pool;
+        }
 
         public int MaxAp => m_MaxAp;
 
@@ -83,27 +130,32 @@ namespace Dragoneye.Game
         /// is true before anything this particular goblin trained at. The rest is authored directly,
         /// because a premade has no class and equipment to derive a kit from.
         /// </summary>
-        public IReadOnlyList<int> SkillIds
+        public IReadOnlyList<int> SkillIds => SkillIdsAt(m_Level);
+
+        /// <summary>
+        /// The skills a creature of this level has.
+        ///
+        /// Filtered by level for the same reason a built character's list is: a skill the creature
+        /// has not reached is left out entirely rather than offered and refused.
+        /// </summary>
+        public IReadOnlyList<int> SkillIdsAt(int level)
         {
-            get
+            var ids = new List<int>();
+
+            if (m_Species != null)
             {
-                var ids = new List<int>();
-
-                if (m_Species != null)
-                {
-                    ids.AddRange(m_Species.SkillIds);
-                }
-
-                foreach (var skill in m_Skills)
-                {
-                    if (skill != null && !ids.Contains(skill.Id))
-                    {
-                        ids.Add(skill.Id);
-                    }
-                }
-
-                return ids;
+                ids.AddRange(m_Species.SkillIds);
             }
+
+            foreach (var skill in m_Skills)
+            {
+                if (skill != null && skill.LevelRequired <= level && !ids.Contains(skill.Id))
+                {
+                    ids.Add(skill.Id);
+                }
+            }
+
+            return ids;
         }
 
         public string SpeciesName => m_Species != null ? m_Species.DisplayName : "Unknown";

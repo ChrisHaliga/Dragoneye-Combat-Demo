@@ -65,8 +65,12 @@ namespace Dragoneye.Combat
     public sealed class SkillSpec
     {
         public SkillSpec(int id, string name, Element element, Ap apCost, int elementCost,
-            int range, SkillTarget target, SkillEffect effect, string description = "")
+            int range, SkillTarget target, SkillEffect effect, string description = "",
+            int levelRequired = Progression.FirstLevel)
         {
+            LevelRequired = levelRequired < Progression.FirstLevel
+                ? Progression.FirstLevel
+                : levelRequired;
             Id = id;
             Name = name ?? string.Empty;
             Element = element;
@@ -99,6 +103,15 @@ namespace Dragoneye.Combat
         public SkillEffect Effect { get; }
 
         public string Description { get; }
+
+        /// <summary>
+        /// The level a creature has to reach before this is theirs.
+        ///
+        /// Enforced by leaving the skill out of the resolved loadout entirely rather than by showing
+        /// it greyed out. A skill a character cannot use yet is not a decision they are being asked
+        /// to make, and a bar full of locked buttons reads as a paywall.
+        /// </summary>
+        public int LevelRequired { get; }
 
         /// <summary>
         /// Whether using this starts a clash.

@@ -17,11 +17,18 @@ namespace Dragoneye.Multiplayer
     /// </summary>
     public static class CharacterSheet
     {
-        /// <summary>The four numbers that decide a fight, big enough to read at a glance.</summary>
+        /// <summary>The separator these lines are built from, written once.</summary>
+        const string DotSeparator = "\u00b7";
+
+        /// <summary>
+        /// The three numbers that decide a fight, big enough to read at a glance.
+        ///
+        /// Not level. Level is in the subtitle above every one of these, and a number already on
+        /// screen does not earn a quarter of the row.
+        /// </summary>
         public static void Stats(VisualElement into, Vitals vitals)
         {
             into.Clear();
-            into.Add(Stat("LVL", vitals.Level.ToString()));
             into.Add(Stat("HP", vitals.MaxHealth.ToString()));
             into.Add(Stat("AP", vitals.MaxAp.ToString()));
             into.Add(Stat("SPD", vitals.Speed.ToString()));
@@ -88,7 +95,7 @@ namespace Dragoneye.Multiplayer
         /// level. Drawing empty slots would imply a fixed number of picks, which is exactly what a
         /// pool is not.
         /// </summary>
-        public static void Pool(VisualElement into, ElementCounts pool, int level)
+        public static void Pool(VisualElement into, ElementCounts pool, int budget)
         {
             into.Clear();
 
@@ -104,7 +111,9 @@ namespace Dragoneye.Multiplayer
                 var gem = new VisualElement();
                 gem.AddToClassList("gem");
                 gem.style.unityBackgroundImageTintColor = ElementPalette.ForElement(element);
-                gem.tooltip = ElementInfo.NameOf(element);
+                gem.tooltip = $"{ElementInfo.NameOf(element)} " + DotSeparator
+                    + $" {ElementPricing.CostOf(element)} point"
+                    + (ElementPricing.CostOf(element) == 1 ? string.Empty : "s") + " each";
 
                 var count = new Label(held.ToString());
                 count.AddToClassList("gem__count");
@@ -113,12 +122,16 @@ namespace Dragoneye.Multiplayer
                 into.Add(gem);
             }
 
-            if (pool.Total == level)
+            // Points, not gems. The elements are not all the same price, so a count would say
+            // nothing about how much of the budget is left.
+            var spent = ElementPricing.CostOf(pool);
+
+            if (spent == budget)
             {
                 return;
             }
 
-            var note = new Label($"{pool.Total} of {level} chosen");
+            var note = new Label($"{spent} of {budget} points spent");
             note.AddToClassList("gem-row__empty");
             into.Add(note);
         }
@@ -144,6 +157,9 @@ namespace Dragoneye.Multiplayer
             {
                 var line = new VisualElement();
                 line.AddToClassList("skill-line");
+                line.tooltip = string.IsNullOrWhiteSpace(skill.Description)
+                    ? skill.Name
+                    : skill.Description;
 
                 var name = new Label(skill.Name);
                 name.AddToClassList("skill-line__name");
@@ -159,21 +175,23 @@ namespace Dragoneye.Multiplayer
                 into.Add(line);
             }
 
-            if (loadout.Passives.Has(Passive.DefendAdvantage))
+            // Armour reads here rather than in a passive line, because it is now a number rather
+            // than a flag: what a suit stops is the whole of what wearing it does in a fight.
+            if (loadout.DamageReduction > 0)
             {
-                var passive = new Label("Advantage when defending");
-                passive.AddToClassList("passive-line");
-                into.Add(passive);
+                var armour = new Label($"Stops {loadout.DamageReduction} damage a blow");
+                armour.AddToClassList("passive-line");
+                into.Add(armour);
             }
         }
 
         /// <summary>"Human · Guardian · Level 4", or whichever halves of it resolved.</summary>
-        public static string Describe(Loadout loadout, int level)
+        public static string Describe(Loadout loadout)
         {
             var species = loadout.Species != null ? loadout.Species.Name : "No species";
             var className = loadout.Class != null ? loadout.Class.Name : "No class";
 
-            return $"{species}  ·  {className}  ·  Level {level}".ToUpperInvariant();
+            return $"{species}  ·  {className}  ·  Level {loadout.Vitals.Level}".ToUpperInvariant();
         }
     }
 }

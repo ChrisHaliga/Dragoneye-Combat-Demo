@@ -94,7 +94,7 @@
                 </ui:VisualElement>
 
                 <ui:VisualElement class="col col--kit">
-                    <ui:Label text="STARTING ELEMENTS" class="col__title" />
+                    <ui:Label name="create-elements-title" text="STARTING ELEMENTS" class="col__title" />
                     <ui:VisualElement name="create-elements" class="group" />
                     <ui:Label text="EQUIPMENT" class="col__title col__title--spaced" />
                     <ui:VisualElement name="create-equipment" class="group" />

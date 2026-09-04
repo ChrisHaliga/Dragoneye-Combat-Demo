@@ -37,8 +37,9 @@ namespace Dragoneye.Data
         [SerializeField, Min(1), Tooltip("The highest any one attribute may be bought to.")]
         int m_MaxPerAttribute = 8;
 
-        [SerializeField, Min(1), Tooltip("Element resources in a starting pool -- one per level.")]
-        int m_Level = 4;
+        [SerializeField, Min(1), Tooltip("The level a newly created character starts at. Only the "
+             + "starting point -- a character's level lives on the character after that.")]
+        int m_StartingLevel = 1;
 
         readonly List<SpeciesSpec> m_SpeciesSpecs = new List<SpeciesSpec>();
         readonly Dictionary<int, SpeciesSpec> m_SpeciesById = new Dictionary<int, SpeciesSpec>();
@@ -178,7 +179,7 @@ namespace Dragoneye.Data
             m_SkillSpecs.Clear();
             m_SkillById.Clear();
 
-            m_Rules = new CharacterRules(m_PointBudget, m_MaxPerAttribute, m_Level);
+            m_Rules = new CharacterRules(m_PointBudget, m_MaxPerAttribute, m_StartingLevel);
 
             foreach (var asset in m_Skills)
             {

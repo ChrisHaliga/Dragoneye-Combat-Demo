@@ -72,7 +72,7 @@ namespace Dragoneye.MultiplayerEditor
                 "A committed swing. Cheap, and it asks its question in Pyro.");
             var cleave = Skill(101, "Cleave", Element.Geo, ap: 2, elementCost: 2, range: 1,
                 SkillTarget.Creature, SkillEffectKind.Damage, 11,
-                "Slower and dearer, and it ends arguments.");
+                "Slower and dearer, and it ends arguments.", level: 3);
             var loose = Skill(102, "Loose", Element.Aero, ap: 1, elementCost: 1, range: 4,
                 SkillTarget.Creature, SkillEffectKind.Damage, 5,
                 "From wherever you are standing, which is the whole idea.");
@@ -81,13 +81,13 @@ namespace Dragoneye.MultiplayerEditor
                 "Costs nothing from the pool. What you use when the pool is what you are short of.");
             var ember = Skill(104, "Ember", Element.Pyro, ap: 2, elementCost: 2, range: 3,
                 SkillTarget.Creature, SkillEffectKind.Damage, 9,
-                "Reaches, and it is expensive in exactly the element it is made of.");
+                "Reaches, and it is expensive in exactly the element it is made of.", level: 2);
             var smite = Skill(105, "Smite", Element.Lux, ap: 2, elementCost: 1, range: 2,
                 SkillTarget.Creature, SkillEffectKind.Damage, 8,
-                "Light, at a distance, for a price only the devout tend to be holding.");
+                "Light, at a distance, for a price only the devout tend to be holding.", level: 2);
             var drain = Skill(106, "Drain", Element.Nyx, ap: 2, elementCost: 1, range: 2,
                 SkillTarget.Creature, SkillEffectKind.Damage, 7,
-                "Nyx answers questions nobody wanted asked.");
+                "Nyx answers questions nobody wanted asked.", level: 2);
 
             var recover = Skill(110, "Recover", Element.Hydro, ap: 1, elementCost: 1, range: 0,
                 SkillTarget.Self, SkillEffectKind.Heal, 6,
@@ -97,7 +97,7 @@ namespace Dragoneye.MultiplayerEditor
                 "Trade a point now for two later. Only worth it if you have somewhere to spend them.");
             var focus = Skill(112, "Focus", Element.Arcana, ap: 2, elementCost: 0, range: 0,
                 SkillTarget.Self, SkillEffectKind.ReturnElement, 2,
-                "A longer breath. Two elements back, at twice the price of one.");
+                "A longer breath. Two elements back, at twice the price of one.", level: 3);
 
             // Ids are hand-assigned and permanent: they are written into saved characters and cross
             // the network. Grouped by kind so a new weapon is obviously an 1x.
@@ -115,27 +115,32 @@ namespace Dragoneye.MultiplayerEditor
             var mace = Equipment(15, "Mace", EquipmentSlot.Weapon, Attr(strength: 1, willpower: 1),
                 "Blunt and devout. The two go together more often than anyone admits.", smite);
 
+            // Three off every blow, in the offhand, so carrying one costs no speed. That is the
+            // whole of what a shield does now -- it used to grant "advantage when defending", which
+            // was a flag no rule ever read.
             var shield = Equipment(30, "Shield", EquipmentSlot.Offhand, Attr(toughness: 1),
-                "Advantage when you are the one being asked a question.",
-                new SkillAsset[0], new[] { Passive.DefendAdvantage });
+                "Three damage off anything that reaches you, and it costs you no speed.",
+                new SkillAsset[0], ArmourClass.None, damageReduction: 3);
 
             var light = Armour(20, "Light armour", Attr(toughness: 1), ArmourClass.Light,
-                "Padding and leather. You will still be quick.");
+                "Padding and leather. One damage off every blow, and you will still be quick.");
             var medium = Armour(21, "Medium armour", Attr(toughness: 2), ArmourClass.Medium,
-                "Mail. A fair trade, most days.");
+                "Mail. Two damage off every blow, at two speed. A fair trade, most days.");
             var heavy = Armour(22, "Heavy armour", Attr(toughness: 3), ArmourClass.Heavy,
-                "Plate. Very hard to hurt, and everyone else has already acted.");
+                "Plate. Four damage off every blow, and everyone else has already acted.");
 
             var species = new List<SpeciesDefinition>
             {
+                // Four action points each. The field exists so that something quick or something
+                // ponderous does not need a rule of its own; nothing authored today differs yet.
                 Species(1, "Human", Attr(),
-                    "Adaptable, and the only species with nothing to apologise for.", breath),
+                    "Adaptable, and the only species with nothing to apologise for.", 4, breath),
                 Species(2, "Beast", Attr(dexterity: 1, willpower: -1),
-                    "Quick, and disinclined to argue about it.", breath),
+                    "Quick, and disinclined to argue about it.", 4, breath),
                 Species(3, "Giantkin", Attr(strength: 1, toughness: 1, dexterity: -1),
-                    "Slow to arrive and hard to remove.", breath),
+                    "Slow to arrive and hard to remove.", 4, breath),
                 Species(4, "Goblinoid", Attr(dexterity: 1, toughness: -1),
-                    "Small, fast, and entirely aware of both.", breath)
+                    "Small, fast, and entirely aware of both.", 4, breath)
             };
 
             // The seven. Baselines are deliberately flat: a class is what it may carry and what it
@@ -228,7 +233,8 @@ namespace Dragoneye.MultiplayerEditor
         }
 
         static SkillAsset Skill(int id, string name, Element element, int ap, int elementCost,
-            int range, SkillTarget target, SkillEffectKind effect, int amount, string description)
+            int range, SkillTarget target, SkillEffectKind effect, int amount, string description,
+            int level = 1)
         {
             var asset = Upsert<SkillAsset>($"{k_Folder}/Skill{Sanitise(name)}.asset");
             var serialized = new SerializedObject(asset);
@@ -243,6 +249,7 @@ namespace Dragoneye.MultiplayerEditor
             serialized.FindProperty("m_Target").intValue = (int)target;
             serialized.FindProperty("m_Effect").intValue = (int)effect;
             serialized.FindProperty("m_Amount").intValue = amount;
+            serialized.FindProperty("m_LevelRequired").intValue = level;
 
             serialized.ApplyModifiedPropertiesWithoutUndo();
 
@@ -252,16 +259,20 @@ namespace Dragoneye.MultiplayerEditor
 
         static EquipmentAsset Equipment(int id, string name, EquipmentSlot slot,
             AttributeValues modifiers, string description, params SkillAsset[] skills) =>
-            Equipment(id, name, slot, modifiers, description, skills, new Passive[0]);
+            Equipment(id, name, slot, modifiers, description, skills, ArmourClass.None);
 
+        /// <summary>
+        /// Armour carries no reduction of its own: what a suit stops comes from its class, so that
+        /// "medium stops two" is one rule rather than a number repeated on every suit.
+        /// </summary>
         static EquipmentAsset Armour(int id, string name, AttributeValues modifiers,
             ArmourClass armour, string description) =>
             Equipment(id, name, EquipmentSlot.Armor, modifiers, description, new SkillAsset[0],
-                new Passive[0], armour);
+                armour);
 
         static EquipmentAsset Equipment(int id, string name, EquipmentSlot slot,
             AttributeValues modifiers, string description, IReadOnlyList<SkillAsset> skills,
-            Passive[] passives, ArmourClass armour = ArmourClass.None)
+            ArmourClass armour = ArmourClass.None, int damageReduction = 0)
         {
             var asset = Upsert<EquipmentAsset>($"{k_Folder}/{Sanitise(name)}.asset");
             var serialized = new SerializedObject(asset);
@@ -272,9 +283,10 @@ namespace Dragoneye.MultiplayerEditor
             serialized.FindProperty("m_Slot").intValue = (int)slot;
             serialized.FindProperty("m_Armour").intValue = (int)armour;
 
+            serialized.FindProperty("m_DamageReduction").intValue = damageReduction;
+
             WriteAttributes(serialized.FindProperty("m_Modifiers"), modifiers);
             WriteList(serialized.FindProperty("m_Skills"), skills);
-            WriteEnums(serialized.FindProperty("m_Passives"), passives);
             serialized.ApplyModifiedPropertiesWithoutUndo();
 
             EditorUtility.SetDirty(asset);
@@ -288,7 +300,7 @@ namespace Dragoneye.MultiplayerEditor
         /// are named, and matching the path is what makes this an update rather than a fifth copy.
         /// </summary>
         static SpeciesDefinition Species(int id, string name, AttributeValues baseline,
-            string description, params SkillAsset[] skills)
+            string description, int baseAp, params SkillAsset[] skills)
         {
             var asset = Upsert<SpeciesDefinition>($"{k_SpeciesFolder}/Species_{Sanitise(name)}.asset");
             var serialized = new SerializedObject(asset);
@@ -296,6 +308,7 @@ namespace Dragoneye.MultiplayerEditor
             serialized.FindProperty("m_Id").intValue = id;
             serialized.FindProperty("m_DisplayName").stringValue = name;
             serialized.FindProperty("m_Description").stringValue = description;
+            serialized.FindProperty("m_BaseAp").intValue = baseAp;
 
             WriteAttributes(serialized.FindProperty("m_Baseline"), baseline);
             WriteList(serialized.FindProperty("m_Skills"), skills);
@@ -342,7 +355,7 @@ namespace Dragoneye.MultiplayerEditor
             // current value. Deliberately tight: a budget that covers everything is not a choice.
             serialized.FindProperty("m_PointBudget").intValue = 20;
             serialized.FindProperty("m_MaxPerAttribute").intValue = 8;
-            serialized.FindProperty("m_Level").intValue = 4;
+            serialized.FindProperty("m_StartingLevel").intValue = 1;
 
             serialized.ApplyModifiedPropertiesWithoutUndo();
 
@@ -366,23 +379,6 @@ namespace Dragoneye.MultiplayerEditor
             block.FindPropertyRelative("Vitality").intValue = values.Vitality;
             block.FindPropertyRelative("Willpower").intValue = values.Willpower;
             block.FindPropertyRelative("Endurance").intValue = values.Endurance;
-        }
-
-        /// <summary>
-        /// Writes enum values by their underlying number.
-        ///
-        /// Not <c>enumValueIndex</c>, which is the position in the declaration rather than the
-        /// value. They agree only for enums numbered from zero with no gaps -- <see cref="Passive"/>
-        /// starts at one, so writing the index there would store the wrong passive or none at all.
-        /// </summary>
-        static void WriteEnums(SerializedProperty list, IReadOnlyList<Passive> values)
-        {
-            list.arraySize = values.Count;
-
-            for (var i = 0; i < values.Count; i++)
-            {
-                list.GetArrayElementAtIndex(i).intValue = (int)values[i];
-            }
         }
 
         static void WriteList<T>(SerializedProperty list, IReadOnlyList<T> items)

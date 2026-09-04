@@ -92,7 +92,7 @@ namespace Dragoneye.Combat
             }
 
             ValidateAttributes(build, content.Rules, faults);
-            ValidatePool(build, content.Rules, faults);
+            ValidatePool(build, faults);
             ValidateEquipment(build, classSpec, content, faults);
         }
 
@@ -152,16 +152,19 @@ namespace Dragoneye.Combat
         }
 
         /// <summary>
-        /// The pool must total the character's level, in whatever spread the player chose.
+        /// The pool must cost exactly the character's level, in whatever spread the player chose.
         ///
-        /// Only the total is constrained. Four of one element and one each of four others are both
-        /// legal at level four, and which you pick is the most consequential decision on the screen.
+        /// Only the total price is constrained, and the elements are not all the same price. Three
+        /// Geo and a single Arcana both cost three, which is what makes the pool a depth-against-
+        /// rarity decision rather than a count.
         /// </summary>
-        static void ValidatePool(CharacterBuild build, CharacterRules rules, List<BuildFault> faults)
+        static void ValidatePool(CharacterBuild build, List<BuildFault> faults)
         {
-            if (build.StartingPool.Total != rules.Level)
+            var budget = build.PoolBudget();
+
+            if (ElementPricing.CostOf(build.StartingPool) != budget)
             {
-                faults.Add(new BuildFault(BuildProblem.PoolWrongSize, rules.Level));
+                faults.Add(new BuildFault(BuildProblem.PoolWrongSize, budget));
             }
 
             foreach (var element in ElementInfo.All)

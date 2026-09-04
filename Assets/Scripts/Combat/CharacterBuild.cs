@@ -28,6 +28,20 @@ namespace Dragoneye.Combat
 
         public int ClassId;
 
+        /// <summary>
+        /// What the character has reached. Decides health, the pool budget and which skills are
+        /// theirs.
+        /// </summary>
+        public int Level = Progression.FirstLevel;
+
+        /// <summary>
+        /// Experience towards the next level, already spent on the levels below it.
+        ///
+        /// A remainder rather than a lifetime total, so "how far to the next level" is a comparison
+        /// against one number instead of a running sum of everything already paid for.
+        /// </summary>
+        public int Xp;
+
         /// <summary>What the player bought. Not the resolved values -- see <see cref="Loadout"/>.</summary>
         public AttributeBlock Attributes = AttributeBlock.Uniform(PointBuy.Floor);
 
@@ -66,6 +80,8 @@ namespace Dragoneye.Combat
             Name = other.Name;
             SpeciesId = other.SpeciesId;
             ClassId = other.ClassId;
+            Level = other.Level;
+            Xp = other.Xp;
             Attributes = other.Attributes;
             StartingPool = other.StartingPool;
             WeaponId = other.WeaponId;
@@ -77,9 +93,10 @@ namespace Dragoneye.Combat
         /// <summary>
         /// A build at its starting position: every attribute at the floor, no kit, an empty pool.
         /// </summary>
-        public static CharacterBuild StartingFrom(SpeciesSpec species, ClassSpec spec)
+        public static CharacterBuild StartingFrom(SpeciesSpec species, ClassSpec spec,
+            int level = Progression.FirstLevel)
         {
-            var build = new CharacterBuild();
+            var build = new CharacterBuild { Level = level };
 
             if (species != null)
             {
@@ -100,5 +117,10 @@ namespace Dragoneye.Combat
 
         public int PointsRemaining(CharacterRules rules) =>
             rules == null ? 0 : PointBuy.Remaining(Attributes, rules.PointBudget);
+
+        /// <summary>Element points this character has to spend, and what is left of them.</summary>
+        public int PoolBudget() => Progression.PoolBudget(Level);
+
+        public int PoolRemaining() => ElementPricing.Remaining(StartingPool, PoolBudget());
     }
 }

@@ -258,6 +258,8 @@ namespace Dragoneye.Data
             public string Name;
             public int SpeciesId;
             public int ClassId;
+            public int Level;
+            public int Xp;
 
             // One field per attribute and per element, because JsonUtility cannot serialise the
             // readonly structs the rules use. Flat and explicit beats clever here: the file is meant
@@ -296,6 +298,8 @@ namespace Dragoneye.Data
                     Name = build.Name,
                     SpeciesId = build.SpeciesId,
                     ClassId = build.ClassId,
+                    Level = build.Level,
+                    Xp = build.Xp,
                     Toughness = a.Toughness,
                     Dexterity = a.Dexterity,
                     Strength = a.Strength,
@@ -325,6 +329,11 @@ namespace Dragoneye.Data
                     Name = Name ?? string.Empty,
                     SpeciesId = SpeciesId,
                     ClassId = ClassId,
+
+                    // Characters saved before levels existed have none, and a level of zero would
+                    // give them no pool budget and no skills at all.
+                    Level = Level < Progression.FirstLevel ? Progression.FirstLevel : Level,
+                    Xp = Xp,
                     Attributes = new AttributeBlock(Toughness, Dexterity, Strength, Skill,
                         Vitality, Willpower, Endurance),
                     StartingPool = new ElementCounts(Geo, Hydro, Pyro, Aero, Lux, Nyx, Arcana),

@@ -151,7 +151,7 @@ namespace Dragoneye.Multiplayer
             name.AddToClassList("sheet__name");
             titles.Add(name);
 
-            var subtitle = new Label(CharacterSheet.Describe(loadout, m_Content.Rules.Level));
+            var subtitle = new Label(CharacterSheet.Describe(loadout));
             subtitle.AddToClassList("sheet__class");
             titles.Add(subtitle);
 
@@ -168,7 +168,8 @@ namespace Dragoneye.Multiplayer
             columns.Add(SheetColumn("ATTRIBUTES", attrs =>
                 CharacterSheet.Attributes(attrs, loadout.Attributes), "attr-grid"));
             columns.Add(SheetColumn("POOL", pool =>
-                CharacterSheet.Pool(pool, character.Build.StartingPool, m_Content.Rules.Level),
+                CharacterSheet.Pool(pool, character.Build.StartingPool,
+                    character.Build.PoolBudget()),
                 "gem-row"));
             columns.Add(SheetColumn("SKILLS", skills =>
                 CharacterSheet.Skills(skills, loadout), "group"));
@@ -290,7 +291,7 @@ namespace Dragoneye.Multiplayer
 
             var loadout = LoadoutResolver.Resolve(character.Build, m_Content);
             var className = loadout.Class != null ? loadout.Class.Name : "No class";
-            var level = m_Content.Rules.Level;
+            var level = loadout.Vitals.Level;
 
             var species = loadout.Species != null ? loadout.Species.Name : "?";
 

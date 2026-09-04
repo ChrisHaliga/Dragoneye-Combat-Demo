@@ -36,6 +36,7 @@ namespace Dragoneye.Multiplayer
         readonly VisualElement m_Equipment;
         readonly VisualElement m_PortraitControls;
         readonly Label m_Budget;
+        readonly Label m_ElementsTitle;
         readonly VisualElement m_Attrs;
         readonly Label m_Title;
         readonly Label m_Faults;
@@ -80,6 +81,7 @@ namespace Dragoneye.Multiplayer
             m_Equipment = root.Q<VisualElement>("create-equipment");
             m_PortraitControls = root.Q<VisualElement>("create-portrait-controls");
             m_Budget = root.Q<Label>("create-budget");
+            m_ElementsTitle = root.Q<Label>("create-elements-title");
             m_Attrs = root.Q<VisualElement>("create-attrs");
             m_Title = root.Q<Label>("create-title");
             m_Faults = root.Q<Label>("create-faults");
@@ -133,7 +135,8 @@ namespace Dragoneye.Multiplayer
 
             m_Build = existing != null
                 ? new CharacterBuild(existing.Build)
-                : CharacterBuild.StartingFrom(FirstSpecies(), classes[0]);
+                : CharacterBuild.StartingFrom(FirstSpecies(), classes[0],
+                    m_Content.Rules.StartingLevel);
 
             m_PortraitTexture = existing != null ? existing.Portrait : null;
             m_DecodedPortrait = null;
@@ -363,6 +366,12 @@ namespace Dragoneye.Multiplayer
             var row = new VisualElement();
             row.AddToClassList("element-row");
 
+            // What it costs is a tooltip rather than a column, because the price never changes and
+            // seven fixed numbers down the middle of the column would read as part of the pool.
+            var cost = ElementPricing.CostOf(element);
+            row.tooltip = $"{ElementInfo.NameOf(element)} costs {cost} "
+                + (cost == 1 ? "point" : "points") + " of the pool budget";
+
             var gem = new VisualElement();
             gem.AddToClassList("element-row__gem");
             gem.style.unityBackgroundImageTintColor = ElementPalette.ForElement(element);
@@ -504,9 +513,17 @@ namespace Dragoneye.Multiplayer
 
             var dropdown = new DropdownField { choices = names, index = index };
             dropdown.AddToClassList("dropdown");
+
+            // What an item is stays on the control rather than in the option list: a dropdown row
+            // cannot carry a tooltip, and the one the player has chosen is the one they are
+            // deciding about.
+            dropdown.tooltip = Explain(options[Mathf.Clamp(index, 0, options.Count - 1)]);
+
             dropdown.RegisterValueChangedCallback(_ =>
             {
-                Equip(slot, Id(options[Mathf.Clamp(dropdown.index, 0, options.Count - 1)]));
+                var picked = options[Mathf.Clamp(dropdown.index, 0, options.Count - 1)];
+                dropdown.tooltip = Explain(picked);
+                Equip(slot, Id(picked));
                 Refresh();
             });
 
@@ -561,6 +578,45 @@ namespace Dragoneye.Multiplayer
         }
 
         static int Id(EquipmentSpec spec) => spec == null ? CharacterBuild.NoEquipment : spec.Id;
+
+        /// <summary>
+        /// What an item is, for a tooltip: what it was written to be, then what it does.
+        ///
+        /// Pulled off the spec rather than written here. Equipment is authored, so its description
+        /// is authored too -- a table of item text in the creation screen would be a second place
+        /// for a designer to have to remember to edit.
+        /// </summary>
+        static string Explain(EquipmentSpec spec)
+        {
+            if (spec == null)
+            {
+                return "Nothing in this slot.";
+            }
+
+            var text = string.IsNullOrWhiteSpace(spec.Description) ? spec.Name : spec.Description;
+            var modifiers = Modifiers(spec.Modifiers);
+
+            if (modifiers.Length > 0)
+            {
+                text += $"\n\n{modifiers}";
+            }
+
+            var stops = ArmourRules.ReductionFor(spec.Armour) + spec.DamageReduction;
+
+            if (stops > 0)
+            {
+                text += $"\nStops {stops} damage a blow";
+            }
+
+            var speed = ArmourRules.SpeedCostOf(spec.Armour);
+
+            if (speed > 0)
+            {
+                text += $"\n-{speed} Speed";
+            }
+
+            return text;
+        }
 
         static string Describe(EquipmentSpec spec)
         {
@@ -672,6 +728,18 @@ namespace Dragoneye.Multiplayer
         void RefreshElements(CharacterRules rules)
         {
             var pool = m_Build.StartingPool;
+            var budget = m_Build.PoolBudget();
+
+            // On the heading rather than on a line of its own: the column is the tightest on the
+            // screen, and a budget nobody has overspent is worth no vertical space at all.
+            if (m_ElementsTitle != null)
+            {
+                var left = ElementPricing.Remaining(pool, budget);
+
+                m_ElementsTitle.text = left == 0
+                    ? $"STARTING ELEMENTS  \u00b7  {budget} PT SPENT"
+                    : $"STARTING ELEMENTS  \u00b7  {left} OF {budget} LEFT";
+            }
 
             foreach (var element in ElementInfo.All)
             {
@@ -692,10 +760,11 @@ namespace Dragoneye.Multiplayer
                     minus.SetEnabled(held > 0);
                 }
 
-                // The pool is exactly the level, so the last one spent is the last one available.
+                // Afford, not count: Arcana takes three of the budget and Geo takes one, so the
+                // last point left buys some of these and not others.
                 if (m_ElementPlus.TryGetValue(element, out var plus))
                 {
-                    plus.SetEnabled(pool.Total < rules.Level);
+                    plus.SetEnabled(ElementPricing.CanAdd(pool, element, budget));
                 }
             }
         }
@@ -703,13 +772,13 @@ namespace Dragoneye.Multiplayer
         void RefreshSummary(Loadout loadout, CharacterRules rules)
         {
             m_SummaryName.text = string.IsNullOrWhiteSpace(m_Build.Name) ? "Unnamed" : m_Build.Name;
-            m_SummaryClass.text = CharacterSheet.Describe(loadout, rules.Level);
+            m_SummaryClass.text = CharacterSheet.Describe(loadout);
 
             RefreshPortrait();
 
             CharacterSheet.Stats(m_Stats, loadout.Vitals);
             CharacterSheet.Attributes(m_Attrs, loadout.Attributes, m_Build.Attributes);
-            CharacterSheet.Pool(m_Pool, m_Build.StartingPool, rules.Level);
+            CharacterSheet.Pool(m_Pool, m_Build.StartingPool, m_Build.PoolBudget());
 
             if (m_Skills != null)
             {
