@@ -1,5 +1,4 @@
 using Dragoneye.CameraControl;
-using Dragoneye.Data;
 using Dragoneye.Hex.Systems;
 using UnityEngine;
 
@@ -41,9 +40,6 @@ namespace Dragoneye.Game
         [SerializeField, Tooltip("Every creature on the board. Answers \"who is in my party\".")]
         CreatureRegistry m_Creatures;
 
-        [SerializeField, Tooltip("Resolves skill ids. Handed to SkillCatalog while the arena lives.")]
-        ContentCatalog m_Content;
-
         /// <summary>The context for the arena currently loaded, or null outside a match.</summary>
         public static ArenaContext Current { get; private set; }
 
@@ -77,24 +73,14 @@ namespace Dragoneye.Game
 
             Current = this;
 
-            // The arena owns the seam for as long as it is loaded. Creatures live on spawned
-            // prefabs and cannot carry a serialised reference to the catalog, so it is handed over
-            // here and taken back below rather than looked up per access.
-            SkillCatalog.Current = m_Content;
         }
 
         void OnDisable()
         {
-            if (Current != this)
+            if (Current == this)
             {
-                return;
+                Current = null;
             }
-
-            Current = null;
-
-            // Cleared with the arena. A stale catalog would resolve skills for a match that has
-            // ended, which is worse than resolving none.
-            SkillCatalog.Current = null;
         }
 
         /// <summary>

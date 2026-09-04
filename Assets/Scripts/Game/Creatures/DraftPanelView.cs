@@ -32,10 +32,12 @@ namespace Dragoneye.Game
         Button m_AddButton;
         Label m_CapLabel;
         ScrollView m_RosterList;
+        ScrollView m_CharacterRoster;
 
         Party m_Viewing = Party.Heroes;
         DraftState m_Draft;
         PlayerRoster m_Roster;
+        PlayerCharacters m_Characters;
 
         void Start()
         {
@@ -55,6 +57,7 @@ namespace Dragoneye.Game
             m_AddButton = m_Root.Q<Button>("add-button");
             m_CapLabel = m_Root.Q<Label>("cap-label");
             m_RosterList = m_Root.Q<ScrollView>("roster-list");
+            m_CharacterRoster = m_Root.Q<ScrollView>("character-roster");
 
             if (m_Panel == null || m_TeamButtons == null || m_ViewButtons == null
                 || m_HostTools == null || m_CreatureDropdown == null || m_AddButton == null
@@ -78,7 +81,8 @@ namespace Dragoneye.Game
             // The draft is a spawned network object, so it appears some frames after this component
             // does. Polling for it once beats an ordering assumption that would silently leave the
             // panel dead.
-            if (m_Draft != DraftState.Current || m_Roster != PlayerRoster.Current)
+            if (m_Draft != DraftState.Current || m_Roster != PlayerRoster.Current
+                || m_Characters != PlayerCharacters.Current)
             {
                 Rebind();
             }
@@ -92,6 +96,12 @@ namespace Dragoneye.Game
 
             m_Draft = DraftState.Current;
             m_Roster = PlayerRoster.Current;
+            m_Characters = PlayerCharacters.Current;
+
+            if (m_Characters != null)
+            {
+                m_Characters.Changed += Refresh;
+            }
 
             if (m_Draft != null)
             {
@@ -117,6 +127,11 @@ namespace Dragoneye.Game
             if (m_Roster != null)
             {
                 m_Roster.Changed -= Refresh;
+            }
+
+            if (m_Characters != null)
+            {
+                m_Characters.Changed -= Refresh;
             }
         }
 
@@ -225,6 +240,99 @@ namespace Dragoneye.Game
                 : "Pick a team to claim creatures.";
 
             RebuildRoster(hasSlot, slot, isHost);
+            RebuildCharacters(isHost);
+        }
+
+        /// <summary>
+        /// The characters players brought, and -- for the host -- which side each fights on.
+        ///
+        /// Listed apart from the draft pool because they behave differently: a brought character is
+        /// permanently its owner's and has no Claim button, so mixing the two lists would mean
+        /// explaining on every row why half of them cannot be taken.
+        /// </summary>
+        void RebuildCharacters(bool isHost)
+        {
+            if (m_CharacterRoster == null)
+            {
+                return;
+            }
+
+            m_CharacterRoster.Clear();
+
+            var characters = PlayerCharacters.Current;
+
+            if (characters == null || characters.All.Count == 0)
+            {
+                var none = new Label("Nobody has brought a character yet.");
+                none.AddToClassList("brought-row__none");
+                m_CharacterRoster.Add(none);
+                return;
+            }
+
+            foreach (var build in characters.All)
+            {
+                m_CharacterRoster.Add(BuildBroughtRow(characters, build, isHost));
+            }
+        }
+
+        VisualElement BuildBroughtRow(PlayerCharacters characters, NetBuild build, bool isHost)
+        {
+            var row = new VisualElement();
+            row.AddToClassList("brought-row");
+
+            var body = new VisualElement();
+            body.AddToClassList("brought-row__body");
+
+            var name = new Label(build.Name.ToString());
+            name.AddToClassList("brought-row__name");
+            body.Add(name);
+
+            var loadout = characters.LoadoutFor(build.Slot);
+            var owner = OwnerName(build.Slot);
+            var className = loadout != null && loadout.Class != null ? loadout.Class.Name : "No class";
+
+            var detail = new Label(loadout != null
+                ? $"{owner} · {className} · {loadout.Vitals.MaxHealth} HP · {loadout.Vitals.MaxAp} AP"
+                : owner);
+            detail.AddToClassList("brought-row__detail");
+            body.Add(detail);
+
+            row.Add(body);
+
+            // Only the host reassigns sides, and only sides. Whose character it is was settled when
+            // its owner submitted it.
+            if (isHost && m_Draft != null)
+            {
+                var buttons = new VisualElement();
+                buttons.AddToClassList("brought-row__party");
+
+                var onParty = m_Draft.TryGetParty(build.Slot, out var current);
+
+                foreach (var party in PartyInfo.All)
+                {
+                    var captured = party;
+                    var button = SmallButton(PartyPalette.NameOf(party),
+                        () => m_Draft.SetPartyForRpc(build.Slot, (byte)captured), true);
+
+                    button.EnableInClassList("button--chosen", onParty && current == party);
+                    buttons.Add(button);
+                }
+
+                row.Add(buttons);
+            }
+
+            return row;
+        }
+
+        string OwnerName(byte slot)
+        {
+            if (m_Roster != null && m_Roster.TryGetBySlot(slot, out var entry))
+            {
+                var name = entry.Name.ToString();
+                return string.IsNullOrEmpty(name) ? $"Player {slot + 1}" : name;
+            }
+
+            return $"Player {slot + 1}";
         }
 
         void RebuildRoster(bool hasSlot, byte slot, bool isHost)

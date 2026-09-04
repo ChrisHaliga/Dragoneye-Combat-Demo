@@ -145,8 +145,16 @@ namespace Dragoneye.Game
                 return;
             }
 
+            var placements = Placements(draft, roster);
+
+            if (placements.Count == 0)
+            {
+                Debug.LogError("Nothing to place; check the creature catalog.", this);
+                return;
+            }
+
             SpawnFocusPoints(arena);
-            SpawnCreatures(arena, roster);
+            SpawnCreatures(arena, placements);
 
             // Last, and only once every creature exists: the initiative order is built from what is
             // on the board, so opening the fight any earlier would order an empty board.
@@ -175,22 +183,85 @@ namespace Dragoneye.Game
             }
         }
 
-        void SpawnCreatures(ArenaMap arena, List<RosterEntry> roster)
+        /// <summary>
+        /// One entry per creature to place: the drafted premades, plus every character a player
+        /// brought.
+        ///
+        /// A player character is not a roster entry. It is claimed by its owner permanently and
+        /// cannot be released or taken, so putting it in a pool designed to be claimed and released
+        /// would mean guarding every one of those operations against it. It fights on whichever side
+        /// its slot chose -- which is the same party choice the draft already tracks, and the thing
+        /// the host can override.
+        /// </summary>
+        readonly struct Placement
+        {
+            public readonly RosterEntry Entry;
+            public readonly byte BuildSlot;
+
+            public Placement(RosterEntry entry, byte buildSlot = PartyInfo.Unclaimed)
+            {
+                Entry = entry;
+                BuildSlot = buildSlot;
+            }
+        }
+
+        List<Placement> Placements(DraftState draft, List<RosterEntry> roster)
+        {
+            var placements = new List<Placement>();
+
+            foreach (var entry in roster)
+            {
+                placements.Add(new Placement(entry));
+            }
+
+            var characters = PlayerCharacters.Current;
+
+            if (characters == null)
+            {
+                return placements;
+            }
+
+            foreach (var build in characters.All)
+            {
+                // A character whose owner never picked a side sits out rather than being dropped
+                // onto an arbitrary one.
+                if (!draft.TryGetParty(build.Slot, out var party))
+                {
+                    Debug.LogWarning($"Slot {build.Slot} brought a character but chose no side; "
+                        + "it will not be placed.", this);
+                    continue;
+                }
+
+                // Claimed by its owner, always. The creature id is unused: the build is the source.
+                placements.Add(new Placement(
+                    new RosterEntry(0, 0, party) { ClaimedBySlot = build.Slot }, build.Slot));
+            }
+
+            return placements;
+        }
+
+        void SpawnCreatures(ArenaMap arena, List<Placement> placements)
         {
             // Placement only needs to know which creatures belong together, so parties are handed
             // down as group indices; HexSpawnPlacement gives each group its own anchor.
-            var parties = DraftQueries.PartiesPresent(roster);
-            var groups = new List<int>(roster.Count);
-            foreach (var entry in roster)
+            var entries = new List<RosterEntry>(placements.Count);
+            foreach (var placement in placements)
             {
-                groups.Add(Mathf.Max(0, parties.IndexOf(entry.Party)));
+                entries.Add(placement.Entry);
+            }
+
+            var parties = DraftQueries.PartiesPresent(entries);
+            var groups = new List<int>(placements.Count);
+            foreach (var placement in placements)
+            {
+                groups.Add(Mathf.Max(0, parties.IndexOf(placement.Entry.Party)));
             }
 
             var cells = HexSpawnPlacement.PlaceGrouped(arena.Map, groups, parties.Count);
 
-            for (var i = 0; i < roster.Count; i++)
+            for (var i = 0; i < placements.Count; i++)
             {
-                SpawnUnit(roster[i], cells[i]);
+                SpawnUnit(placements[i].Entry, cells[i], placements[i].BuildSlot);
             }
         }
 
@@ -268,7 +339,7 @@ namespace Dragoneye.Game
         /// it; an unclaimed creature stays owned by the server, which is what "computer-controlled"
         /// means for now.
         /// </summary>
-        void SpawnUnit(RosterEntry entry, Hex cell)
+        void SpawnUnit(RosterEntry entry, Hex cell, byte buildSlot = PartyInfo.Unclaimed)
         {
             if (m_UnitPrefab == null)
             {
@@ -294,7 +365,7 @@ namespace Dragoneye.Game
                 // unit reaches every client already on its hex and already the right creature.
                 instance.GetComponent<UnitState>().ServerPlaceAt(cell);
                 instance.GetComponent<CreatureState>()
-                    .ServerConfigure(entry.CreatureId, entry.Party, entry.ClaimedBySlot);
+                    .ServerConfigure(entry.CreatureId, entry.Party, entry.ClaimedBySlot, buildSlot);
 
                 // The starting pool is authored on the premade definition. A built character will
                 // bring its own from the creator; both arrive here before the spawn so the owning
@@ -303,12 +374,8 @@ namespace Dragoneye.Game
 
                 if (pool != null)
                 {
-                    var definition = CreatureState.Catalog != null
-                        ? CreatureState.Catalog.Resolve(entry.CreatureId)
-                        : null;
-
                     pool.ServerConfigure(ElementCounts.From(
-                        definition != null ? definition.StartingPool : null));
+                        CreatureState.ProfileFor(buildSlot, entry.CreatureId).StartingPool));
                 }
 
                 if (owner.HasValue)

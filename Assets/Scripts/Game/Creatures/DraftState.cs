@@ -172,6 +172,34 @@ namespace Dragoneye.Game
         }
 
         /// <summary>
+        /// The host putting another player on a side.
+        ///
+        /// Host-only, and the one thing the host controls about a player character: whose it is was
+        /// settled when its owner submitted it, and cannot be changed by anybody.
+        /// </summary>
+        [Rpc(SendTo.Server, InvokePermission = RpcInvokePermission.Everyone)]
+        public void SetPartyForRpc(byte slot, byte partyId, RpcParams rpc = default)
+        {
+            if (!IsFromHost(rpc) || slot == PartyInfo.Unclaimed)
+            {
+                return;
+            }
+
+            var hadParty = TryGetParty(slot, out var previous);
+            var party = (Party)partyId;
+
+            ReleaseAllFor(slot);
+            SetChoice(slot, party);
+
+            EnforceCaps(party);
+
+            if (hadParty && previous != party)
+            {
+                EnforceCaps(previous);
+            }
+        }
+
+        /// <summary>
         /// Joins a party. Claims held in the old party are released, and everyone already in the new
         /// party has their cap recomputed -- which may push them over and release their newest claims.
         /// </summary>

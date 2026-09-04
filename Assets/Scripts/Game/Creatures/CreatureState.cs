@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using Dragoneye.Combat;
 using Unity.Netcode;
 using UnityEngine;
@@ -27,8 +28,13 @@ namespace Dragoneye.Game
         // on the wire and a client cannot disagree with the host about whether a move is affordable.
         readonly NetworkVariable<int> m_CurrentApUnits = new NetworkVariable<int>();
 
+        // The slot whose character this is, or Unclaimed for an authored premade. It decides which
+        // of the two sources below answers "what is this creature".
+        readonly NetworkVariable<byte> m_BuildSlot = new NetworkVariable<byte>(PartyInfo.Unclaimed);
+
         // Identity handed over before the spawn, held until there are NetworkVariables to put it in.
         ushort m_StartCreatureId;
+        byte m_StartBuildSlot = PartyInfo.Unclaimed;
         Party m_StartParty;
         byte m_StartControllerSlot = PartyInfo.Unclaimed;
 
@@ -76,14 +82,54 @@ namespace Dragoneye.Game
             }
         }
 
-        public string DisplayName => Definition != null ? Definition.DisplayName : "Unknown";
+        /// <summary>
+        /// What this creature is, whichever of the two sources answered.
+        ///
+        /// A premade reads its authored definition; a player character reads the build its owner
+        /// submitted. Resolving both into one shape here is what keeps the turn bar, the card, the
+        /// spawner and the initiative order from each having to know which kind they are looking at.
+        /// </summary>
+        public CreatureProfile Profile => ProfileFor(m_BuildSlot.Value, m_CreatureId.Value);
 
-        public int MaxHp => Definition != null ? Definition.MaxHp : 1;
+        public string DisplayName => Profile.Name;
+
+        public int MaxHp => Profile.MaxHealth;
 
         /// <summary>Authored in whole points; carried everywhere else in half-units.</summary>
-        public Ap MaxAp => Ap.FromWhole(Definition != null ? Definition.MaxAp : 0);
+        public Ap MaxAp => Profile.MaxAp;
 
-        public int Speed => Definition != null ? Definition.Speed : 0;
+        public int Speed => Profile.Initiative;
+
+        /// <summary>What this creature can do. Empty until the catalog is available.</summary>
+        public IReadOnlyList<int> SkillIds => Profile.SkillIds;
+
+        /// <summary>The elements it starts holding.</summary>
+        public IReadOnlyList<Element> StartingPool => Profile.StartingPool;
+
+        /// <summary>
+        /// Resolves a creature from whichever source owns it.
+        ///
+        /// Static and parameterised so the spawner can ask before the object exists, which is when
+        /// it needs the starting pool.
+        /// </summary>
+        public static CreatureProfile ProfileFor(byte buildSlot, ushort creatureId)
+        {
+            if (buildSlot != PartyInfo.Unclaimed && PlayerCharacters.Current != null)
+            {
+                var loadout = PlayerCharacters.Current.LoadoutFor(buildSlot);
+                var build = PlayerCharacters.Current.BuildFor(buildSlot);
+
+                if (loadout != null && build != null)
+                {
+                    return CreatureProfile.FromLoadout(build.Name, loadout);
+                }
+            }
+
+            var catalog = Catalog;
+            var definition = catalog != null ? catalog.Resolve(creatureId) : null;
+
+            return CreatureProfile.FromDefinition(definition);
+        }
 
         /// <summary>Raised on every client when anything replicated here changes.</summary>
         public event Action Changed;
@@ -94,13 +140,14 @@ namespace Dragoneye.Game
             // briefly a party-zero, full-health nobody that the portrait column has to redraw.
             if (IsServer)
             {
-                var definition = Catalog != null ? Catalog.Resolve(m_StartCreatureId) : null;
+                var profile = ProfileFor(m_StartBuildSlot, m_StartCreatureId);
 
+                m_BuildSlot.Value = m_StartBuildSlot;
                 m_CreatureId.Value = m_StartCreatureId;
                 m_PartyId.Value = (byte)m_StartParty;
                 m_ControllerSlot.Value = m_StartControllerSlot;
-                m_CurrentHp.Value = definition != null ? definition.MaxHp : 1;
-                m_CurrentApUnits.Value = Ap.FromWhole(definition != null ? definition.MaxAp : 0).Units;
+                m_CurrentHp.Value = profile.MaxHealth;
+                m_CurrentApUnits.Value = profile.MaxAp.Units;
             }
 
             m_CreatureId.OnValueChanged += OnIdChanged;
@@ -108,6 +155,7 @@ namespace Dragoneye.Game
             m_ControllerSlot.OnValueChanged += OnByteChanged;
             m_CurrentHp.OnValueChanged += OnIntChanged;
             m_CurrentApUnits.OnValueChanged += OnIntChanged;
+            m_BuildSlot.OnValueChanged += OnByteChanged;
 
             var context = ArenaContext.Current;
             m_Registry = context != null ? context.Creatures : null;
@@ -131,6 +179,7 @@ namespace Dragoneye.Game
             m_ControllerSlot.OnValueChanged -= OnByteChanged;
             m_CurrentHp.OnValueChanged -= OnIntChanged;
             m_CurrentApUnits.OnValueChanged -= OnIntChanged;
+            m_BuildSlot.OnValueChanged -= OnByteChanged;
 
             if (m_Registry != null)
             {
@@ -147,12 +196,23 @@ namespace Dragoneye.Game
         /// resolve locally, so passing one in would invite a caller to hand over a definition that
         /// disagrees with the id being replicated.
         /// </summary>
-        public void ServerConfigure(ushort creatureId, Party party, byte controllerSlot)
+        public void ServerConfigure(ushort creatureId, Party party, byte controllerSlot,
+            byte buildSlot = PartyInfo.Unclaimed)
         {
             m_StartCreatureId = creatureId;
             m_StartParty = party;
             m_StartControllerSlot = controllerSlot;
+            m_StartBuildSlot = buildSlot;
         }
+
+        /// <summary>
+        /// The slot whose built character this is, or <see cref="PartyInfo.Unclaimed"/> for a
+        /// premade.
+        /// </summary>
+        public byte BuildSlot => m_BuildSlot.Value;
+
+        /// <summary>True when this creature came out of the character creator.</summary>
+        public bool IsPlayerCharacter => m_BuildSlot.Value != PartyInfo.Unclaimed;
 
         /// <summary>
         /// Where this creature stands.

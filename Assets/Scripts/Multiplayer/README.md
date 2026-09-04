@@ -144,3 +144,29 @@ glance which menus are real tooling and which are disposable scaffolding.
 Arena`) generated the three scenes above. It is spent once it has run and its output is committed
 — delete it then, the way `MultiplayerSceneSetup.cs` was deleted before it. Re-running it after
 the scenes are hand-edited would overwrite that work.
+
+## Characters
+
+A character is built in the menu, saved on the machine that made it, and carried into a match.
+
+| Piece | Where | Netcode |
+|---|---|---|
+| The build, its rules and validation | `CharacterBuild`, `BuildValidator` (Combat) | none |
+| Resolving it into stats, skills and passives | `LoadoutResolver` (Combat) | none |
+| Authored classes, items and skills | `ContentCatalog` (Data) | none |
+| Saving and portraits | `CharacterStore` (Data) | none |
+| Bringing one to a match | `PlayerCharacters` | replicated |
+
+- **Built locally, validated centrally.** The creation screen calls `BuildValidator` on every edit so
+  Save is never offered for something that would be refused; `PlayerCharacters.SubmitRpc` calls the
+  same validator on the host, which is the check that counts — a build arrives from a client.
+- **The slot comes from the sender**, never the payload, so a client can only submit as itself.
+- **A player's character is theirs.** It is not a roster entry: entries exist to be claimed and
+  released, and a brought character can be neither. What the host controls is which side it fights
+  on, which is the slot's party choice the draft already tracks — `SetPartyForRpc` is the host-only
+  way to set someone else's.
+- **Premades stay available** alongside built characters, so a playtest can start without going
+  through the creator. `CreatureProfile` is where the two sources meet: a premade answers from its
+  authored definition, a built character from its loadout, and every reader asks the profile.
+- **Portraits never travel.** They are stored beside the character as PNGs and cached by id; other
+  players see an initial.

@@ -28,7 +28,8 @@ namespace Dragoneye.Game
         readonly List<SkillSpec> m_Skills = new List<SkillSpec>();
 
         CreatureState m_Creature;
-        ushort m_ResolvedFor;
+        ushort m_ResolvedId;
+        byte m_ResolvedSlot;
         bool m_Resolved;
 
         void Awake() => m_Creature = GetComponent<CreatureState>();
@@ -36,34 +37,35 @@ namespace Dragoneye.Game
         /// <summary>
         /// Everything this creature can do, resolved locally and cached.
         ///
-        /// Re-resolved when the creature id changes, which is the only thing that can change the
-        /// list -- a premade authors its kit on its definition, and a built character's kit is
-        /// already baked into the definition it resolves to.
+        /// Keyed on both the creature id and the build slot, because either can be the source. A
+        /// premade is named by its id and a player character by its slot -- caching on the id alone
+        /// would give every built character the same empty list, since their id is never set.
         /// </summary>
         public IReadOnlyList<SkillSpec> Skills
         {
             get
             {
                 var id = m_Creature != null ? m_Creature.CreatureId : (ushort)0;
+                var slot = m_Creature != null ? m_Creature.BuildSlot : PartyInfo.Unclaimed;
 
-                if (m_Resolved && m_ResolvedFor == id)
+                if (m_Resolved && m_ResolvedId == id && m_ResolvedSlot == slot)
                 {
                     return m_Skills;
                 }
 
                 m_Skills.Clear();
-                m_ResolvedFor = id;
+                m_ResolvedId = id;
+                m_ResolvedSlot = slot;
                 m_Resolved = true;
 
-                var definition = m_Creature != null ? m_Creature.Definition : null;
                 var catalog = SkillCatalog.Current;
 
-                if (definition == null || catalog == null)
+                if (m_Creature == null || catalog == null)
                 {
                     return m_Skills;
                 }
 
-                foreach (var skillId in definition.SkillIds)
+                foreach (var skillId in m_Creature.SkillIds)
                 {
                     if (catalog.TryGetSkill(skillId, out var spec))
                     {
@@ -139,12 +141,12 @@ namespace Dragoneye.Game
     /// Where a skill id is resolved into a skill.
     ///
     /// A seam rather than a direct reference to the catalog asset: creatures live on a spawned
-    /// prefab and cannot carry a serialised reference to it, and the alternative -- a lookup through
-    /// the arena context on every access -- would tie the rules to a scene being loaded.
+    /// prefab and cannot carry a serialised reference to it, and a lookup through the arena on every
+    /// access would tie the rules to a scene being loaded.
     /// </summary>
     public static class SkillCatalog
     {
-        /// <summary>Set once by the arena. Null outside a match.</summary>
+        /// <summary>Set by <see cref="PlayerCharacters"/>, which lives the whole match. Null outside one.</summary>
         public static ISkillIndex Current { get; set; }
     }
 }

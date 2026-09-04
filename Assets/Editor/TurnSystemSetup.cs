@@ -74,14 +74,22 @@ namespace Dragoneye.MultiplayerEditor
                 added = true;
             }
 
+            // The characters players bring. On the match object because it has to exist from the
+            // lobby, where they are submitted, through to the arena, where they are spawned.
+            if (prefab.GetComponent<PlayerCharacters>() == null)
+            {
+                prefab.AddComponent<PlayerCharacters>();
+                added = true;
+            }
+
             if (added)
             {
                 PrefabUtility.SavePrefabAsset(prefab);
             }
 
             Debug.Log(added
-                ? "Turn state added to the match prefab."
-                : "Match prefab already carries the turn state.");
+                ? "Turn state and player characters added to the match prefab."
+                : "Match prefab already carries the turn state and player characters.");
 
             return true;
         }

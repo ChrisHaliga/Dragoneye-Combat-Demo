@@ -137,3 +137,47 @@
 .is-hidden {
     display: none;
 }
+
+/* Characters players brought. Distinct from the draft pool: these are claimed and cannot be taken. */
+.character-roster {
+    height: 108px;
+    margin-bottom: 10px;
+    border-radius: 10px;
+    background-color: rgb(16, 18, 25);
+    border-width: 1px;
+    border-color: rgb(48, 53, 68);
+}
+
+.brought-row {
+    flex-direction: row;
+    align-items: center;
+    padding: 6px 10px;
+    border-bottom-width: 1px;
+    border-bottom-color: rgb(32, 36, 48);
+}
+
+.brought-row__body {
+    flex-grow: 1;
+}
+
+.brought-row__name {
+    font-size: 13px;
+    -unity-font-style: bold;
+    color: rgb(240, 243, 250);
+}
+
+.brought-row__detail {
+    font-size: 11px;
+    color: rgb(148, 158, 180);
+}
+
+.brought-row__party {
+    flex-direction: row;
+}
+
+.brought-row__none {
+    padding: 10px;
+    font-size: 11px;
+    color: rgb(110, 120, 142);
+    white-space: normal;
+}

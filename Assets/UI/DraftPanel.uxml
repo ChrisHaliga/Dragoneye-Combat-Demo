@@ -20,6 +20,10 @@
             </ui:VisualElement>
 
             <ui:Label name="cap-label" text="" class="draft__cap" />
+            <ui:Label text="Characters brought" class="field-label" />
+            <ui:ScrollView name="character-roster" class="character-roster" />
+
+            <ui:Label text="Draft pool" class="field-label" />
             <ui:ScrollView name="roster-list" class="roster-list" />
         </ui:VisualElement>
     </ui:VisualElement>
