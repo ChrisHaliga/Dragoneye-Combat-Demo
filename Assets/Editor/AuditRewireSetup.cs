@@ -45,19 +45,19 @@ namespace Dragoneye.MultiplayerEditor
 
             // The registry is a component now rather than a static: a static list outlives the arena
             // and would carry dead creatures into the next match.
-            var creatures = host.GetComponent<CreatureRegistry>() ?? host.AddComponent<CreatureRegistry>();
-            var selection = host.GetComponent<CreatureSelection>() ?? host.AddComponent<CreatureSelection>();
+            var creatures = Ensure<CreatureRegistry>(host);
+            var selection = Ensure<CreatureSelection>(host);
 
             Assign(context, ("m_Creatures", creatures));
             Assign(selection, ("m_Creatures", creatures));
 
             // Both views read the same document; they simply own different parts of its tree.
-            var panel = hud.GetComponent<PartyPanelView>() ?? hud.AddComponent<PartyPanelView>();
-            var card = hud.GetComponent<CreatureCardView>() ?? hud.AddComponent<CreatureCardView>();
+            var panel = Ensure<PartyPanelView>(hud);
+            var card = Ensure<CreatureCardView>(hud);
 
             // A third reader of the same document: the numbers that rise off a creature when it
             // earns something. It needs the registry to find whose head to sit over.
-            var floating = hud.GetComponent<FloatingTextView>() ?? hud.AddComponent<FloatingTextView>();
+            var floating = Ensure<FloatingTextView>(hud);
 
             Assign(panel, ("m_Selection", selection), ("m_Creatures", creatures));
             Assign(card, ("m_Selection", selection));
@@ -69,6 +69,19 @@ namespace Dragoneye.MultiplayerEditor
 
             Debug.Log($"Arena rewired: {stripped} dead component(s) removed, "
                 + "registry and HUD views wired.");
+        }
+
+        /// <summary>
+        /// The component, adding it if it is not there.
+        ///
+        /// Written out rather than done with <c>??</c>: a Unity object that is missing is not
+        /// reference-null even though <c>== null</c> says it is, and the null-coalescing operator
+        /// does not go through that operator. It hands back an object that throws when touched.
+        /// </summary>
+        static T Ensure<T>(GameObject target) where T : Component
+        {
+            var existing = target.GetComponent<T>();
+            return existing == null ? target.AddComponent<T>() : existing;
         }
 
         static void Assign(Object target, params (string Path, Object Value)[] fields)

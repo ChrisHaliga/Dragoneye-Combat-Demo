@@ -87,7 +87,17 @@ namespace Dragoneye.Game
                 return;
             }
 
-            BuildToken();
+            // Never fatal. A unit that cannot be reshaped should still be a unit somebody can see
+            // and click, and the reason should be on screen rather than inferred from an empty
+            // board -- which is exactly how the last attempt at this failed.
+            try
+            {
+                BuildToken();
+            }
+            catch (System.Exception e)
+            {
+                Debug.LogError($"{nameof(UnitView)} could not build its token: {e}", this);
+            }
         }
 
         /// <summary>
@@ -117,9 +127,9 @@ namespace Dragoneye.Game
                 filter.sharedMesh = CreatureToken.Cylinder;
             }
 
-            // Unity's cylinder is two units tall, hence the halving.
+            // The mesh is one unit tall and one across, so the scale is the size.
             bodyTransform.localScale = new Vector3(
-                CreatureToken.Radius * 2f, CreatureToken.Height * 0.5f, CreatureToken.Radius * 2f);
+                CreatureToken.Radius * 2f, CreatureToken.Height, CreatureToken.Radius * 2f);
             bodyTransform.localPosition = new Vector3(0f, baseY + (CreatureToken.Height * 0.5f), 0f);
 
             // The rings sit just under the token's lip, where they read as a base rather than as
@@ -128,6 +138,22 @@ namespace Dragoneye.Game
             Sit(transform.Find("Player Accent"), baseY + 0.008f);
 
             m_Portrait = BuildPortrait(baseY);
+        }
+
+        /// <summary>
+        /// The component, adding it if it is not there.
+        ///
+        /// Written out rather than done with <c>??</c>, which is the trap this whole thing fell
+        /// into: a Unity object that has been destroyed, or was never really there, is not
+        /// reference-null even though <c>== null</c> says it is. The null-coalescing operator does
+        /// not go through that operator, so it happily hands back an object that then throws the
+        /// moment it is touched -- which is what left the board empty, and, before that, silently
+        /// stopped the editor step that was meant to build these in the first place.
+        /// </summary>
+        static T Ensure<T>(GameObject target) where T : Component
+        {
+            var existing = target.GetComponent<T>();
+            return existing == null ? target.AddComponent<T>() : existing;
         }
 
         static void Sit(Transform ring, float height)
@@ -159,12 +185,10 @@ namespace Dragoneye.Game
             var size = CreatureToken.Radius * 2f * CreatureToken.PortraitInset;
             portrait.transform.localScale = new Vector3(size, 1f, size);
 
-            var filter = portrait.GetComponent<MeshFilter>() ?? portrait.AddComponent<MeshFilter>();
+            var filter = Ensure<MeshFilter>(portrait);
             filter.sharedMesh = CreatureToken.Disc;
 
-            var renderer = portrait.GetComponent<MeshRenderer>()
-                ?? portrait.AddComponent<MeshRenderer>();
-
+            var renderer = Ensure<MeshRenderer>(portrait);
             renderer.sharedMaterial = m_Body.sharedMaterial;
             renderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
             renderer.receiveShadows = false;

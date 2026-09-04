@@ -87,10 +87,13 @@ namespace Dragoneye.Game
         }
 
         /// <summary>
-        /// The engine's cylinder.
+        /// A closed cylinder of radius one half and height one, centred on its own middle.
         ///
-        /// Unity only hands these out by making one, so this makes one, keeps the mesh and throws
-        /// the object away. The mesh belongs to the engine and outlives it.
+        /// Built here rather than borrowed from <c>GameObject.CreatePrimitive</c>. That call makes
+        /// a whole GameObject with a collider on it, in whatever scene happens to be active, purely
+        /// to read one mesh off it -- and it was doing that from inside the Awake of an object
+        /// netcode was in the middle of spawning. Fifty lines of vertices is a smaller thing to
+        /// reason about than that.
         /// </summary>
         public static Mesh Cylinder
         {
@@ -101,18 +104,76 @@ namespace Dragoneye.Game
                     return s_Cylinder;
                 }
 
-                var temporary = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
-                s_Cylinder = temporary.GetComponent<MeshFilter>().sharedMesh;
+                const int segments = 48;
 
-                if (Application.isPlaying)
+                // Two rings for the wall, plus a centre and a ring for each cap. The wall gets its
+                // own vertices because its normals point outward and the caps' point up and down;
+                // shared vertices would smear the two into a bevel.
+                var vertices = new Vector3[(segments * 2) + ((segments + 1) * 2)];
+                var normals = new Vector3[vertices.Length];
+                var triangles = new int[(segments * 6) + (segments * 6)];
+
+                var topCentre = segments * 2;
+                var bottomCentre = topCentre + segments + 1;
+
+                vertices[topCentre] = new Vector3(0f, 0.5f, 0f);
+                normals[topCentre] = Vector3.up;
+                vertices[bottomCentre] = new Vector3(0f, -0.5f, 0f);
+                normals[bottomCentre] = Vector3.down;
+
+                for (var i = 0; i < segments; i++)
                 {
-                    Object.Destroy(temporary);
-                }
-                else
-                {
-                    Object.DestroyImmediate(temporary);
+                    var angle = (i / (float)segments) * Mathf.PI * 2f;
+                    var x = Mathf.Cos(angle) * 0.5f;
+                    var z = Mathf.Sin(angle) * 0.5f;
+                    var outward = new Vector3(x, 0f, z).normalized;
+
+                    vertices[i] = new Vector3(x, 0.5f, z);
+                    normals[i] = outward;
+                    vertices[segments + i] = new Vector3(x, -0.5f, z);
+                    normals[segments + i] = outward;
+
+                    vertices[topCentre + 1 + i] = new Vector3(x, 0.5f, z);
+                    normals[topCentre + 1 + i] = Vector3.up;
+                    vertices[bottomCentre + 1 + i] = new Vector3(x, -0.5f, z);
+                    normals[bottomCentre + 1 + i] = Vector3.down;
                 }
 
+                var t = 0;
+
+                for (var i = 0; i < segments; i++)
+                {
+                    var next = (i + 1) % segments;
+
+                    // Wall.
+                    triangles[t++] = i;
+                    triangles[t++] = segments + i;
+                    triangles[t++] = segments + next;
+
+                    triangles[t++] = i;
+                    triangles[t++] = segments + next;
+                    triangles[t++] = next;
+
+                    // Top, wound to face up.
+                    triangles[t++] = topCentre;
+                    triangles[t++] = topCentre + 1 + next;
+                    triangles[t++] = topCentre + 1 + i;
+
+                    // Bottom, wound the other way.
+                    triangles[t++] = bottomCentre;
+                    triangles[t++] = bottomCentre + 1 + i;
+                    triangles[t++] = bottomCentre + 1 + next;
+                }
+
+                s_Cylinder = new Mesh
+                {
+                    name = "Token Body",
+                    vertices = vertices,
+                    normals = normals,
+                    triangles = triangles
+                };
+
+                s_Cylinder.RecalculateBounds();
                 return s_Cylinder;
             }
         }

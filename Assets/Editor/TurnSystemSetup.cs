@@ -165,10 +165,10 @@ namespace Dragoneye.MultiplayerEditor
                 return;
             }
 
-            var director = host.GetComponent<CombatDirector>() ?? host.AddComponent<CombatDirector>();
+            var director = Ensure<CombatDirector>(host);
             Assign(director, ("m_Creatures", creatures), ("m_Units", units), ("m_Map", map));
 
-            var input = host.GetComponent<BoardActionInput>() ?? host.AddComponent<BoardActionInput>();
+            var input = Ensure<BoardActionInput>(host);
             Assign(input,
                 ("m_Pointer", pointer), ("m_Units", units), ("m_Selection", selection),
                 ("m_Map", map), ("m_Creatures", creatures));
@@ -200,17 +200,30 @@ namespace Dragoneye.MultiplayerEditor
                 return;
             }
 
-            var bar = hud.GetComponent<TurnBarView>() ?? hud.AddComponent<TurnBarView>();
+            var bar = Ensure<TurnBarView>(hud);
             Assign(bar, ("m_Creatures", creatures), ("m_Selection", selection));
 
-            var skills = hud.GetComponent<SkillBarView>() ?? hud.AddComponent<SkillBarView>();
+            var skills = Ensure<SkillBarView>(hud);
             Assign(skills, ("m_Input", input));
 
             // The board input asks the bar what is armed, so it needs the reference back.
             Assign(input, ("m_SkillBar", skills));
 
-            var controls = hud.GetComponent<TurnControlsView>() ?? hud.AddComponent<TurnControlsView>();
+            var controls = Ensure<TurnControlsView>(hud);
             Assign(controls, ("m_Input", input), ("m_Map", map), ("m_Units", units));
+        }
+
+        /// <summary>
+        /// The component, adding it if it is not there.
+        ///
+        /// Written out rather than done with <c>??</c>: a Unity object that is missing is not
+        /// reference-null even though <c>== null</c> says it is, and the null-coalescing operator
+        /// does not go through that operator. It hands back an object that throws when touched.
+        /// </summary>
+        static T Ensure<T>(GameObject target) where T : Component
+        {
+            var existing = target.GetComponent<T>();
+            return existing == null ? target.AddComponent<T>() : existing;
         }
 
         static void Assign(Object target, params (string Path, Object Value)[] fields)
