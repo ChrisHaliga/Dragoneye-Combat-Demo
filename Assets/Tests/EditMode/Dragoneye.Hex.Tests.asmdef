@@ -3,6 +3,7 @@
     "rootNamespace": "Dragoneye.Hex.Tests",
     "references": [
         "Dragoneye.Settings",
+        "Dragoneye.Combat",
         "Dragoneye.Hex",
         "Dragoneye.Hex.Systems",
         "Dragoneye.Camera",

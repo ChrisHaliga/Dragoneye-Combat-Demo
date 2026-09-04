@@ -1,4 +1,4 @@
-namespace Dragoneye.Game
+namespace Dragoneye.Combat
 {
     /// <summary>
     /// The numbers combat runs on, and the arithmetic that uses them.

@@ -2,11 +2,11 @@ using System.Collections.Generic;
 using System.Linq;
 using Dragoneye.Hex.Systems;
 using NUnit.Framework;
-using UnityEngine;
 using Hex = Dragoneye.Hex.Hex;
 using HexLayout = Dragoneye.Hex.HexLayout;
 using HexMap = Dragoneye.Hex.HexMap;
 using HexTile = Dragoneye.Hex.HexTile;
+using UnityEngine;
 
 namespace Dragoneye.Hex.Tests
 {

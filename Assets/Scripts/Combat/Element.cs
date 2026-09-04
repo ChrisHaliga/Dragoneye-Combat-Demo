@@ -1,0 +1,70 @@
+using System;
+
+namespace Dragoneye.Combat
+{
+    /// <summary>
+    /// The elements the game recognises.
+    ///
+    /// The values are hand-assigned and permanent: they cross the network and are written into saved
+    /// characters, so reordering this enum would silently reinterpret every stored pool. Add to the
+    /// end, never renumber.
+    ///
+    /// Which element beats which is deliberately not here. That is a seam answered outside Combat, so
+    /// it can be retuned without touching the rules that spend and record elements.
+    /// </summary>
+    public enum Element
+    {
+        Fire = 0,
+        Water = 1,
+        Earth = 2,
+        Air = 3
+    }
+
+    public static class ElementInfo
+    {
+        /// <summary>
+        /// Every element, in a fixed order.
+        ///
+        /// Iterating this rather than <c>Enum.GetValues</c> keeps the order stable across runtimes
+        /// and avoids the allocation and boxing that reflection-based enumeration costs on every
+        /// pool redraw.
+        /// </summary>
+        public static readonly Element[] All =
+        {
+            Element.Fire,
+            Element.Water,
+            Element.Earth,
+            Element.Air
+        };
+
+        public static int Count => All.Length;
+
+        /// <summary>Position in <see cref="All"/>, for indexing a per-element array.</summary>
+        public static int IndexOf(Element element)
+        {
+            for (var i = 0; i < All.Length; i++)
+            {
+                if (All[i] == element)
+                {
+                    return i;
+                }
+            }
+
+            return -1;
+        }
+
+        public static bool IsDefined(Element element) => IndexOf(element) >= 0;
+
+        public static string NameOf(Element element)
+        {
+            switch (element)
+            {
+                case Element.Fire: return "Fire";
+                case Element.Water: return "Water";
+                case Element.Earth: return "Earth";
+                case Element.Air: return "Air";
+                default: return "Unknown";
+            }
+        }
+    }
+}

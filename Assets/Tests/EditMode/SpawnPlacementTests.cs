@@ -3,13 +3,13 @@ using System.Linq;
 using Dragoneye.Hex.Systems;
 using Dragoneye.Multiplayer;
 using NUnit.Framework;
-using Unity.Services.Multiplayer;
-using UnityEngine;
 using Hex = Dragoneye.Hex.Hex;
 using HexLayout = Dragoneye.Hex.HexLayout;
 using HexMap = Dragoneye.Hex.HexMap;
 using HexTile = Dragoneye.Hex.HexTile;
 using TerrainType = Dragoneye.Hex.TerrainType;
+using Unity.Services.Multiplayer;
+using UnityEngine;
 
 namespace Dragoneye.Hex.Tests
 {

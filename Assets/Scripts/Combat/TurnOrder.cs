@@ -1,6 +1,6 @@
 using System.Collections.Generic;
 
-namespace Dragoneye.Game
+namespace Dragoneye.Combat
 {
     /// <summary>
     /// One creature's place in the initiative queue, reduced to what ordering needs.

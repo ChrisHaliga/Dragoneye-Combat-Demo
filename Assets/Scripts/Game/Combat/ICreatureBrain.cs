@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using Dragoneye.Combat;
 
 namespace Dragoneye.Game
 {

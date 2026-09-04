@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using Dragoneye.Data;
 using UnityEngine;
 using UnityEngine.UIElements;
 
@@ -22,15 +23,21 @@ namespace Dragoneye.Multiplayer
         [SerializeField, Tooltip("Leave empty to use the persistent runner.")]
         SessionRunner m_Runner;
 
+        [SerializeField, Tooltip("Classes, equipment and the rules a character is built against.")]
+        ContentCatalog m_Content;
+
         readonly Dictionary<MenuScreen, VisualElement> m_Panels =
             new Dictionary<MenuScreen, VisualElement>();
 
         SessionScreens m_Session;
         SettingsScreen m_Settings;
+        CharacterListScreen m_Characters;
+        CharacterCreatorScreen m_Creator;
         Label m_Status;
+        Label m_PlayingAs;
         Button m_SingleplayerButton;
         Button m_MultiplayerButton;
-        MenuScreen m_Screen = MenuScreen.Home;
+        MenuScreen m_Screen = MenuScreen.Start;
 
         // Routing and refreshing call each other: showing a screen repaints it, and repainting the
         // session screens can ask to be routed to the lobby. Both guards make that loop terminate
@@ -82,11 +89,105 @@ namespace Dragoneye.Multiplayer
                 m_Runner.Changed += Refresh;
             }
 
+            if (!BindCharacterScreens(root))
+            {
+                enabled = false;
+                return;
+            }
+
             ApplyAvailability();
 
-            // A lobby can already exist: returning from a match leaves the session open, and the
-            // player should land back in the lobby rather than at the top of the menu.
-            Show(m_Session != null && m_Session.InLobby ? MenuScreen.Lobby : MenuScreen.Home);
+            // Three ways in, in order of how far the player already is. A lobby that survived a
+            // match puts them straight back in it; a character already chosen skips the roster;
+            // otherwise this is a fresh launch and they start at the title.
+            Show(m_Session != null && m_Session.InLobby ? MenuScreen.Lobby
+                : SelectedCharacter.HasSelection ? MenuScreen.Home
+                : MenuScreen.Start);
+        }
+
+        bool BindCharacterScreens(VisualElement root)
+        {
+            if (m_Content == null)
+            {
+                Debug.LogError($"{nameof(MainMenuUI)} has no {nameof(ContentCatalog)}; "
+                    + "characters cannot be built or listed.", this);
+                return false;
+            }
+
+            m_Characters = new CharacterListScreen(root, m_Content, OnEditCharacter,
+                () => Show(MenuScreen.Home));
+
+            m_Creator = new CharacterCreatorScreen(root, m_Content, ShowCharacters);
+
+            if (!m_Characters.IsBound || !m_Creator.IsBound)
+            {
+                Debug.LogError("Character markup is missing controls; check SessionMenu.uxml.", this);
+                return false;
+            }
+
+            m_PlayingAs = root.Q<Label>("playing-as-label");
+            var change = root.Q<Button>("change-character-button");
+
+            if (change != null)
+            {
+                change.clicked += ShowCharacters;
+            }
+
+            return true;
+        }
+
+        void OnEditCharacter(SavedCharacter existing)
+        {
+            m_Creator.Open(existing);
+            Show(MenuScreen.CreateCharacter);
+        }
+
+        /// <summary>
+        /// The title card advances on anything at all.
+        ///
+        /// Polled rather than driven by an input action: this is the one screen where the specific
+        /// key does not matter, and adding a binding to the input asset for "any" would be a
+        /// mapping nobody should ever need to rebind.
+        /// </summary>
+        void Update()
+        {
+            if (m_Screen != MenuScreen.Start)
+            {
+                return;
+            }
+
+            var keyboard = UnityEngine.InputSystem.Keyboard.current;
+            var mouse = UnityEngine.InputSystem.Mouse.current;
+
+            if ((keyboard != null && keyboard.anyKey.wasPressedThisFrame)
+                || (mouse != null && mouse.leftButton.wasPressedThisFrame))
+            {
+                ShowCharacters();
+            }
+        }
+
+        /// <summary>
+        /// Opens the roster, or the creator when there is nothing on it yet.
+        ///
+        /// A first launch has no characters, and an empty list with a New button is a worse first
+        /// screen than the thing that button would have opened.
+        ///
+        /// The only way in to the roster, which is why <see cref="Show"/> does not also refresh it:
+        /// deciding which of the two screens to open needs the list read first, and doing it in both
+        /// places would read the folder twice per open.
+        /// </summary>
+        void ShowCharacters()
+        {
+            m_Characters.Refresh();
+
+            if (m_Characters.HasAny)
+            {
+                Show(MenuScreen.Characters);
+            }
+            else
+            {
+                OnEditCharacter(null);
+            }
         }
 
         /// <summary>
@@ -127,6 +228,9 @@ namespace Dragoneye.Multiplayer
 
         bool BindPanels(VisualElement root)
         {
+            m_Panels[MenuScreen.Start] = root.Q<VisualElement>("start-panel");
+            m_Panels[MenuScreen.Characters] = root.Q<VisualElement>("characters-panel");
+            m_Panels[MenuScreen.CreateCharacter] = root.Q<VisualElement>("create-panel");
             m_Panels[MenuScreen.Home] = root.Q<VisualElement>("home-panel");
             m_Panels[MenuScreen.SoloSetup] = root.Q<VisualElement>("solo-panel");
             m_Panels[MenuScreen.Multiplayer] = root.Q<VisualElement>("multiplayer-panel");
@@ -282,6 +386,8 @@ namespace Dragoneye.Multiplayer
                     m_Shown = false;
                 }
 
+                    RefreshPlayingAs();
+
                 SetStatus(m_Session != null && ShowsSessionStatus(m_Screen)
                     ? SessionScreens.Describe(m_Runner.Phase, m_Runner.Fault, m_Runner.PlayerName)
                     : string.Empty);
@@ -297,6 +403,21 @@ namespace Dragoneye.Multiplayer
             {
                 Show(m_Screen);
             }
+        }
+
+        /// <summary>Who the player is currently playing as, on the main menu.</summary>
+        void RefreshPlayingAs()
+        {
+            if (m_PlayingAs == null)
+            {
+                return;
+            }
+
+            var current = SelectedCharacter.Current;
+
+            m_PlayingAs.text = current != null
+                ? $"Playing as {current.Build.Name}"
+                : "No character chosen";
         }
 
         /// <summary>

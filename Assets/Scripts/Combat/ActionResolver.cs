@@ -1,4 +1,4 @@
-namespace Dragoneye.Game
+namespace Dragoneye.Combat
 {
     /// <summary>What clicking a hex would do.</summary>
     public enum BoardAction

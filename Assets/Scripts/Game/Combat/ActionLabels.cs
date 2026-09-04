@@ -1,12 +1,14 @@
+using Dragoneye.Combat;
+
 namespace Dragoneye.Game
 {
     /// <summary>
     /// The words shown beside the cursor for a priced action.
     ///
-    /// Separate from <see cref="ActionResolver"/>, which the server runs too and which has no
-    /// business holding English. One place for the wording all the same, so a new
-    /// <see cref="ActionRefusal"/> cannot be added without deciding what the player is told -- and
-    /// so it stays testable, which it would not be inside a view.
+    /// Separate from <see cref="ActionResolver"/>, and in a different assembly: Dragoneye.Combat is
+    /// the rules the server runs, and those have no business holding English. One place for the
+    /// wording all the same, so a new <see cref="ActionRefusal"/> cannot be added without deciding
+    /// what the player is told -- and a static class, so it stays testable outside a view.
     /// </summary>
     public static class ActionLabels
     {

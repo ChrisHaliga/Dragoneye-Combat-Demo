@@ -21,10 +21,15 @@ namespace Dragoneye.MultiplayerEditor
         [MenuItem("ClaudeCode/Set Up Turn System")]
         static void SetUp()
         {
-            if (!EditorSceneManager.SaveCurrentModifiedScenesIfUserWantsTo())
+            if (EditorSceneManager.SaveCurrentModifiedScenesIfUserWantsTo())
             {
-                return;
+                Run();
             }
+        }
+
+        /// <summary>Runs the whole step. Called directly by the master setup.</summary>
+        internal static void Run()
+        {
 
             if (!SetUpMatchPrefab())
             {

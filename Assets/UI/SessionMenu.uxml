@@ -2,9 +2,58 @@
     <ui:VisualElement name="root" class="root">
         <Style src="SessionMenu.uss" />
 
-        <ui:VisualElement name="home-panel" class="panel">
+        <ui:VisualElement name="start-panel" class="start">
+            <ui:Label text="DRAGONEYE" class="start__title" />
+            <ui:Label text="Press any key" class="start__prompt" />
+        </ui:VisualElement>
+
+        <ui:VisualElement name="characters-panel" class="panel panel--wide is-hidden">
+            <ui:Label text="Your characters" class="title" />
+            <ui:Label name="characters-note" text="" class="subtitle" />
+
+            <ui:ScrollView name="character-list" class="character-list" />
+
+            <ui:VisualElement class="button-row">
+                <ui:Button name="character-delete-button" text="Delete" class="button button--ghost" />
+                <ui:Button name="character-edit-button" text="Edit" class="button button--ghost" />
+                <ui:Button name="character-new-button" text="New character" class="button" />
+                <ui:Button name="character-play-button" text="Play" class="button button--primary" />
+            </ui:VisualElement>
+        </ui:VisualElement>
+
+        <ui:VisualElement name="create-panel" class="panel panel--create is-hidden">
+            <ui:Label name="create-title" text="New character" class="title" />
+
+            <ui:VisualElement class="create-columns">
+                <ui:ScrollView name="create-form" class="create-form" />
+
+                <ui:VisualElement name="create-summary" class="create-summary">
+                    <ui:VisualElement name="create-portrait" class="create-portrait">
+                        <ui:Label name="create-portrait-initial" text="?" class="create-portrait__initial" />
+                    </ui:VisualElement>
+                    <ui:Label name="create-summary-name" text="Unnamed" class="create-summary__name" />
+                    <ui:Label name="create-summary-class" text="" class="create-summary__class" />
+                    <ui:VisualElement name="create-stats" class="create-stats" />
+                    <ui:Label text="Starting pool" class="section-heading" />
+                    <ui:VisualElement name="create-pool" class="create-pool" />
+                </ui:VisualElement>
+            </ui:VisualElement>
+
+            <ui:Label name="create-faults" text="" class="create-faults" />
+
+            <ui:VisualElement class="button-row">
+                <ui:Button name="create-cancel-button" text="Cancel" class="button button--ghost" />
+                <ui:Button name="create-save-button" text="Save character" class="button button--primary" />
+            </ui:VisualElement>
+        </ui:VisualElement>
+
+        <ui:VisualElement name="home-panel" class="panel is-hidden">
             <ui:Label text="Dragoneye Combat" class="title" />
-            <ui:Label text="A tactics demo on a hex board." class="subtitle" />
+
+            <ui:VisualElement class="playing-as">
+                <ui:Label name="playing-as-label" text="" class="playing-as__name" />
+                <ui:Button name="change-character-button" text="Change" class="button button--ghost button--compact" />
+            </ui:VisualElement>
 
             <ui:VisualElement class="menu-stack">
                 <ui:Button name="singleplayer-button" text="Singleplayer" class="button button--primary button--menu" />

@@ -2,12 +2,12 @@ using System.Collections.Generic;
 using System.Linq;
 using Dragoneye.Game;
 using NUnit.Framework;
-using UnityEngine;
 using Hex = Dragoneye.Hex.Hex;
 using HexLayout = Dragoneye.Hex.HexLayout;
 using HexMap = Dragoneye.Hex.HexMap;
 using HexTile = Dragoneye.Hex.HexTile;
 using TerrainType = Dragoneye.Hex.TerrainType;
+using UnityEngine;
 
 namespace Dragoneye.Hex.Tests
 {

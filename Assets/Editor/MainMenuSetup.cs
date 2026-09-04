@@ -23,10 +23,15 @@ namespace Dragoneye.MultiplayerEditor
         [MenuItem("ClaudeCode/Rewire Main Menu")]
         static void SetUp()
         {
-            if (!EditorSceneManager.SaveCurrentModifiedScenesIfUserWantsTo())
+            if (EditorSceneManager.SaveCurrentModifiedScenesIfUserWantsTo())
             {
-                return;
+                Run();
             }
+        }
+
+        /// <summary>Runs the whole step. Called directly by the master setup.</summary>
+        internal static void Run()
+        {
 
             var scene = EditorSceneManager.OpenScene(k_MenuScene, OpenSceneMode.Single);
 

@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using Dragoneye.Combat;
 using Dragoneye.Game;
 using NUnit.Framework;
 

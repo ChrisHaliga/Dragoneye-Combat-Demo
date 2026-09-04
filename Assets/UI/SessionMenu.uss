@@ -342,3 +342,303 @@
     border-left-width: 2px;
     border-left-color: rgb(240, 195, 120);
 }
+
+/* ---------- start screen ---------- */
+
+.start {
+    align-items: center;
+    justify-content: center;
+}
+
+.start__title {
+    font-size: 64px;
+    -unity-font-style: bold;
+    letter-spacing: 12px;
+    color: rgb(240, 243, 250);
+}
+
+.start__prompt {
+    margin-top: 18px;
+    font-size: 14px;
+    letter-spacing: 4px;
+    color: rgb(148, 158, 180);
+}
+
+/* ---------- character list ---------- */
+
+.character-list {
+    height: 260px;
+    margin: 8px 0 4px 0;
+    border-radius: 10px;
+    background-color: rgb(16, 18, 25);
+    border-width: 1px;
+    border-color: rgb(48, 53, 68);
+}
+
+.character-row {
+    flex-direction: row;
+    align-items: center;
+    padding: 10px 12px;
+    border-bottom-width: 1px;
+    border-bottom-color: rgb(32, 36, 48);
+}
+
+.character-row--selected {
+    background-color: rgba(198, 88, 38, 0.18);
+}
+
+.character-row__portrait {
+    width: 44px;
+    height: 44px;
+    margin-right: 12px;
+    border-radius: 6px;
+    background-color: rgb(24, 27, 36);
+    border-width: 1px;
+    border-color: rgb(56, 62, 80);
+    -unity-background-scale-mode: scale-and-crop;
+    justify-content: center;
+}
+
+.character-row__initial {
+    font-size: 18px;
+    -unity-font-style: bold;
+    color: rgb(200, 208, 224);
+    -unity-text-align: middle-center;
+}
+
+.character-row__body {
+    flex-grow: 1;
+}
+
+.character-row__name {
+    font-size: 15px;
+    -unity-font-style: bold;
+    color: rgb(240, 243, 250);
+}
+
+.character-row__detail {
+    font-size: 12px;
+    color: rgb(148, 158, 180);
+}
+
+.character-row__invalid {
+    font-size: 11px;
+    color: rgb(226, 122, 63);
+}
+
+/* ---------- creator ---------- */
+
+.panel--create {
+    width: 760px;
+}
+
+.create-columns {
+    flex-direction: row;
+}
+
+.create-form {
+    flex-grow: 1;
+    height: 380px;
+    padding-right: 12px;
+}
+
+.create-summary {
+    width: 236px;
+    padding: 14px;
+    border-radius: 10px;
+    background-color: rgb(16, 18, 25);
+    border-width: 1px;
+    border-color: rgb(48, 53, 68);
+}
+
+.create-portrait {
+    height: 132px;
+    margin-bottom: 10px;
+    border-radius: 8px;
+    background-color: rgb(24, 27, 36);
+    border-width: 1px;
+    border-color: rgb(56, 62, 80);
+    justify-content: center;
+    -unity-background-scale-mode: scale-and-crop;
+}
+
+.create-portrait__initial {
+    font-size: 40px;
+    -unity-font-style: bold;
+    color: rgb(90, 98, 118);
+    -unity-text-align: middle-center;
+}
+
+.create-summary__name {
+    font-size: 17px;
+    -unity-font-style: bold;
+    color: rgb(240, 243, 250);
+}
+
+.create-summary__class {
+    font-size: 12px;
+    color: rgb(148, 158, 180);
+    margin-bottom: 10px;
+    white-space: normal;
+}
+
+.create-stats {
+    margin-bottom: 6px;
+}
+
+.resolved-row {
+    flex-direction: row;
+    justify-content: space-between;
+    padding: 3px 0;
+}
+
+.resolved-row__label {
+    font-size: 12px;
+    color: rgb(148, 158, 180);
+}
+
+.resolved-row__value {
+    font-size: 12px;
+    -unity-font-style: bold;
+    color: rgb(226, 232, 245);
+}
+
+/* The pool wraps: a level-eight character is eight chips and the column is narrow. */
+.create-pool {
+    flex-direction: row;
+    flex-wrap: wrap;
+}
+
+.pool-chip {
+    padding: 3px 8px;
+    margin: 0 4px 4px 0;
+    border-radius: 10px;
+    font-size: 11px;
+    -unity-font-style: bold;
+    background-color: rgb(24, 27, 36);
+    border-width: 1px;
+}
+
+.pool-chip--empty {
+    color: rgb(90, 98, 118);
+    border-color: rgb(48, 53, 68);
+}
+
+/* ---------- creator form rows ---------- */
+
+.alloc-row {
+    flex-direction: row;
+    align-items: center;
+    margin-bottom: 6px;
+}
+
+.alloc-row__label {
+    width: 96px;
+    font-size: 13px;
+    color: rgb(200, 208, 224);
+}
+
+.alloc-row__effect {
+    flex-grow: 1;
+    font-size: 11px;
+    color: rgb(110, 120, 142);
+}
+
+.alloc-row__value {
+    width: 34px;
+    font-size: 14px;
+    -unity-font-style: bold;
+    color: rgb(240, 243, 250);
+    -unity-text-align: middle-center;
+}
+
+.step-button {
+    width: 28px;
+    height: 28px;
+    padding: 0;
+    font-size: 16px;
+    -unity-font-style: bold;
+    color: rgb(226, 232, 245);
+    background-color: rgb(43, 49, 65);
+    border-radius: 6px;
+    border-width: 0;
+}
+
+.step-button:hover {
+    background-color: rgb(56, 63, 82);
+}
+
+.step-button:disabled {
+    opacity: 0.3;
+}
+
+.budget-line {
+    font-size: 12px;
+    color: rgb(148, 158, 180);
+    margin-bottom: 10px;
+}
+
+.budget-line--over {
+    color: rgb(226, 122, 63);
+    -unity-font-style: bold;
+}
+
+.element-buttons {
+    flex-direction: row;
+    flex-wrap: wrap;
+    margin-bottom: 6px;
+}
+
+.element-button {
+    height: 32px;
+    padding: 0 12px;
+    margin: 0 6px 6px 0;
+    font-size: 12px;
+    -unity-font-style: bold;
+    color: rgb(226, 232, 245);
+    background-color: rgb(43, 49, 65);
+    border-radius: 8px;
+    border-width: 1px;
+    border-color: rgb(56, 62, 80);
+}
+
+.element-button:hover {
+    background-color: rgb(56, 63, 82);
+}
+
+.create-faults {
+    min-height: 18px;
+    margin-top: 6px;
+    font-size: 12px;
+    color: rgb(226, 122, 63);
+    white-space: normal;
+}
+
+.portrait-row {
+    flex-direction: row;
+    align-items: center;
+    margin-bottom: 8px;
+}
+
+.portrait-row > .text-input {
+    flex-grow: 1;
+    margin-right: 8px;
+}
+
+/* Who you are playing as, on the main menu. Small, because it is a reminder rather than a control. */
+.playing-as {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 10px;
+    margin-bottom: 16px;
+    border-radius: 8px;
+    background-color: rgb(16, 18, 25);
+    border-width: 1px;
+    border-color: rgb(48, 53, 68);
+}
+
+.playing-as__name {
+    font-size: 13px;
+    color: rgb(200, 208, 224);
+}

@@ -1,3 +1,4 @@
+using Dragoneye.Combat;
 using Dragoneye.Game;
 using NUnit.Framework;
 
