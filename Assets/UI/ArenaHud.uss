@@ -343,3 +343,50 @@
     font-size: 14px;
     color: rgb(148, 158, 180);
 }
+
+/* Every second pip closes a whole point, so a half-unit budget stays countable. */
+.pip--whole {
+    margin-right: 6px;
+}
+
+/* ---------- element counters ---------- */
+
+.card__elements-title {
+    font-size: 11px;
+    letter-spacing: 2px;
+    color: rgb(110, 120, 142);
+    margin-top: 10px;
+    margin-bottom: 4px;
+}
+
+.card__elements {
+    flex-direction: row;
+    flex-wrap: wrap;
+}
+
+.element-count {
+    flex-direction: row;
+    align-items: center;
+    padding: 2px 7px;
+    margin: 0 4px 4px 0;
+    border-radius: 10px;
+    background-color: rgba(0, 0, 0, 0.25);
+    border-width: 1px;
+}
+
+.element-count__name {
+    font-size: 10px;
+    -unity-font-style: bold;
+    margin-right: 5px;
+}
+
+.element-count__value {
+    font-size: 12px;
+    -unity-font-style: bold;
+    color: rgb(240, 243, 250);
+}
+
+/* Nothing held or nothing spent, still drawn so the row does not change width as a fight goes on. */
+.element-count--none {
+    opacity: 0.35;
+}

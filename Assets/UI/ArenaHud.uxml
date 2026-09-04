@@ -46,6 +46,9 @@
                 </ui:VisualElement>
             </ui:VisualElement>
 
+            <ui:Label name="card-elements-title" text="" class="card__elements-title" />
+            <ui:VisualElement name="card-elements" class="card__elements" />
+
             <ui:Label name="card-description" text="" class="card__description" />
         </ui:VisualElement>
     </ui:VisualElement>

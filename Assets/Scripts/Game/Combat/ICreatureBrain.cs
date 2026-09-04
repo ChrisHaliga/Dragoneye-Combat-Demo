@@ -18,10 +18,10 @@ namespace Dragoneye.Game
         public readonly uint Id;
         public readonly Hex Cell;
         public readonly Party Party;
-        public readonly int CurrentAp;
+        public readonly Ap CurrentAp;
         public readonly int CurrentHp;
 
-        public BrainView(uint id, Hex cell, Party party, int currentAp, int currentHp)
+        public BrainView(uint id, Hex cell, Party party, Ap currentAp, int currentHp)
         {
             Id = id;
             Cell = cell;

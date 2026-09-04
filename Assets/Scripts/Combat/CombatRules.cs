@@ -7,14 +7,18 @@ namespace Dragoneye.Combat
     /// identically until the stats are designed. They live here rather than scattered through the
     /// callers so that authoring them later is a change to one file plus the definition asset, and
     /// so a test can state the rule without hard-coding a literal that has drifted.
+    ///
+    /// Costs are <see cref="Ap"/>, which is half-units. Moving a tile costs half a point and a skill
+    /// costs whole points, so a turn is a real trade between covering ground and acting -- which is
+    /// the whole reason DE-000 asks for the half-unit.
     /// </summary>
     public static class CombatRules
     {
-        /// <summary>AP a single attack costs, whatever the attacker.</summary>
-        public const int AttackApCost = 2;
+        /// <summary>What a single attack costs, whatever the attacker.</summary>
+        public static readonly Ap AttackCost = Ap.FromWhole(2);
 
-        /// <summary>AP one step of movement costs. Distance is measured in steps, not hexes.</summary>
-        public const int MoveApPerTile = 1;
+        /// <summary>What one tile of movement costs. Half a point, per DE-000.</summary>
+        public static readonly Ap MoveCostPerTile = Ap.Step;
 
         /// <summary>Reach in hexes. One is melee: the attacker must be adjacent.</summary>
         public const int AttackRange = 1;
@@ -26,7 +30,11 @@ namespace Dragoneye.Combat
         public static bool InRange(int distance) => distance > 0 && distance <= AttackRange;
 
         /// <summary>What a move of this many steps costs.</summary>
-        public static int MoveCost(int steps) => steps <= 0 ? 0 : steps * MoveApPerTile;
+        public static Ap MoveCost(int steps) => steps <= 0 ? Ap.Zero : MoveCostPerTile * steps;
+
+        /// <summary>How many tiles a given amount of AP will carry a creature.</summary>
+        public static int StepsAffordable(Ap available) =>
+            MoveCostPerTile.IsZero ? 0 : available.Units / MoveCostPerTile.Units;
 
         /// <summary>
         /// Health after taking a hit, floored at zero.
@@ -45,14 +53,14 @@ namespace Dragoneye.Combat
         /// Drives the End Turn button's prompt. It is only a prompt: the turn always ends on the
         /// player's click, never on this returning false.
         /// </summary>
-        public static bool CanAffordAnything(int currentAp, bool anyMoveInRange, bool anyTargetInRange)
+        public static bool CanAffordAnything(Ap currentAp, bool anyMoveInRange, bool anyTargetInRange)
         {
-            if (anyTargetInRange && currentAp >= AttackApCost)
+            if (anyTargetInRange && currentAp >= AttackCost)
             {
                 return true;
             }
 
-            return anyMoveInRange && currentAp >= MoveApPerTile;
+            return anyMoveInRange && currentAp >= MoveCostPerTile;
         }
     }
 }

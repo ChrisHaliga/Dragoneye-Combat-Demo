@@ -3,6 +3,7 @@
     "rootNamespace": "Dragoneye.Game",
     "references": [
         "Dragoneye.Combat",
+        "Dragoneye.Data",
         "Dragoneye.Settings",
         "Dragoneye.Hex",
         "Dragoneye.Hex.Systems",

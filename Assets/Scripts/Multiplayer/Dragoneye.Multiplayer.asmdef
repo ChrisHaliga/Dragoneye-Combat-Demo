@@ -11,7 +11,8 @@
         "Unity.Services.Multiplayer",
         "Unity.Services.Authentication",
         "Unity.Services.Core",
-        "Unity.Collections"
+        "Unity.Collections",
+        "Unity.InputSystem"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

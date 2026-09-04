@@ -31,10 +31,13 @@ namespace Dragoneye.Combat
     public readonly struct ActionPlan
     {
         public readonly BoardAction Action;
-        public readonly int Cost;
+
+        /// <summary>In half-units, so a move of three tiles costs 3 and reads as "1.5 AP".</summary>
+        public readonly Ap Cost;
+
         public readonly ActionRefusal Refusal;
 
-        public ActionPlan(BoardAction action, int cost, ActionRefusal refusal)
+        public ActionPlan(BoardAction action, Ap cost, ActionRefusal refusal)
         {
             Action = action;
             Cost = cost;
@@ -48,7 +51,7 @@ namespace Dragoneye.Combat
         public bool IsUnaffordable => Refusal == ActionRefusal.TooExpensive;
 
         public static readonly ActionPlan Nothing =
-            new ActionPlan(BoardAction.None, 0, ActionRefusal.NoTarget);
+            new ActionPlan(BoardAction.None, Ap.Zero, ActionRefusal.NoTarget);
     }
 
     /// <summary>
@@ -74,21 +77,21 @@ namespace Dragoneye.Combat
         /// Whether that creature is on another side. Ignored when the hex is empty.
         /// </param>
         /// <param name="distanceToTarget">Hex distance from actor to the hovered hex.</param>
-        /// <param name="moveCost">
-        /// Steps along the cheapest route to the hovered hex, or -1 if there is no route. Ignored
-        /// when the hex is occupied.
+        /// <param name="moveSteps">
+        /// Tiles along the cheapest route to the hovered hex, or -1 if there is no route. Ignored
+        /// when the hex is occupied. A count of tiles, not a price -- pricing is this method.
         /// </param>
-        public static ActionPlan Resolve(bool isActorsTurn, bool controlsActor, int currentAp,
-            bool targetOccupied, bool targetIsEnemy, int distanceToTarget, int moveCost)
+        public static ActionPlan Resolve(bool isActorsTurn, bool controlsActor, Ap currentAp,
+            bool targetOccupied, bool targetIsEnemy, int distanceToTarget, int moveSteps)
         {
             if (!controlsActor)
             {
-                return new ActionPlan(BoardAction.None, 0, ActionRefusal.NotYours);
+                return new ActionPlan(BoardAction.None, Ap.Zero, ActionRefusal.NotYours);
             }
 
             if (!isActorsTurn)
             {
-                return new ActionPlan(BoardAction.None, 0, ActionRefusal.NotYourTurn);
+                return new ActionPlan(BoardAction.None, Ap.Zero, ActionRefusal.NotYourTurn);
             }
 
             if (targetOccupied)
@@ -96,45 +99,45 @@ namespace Dragoneye.Combat
                 return ResolveAttack(currentAp, targetIsEnemy, distanceToTarget);
             }
 
-            return ResolveMove(currentAp, moveCost);
+            return ResolveMove(currentAp, moveSteps);
         }
 
-        static ActionPlan ResolveAttack(int currentAp, bool targetIsEnemy, int distance)
+        static ActionPlan ResolveAttack(Ap currentAp, bool targetIsEnemy, int distance)
         {
             if (!targetIsEnemy)
             {
                 // Selecting an ally to read its card is handled elsewhere; there is simply no
                 // action to price here.
-                return new ActionPlan(BoardAction.None, 0, ActionRefusal.Friendly);
+                return new ActionPlan(BoardAction.None, Ap.Zero, ActionRefusal.Friendly);
             }
 
             if (!CombatRules.InRange(distance))
             {
                 // Priced anyway. "Attack -- 2 AP, out of range" tells the player what to fix; a bare
                 // "no action" does not.
-                return new ActionPlan(BoardAction.Attack, CombatRules.AttackApCost,
+                return new ActionPlan(BoardAction.Attack, CombatRules.AttackCost,
                     ActionRefusal.OutOfRange);
             }
 
-            return currentAp < CombatRules.AttackApCost
-                ? new ActionPlan(BoardAction.Attack, CombatRules.AttackApCost, ActionRefusal.TooExpensive)
-                : new ActionPlan(BoardAction.Attack, CombatRules.AttackApCost, ActionRefusal.None);
+            return currentAp < CombatRules.AttackCost
+                ? new ActionPlan(BoardAction.Attack, CombatRules.AttackCost, ActionRefusal.TooExpensive)
+                : new ActionPlan(BoardAction.Attack, CombatRules.AttackCost, ActionRefusal.None);
         }
 
-        static ActionPlan ResolveMove(int currentAp, int moveCost)
+        static ActionPlan ResolveMove(Ap currentAp, int moveSteps)
         {
-            if (moveCost < 0)
+            if (moveSteps < 0)
             {
-                return new ActionPlan(BoardAction.None, 0, ActionRefusal.Unreachable);
+                return new ActionPlan(BoardAction.None, Ap.Zero, ActionRefusal.Unreachable);
             }
 
-            if (moveCost == 0)
+            if (moveSteps == 0)
             {
                 // The hex the actor is already standing on.
                 return ActionPlan.Nothing;
             }
 
-            var cost = CombatRules.MoveCost(moveCost);
+            var cost = CombatRules.MoveCost(moveSteps);
 
             return currentAp < cost
                 ? new ActionPlan(BoardAction.Move, cost, ActionRefusal.TooExpensive)

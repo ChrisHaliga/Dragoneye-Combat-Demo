@@ -1,3 +1,5 @@
+using System.Collections.Generic;
+using Dragoneye.Combat;
 using UnityEngine;
 
 namespace Dragoneye.Game
@@ -40,6 +42,10 @@ namespace Dragoneye.Game
         [SerializeField, Min(0)]
         int m_Speed = 5;
 
+        [SerializeField, Tooltip("Elements this creature starts holding. One entry per resource; "
+             + "repeat an element to hold several. Pools deplete and are never restored.")]
+        List<Element> m_StartingPool = new List<Element>();
+
         public string Id => m_Id;
 
         public string DisplayName => m_DisplayName;
@@ -55,6 +61,14 @@ namespace Dragoneye.Game
         public int MaxAp => m_MaxAp;
 
         public int Speed => m_Speed;
+
+        /// <summary>
+        /// The pool a premade creature starts with.
+        ///
+        /// Authored, because a premade has no player behind it to pick one. A built character gets
+        /// its pool from the choices made in the creator instead -- same shape, different source.
+        /// </summary>
+        public IReadOnlyList<Element> StartingPool => m_StartingPool;
 
         public string SpeciesName => m_Species != null ? m_Species.DisplayName : "Unknown";
 

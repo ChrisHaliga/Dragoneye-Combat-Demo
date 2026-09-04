@@ -17,6 +17,7 @@ namespace Dragoneye.MultiplayerEditor
         const string k_ArenaScene = "Assets/Scenes/Arena.unity";
         const string k_BootScene = "Assets/Scenes/Bootstrap.unity";
         const string k_MatchPrefab = "Assets/NGO_Minimal_Setup/DraftState.prefab";
+        const string k_UnitPrefab = "Assets/NGO_Minimal_Setup/Unit.prefab";
 
         [MenuItem("ClaudeCode/Set Up Turn System")]
         static void SetUp()
@@ -31,7 +32,7 @@ namespace Dragoneye.MultiplayerEditor
         internal static void Run()
         {
 
-            if (!SetUpMatchPrefab())
+            if (!SetUpMatchPrefab() || !SetUpUnitPrefab())
             {
                 return;
             }
@@ -81,6 +82,33 @@ namespace Dragoneye.MultiplayerEditor
             Debug.Log(added
                 ? "Turn state added to the match prefab."
                 : "Match prefab already carries the turn state.");
+
+            return true;
+        }
+
+        /// <summary>
+        /// Gives every unit the element pool DE-001 asks for.
+        ///
+        /// On the prefab rather than added at spawn, because it is a NetworkBehaviour: netcode
+        /// matches behaviours between host and client by their order on the prefab, so one added at
+        /// runtime would not exist on the other side.
+        /// </summary>
+        static bool SetUpUnitPrefab()
+        {
+            var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(k_UnitPrefab);
+
+            if (prefab == null)
+            {
+                Debug.LogError($"No prefab at {k_UnitPrefab}; cannot install the element pool.");
+                return false;
+            }
+
+            if (prefab.GetComponent<CreaturePool>() == null)
+            {
+                prefab.AddComponent<CreaturePool>();
+                PrefabUtility.SavePrefabAsset(prefab);
+                Debug.Log("Element pool added to the unit prefab.");
+            }
 
             return true;
         }

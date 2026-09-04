@@ -37,7 +37,7 @@ namespace Dragoneye.Game
             var enemy = target.Value;
             var distance = Hex.Distance(actor.Cell, enemy.Cell);
 
-            if (CombatRules.InRange(distance) && actor.CurrentAp >= CombatRules.AttackApCost)
+            if (CombatRules.InRange(distance) && actor.CurrentAp >= CombatRules.AttackCost)
             {
                 return BrainDecision.Attack(enemy.Id);
             }
@@ -86,7 +86,7 @@ namespace Dragoneye.Game
         /// </summary>
         static BrainDecision Approach(BrainView actor, BrainView enemy, IBoardQuery board)
         {
-            if (actor.CurrentAp < CombatRules.MoveApPerTile)
+            if (actor.CurrentAp < CombatRules.MoveCostPerTile)
             {
                 return BrainDecision.Pass;
             }
@@ -119,7 +119,7 @@ namespace Dragoneye.Game
             // Affordable prefix of the route. Moving part of the way is the right answer for a
             // creature that cannot close the whole gap this turn -- stopping still would let a
             // ranged opponent kite it forever once ranged attacks exist.
-            var steps = actor.CurrentAp / CombatRules.MoveApPerTile;
+            var steps = CombatRules.StepsAffordable(actor.CurrentAp);
             if (steps <= 0)
             {
                 return BrainDecision.Pass;

@@ -34,11 +34,11 @@ namespace Dragoneye.Hex.Tests
             public bool IsOccupied(Hex hex) => m_Occupied.Contains(hex);
         }
 
-        static BrainView Actor(Hex cell, int ap = 6, Party party = Party.Monsters) =>
-            new BrainView(1, cell, party, ap, 20);
+        static BrainView Actor(Hex cell, int wholeAp = 6, Party party = Party.Monsters) =>
+            new BrainView(1, cell, party, Ap.FromWhole(wholeAp), 20);
 
         static BrainView Enemy(uint id, Hex cell, int hp = 20) =>
-            new BrainView(id, cell, Party.Heroes, 6, hp);
+            new BrainView(id, cell, Party.Heroes, Ap.FromWhole(6), hp);
 
         [Test]
         public void AttacksAnAdjacentEnemy()
@@ -77,19 +77,21 @@ namespace Dragoneye.Hex.Tests
         public void DoesNotOutrunItsAp()
         {
             var decision = new BasicBrain().Decide(
-                Actor(Hex.Zero, ap: 2), new[] { Enemy(2, new Hex(6, 0)) },
+                Actor(Hex.Zero, wholeAp: 2), new[] { Enemy(2, new Hex(6, 0)) },
                 new OpenBoard(new Hex(6, 0)));
 
             Assert.AreEqual(BoardAction.Move, decision.Action);
-            Assert.LessOrEqual(Hex.Distance(Hex.Zero, decision.Destination), 2,
-                "Two AP buys two steps");
+            // Half a point per tile, so two whole points buys four tiles -- asserted through the
+            // rule rather than a literal, so changing the cost does not silently pass a stale test.
+            Assert.LessOrEqual(Hex.Distance(Hex.Zero, decision.Destination),
+                CombatRules.StepsAffordable(Ap.FromWhole(2)));
         }
 
         [Test]
         public void PassesWithNoApLeft()
         {
             var decision = new BasicBrain().Decide(
-                Actor(Hex.Zero, ap: 0), new[] { Enemy(2, new Hex(4, 0)) },
+                Actor(Hex.Zero, wholeAp: 0), new[] { Enemy(2, new Hex(4, 0)) },
                 new OpenBoard(new Hex(4, 0)));
 
             Assert.AreEqual(BoardAction.None, decision.Action);
@@ -100,7 +102,7 @@ namespace Dragoneye.Hex.Tests
         {
             // One AP: cannot attack, but should still reposition rather than stand and pass.
             var decision = new BasicBrain().Decide(
-                Actor(Hex.Zero, ap: 1), new[] { Enemy(2, new Hex(1, 0)) },
+                Actor(Hex.Zero, wholeAp: 1), new[] { Enemy(2, new Hex(1, 0)) },
                 new OpenBoard(new Hex(1, 0)));
 
             Assert.AreNotEqual(BoardAction.Attack, decision.Action);
@@ -109,7 +111,7 @@ namespace Dragoneye.Hex.Tests
         [Test]
         public void IgnoresItsOwnParty()
         {
-            var ally = new BrainView(2, new Hex(1, 0), Party.Monsters, 6, 20);
+            var ally = new BrainView(2, new Hex(1, 0), Party.Monsters, Ap.FromWhole(6), 20);
 
             var decision = new BasicBrain().Decide(
                 Actor(Hex.Zero), new[] { ally }, new OpenBoard(new Hex(1, 0)));

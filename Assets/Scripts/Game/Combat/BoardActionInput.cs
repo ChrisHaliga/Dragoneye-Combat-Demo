@@ -126,7 +126,7 @@ namespace Dragoneye.Game
                 targetOccupied: occupied,
                 targetIsEnemy: target != null && target.Party != actor.Party,
                 distanceToTarget: Hex.Distance(actor.Cell, hex),
-                moveCost: occupied ? -1 : m_Board.CostTo(actor.Cell, hex));
+                moveSteps: occupied ? -1 : m_Board.CostTo(actor.Cell, hex));
         }
 
         void OnClicked(Hex hex)

@@ -23,7 +23,9 @@ namespace Dragoneye.Game
             new NetworkVariable<byte>(PartyInfo.Unclaimed);
 
         readonly NetworkVariable<int> m_CurrentHp = new NetworkVariable<int>();
-        readonly NetworkVariable<int> m_CurrentAp = new NetworkVariable<int>();
+        // Half-units, per DE-000. Replicated as the integer it is stored as, so no rounding happens
+        // on the wire and a client cannot disagree with the host about whether a move is affordable.
+        readonly NetworkVariable<int> m_CurrentApUnits = new NetworkVariable<int>();
 
         // Identity handed over before the spawn, held until there are NetworkVariables to put it in.
         ushort m_StartCreatureId;
@@ -45,7 +47,7 @@ namespace Dragoneye.Game
 
         public int CurrentHp => m_CurrentHp.Value;
 
-        public int CurrentAp => m_CurrentAp.Value;
+        public Ap CurrentAp => Ap.FromUnits(m_CurrentApUnits.Value);
 
         /// <summary>
         /// The one catalog in play.
@@ -78,7 +80,8 @@ namespace Dragoneye.Game
 
         public int MaxHp => Definition != null ? Definition.MaxHp : 1;
 
-        public int MaxAp => Definition != null ? Definition.MaxAp : 0;
+        /// <summary>Authored in whole points; carried everywhere else in half-units.</summary>
+        public Ap MaxAp => Ap.FromWhole(Definition != null ? Definition.MaxAp : 0);
 
         public int Speed => Definition != null ? Definition.Speed : 0;
 
@@ -97,14 +100,14 @@ namespace Dragoneye.Game
                 m_PartyId.Value = (byte)m_StartParty;
                 m_ControllerSlot.Value = m_StartControllerSlot;
                 m_CurrentHp.Value = definition != null ? definition.MaxHp : 1;
-                m_CurrentAp.Value = definition != null ? definition.MaxAp : 0;
+                m_CurrentApUnits.Value = Ap.FromWhole(definition != null ? definition.MaxAp : 0).Units;
             }
 
             m_CreatureId.OnValueChanged += OnIdChanged;
             m_PartyId.OnValueChanged += OnByteChanged;
             m_ControllerSlot.OnValueChanged += OnByteChanged;
             m_CurrentHp.OnValueChanged += OnIntChanged;
-            m_CurrentAp.OnValueChanged += OnIntChanged;
+            m_CurrentApUnits.OnValueChanged += OnIntChanged;
 
             var context = ArenaContext.Current;
             m_Registry = context != null ? context.Creatures : null;
@@ -127,7 +130,7 @@ namespace Dragoneye.Game
             m_PartyId.OnValueChanged -= OnByteChanged;
             m_ControllerSlot.OnValueChanged -= OnByteChanged;
             m_CurrentHp.OnValueChanged -= OnIntChanged;
-            m_CurrentAp.OnValueChanged -= OnIntChanged;
+            m_CurrentApUnits.OnValueChanged -= OnIntChanged;
 
             if (m_Registry != null)
             {
@@ -190,14 +193,14 @@ namespace Dragoneye.Game
         /// Server only. Deducts AP, refusing to go below zero.
         /// </summary>
         /// <returns>False if the creature could not afford it, in which case nothing was spent.</returns>
-        public bool ServerSpendAp(int amount)
+        public bool ServerSpendAp(Ap amount)
         {
-            if (!IsServer || amount < 0 || m_CurrentAp.Value < amount)
+            if (!IsServer || amount.Units < 0 || m_CurrentApUnits.Value < amount.Units)
             {
                 return false;
             }
 
-            m_CurrentAp.Value -= amount;
+            m_CurrentApUnits.Value -= amount.Units;
             return true;
         }
 
@@ -206,7 +209,7 @@ namespace Dragoneye.Game
         {
             if (IsServer)
             {
-                m_CurrentAp.Value = MaxAp;
+                m_CurrentApUnits.Value = MaxAp.Units;
             }
         }
 

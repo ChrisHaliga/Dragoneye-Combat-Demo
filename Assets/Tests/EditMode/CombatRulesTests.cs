@@ -36,8 +36,11 @@ namespace Dragoneye.Hex.Tests
         [Test]
         public void MoveCostScalesWithSteps()
         {
-            Assert.AreEqual(0, CombatRules.MoveCost(0));
-            Assert.AreEqual(3 * CombatRules.MoveApPerTile, CombatRules.MoveCost(3));
+            Assert.AreEqual(Ap.Zero, CombatRules.MoveCost(0));
+            Assert.AreEqual(CombatRules.MoveCostPerTile * 3, CombatRules.MoveCost(3));
+
+            // DE-000: half a point per tile, so two tiles is one whole point.
+            Assert.AreEqual(Ap.FromWhole(1), CombatRules.MoveCost(2));
         }
 
         [Test]
@@ -52,14 +55,26 @@ namespace Dragoneye.Hex.Tests
         [Test]
         public void SpentMeansNoActionIsAffordable()
         {
-            Assert.IsFalse(CombatRules.CanAffordAnything(0, anyMoveInRange: true, anyTargetInRange: true));
+            Assert.IsFalse(CombatRules.CanAffordAnything(Ap.Zero,
+                anyMoveInRange: true, anyTargetInRange: true));
         }
 
         [Test]
-        public void OneApStillBuysAStepButNotAnAttack()
+        public void HalfAPointStillBuysAStepButNotAnAttack()
         {
-            Assert.IsTrue(CombatRules.CanAffordAnything(1, anyMoveInRange: true, anyTargetInRange: true));
-            Assert.IsFalse(CombatRules.CanAffordAnything(1, anyMoveInRange: false, anyTargetInRange: true));
+            Assert.IsTrue(CombatRules.CanAffordAnything(Ap.Step,
+                anyMoveInRange: true, anyTargetInRange: true));
+            Assert.IsFalse(CombatRules.CanAffordAnything(Ap.Step,
+                anyMoveInRange: false, anyTargetInRange: true));
+        }
+
+        [Test]
+        public void StepsAffordableCountsTilesNotPoints()
+        {
+            // Three whole points is six tiles, because a tile is half a point.
+            Assert.AreEqual(6, CombatRules.StepsAffordable(Ap.FromWhole(3)));
+            Assert.AreEqual(1, CombatRules.StepsAffordable(Ap.Step));
+            Assert.AreEqual(0, CombatRules.StepsAffordable(Ap.Zero));
         }
 
         [Test]
@@ -67,7 +82,8 @@ namespace Dragoneye.Hex.Tests
         {
             // The case that makes this a board question rather than an arithmetic one: a creature
             // walled in by its own allies has AP it cannot spend.
-            Assert.IsFalse(CombatRules.CanAffordAnything(99, anyMoveInRange: false, anyTargetInRange: false));
+            Assert.IsFalse(CombatRules.CanAffordAnything(Ap.FromWhole(99),
+                anyMoveInRange: false, anyTargetInRange: false));
         }
     }
 }

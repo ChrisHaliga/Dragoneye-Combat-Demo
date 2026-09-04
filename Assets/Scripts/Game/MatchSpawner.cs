@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using Dragoneye.Combat;
 using Dragoneye.Hex.Systems;
 using Dragoneye.Multiplayer;
 using Unity.Netcode;
@@ -294,6 +295,21 @@ namespace Dragoneye.Game
                 instance.GetComponent<UnitState>().ServerPlaceAt(cell);
                 instance.GetComponent<CreatureState>()
                     .ServerConfigure(entry.CreatureId, entry.Party, entry.ClaimedBySlot);
+
+                // The starting pool is authored on the premade definition. A built character will
+                // bring its own from the creator; both arrive here before the spawn so the owning
+                // client never sees an empty pool.
+                var pool = instance.GetComponent<CreaturePool>();
+
+                if (pool != null)
+                {
+                    var definition = CreatureState.Catalog != null
+                        ? CreatureState.Catalog.Resolve(entry.CreatureId)
+                        : null;
+
+                    pool.ServerConfigure(ElementCounts.From(
+                        definition != null ? definition.StartingPool : null));
+                }
 
                 if (owner.HasValue)
                 {

@@ -132,7 +132,7 @@ namespace Dragoneye.Game
             var cost = m_Board.CostTo(actor.Cell, destination);
 
             var plan = ActionResolver.Resolve(true, true, actor.CurrentAp,
-                targetOccupied: false, targetIsEnemy: false, distanceToTarget: 0, moveCost: cost);
+                targetOccupied: false, targetIsEnemy: false, distanceToTarget: 0, moveSteps: cost);
 
             if (!plan.IsAllowed || plan.Action != BoardAction.Move)
             {
@@ -161,7 +161,7 @@ namespace Dragoneye.Game
 
             var plan = ActionResolver.Resolve(true, true, actor.CurrentAp,
                 targetOccupied: true, targetIsEnemy: target.Party != actor.Party,
-                distanceToTarget: Hex.Distance(actor.Cell, target.Cell), moveCost: -1);
+                distanceToTarget: Hex.Distance(actor.Cell, target.Cell), moveSteps: -1);
 
             if (!plan.IsAllowed || plan.Action != BoardAction.Attack)
             {
