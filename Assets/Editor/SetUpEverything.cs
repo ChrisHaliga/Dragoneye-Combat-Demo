@@ -37,6 +37,7 @@ namespace Dragoneye.MultiplayerEditor
             //   4. content is authored and handed to it
             Step("UI art", UiArtSetup.Run);
             Step("Arena rewire", AuditRewireSetup.Run);
+            Step("Arena visuals", ArenaVisualsSetup.Run);
             Step("Turn system", TurnSystemSetup.Run);
             Step("Main menu", MainMenuSetup.Run);
             Step("Character content", CharacterContentSetup.Run);

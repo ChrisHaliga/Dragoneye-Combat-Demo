@@ -182,16 +182,7 @@ namespace Dragoneye.Game
             var image = new VisualElement();
             image.AddToClassList("portrait__image");
 
-            var definition = creature.Definition;
-            if (definition != null && definition.Portrait != null)
-            {
-                image.style.backgroundImage = new StyleBackground(definition.Portrait);
-                return image;
-            }
-
-            var initial = new Label(CreatureDisplay.Initial(creature.DisplayName));
-            initial.AddToClassList("portrait__initial");
-            image.Add(initial);
+            CreatureDisplay.DrawPortrait(image, creature);
             return image;
         }
 

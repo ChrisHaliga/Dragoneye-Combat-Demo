@@ -6,6 +6,7 @@
             <ui:Label name="round-label" text="Round 1" class="turn-bar__round" />
             <ui:VisualElement name="turn-order" class="turn-bar__order" />
             <ui:Label name="active-name" text="" class="turn-bar__active-name" />
+            <ui:Label name="active-owner" text="" class="turn-bar__active-owner" />
         </ui:VisualElement>
 
         <ui:VisualElement name="turn-footer" class="turn-footer">
@@ -28,9 +29,14 @@
         </ui:VisualElement>
 
         <ui:VisualElement name="summary-card" class="card">
-            <ui:Label name="card-name" text="Name" class="card__name" />
-            <ui:Label name="card-subtitle" text="Species - Class - Party" class="card__subtitle" />
-            <ui:Label name="card-controller" text="Controlled by" class="card__controller" />
+            <ui:VisualElement class="card__head">
+                <ui:VisualElement name="card-portrait" class="card__portrait" />
+                <ui:VisualElement class="card__titles">
+                    <ui:Label name="card-name" text="Name" class="card__name" />
+                    <ui:Label name="card-subtitle" text="Species - Class - Party" class="card__subtitle" />
+                    <ui:Label name="card-controller" text="Controlled by" class="card__controller" />
+                </ui:VisualElement>
+            </ui:VisualElement>
 
             <ui:VisualElement class="card__stats">
                 <ui:VisualElement class="stat-row">

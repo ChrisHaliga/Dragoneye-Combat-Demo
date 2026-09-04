@@ -29,6 +29,7 @@ namespace Dragoneye.Game
         VisualElement m_Order;
         Label m_Round;
         Label m_ActiveName;
+        Label m_ActiveOwner;
 
         readonly List<CreatureState> m_Observed = new List<CreatureState>();
 
@@ -49,8 +50,9 @@ namespace Dragoneye.Game
             m_Order = root.Q<VisualElement>("turn-order");
             m_Round = root.Q<Label>("round-label");
             m_ActiveName = root.Q<Label>("active-name");
+            m_ActiveOwner = root.Q<Label>("active-owner");
 
-            if (m_Order == null || m_Round == null || m_ActiveName == null)
+            if (m_Order == null || m_Round == null || m_ActiveName == null || m_ActiveOwner == null)
             {
                 Debug.LogError($"{nameof(TurnBarView)} could not find its elements; check ArenaHud.uxml.",
                     this);
@@ -127,6 +129,7 @@ namespace Dragoneye.Game
 
             m_Round.EnableInClassList("is-hidden", !showing);
             m_ActiveName.text = string.Empty;
+            m_ActiveOwner.text = string.Empty;
 
             if (!showing)
             {
@@ -151,7 +154,13 @@ namespace Dragoneye.Game
 
                 if (active)
                 {
+                    // The creature, and then whose turn it is. Who is acting is the question a
+                    // player asks first in a game where four sides take turns, and the name used
+                    // to float over a disc in the world where it answered nothing.
                     m_ActiveName.text = creature.DisplayName;
+                    m_ActiveOwner.text = creature.IsComputerControlled
+                        ? "THE COMPUTER'S TURN"
+                        : $"{CreatureDisplay.ControllerName(creature)}'S TURN".ToUpperInvariant();
                 }
             }
         }
@@ -170,17 +179,7 @@ namespace Dragoneye.Game
                 root.style.borderLeftColor = root.style.borderRightColor =
                     active ? Color.white : tint;
 
-            var definition = creature.Definition;
-            if (definition != null && definition.Portrait != null)
-            {
-                root.style.backgroundImage = new StyleBackground(definition.Portrait);
-            }
-            else
-            {
-                var initial = new Label(CreatureDisplay.Initial(creature.DisplayName));
-                initial.AddToClassList("turn-portrait__initial");
-                root.Add(initial);
-            }
+            CreatureDisplay.DrawPortrait(root, creature, "turn-portrait__initial");
 
             root.Add(BuildHealth(creature));
 

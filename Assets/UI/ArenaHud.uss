@@ -136,6 +136,35 @@
     -unity-slice-bottom: 16;
 }
 
+.card__head {
+    flex-direction: row;
+    margin-bottom: 12px;
+}
+
+/* The face, cropped to a circle, the same shape the board token wears. */
+.card__portrait {
+    width: 56px;
+    height: 56px;
+    margin-right: 12px;
+    flex-shrink: 0;
+    border-radius: 28px;
+    overflow: hidden;
+    background-color: rgb(18, 21, 28);
+    background-image: url("Generated/ui-well.png");
+    -unity-slice-left: 11;
+    -unity-slice-right: 11;
+    -unity-slice-top: 11;
+    -unity-slice-bottom: 11;
+    -unity-background-scale-mode: scale-and-crop;
+    justify-content: center;
+}
+
+.card__titles {
+    flex-grow: 1;
+    flex-shrink: 1;
+    overflow: hidden;
+}
+
 .card__name {
     font-size: 20px;
     -unity-font-style: bold;
@@ -154,7 +183,6 @@
     letter-spacing: 1px;
     color: rgb(139, 147, 165);
     margin-top: 6px;
-    margin-bottom: 12px;
 }
 
 .card__stats {
@@ -249,6 +277,16 @@
 .turn-bar__order {
     flex-direction: row;
     align-items: flex-end;
+}
+
+/* Whose turn it is, under the order. The name used to float over a disc in the world, where it
+   labelled a cursor rather than answering the question a player actually asks. */
+.turn-bar__active-owner {
+    min-height: 14px;
+    font-size: 10px;
+    -unity-font-style: bold;
+    letter-spacing: 3px;
+    color: rgb(198, 158, 88);
 }
 
 /* Reserved whether or not there is a name, so portraits do not shift as turns pass. */

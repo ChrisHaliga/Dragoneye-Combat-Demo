@@ -25,6 +25,7 @@ namespace Dragoneye.Game
         VisualElement m_Card;
         VisualElement m_ApPips;
         Label m_Name;
+        VisualElement m_Portrait;
         Label m_Subtitle;
         Label m_Controller;
         Label m_Hp;
@@ -52,6 +53,7 @@ namespace Dragoneye.Game
             m_Card = root.Q<VisualElement>("summary-card");
             m_ApPips = root.Q<VisualElement>("card-ap-pips");
             m_Name = root.Q<Label>("card-name");
+            m_Portrait = root.Q<VisualElement>("card-portrait");
             m_Subtitle = root.Q<Label>("card-subtitle");
             m_Controller = root.Q<Label>("card-controller");
             m_Hp = root.Q<Label>("card-hp");
@@ -137,6 +139,13 @@ namespace Dragoneye.Game
             }
 
             var definition = creature.Definition;
+
+            if (m_Portrait != null)
+            {
+                m_Portrait.Clear();
+                m_Portrait.style.backgroundImage = new StyleBackground();
+                CreatureDisplay.DrawPortrait(m_Portrait, creature);
+            }
 
             m_Name.text = creature.DisplayName;
             m_Subtitle.text = definition != null

@@ -1,3 +1,4 @@
+using Dragoneye.Data;
 using UnityEngine;
 using UnityEngine.UIElements;
 
@@ -44,6 +45,60 @@ namespace Dragoneye.Game
 
         public static float HealthFraction(CreatureState creature) =>
             creature.MaxHp <= 0 ? 0f : Mathf.Clamp01((float)creature.CurrentHp / creature.MaxHp);
+
+        /// <summary>
+        /// Draws a creature's face into an element, or its initial when there is no face to draw.
+        ///
+        /// One implementation, because the turn bar, the party column and the inspect card all show
+        /// the same creature and a second copy would eventually disagree about what it looks like.
+        ///
+        /// A premade carries its own sprite. A character a player built carries a portrait that
+        /// lives in that player's save folder and is never sent over the wire, so only the machine
+        /// that owns it can draw it -- everybody else gets the lettered tile. Putting image bytes on
+        /// the network is a decision worth taking deliberately rather than as a side effect of
+        /// wanting a face in the turn bar.
+        /// </summary>
+        public static void DrawPortrait(VisualElement into, CreatureState creature,
+            string initialClass = "portrait__initial")
+        {
+            var definition = creature.Definition;
+
+            if (definition != null && definition.Portrait != null)
+            {
+                into.style.backgroundImage = new StyleBackground(definition.Portrait);
+                return;
+            }
+
+            var own = OwnPortrait(creature);
+
+            if (own != null)
+            {
+                into.style.backgroundImage = new StyleBackground(own);
+                return;
+            }
+
+            var initial = new Label(Initial(creature.DisplayName));
+            initial.AddToClassList(initialClass);
+            into.Add(initial);
+        }
+
+        /// <summary>
+        /// The portrait of the character this player is playing as, when this creature is it.
+        ///
+        /// Matched on the build slot rather than on control: a player who has also claimed a premade
+        /// controls two creatures, and only one of them is theirs in the sense that matters here.
+        /// </summary>
+        static Texture2D OwnPortrait(CreatureState creature)
+        {
+            if (creature.BuildSlot == PartyInfo.Unclaimed
+                || !LocalPlayer.Controls(creature)
+                || SelectedCharacter.Current == null)
+            {
+                return null;
+            }
+
+            return SelectedCharacter.Current.Portrait;
+        }
 
         /// <summary>Stand-in for a missing portrait: the creature's initial on a plain tile.</summary>
         public static string Initial(string name) =>
