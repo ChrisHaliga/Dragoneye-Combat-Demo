@@ -83,7 +83,7 @@
                     <ui:VisualElement name="create-portrait" class="portrait portrait--large">
                         <ui:Label name="create-portrait-initial" text="?" class="portrait__initial" />
                     </ui:VisualElement>
-                    <ui:VisualElement name="create-portrait-controls" class="portrait__controls" />
+                    <ui:VisualElement name="create-portrait-controls" class="group" />
                     <ui:VisualElement name="create-identity" class="group" />
                 </ui:VisualElement>
 
@@ -184,18 +184,8 @@
             </ui:VisualElement>
         </ui:VisualElement>
 
-        <!-- DIALOGS -->
-
-        <ui:VisualElement name="solo-panel" class="screen screen--centre is-hidden">
-            <ui:VisualElement class="dialog">
-                <ui:Label text="SINGLEPLAYER" class="dialog__title" />
-                <ui:VisualElement class="rule" />
-                <ui:Label text="Pick your side and claim your creatures, then start." class="dialog__note" />
-
-                <ui:Button name="solo-start-button" text="Start match" class="btn btn--primary btn--block" />
-                <ui:Button name="solo-back-button" text="Back" class="btn btn--ghost btn--block" />
-            </ui:VisualElement>
-        </ui:VisualElement>
+        <!-- DIALOGS. No lobby among them: once a session exists the prepare-for-battle
+             board covers this document, so the join code, readiness and Start live there. -->
 
         <ui:VisualElement name="multiplayer-panel" class="screen screen--centre is-hidden">
             <ui:VisualElement class="dialog">
@@ -243,32 +233,6 @@
 
                 <ui:Button name="join-button" text="Join game" class="btn btn--primary btn--block" />
                 <ui:Button name="join-back-button" text="Back" class="btn btn--ghost btn--block" />
-            </ui:VisualElement>
-        </ui:VisualElement>
-
-        <ui:VisualElement name="lobby-panel" class="screen screen--centre is-hidden">
-            <ui:VisualElement class="dialog dialog--wide">
-                <ui:Label text="LOBBY" class="dialog__title" />
-                <ui:VisualElement class="rule" />
-
-                <ui:VisualElement class="code-card">
-                    <ui:VisualElement>
-                        <ui:Label text="JOIN CODE" class="eyebrow" />
-                        <ui:Label name="code-label" text="------" class="code-card__code" />
-                    </ui:VisualElement>
-                    <ui:Button name="copy-button" text="Copy" class="btn btn--ghost btn--compact" />
-                </ui:VisualElement>
-
-                <ui:Label name="roster-label" text="PLAYERS" class="eyebrow" />
-                <ui:ScrollView name="player-list" class="player-list" />
-
-                <ui:Toggle name="ready-toggle" text="I am ready" class="ready-toggle" />
-
-                <ui:VisualElement class="stage__foot stage__foot--flush">
-                    <ui:Button name="leave-button" text="Leave" class="btn btn--ghost" />
-                    <ui:VisualElement class="spacer" />
-                    <ui:Button name="start-button" text="Start match" class="btn btn--primary btn--wide" />
-                </ui:VisualElement>
             </ui:VisualElement>
         </ui:VisualElement>
 

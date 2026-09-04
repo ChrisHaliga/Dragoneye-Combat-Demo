@@ -57,11 +57,65 @@
 .draft__foot {
     flex-direction: row;
     align-items: center;
-    margin-top: 14px;
+    margin-top: 16px;
 }
 
 .team-row {
     flex-direction: row;
+}
+
+.spacer {
+    flex-grow: 1;
+}
+
+/* ---------- the row above the board ---------- */
+
+/* Which side you are on, and the code that gets somebody else onto one. Above the columns because
+   both are decisions taken before the columns mean anything: picking a party is what makes a claim
+   possible at all, and a code shared after the fight has started is a code shared too late. */
+.draft__sides {
+    flex-direction: row;
+    align-items: center;
+    margin-bottom: 14px;
+}
+
+.code-card {
+    flex-direction: row;
+    align-items: center;
+    padding: 6px 14px;
+    background-image: url("Generated/ui-well.png");
+    -unity-slice-left: 11;
+    -unity-slice-right: 11;
+    -unity-slice-top: 11;
+    -unity-slice-bottom: 11;
+}
+
+.code-card__code {
+    margin: 0 14px 0 4px;
+    font-size: 22px;
+    -unity-font-style: bold;
+    letter-spacing: 6px;
+    color: rgb(226, 191, 122);
+}
+
+/* ---------- the session bar ---------- */
+
+.setup__players {
+    margin-left: 16px;
+    font-size: 11px;
+    -unity-font-style: bold;
+    letter-spacing: 2px;
+    color: rgb(139, 147, 165);
+}
+
+.ready-toggle {
+    margin: 0 14px 0 0;
+}
+
+.ready-toggle .unity-toggle__text {
+    margin-left: 8px;
+    font-size: 12px;
+    color: rgb(220, 224, 234);
 }
 
 /* ---------- party columns ---------- */

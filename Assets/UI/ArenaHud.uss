@@ -152,11 +152,14 @@
     margin-bottom: 10px;
 }
 
+/* Minimums rather than fixed heights, on everything that holds text: a fixed height is a promise
+   about font metrics the stylesheet cannot keep, and when it is wrong the text draws outside its
+   own frame. */
 .stat-row {
     flex-direction: row;
     align-items: center;
-    height: 24px;
-    padding: 0 8px;
+    min-height: 26px;
+    padding: 3px 8px;
     margin-bottom: 4px;
     background-image: url("Generated/ui-card.png");
     -unity-slice-left: 14;
@@ -241,7 +244,7 @@
 
 /* Reserved whether or not there is a name, so portraits do not shift as turns pass. */
 .turn-bar__active-name {
-    height: 20px;
+    min-height: 20px;
     margin-top: 8px;
     font-size: 15px;
     -unity-font-style: bold;
@@ -287,7 +290,7 @@
 
 /* Health sits over the portrait rather than beside it, so a row of them stays scannable. */
 .turn-portrait__hp {
-    height: 14px;
+    min-height: 15px;
     background-color: rgba(5, 6, 9, 0.88);
     justify-content: center;
 }
@@ -318,7 +321,7 @@
 }
 
 .turn-footer__ap {
-    height: 16px;
+    min-height: 16px;
     margin-bottom: 8px;
     font-size: 11px;
     -unity-font-style: bold;
@@ -492,7 +495,7 @@
 }
 
 .skill-reason {
-    height: 16px;
+    min-height: 16px;
     font-size: 11px;
     -unity-font-style: bold;
     letter-spacing: 1px;

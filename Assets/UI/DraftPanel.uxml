@@ -4,7 +4,11 @@
 
         <!-- A board, not a sidebar. Every party is a column and every combatant is a card in one of
              them, so the state of the match is the layout rather than something to be reconstructed
-             from two scrolling lists and a "Viewing" toggle. -->
+             from two scrolling lists and a "Viewing" toggle.
+
+             This is the whole pre-match screen: the side you are on and the code you share sit
+             above the board, and the session controls run along the bottom. They used to live in a
+             lobby dialog on the menu underneath, where this screen covered them completely. -->
 
         <ui:VisualElement name="draft-panel" class="draft">
             <ui:VisualElement class="draft__head">
@@ -13,11 +17,27 @@
             </ui:VisualElement>
             <ui:VisualElement class="draft__rule" />
 
+            <!-- Picking a side comes before filling one, so it reads before the columns do. -->
+            <ui:VisualElement class="draft__sides">
+                <ui:Label text="YOUR SIDE" class="draft__eyebrow" />
+                <ui:VisualElement name="team-buttons" class="team-row" />
+                <ui:VisualElement class="spacer" />
+
+                <ui:VisualElement name="setup-code" class="code-card">
+                    <ui:Label text="JOIN CODE" class="draft__eyebrow" />
+                    <ui:Label name="setup-code-label" text="------" class="code-card__code" />
+                    <ui:Button name="setup-copy-button" text="Copy" class="button button--compact" />
+                </ui:VisualElement>
+            </ui:VisualElement>
+
             <ui:VisualElement name="party-columns" class="parties" />
 
             <ui:VisualElement class="draft__foot">
-                <ui:Label text="YOUR SIDE" class="draft__eyebrow" />
-                <ui:VisualElement name="team-buttons" class="team-row" />
+                <ui:Button name="setup-leave-button" text="Leave" class="button" />
+                <ui:Label name="setup-players" text="" class="setup__players" />
+                <ui:VisualElement class="spacer" />
+                <ui:Toggle name="setup-ready-toggle" text="I am ready" class="ready-toggle" />
+                <ui:Button name="setup-start-button" text="Start match" class="button button--primary" />
             </ui:VisualElement>
         </ui:VisualElement>
     </ui:VisualElement>

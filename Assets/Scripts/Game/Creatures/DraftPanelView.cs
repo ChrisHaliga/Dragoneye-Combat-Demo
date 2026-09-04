@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using Dragoneye.Multiplayer;
 using Unity.Netcode;
 using UnityEngine;
 using UnityEngine.UIElements;
@@ -19,6 +20,12 @@ namespace Dragoneye.Game
     /// which side involved clicking through four views and reading two lists. Brought characters are
     /// now cards in their party like anything else -- what makes them different is what the card
     /// offers, not which list it lives in.
+    ///
+    /// This is the whole pre-match screen. It fills the window and sorts above the session menu,
+    /// so anything the menu still drew underneath -- the join code, the ready toggle, Start --
+    /// could be neither seen nor clicked. Those controls now run along the bottom of this board,
+    /// bound by <see cref="MatchSetupBar"/> so that what a session is stays in the multiplayer
+    /// assembly and only the document is shared.
     ///
     /// Every button here only *offers* an action. <see cref="DraftState"/> re-checks all of it
     /// server-side, so a disabled button is a courtesy and never a security measure.
@@ -42,6 +49,8 @@ namespace Dragoneye.Game
         VisualElement m_TeamButtons;
         VisualElement m_PartyColumns;
         Label m_CapLabel;
+        MatchSetupBar m_Setup;
+        bool m_Live;
 
         readonly Dictionary<Party, Column> m_Columns = new Dictionary<Party, Column>();
 
@@ -64,8 +73,10 @@ namespace Dragoneye.Game
             m_PartyColumns = m_Root.Q<VisualElement>("party-columns");
             m_CapLabel = m_Root.Q<Label>("cap-label");
 
+            m_Setup = new MatchSetupBar(m_Root);
+
             if (m_Panel == null || m_TeamButtons == null || m_PartyColumns == null
-                || m_CapLabel == null)
+                || m_CapLabel == null || !m_Setup.IsBound)
             {
                 // A missing element used to throw here, which left the root at its default picking
                 // mode and blocked the menu below with no visible cause.
@@ -89,9 +100,27 @@ namespace Dragoneye.Game
             {
                 Rebind();
             }
+
+            // Netcode starting or stopping is what shows and hides this screen, and neither raises
+            // anything worth subscribing to from here.
+            if (IsLive() != m_Live)
+            {
+                Refresh();
+            }
         }
 
-        void OnDestroy() => Unbind();
+        /// <summary>Whether there is a match to prepare for at all.</summary>
+        static bool IsLive()
+        {
+            var manager = NetworkManager.Singleton;
+            return manager != null && (manager.IsListening || manager.IsConnectedClient);
+        }
+
+        void OnDestroy()
+        {
+            Unbind();
+            m_Setup?.Dispose();
+        }
 
         void Rebind()
         {
@@ -267,19 +296,34 @@ namespace Dragoneye.Game
                 return;
             }
 
-            var ready = m_Draft != null;
-            m_Panel.EnableInClassList("is-hidden", !ready);
-            m_Panel.pickingMode = ready ? PickingMode.Position : PickingMode.Ignore;
+            // The screen is up whenever netcode is, not only once the draft object has replicated.
+            // A client that has connected but has not yet received the draft still needs the join
+            // code, the player list and a way out, and a host still needs to see that it worked.
+            var live = IsLive();
+            m_Live = live;
 
-            if (!ready)
+            m_Panel.EnableInClassList("is-hidden", !live);
+            m_Panel.pickingMode = live ? PickingMode.Position : PickingMode.Ignore;
+
+            if (!live)
             {
                 return;
             }
 
-            var isHost = NetworkManager.Singleton != null && NetworkManager.Singleton.IsServer;
+            m_Setup.Refresh();
+
+            if (m_Draft == null)
+            {
+                ShowWaiting();
+                return;
+            }
+
+            var isHost = NetworkManager.Singleton.IsServer;
             var hasSlot = TryGetLocalSlot(out var slot);
             var myParty = default(Party);
             var hasParty = hasSlot && m_Draft.TryGetParty(slot, out myParty);
+
+            m_TeamButtons.SetEnabled(true);
 
             for (var i = 0; i < PartyInfo.All.Length; i++)
             {
@@ -287,15 +331,57 @@ namespace Dragoneye.Game
                     hasParty && PartyInfo.All[i] == myParty);
             }
 
+            // A character somebody brought is claimed by definition: they cannot claim it twice and
+            // cannot give it up. Counting it on both sides of the tally is what stops a player who
+            // brought a hero and took nothing from the pool reading "0 OF 0 CLAIMED".
+            var brought = BroughtCountFor(slot);
+
             m_CapLabel.text = hasParty
                 ? $"{PartyPalette.NameOf(myParty).ToUpperInvariant()}  ·  "
-                    + $"{m_Draft.ClaimCountFor(slot)} OF {m_Draft.CapFor(slot)} CLAIMED"
+                    + $"{m_Draft.ClaimCountFor(slot) + brought} OF "
+                    + $"{m_Draft.CapFor(slot) + brought} CLAIMED"
                 : "PICK A SIDE TO CLAIM CREATURES";
 
             foreach (var party in PartyInfo.All)
             {
                 RefreshColumn(party, hasSlot, slot, isHost, hasParty && party == myParty);
             }
+        }
+
+        /// <summary>Connected, but the draft has not arrived yet. The frame, and nothing to do in it.</summary>
+        void ShowWaiting()
+        {
+            m_CapLabel.text = "WAITING FOR THE HOST";
+            m_TeamButtons.SetEnabled(false);
+
+            foreach (var column in m_Columns.Values)
+            {
+                column.Root.EnableInClassList("party--mine", false);
+                column.AddRow.EnableInClassList("is-hidden", true);
+                column.Count.text = "0";
+                column.List.Clear();
+            }
+        }
+
+        /// <summary>How many characters this player brought. Always theirs, always in play.</summary>
+        int BroughtCountFor(byte slot)
+        {
+            if (m_Characters == null || slot == PartyInfo.Unclaimed)
+            {
+                return 0;
+            }
+
+            var count = 0;
+
+            foreach (var build in m_Characters.All)
+            {
+                if (build.Slot == slot)
+                {
+                    count++;
+                }
+            }
+
+            return count;
         }
 
         void RefreshColumn(Party party, bool hasSlot, byte slot, bool isHost, bool mine)

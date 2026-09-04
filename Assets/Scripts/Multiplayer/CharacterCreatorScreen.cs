@@ -305,18 +305,22 @@ namespace Dragoneye.Multiplayer
             return group;
         }
 
+        /// <summary>
+        /// One attribute, its name and its two steppers.
+        ///
+        /// What the attribute does is a tooltip rather than a second label on the row. Seven rows
+        /// each carrying a name and an explanation is more text than the column is wide, and the
+        /// explanation is read once when a player is learning the game -- not on every edit.
+        /// </summary>
         VisualElement AttributeRow(Attribute stat)
         {
             var row = new VisualElement();
             row.AddToClassList("alloc-row");
+            row.tooltip = AttributeInfo.DescribeEffect(stat);
 
             var label = new Label(AttributeInfo.NameOf(stat));
             label.AddToClassList("alloc-row__label");
             row.Add(label);
-
-            var effect = new Label(AttributeInfo.DescribeEffect(stat));
-            effect.AddToClassList("alloc-row__effect");
-            row.Add(effect);
 
             var minus = MenuControls.StepButton("-", () => Adjust(stat, -1));
             var value = new Label();
@@ -405,6 +409,17 @@ namespace Dragoneye.Multiplayer
             path.AddToClassList("text-input");
             path.RegisterValueChangedCallback(evt => LoadPortrait(evt.newValue));
 
+            if (!PortraitBrowser.IsAvailable)
+            {
+                // No file dialog here, so the path has to be typed. It only earns its space then,
+                // and it goes above the buttons rather than beside them.
+                m_PortraitControls.Add(path);
+            }
+
+            // The button row is built here and not in the UXML because which buttons it holds
+            // depends on the platform. The container it goes into is a plain column: nesting a
+            // second row inside a row gave the buttons a zero base size and stacked their labels
+            // on top of each other.
             var row = new VisualElement();
             row.AddToClassList("portrait__controls");
 
@@ -418,11 +433,6 @@ namespace Dragoneye.Multiplayer
                         LoadPortrait(picked);
                     }
                 }));
-            }
-            else
-            {
-                // No file dialog here, so the path has to be typed. It only earns its space then.
-                m_PortraitControls.Add(path);
             }
 
             row.Add(MenuControls.TextButton("Remove", "btn btn--ghost btn--compact", () =>

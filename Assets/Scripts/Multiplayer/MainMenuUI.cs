@@ -41,8 +41,8 @@ namespace Dragoneye.Multiplayer
         Button m_MultiplayerButton;
         MenuScreen m_Screen = MenuScreen.Start;
 
-        // Routing and refreshing call each other: showing a screen repaints it, and repainting the
-        // session screens can ask to be routed to the lobby. Both guards make that loop terminate
+        // Routing and refreshing call each other: showing a screen repaints it, and repainting can
+        // route away from a screen a session has moved past. Both guards make that loop terminate
         // without either side having to know it is in one.
         bool m_Shown;
         bool m_Refreshing;
@@ -79,7 +79,7 @@ namespace Dragoneye.Multiplayer
             // error, and it is the same separation that lets Singleplayer run without services.
             if (m_Runner != null)
             {
-                m_Session = new SessionScreens(root, m_Runner, Show);
+                m_Session = new SessionScreens(root, m_Runner);
 
                 if (!m_Session.IsBound)
                 {
@@ -99,12 +99,10 @@ namespace Dragoneye.Multiplayer
 
             ApplyAvailability();
 
-            // Three ways in, in order of how far the player already is. A lobby that survived a
-            // match puts them straight back in it; a character already chosen skips the roster;
-            // otherwise this is a fresh launch and they start at the title.
-            Show(m_Session != null && m_Session.InLobby ? MenuScreen.Lobby
-                : SelectedCharacter.HasSelection ? MenuScreen.Home
-                : MenuScreen.Start);
+            // Two ways in: a character already chosen skips the roster, otherwise this is a
+            // fresh launch and they start at the title. A session that survived a match needs no
+            // third case -- the draft board covers whichever of them is showing.
+            Show(SelectedCharacter.HasSelection ? MenuScreen.Home : MenuScreen.Start);
         }
 
         bool BindCharacterScreens(VisualElement root)
@@ -235,11 +233,9 @@ namespace Dragoneye.Multiplayer
             m_Panels[MenuScreen.Characters] = root.Q<VisualElement>("characters-panel");
             m_Panels[MenuScreen.CreateCharacter] = root.Q<VisualElement>("create-panel");
             m_Panels[MenuScreen.Home] = root.Q<VisualElement>("home-panel");
-            m_Panels[MenuScreen.SoloSetup] = root.Q<VisualElement>("solo-panel");
             m_Panels[MenuScreen.Multiplayer] = root.Q<VisualElement>("multiplayer-panel");
             m_Panels[MenuScreen.Host] = root.Q<VisualElement>("host-panel");
             m_Panels[MenuScreen.Join] = root.Q<VisualElement>("join-panel");
-            m_Panels[MenuScreen.Lobby] = root.Q<VisualElement>("lobby-panel");
             m_Panels[MenuScreen.Settings] = root.Q<VisualElement>("settings-panel");
 
             foreach (var pair in m_Panels)
@@ -262,9 +258,6 @@ namespace Dragoneye.Multiplayer
             var settings = root.Q<Button>("settings-button");
             var quit = root.Q<Button>("quit-button");
 
-            var soloStart = root.Q<Button>("solo-start-button");
-            var soloBack = root.Q<Button>("solo-back-button");
-
             var hostMenu = root.Q<Button>("host-menu-button");
             var joinMenu = root.Q<Button>("join-menu-button");
             var multiplayerBack = root.Q<Button>("multiplayer-back-button");
@@ -272,7 +265,7 @@ namespace Dragoneye.Multiplayer
             var joinBack = root.Q<Button>("join-back-button");
 
             if (singleplayer == null || multiplayer == null || testMode == null || settings == null
-                || quit == null || soloStart == null || soloBack == null || hostMenu == null || joinMenu == null || multiplayerBack == null
+                || quit == null || hostMenu == null || joinMenu == null || multiplayerBack == null
                 || hostBack == null || joinBack == null)
             {
                 Debug.LogError("Main menu markup is missing a button; check SessionMenu.uxml.", this);
@@ -286,9 +279,6 @@ namespace Dragoneye.Multiplayer
             multiplayer.clicked += () => Show(MenuScreen.Multiplayer);
             settings.clicked += () => Show(MenuScreen.Settings);
             quit.clicked += Quit;
-
-            soloStart.clicked += OnSoloStartClicked;
-            soloBack.clicked += OnSoloBackClicked;
 
             hostMenu.clicked += () => Show(MenuScreen.Host);
             joinMenu.clicked += () => Show(MenuScreen.Join);
@@ -322,27 +312,8 @@ namespace Dragoneye.Multiplayer
                 return;
             }
 
-            // The draft is its own document and appears on its own once the host spawns it. This
-            // screen only carries the Start and Back that the multiplayer lobby would have provided.
-            Show(MenuScreen.SoloSetup);
-        }
-
-        void OnSoloStartClicked()
-        {
-            var flow = MatchFlow.Instance;
-            if (flow == null || !flow.InMatch)
-            {
-                SetStatus("The solo host is not running. Go back and start again.");
-                return;
-            }
-
-            flow.BeginArena();
-        }
-
-        void OnSoloBackClicked()
-        {
-            MatchFlow.Instance?.CancelSoloSetup();
-            Show(MenuScreen.Home);
+            // Nothing to route to. The draft board is its own document, it appears as soon as
+            // netcode is up, and it carries the Start and Leave that go with a match being set up.
         }
 
         void Show(MenuScreen screen)
@@ -382,10 +353,13 @@ namespace Dragoneye.Multiplayer
                 // reaches the session screens is clickable in that state.
                 m_Session?.Refresh();
 
-                // A session that ends while its lobby is on screen has nowhere to go but back up.
-                if (m_Screen == MenuScreen.Lobby && (m_Session == null || !m_Session.InLobby))
+                // A lobby means the board has taken the screen. Route out of the form that
+                // opened it, so leaving the session later lands on the menu rather than back on a
+                // half-filled join code.
+                if (m_Session != null && m_Session.InLobby
+                    && (m_Screen == MenuScreen.Host || m_Screen == MenuScreen.Join))
                 {
-                    m_Screen = MenuScreen.Multiplayer;
+                    m_Screen = MenuScreen.Home;
                     m_Shown = false;
                 }
 
@@ -400,8 +374,8 @@ namespace Dragoneye.Multiplayer
                 m_Refreshing = false;
             }
 
-            // Outside the guard: routing away from a dead lobby is a real navigation, and it has to
-            // be able to repaint the screen it lands on.
+            // Outside the guard: routing away from a screen the session has moved past is a real
+            // navigation, and it has to be able to repaint the screen it lands on.
             if (!m_Shown)
             {
                 Show(m_Screen);
@@ -488,7 +462,7 @@ namespace Dragoneye.Multiplayer
         /// is waiting on something, which it never is.
         /// </summary>
         static bool ShowsSessionStatus(MenuScreen screen) =>
-            screen == MenuScreen.Host || screen == MenuScreen.Join || screen == MenuScreen.Lobby;
+            screen == MenuScreen.Host || screen == MenuScreen.Join;
 
         void SetStatus(string text)
         {

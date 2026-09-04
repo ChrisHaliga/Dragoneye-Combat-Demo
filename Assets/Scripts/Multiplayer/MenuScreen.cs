@@ -20,13 +20,11 @@ namespace Dragoneye.Multiplayer
         /// <summary>The main menu proper, once the player knows who they are.</summary>
         Home,
 
-        /// <summary>Solo draft: netcode is running, the arena has not loaded yet.</summary>
-        SoloSetup,
-
+        // No screen for a match being set up. Once netcode is running the draft board owns the
+        // window and carries its own controls; the menu simply waits underneath it.
         Multiplayer,
         Host,
         Join,
-        Lobby,
         Settings
     }
 }

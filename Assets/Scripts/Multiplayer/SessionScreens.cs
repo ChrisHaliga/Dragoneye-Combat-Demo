@@ -1,4 +1,3 @@
-using System;
 using System.Threading.Tasks;
 using UnityEngine;
 using UnityEngine.UIElements;
@@ -6,10 +5,15 @@ using UnityEngine.UIElements;
 namespace Dragoneye.Multiplayer
 {
     /// <summary>
-    /// Binds the host, join and lobby panels to a <see cref="SessionRunner"/>.
+    /// Binds the host and join panels to a <see cref="SessionRunner"/>: getting into a session, and
+    /// nothing after that.
     ///
     /// Everything that needs Unity services lives here, which is what lets the rest of the menu --
     /// Singleplayer, Settings, Quit -- work with the services never signed in to.
+    ///
+    /// Once a lobby exists the prepare-for-battle board covers the menu, and the controls that go
+    /// with a live session -- the join code, readiness, Start, Leave -- belong to it. See
+    /// <see cref="MatchSetupBar"/>.
     ///
     /// It does not decide which panel is on screen. It reports what the session is doing and
     /// <see cref="MainMenuUI"/> routes, so there is one owner of "which screen am I on".
@@ -17,51 +21,33 @@ namespace Dragoneye.Multiplayer
     public sealed class SessionScreens
     {
         readonly SessionRunner m_Runner;
-        readonly Action<MenuScreen> m_Navigate;
 
         readonly TextField m_HostName;
         readonly TextField m_JoinName;
         readonly TextField m_CodeField;
         readonly Button m_HostButton;
         readonly Button m_JoinButton;
-        readonly Button m_CopyButton;
-        readonly Button m_LeaveButton;
-        readonly Button m_StartButton;
-        readonly Toggle m_ReadyToggle;
-        readonly Label m_CodeLabel;
-        readonly Label m_RosterLabel;
-        readonly ScrollView m_PlayerList;
 
         bool m_NameSeeded;
 
         /// <summary>True when every control was found. False means the UXML and this disagree.</summary>
         public bool IsBound { get; }
 
-        /// <summary>True while a lobby exists, so the router knows to hold the lobby screen.</summary>
+        /// <summary>True while a lobby exists, so the router knows the board has taken over.</summary>
         public bool InLobby => m_Runner.CurrentLobby.HasValue;
 
-        public SessionScreens(VisualElement root, SessionRunner runner, Action<MenuScreen> navigate)
+        public SessionScreens(VisualElement root, SessionRunner runner)
         {
             m_Runner = runner;
-            m_Navigate = navigate;
 
             m_HostName = root.Q<TextField>("host-name-field");
             m_JoinName = root.Q<TextField>("join-name-field");
             m_CodeField = root.Q<TextField>("code-field");
             m_HostButton = root.Q<Button>("host-button");
             m_JoinButton = root.Q<Button>("join-button");
-            m_CopyButton = root.Q<Button>("copy-button");
-            m_LeaveButton = root.Q<Button>("leave-button");
-            m_StartButton = root.Q<Button>("start-button");
-            m_ReadyToggle = root.Q<Toggle>("ready-toggle");
-            m_CodeLabel = root.Q<Label>("code-label");
-            m_RosterLabel = root.Q<Label>("roster-label");
-            m_PlayerList = root.Q<ScrollView>("player-list");
 
             IsBound = m_HostName != null && m_JoinName != null && m_CodeField != null
-                && m_HostButton != null && m_JoinButton != null && m_CopyButton != null
-                && m_LeaveButton != null && m_StartButton != null && m_ReadyToggle != null
-                && m_CodeLabel != null && m_RosterLabel != null && m_PlayerList != null;
+                && m_HostButton != null && m_JoinButton != null;
 
             if (!IsBound)
             {
@@ -70,10 +56,6 @@ namespace Dragoneye.Multiplayer
 
             m_HostButton.clicked += () => TaskUtil.Forget(HostFlowAsync());
             m_JoinButton.clicked += () => TaskUtil.Forget(JoinFlowAsync());
-            m_CopyButton.clicked += OnCopyClicked;
-            m_LeaveButton.clicked += () => TaskUtil.Forget(m_Runner.LeaveAsync());
-            m_StartButton.clicked += () => TaskUtil.Forget(m_Runner.StartMatchAsync());
-            m_ReadyToggle.RegisterValueChangedCallback(evt => TaskUtil.Forget(ReadyFlowAsync(evt.newValue)));
 
             // Join codes are uppercase; do the shouting for the player.
             m_CodeField.RegisterValueChangedCallback(evt =>
@@ -157,44 +139,6 @@ namespace Dragoneye.Multiplayer
             }
         }
 
-        /// <summary>
-        /// Lobby player-data writes are rate limited. Lock the toggle for the duration of the write
-        /// and snap it back to the server value if the write is rejected, so the local checkbox can
-        /// never disagree with what the other players see.
-        /// </summary>
-        async Task ReadyFlowAsync(bool ready)
-        {
-            m_ReadyToggle.SetEnabled(false);
-            try
-            {
-                if (!await m_Runner.SetReadyAsync(ready))
-                {
-                    var lobby = m_Runner.CurrentLobby;
-                    if (lobby.HasValue)
-                    {
-                        m_ReadyToggle.SetValueWithoutNotify(lobby.Value.SelfIsReady);
-                    }
-                }
-            }
-            finally
-            {
-                Refresh();
-            }
-        }
-
-        void OnCopyClicked()
-        {
-            var lobby = m_Runner.CurrentLobby;
-            if (!lobby.HasValue)
-            {
-                return;
-            }
-
-            GUIUtility.systemCopyBuffer = lobby.Value.Code;
-            m_CopyButton.text = "Copied";
-            m_CopyButton.schedule.Execute(() => m_CopyButton.text = "Copy").StartingIn(1200);
-        }
-
         void SetInteractable(bool interactable)
         {
             m_HostButton.SetEnabled(interactable);
@@ -204,85 +148,27 @@ namespace Dragoneye.Multiplayer
             m_CodeField.SetEnabled(interactable);
         }
 
-        /// <summary>Repaints from the runner, and asks to be shown the lobby once one exists.</summary>
+        /// <summary>
+        /// Repaints from the runner.
+        ///
+        /// A lobby means these panels are behind the draft board and out of play, so there is
+        /// nothing left here to repaint.
+        /// </summary>
         public void Refresh()
         {
-            if (!IsBound)
+            if (!IsBound || m_Runner.CurrentLobby.HasValue)
             {
                 return;
             }
 
-            var lobby = m_Runner.CurrentLobby;
+            SetInteractable(m_Runner.ServicesReady && !m_Runner.IsBusy);
 
-            if (!lobby.HasValue)
+            // Seed the field with the auto-generated name once, then leave the player typing
+            // alone -- Refresh runs on every session change.
+            if (!m_NameSeeded && !string.IsNullOrEmpty(m_Runner.PlayerName))
             {
-                SetInteractable(m_Runner.ServicesReady && !m_Runner.IsBusy);
-
-                // Seed the field with the auto-generated name once, then leave the player's typing
-                // alone -- Refresh runs on every session change.
-                if (!m_NameSeeded && !string.IsNullOrEmpty(m_Runner.PlayerName))
-                {
-                    SetName(m_Runner.PlayerName);
-                    m_NameSeeded = true;
-                }
-
-                return;
-            }
-
-            m_Navigate(MenuScreen.Lobby);
-
-            var view = lobby.Value;
-
-            m_CodeLabel.text = view.Code;
-            m_RosterLabel.text = $"Players ({view.PlayerCount}/{view.MaxPlayers})";
-
-            m_ReadyToggle.SetValueWithoutNotify(view.SelfIsReady);
-            m_ReadyToggle.SetEnabled(!m_Runner.IsBusy);
-            m_LeaveButton.SetEnabled(!m_Runner.IsBusy);
-
-            // Only the host can start, and only once everyone has readied up.
-            SetVisible(m_StartButton, view.IsHost);
-            m_StartButton.SetEnabled(view.IsHost && view.EveryoneReady && !m_Runner.IsBusy);
-            m_StartButton.text = view.EveryoneReady ? "Start match" : "Waiting for players";
-
-            RebuildPlayerList(view);
-        }
-
-        void RebuildPlayerList(LobbyView view)
-        {
-            m_PlayerList.Clear();
-
-            foreach (var player in view.Players)
-            {
-                var row = new VisualElement();
-                row.AddToClassList("player-row");
-
-                var nameGroup = new VisualElement { style = { flexDirection = FlexDirection.Row } };
-
-                var name = new Label(player.Name);
-                name.AddToClassList("player-row__name");
-                nameGroup.Add(name);
-
-                if (player.IsHost)
-                {
-                    nameGroup.Add(Tag("host"));
-                }
-
-                if (player.IsSelf)
-                {
-                    nameGroup.Add(Tag("you"));
-                }
-
-                var state = new Label(player.IsReady ? "Ready" : "Not ready");
-                state.AddToClassList("player-row__state");
-                if (player.IsReady)
-                {
-                    state.AddToClassList("player-row__state--ready");
-                }
-
-                row.Add(nameGroup);
-                row.Add(state);
-                m_PlayerList.Add(row);
+                SetName(m_Runner.PlayerName);
+                m_NameSeeded = true;
             }
         }
 
@@ -341,15 +227,5 @@ namespace Dragoneye.Multiplayer
                     return string.IsNullOrEmpty(playerName) ? "Ready." : $"Signed in as {playerName}";
             }
         }
-
-        static Label Tag(string text)
-        {
-            var label = new Label(text);
-            label.AddToClassList("player-row__tag");
-            return label;
-        }
-
-        static void SetVisible(VisualElement element, bool visible) =>
-            element.style.display = visible ? DisplayStyle.Flex : DisplayStyle.None;
     }
 }

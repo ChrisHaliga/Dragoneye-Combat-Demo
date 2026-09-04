@@ -1,4 +1,6 @@
 using System.Collections;
+using System.Net;
+using System.Net.Sockets;
 using Unity.Netcode;
 using Unity.Netcode.Transports.UTP;
 using UnityEngine;
@@ -181,7 +183,8 @@ namespace Dragoneye.Multiplayer
         }
 
         /// <summary>
-        /// Undoes the relay configuration a previous session left on the transport.
+        /// Undoes the relay configuration a previous session left on the transport, and puts the
+        /// solo host somewhere it can actually bind.
         ///
         /// The Sessions SDK rewrites the transport connection data when it allocates relay, and
         /// those values survive a shutdown. Without this, a solo match started after a multiplayer
@@ -197,7 +200,40 @@ namespace Dragoneye.Multiplayer
 
             transport.UseWebSockets = false;
             transport.UseEncryption = false;
-            transport.SetConnectionData("127.0.0.1", 7777, "127.0.0.1");
+            transport.SetConnectionData("127.0.0.1", FreeLoopbackPort(), "127.0.0.1");
+        }
+
+        /// <summary>
+        /// A loopback UDP port nothing currently holds.
+        ///
+        /// Asked for rather than assumed. A hard-coded 7777 fails outright the moment anything else
+        /// has it -- a second copy of the game, or, on Windows, Hyper-V or WSL having reserved the
+        /// range it falls in, which takes the port away for good and reports only "address already
+        /// in use". Multiplayer never noticed because relay dials out instead of binding, so solo
+        /// was the only mode that broke.
+        ///
+        /// Nobody dials in to a solo host, so which port it lands on does not matter to anyone.
+        /// Releasing the probe leaves a window for something else to take the port first; on a
+        /// machine about to play a single-player game that is a better bet than a fixed port that
+        /// is either free or permanently broken.
+        /// </summary>
+        static ushort FreeLoopbackPort()
+        {
+            try
+            {
+                using (var probe = new Socket(AddressFamily.InterNetwork, SocketType.Dgram,
+                    ProtocolType.Udp))
+                {
+                    probe.Bind(new IPEndPoint(IPAddress.Loopback, 0));
+                    return (ushort)((IPEndPoint)probe.LocalEndPoint).Port;
+                }
+            }
+            catch (SocketException e)
+            {
+                Debug.LogWarning("Could not ask the OS for a free port "
+                    + $"({e.SocketErrorCode}); falling back to 7777.");
+                return 7777;
+            }
         }
 
         void OnMatchStarted() => LoadArena();
