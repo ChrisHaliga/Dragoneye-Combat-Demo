@@ -187,26 +187,26 @@ namespace Dragoneye.Game
             }
         }
 
+        /// <summary>
+        /// One element, drawn as a lit gem carrying its count.
+        ///
+        /// The same shape the creator and the roster use for a pool, so a player learns to read it
+        /// once. Elements a creature does not hold stay drawn but nearly dark, which keeps the row a
+        /// fixed width as a fight drains it.
+        /// </summary>
         static VisualElement BuildElementCount(Element element, int amount)
         {
-            var chip = new VisualElement();
-            chip.AddToClassList("element-count");
-            chip.EnableInClassList("element-count--none", amount == 0);
-
-            var color = ElementPalette.ForElement(element);
-            chip.style.borderTopColor = chip.style.borderBottomColor =
-                chip.style.borderLeftColor = chip.style.borderRightColor = color;
-
-            var name = new Label(ElementInfo.NameOf(element).Substring(0, 2).ToUpperInvariant());
-            name.AddToClassList("element-count__name");
-            name.style.color = color;
+            var gem = new VisualElement();
+            gem.AddToClassList("element-count");
+            gem.EnableInClassList("element-count--none", amount == 0);
+            gem.style.unityBackgroundImageTintColor = ElementPalette.ForElement(element);
+            gem.tooltip = ElementInfo.NameOf(element);
 
             var value = new Label(amount.ToString());
             value.AddToClassList("element-count__value");
+            gem.Add(value);
 
-            chip.Add(name);
-            chip.Add(value);
-            return chip;
+            return gem;
         }
 
         /// <summary>

@@ -1,5 +1,9 @@
 /* Arena HUD. Party column upper-left, summary card upper-right -- the Baldur's Gate / Pillars
-   layout, where the portrait column and its health readout live together on the left. */
+   layout, where the portrait column and its health readout live together on the left.
+
+   Dressed in the same generated frames as the menu (Assets/UI/Generated, baked by UiArtSetup), so
+   the fight and the screens either side of it are plainly the same game. The layout was already
+   right; what it lacked was any material. */
 
 .hud-root {
     flex-grow: 1;
@@ -20,13 +24,20 @@
 
 .party-column {
     width: 250px;
+    padding: 12px 12px 8px 12px;
+    background-image: url("Generated/ui-panel.png");
+    -unity-slice-left: 16;
+    -unity-slice-right: 16;
+    -unity-slice-top: 16;
+    -unity-slice-bottom: 16;
 }
 
 .party-title {
-    font-size: 12px;
-    color: rgb(190, 198, 214);
+    font-size: 10px;
     -unity-font-style: bold;
-    margin-bottom: 6px;
+    letter-spacing: 3px;
+    color: rgb(198, 158, 88);
+    margin-bottom: 8px;
 }
 
 .portrait-list {
@@ -37,9 +48,12 @@
     flex-direction: row;
     align-items: center;
     padding: 6px;
-    margin-bottom: 6px;
-    border-radius: 8px;
-    background-color: rgba(18, 20, 27, 0.85);
+    margin-bottom: 5px;
+    background-image: url("Generated/ui-card.png");
+    -unity-slice-left: 14;
+    -unity-slice-right: 14;
+    -unity-slice-top: 14;
+    -unity-slice-bottom: 14;
 
     /* The border is the ownership channel: it takes the controlling player's colour. */
     border-width: 2px;
@@ -47,18 +61,21 @@
 }
 
 .portrait:hover {
-    background-color: rgba(32, 36, 48, 0.95);
+    -unity-background-image-tint-color: rgb(160, 170, 195);
 }
 
 .portrait--selected {
-    background-color: rgba(46, 52, 68, 0.95);
+    -unity-background-image-tint-color: rgb(200, 210, 235);
 }
 
 .portrait__image {
     width: 42px;
     height: 42px;
-    border-radius: 6px;
-    background-color: rgb(38, 42, 55);
+    background-image: url("Generated/ui-well.png");
+    -unity-slice-left: 11;
+    -unity-slice-right: 11;
+    -unity-slice-top: 11;
+    -unity-slice-bottom: 11;
     -unity-background-scale-mode: scale-and-crop;
 }
 
@@ -67,7 +84,7 @@
     -unity-text-align: middle-center;
     font-size: 20px;
     -unity-font-style: bold;
-    color: rgb(226, 232, 245);
+    color: rgb(120, 128, 146);
 }
 
 .portrait__body {
@@ -77,23 +94,24 @@
 
 .portrait__name {
     font-size: 13px;
-    color: rgb(226, 232, 245);
+    -unity-font-style: bold;
+    color: rgb(232, 226, 212);
     overflow: hidden;
     text-overflow: ellipsis;
 }
 
 /* Track stays visible so a nearly-empty bar still reads as "hurt" rather than "missing". */
 .hp-track {
-    height: 7px;
+    height: 6px;
     margin-top: 5px;
-    border-radius: 4px;
-    background-color: rgb(38, 20, 24);
+    background-color: rgb(30, 14, 18);
+    border-width: 1px;
+    border-color: rgb(58, 30, 34);
     overflow: hidden;
 }
 
 .hp-fill {
     height: 100%;
-    border-radius: 4px;
     background-color: rgb(196, 62, 58);
 }
 
@@ -101,28 +119,31 @@
 
 .card {
     width: 290px;
-    padding: 16px;
-    border-radius: 12px;
-    background-color: rgba(20, 22, 30, 0.94);
-    border-width: 1px;
-    border-color: rgb(52, 58, 74);
+    padding: 18px;
+    background-image: url("Generated/ui-panel.png");
+    -unity-slice-left: 16;
+    -unity-slice-right: 16;
+    -unity-slice-top: 16;
+    -unity-slice-bottom: 16;
 }
 
 .card__name {
     font-size: 20px;
     -unity-font-style: bold;
-    color: rgb(240, 243, 250);
+    color: rgb(236, 231, 219);
 }
 
 .card__subtitle {
-    font-size: 12px;
-    color: rgb(150, 160, 182);
+    font-size: 11px;
+    letter-spacing: 1px;
+    color: rgb(198, 158, 88);
     margin-top: 2px;
 }
 
 .card__controller {
-    font-size: 12px;
-    color: rgb(190, 198, 214);
+    font-size: 11px;
+    letter-spacing: 1px;
+    color: rgb(139, 147, 165);
     margin-top: 6px;
     margin-bottom: 12px;
 }
@@ -134,42 +155,60 @@
 .stat-row {
     flex-direction: row;
     align-items: center;
-    margin-bottom: 6px;
+    height: 24px;
+    padding: 0 8px;
+    margin-bottom: 4px;
+    background-image: url("Generated/ui-card.png");
+    -unity-slice-left: 14;
+    -unity-slice-right: 14;
+    -unity-slice-top: 14;
+    -unity-slice-bottom: 14;
 }
 
 .stat-row__label {
-    width: 42px;
-    font-size: 11px;
+    width: 38px;
+    font-size: 10px;
     -unity-font-style: bold;
-    color: rgb(130, 140, 162);
+    letter-spacing: 2px;
+    color: rgb(139, 147, 165);
 }
 
 .stat-row__value {
     font-size: 13px;
-    color: rgb(226, 232, 245);
+    -unity-font-style: bold;
+    color: rgb(232, 226, 212);
 }
 
 /* Discrete pips, not a bar: players count remaining actions rather than estimating them. */
 .pips {
     flex-direction: row;
-    margin-right: 10px;
+    flex-grow: 1;
+    align-items: center;
+    margin-right: 8px;
 }
 
 .pip {
-    width: 9px;
-    height: 9px;
-    border-radius: 5px;
-    margin-right: 4px;
-    background-color: rgb(58, 64, 80);
+    width: 7px;
+    height: 12px;
+    margin-right: 3px;
+    background-color: rgb(38, 43, 56);
+    border-width: 1px;
+    border-color: rgb(20, 23, 30);
 }
 
 .pip--filled {
-    background-color: rgb(232, 196, 96);
+    background-color: rgb(226, 191, 122);
+    border-color: rgb(140, 106, 52);
+}
+
+/* Every second pip closes a whole point, so a half-unit budget stays countable. */
+.pip--whole {
+    margin-right: 7px;
 }
 
 .card__description {
-    font-size: 12px;
-    color: rgb(150, 160, 182);
+    font-size: 11px;
+    color: rgb(130, 138, 156);
     white-space: normal;
 }
 
@@ -181,17 +220,18 @@
 
 .turn-bar {
     position: absolute;
-    top: 16px;
+    top: 14px;
     left: 0;
     right: 0;
     align-items: center;
 }
 
 .turn-bar__round {
-    font-size: 11px;
-    letter-spacing: 2px;
-    color: rgb(148, 158, 180);
-    margin-bottom: 6px;
+    font-size: 10px;
+    -unity-font-style: bold;
+    letter-spacing: 4px;
+    color: rgb(198, 158, 88);
+    margin-bottom: 8px;
 }
 
 .turn-bar__order {
@@ -201,36 +241,36 @@
 
 /* Reserved whether or not there is a name, so portraits do not shift as turns pass. */
 .turn-bar__active-name {
-    height: 18px;
-    margin-top: 6px;
-    font-size: 14px;
+    height: 20px;
+    margin-top: 8px;
+    font-size: 15px;
     -unity-font-style: bold;
-    color: rgb(240, 243, 250);
+    letter-spacing: 2px;
+    color: rgb(236, 231, 219);
 }
 
 .turn-portrait {
     width: 52px;
     height: 52px;
     margin: 0 3px;
-    border-radius: 6px;
     overflow: hidden;
     justify-content: flex-end;
-    background-color: rgb(24, 27, 36);
+    background-color: rgb(18, 21, 28);
     border-width: 2px;
-    border-color: rgb(48, 53, 68);
+    border-color: rgb(52, 59, 76);
     -unity-background-scale-mode: scale-and-crop;
 }
 
-/* The active creature reads first: larger, lifted, and the only one with a light border. */
+/* The active creature reads first: larger, lifted, and the only one ringed in gold. */
 .turn-portrait--active {
     width: 68px;
     height: 68px;
     margin-bottom: 0;
-    border-color: rgb(240, 243, 250);
+    border-color: rgb(226, 191, 122);
 }
 
 .turn-portrait--dimmed {
-    opacity: 0.45;
+    opacity: 0.4;
 }
 
 .turn-portrait__initial {
@@ -241,14 +281,14 @@
     bottom: 14px;
     font-size: 20px;
     -unity-font-style: bold;
-    color: rgb(226, 232, 245);
+    color: rgb(150, 158, 178);
     -unity-text-align: middle-center;
 }
 
 /* Health sits over the portrait rather than beside it, so a row of them stays scannable. */
 .turn-portrait__hp {
     height: 14px;
-    background-color: rgba(8, 10, 14, 0.82);
+    background-color: rgba(5, 6, 9, 0.88);
     justify-content: center;
 }
 
@@ -257,13 +297,13 @@
     top: 0;
     left: 0;
     bottom: 0;
-    background-color: rgba(112, 200, 140, 0.45);
+    background-color: rgba(112, 200, 140, 0.42);
 }
 
 .turn-portrait__hp-text {
     font-size: 10px;
     -unity-font-style: bold;
-    color: rgb(240, 243, 250);
+    color: rgb(236, 231, 219);
     -unity-text-align: middle-center;
 }
 
@@ -271,7 +311,7 @@
 
 .turn-footer {
     position: absolute;
-    bottom: 24px;
+    bottom: 22px;
     left: 0;
     right: 0;
     align-items: center;
@@ -279,44 +319,52 @@
 
 .turn-footer__ap {
     height: 16px;
-    margin-bottom: 6px;
-    font-size: 12px;
-    color: rgb(148, 158, 180);
+    margin-bottom: 8px;
+    font-size: 11px;
+    -unity-font-style: bold;
+    letter-spacing: 2px;
+    color: rgb(139, 147, 165);
 }
 
 .end-turn {
-    height: 40px;
-    padding: 0 26px;
-    font-size: 14px;
+    height: 42px;
+    padding: 0 34px;
+    font-size: 13px;
     -unity-font-style: bold;
-    color: rgb(226, 232, 245);
-    background-color: rgb(43, 49, 65);
-    border-radius: 8px;
-    border-width: 1px;
-    border-color: rgb(56, 62, 80);
+    letter-spacing: 3px;
+    color: rgb(220, 224, 234);
+    background-color: rgba(0, 0, 0, 0);
+    background-image: url("Generated/ui-button.png");
+    -unity-slice-left: 11;
+    -unity-slice-right: 11;
+    -unity-slice-top: 11;
+    -unity-slice-bottom: 11;
+    border-width: 0;
 }
 
 .end-turn:hover {
-    background-color: rgb(56, 63, 82);
+    background-image: url("Generated/ui-button-hot.png");
+    color: rgb(245, 247, 252);
 }
 
 /* Prompts, never forces: the turn still only ends on a click. */
 .end-turn--spent {
-    background-color: rgb(198, 88, 38);
-    border-color: rgb(240, 195, 120);
-    color: rgb(255, 246, 240);
+    background-image: url("Generated/ui-button-primary.png");
+    color: rgb(255, 244, 234);
 }
 
 /* ---------- cursor ---------- */
 
 .cursor-action {
     position: absolute;
-    padding: 4px 8px;
-    font-size: 12px;
+    padding: 5px 10px;
+    font-size: 11px;
     -unity-font-style: bold;
-    color: rgb(240, 243, 250);
-    background-color: rgba(8, 10, 14, 0.85);
-    border-radius: 4px;
+    letter-spacing: 1px;
+    color: rgb(236, 231, 219);
+    background-color: rgba(5, 6, 9, 0.9);
+    border-width: 1px;
+    border-color: rgb(58, 66, 84);
 }
 
 /* ---------- outcome ---------- */
@@ -329,34 +377,32 @@
     bottom: 0;
     align-items: center;
     justify-content: center;
-    background-color: rgba(8, 10, 14, 0.72);
+    background-color: rgba(5, 6, 9, 0.78);
 }
 
 .outcome__title {
-    font-size: 40px;
+    font-size: 46px;
     -unity-font-style: bold;
-    color: rgb(240, 243, 250);
+    letter-spacing: 12px;
+    color: rgb(236, 231, 219);
 }
 
 .outcome__note {
-    margin-top: 8px;
-    font-size: 14px;
-    color: rgb(148, 158, 180);
-}
-
-/* Every second pip closes a whole point, so a half-unit budget stays countable. */
-.pip--whole {
-    margin-right: 6px;
+    margin-top: 14px;
+    font-size: 12px;
+    letter-spacing: 3px;
+    color: rgb(139, 147, 165);
 }
 
 /* ---------- element counters ---------- */
 
 .card__elements-title {
-    font-size: 11px;
-    letter-spacing: 2px;
-    color: rgb(110, 120, 142);
-    margin-top: 10px;
-    margin-bottom: 4px;
+    font-size: 10px;
+    -unity-font-style: bold;
+    letter-spacing: 3px;
+    color: rgb(198, 158, 88);
+    margin-top: 12px;
+    margin-bottom: 6px;
 }
 
 .card__elements {
@@ -364,31 +410,26 @@
     flex-wrap: wrap;
 }
 
+/* A lit gem carrying its count, the same shape the creator and the roster draw a pool with. Seven
+   coloured words in a row is a legend; seven gems is a hand. */
 .element-count {
-    flex-direction: row;
-    align-items: center;
-    padding: 2px 7px;
-    margin: 0 4px 4px 0;
-    border-radius: 10px;
-    background-color: rgba(0, 0, 0, 0.25);
-    border-width: 1px;
-}
-
-.element-count__name {
-    font-size: 10px;
-    -unity-font-style: bold;
-    margin-right: 5px;
+    width: 28px;
+    height: 28px;
+    margin: 0 5px 5px 0;
+    justify-content: center;
+    background-image: url("Generated/ui-gem.png");
 }
 
 .element-count__value {
     font-size: 12px;
     -unity-font-style: bold;
-    color: rgb(240, 243, 250);
+    color: rgb(14, 16, 22);
+    -unity-text-align: middle-center;
 }
 
 /* Nothing held or nothing spent, still drawn so the row does not change width as a fight goes on. */
 .element-count--none {
-    opacity: 0.35;
+    opacity: 0.2;
 }
 
 /* ---------- skill bar ---------- */
@@ -402,32 +443,34 @@
     width: 96px;
     height: 54px;
     margin: 0 4px;
-    padding: 4px 6px;
-    border-radius: 8px;
-    background-color: rgb(43, 49, 65);
-    border-width: 1px;
-    border-color: rgb(56, 62, 80);
+    padding: 6px 8px;
+    background-color: rgba(0, 0, 0, 0);
+    background-image: url("Generated/ui-button.png");
+    -unity-slice-left: 11;
+    -unity-slice-right: 11;
+    -unity-slice-top: 11;
+    -unity-slice-bottom: 11;
+    border-width: 0;
     justify-content: space-between;
 }
 
 .skill-button:hover {
-    background-color: rgb(56, 63, 82);
+    background-image: url("Generated/ui-button-hot.png");
 }
 
 /* Unusable, not hidden. The reason line says why, which a missing button could not. */
 .skill-button--unusable {
-    opacity: 0.4;
+    opacity: 0.35;
 }
 
 .skill-button--selected {
-    border-color: rgb(240, 195, 120);
-    background-color: rgb(70, 56, 40);
+    background-image: url("Generated/ui-button-primary.png");
 }
 
 .skill-button__name {
     font-size: 11px;
     -unity-font-style: bold;
-    color: rgb(240, 243, 250);
+    color: rgb(236, 231, 219);
     overflow: hidden;
     text-overflow: ellipsis;
 }
@@ -439,7 +482,8 @@
 
 .skill-button__ap {
     font-size: 10px;
-    color: rgb(148, 158, 180);
+    -unity-font-style: bold;
+    color: rgb(198, 158, 88);
 }
 
 .skill-button__element {
@@ -450,5 +494,7 @@
 .skill-reason {
     height: 16px;
     font-size: 11px;
+    -unity-font-style: bold;
+    letter-spacing: 1px;
     color: rgb(226, 122, 63);
 }

@@ -2,29 +2,23 @@
     <ui:VisualElement name="root" class="draft-root">
         <Style src="DraftPanel.uss" />
 
-        <ui:VisualElement name="draft-panel" class="draft-panel">
-            <ui:Label text="Draft" class="draft__title" />
+        <!-- A board, not a sidebar. Every party is a column and every combatant is a card in one of
+             them, so the state of the match is the layout rather than something to be reconstructed
+             from two scrolling lists and a "Viewing" toggle. -->
 
-            <ui:Label text="Your team" class="draft__section" />
-            <ui:VisualElement name="team-buttons" class="button-row" />
-
-            <ui:Label text="Viewing" class="draft__section" />
-            <ui:VisualElement name="view-buttons" class="button-row" />
-
-            <ui:VisualElement name="host-tools" class="host-tools">
-                <ui:Label text="Add creature (host)" class="draft__section" />
-                <ui:VisualElement class="add-row">
-                    <ui:DropdownField name="creature-dropdown" class="dropdown" />
-                    <ui:Button name="add-button" text="Add" class="button button--primary button--compact" />
-                </ui:VisualElement>
+        <ui:VisualElement name="draft-panel" class="draft">
+            <ui:VisualElement class="draft__head">
+                <ui:Label text="PREPARE FOR BATTLE" class="draft__title" />
+                <ui:Label name="cap-label" text="" class="draft__cap" />
             </ui:VisualElement>
+            <ui:VisualElement class="draft__rule" />
 
-            <ui:Label name="cap-label" text="" class="draft__cap" />
-            <ui:Label text="Characters brought" class="field-label" />
-            <ui:ScrollView name="character-roster" class="character-roster" />
+            <ui:VisualElement name="party-columns" class="parties" />
 
-            <ui:Label text="Draft pool" class="field-label" />
-            <ui:ScrollView name="roster-list" class="roster-list" />
+            <ui:VisualElement class="draft__foot">
+                <ui:Label text="YOUR SIDE" class="draft__eyebrow" />
+                <ui:VisualElement name="team-buttons" class="team-row" />
+            </ui:VisualElement>
         </ui:VisualElement>
     </ui:VisualElement>
 </ui:UXML>

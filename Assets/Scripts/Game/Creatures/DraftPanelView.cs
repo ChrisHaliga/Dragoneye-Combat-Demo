@@ -6,35 +6,45 @@ using UnityEngine.UIElements;
 namespace Dragoneye.Game
 {
     /// <summary>
-    /// The lobby draft: the host fills each party with creatures, and every player picks a side and
+    /// The draft board: the host fills each party with creatures, and every player picks a side and
     /// claims their share of it.
     ///
     /// A separate document from the session menu rather than an addition to it. The menu lives in
     /// the multiplayer assembly and has no business knowing what a creature is; putting the draft
     /// here keeps that boundary and means the lobby UI never has to change when creature rules do.
     ///
+    /// One column per party and one card per combatant, so the state of the match is the layout. The
+    /// previous arrangement showed a single party at a time behind a "Viewing" toggle and kept the
+    /// characters players brought in a second list underneath, which meant working out who was on
+    /// which side involved clicking through four views and reading two lists. Brought characters are
+    /// now cards in their party like anything else -- what makes them different is what the card
+    /// offers, not which list it lives in.
+    ///
     /// Every button here only *offers* an action. <see cref="DraftState"/> re-checks all of it
     /// server-side, so a disabled button is a courtesy and never a security measure.
-    ///
-    /// "Your team" and "Viewing" are separate on purpose: the host has to manage four parties while
-    /// belonging to one of them.
     /// </summary>
     [RequireComponent(typeof(UIDocument))]
     [DisallowMultipleComponent]
     public sealed class DraftPanelView : MonoBehaviour
     {
+        /// <summary>The elements of one party column, so a refresh can find them without a query.</summary>
+        sealed class Column
+        {
+            public VisualElement Root;
+            public VisualElement List;
+            public Label Count;
+            public VisualElement AddRow;
+            public DropdownField Creatures;
+        }
+
         VisualElement m_Root;
         VisualElement m_Panel;
         VisualElement m_TeamButtons;
-        VisualElement m_ViewButtons;
-        VisualElement m_HostTools;
-        DropdownField m_CreatureDropdown;
-        Button m_AddButton;
+        VisualElement m_PartyColumns;
         Label m_CapLabel;
-        ScrollView m_RosterList;
-        ScrollView m_CharacterRoster;
 
-        Party m_Viewing = Party.Heroes;
+        readonly Dictionary<Party, Column> m_Columns = new Dictionary<Party, Column>();
+
         DraftState m_Draft;
         PlayerRoster m_Roster;
         PlayerCharacters m_Characters;
@@ -51,17 +61,11 @@ namespace Dragoneye.Game
 
             m_Panel = m_Root.Q<VisualElement>("draft-panel");
             m_TeamButtons = m_Root.Q<VisualElement>("team-buttons");
-            m_ViewButtons = m_Root.Q<VisualElement>("view-buttons");
-            m_HostTools = m_Root.Q<VisualElement>("host-tools");
-            m_CreatureDropdown = m_Root.Q<DropdownField>("creature-dropdown");
-            m_AddButton = m_Root.Q<Button>("add-button");
+            m_PartyColumns = m_Root.Q<VisualElement>("party-columns");
             m_CapLabel = m_Root.Q<Label>("cap-label");
-            m_RosterList = m_Root.Q<ScrollView>("roster-list");
-            m_CharacterRoster = m_Root.Q<ScrollView>("character-roster");
 
-            if (m_Panel == null || m_TeamButtons == null || m_ViewButtons == null
-                || m_HostTools == null || m_CreatureDropdown == null || m_AddButton == null
-                || m_CapLabel == null || m_RosterList == null)
+            if (m_Panel == null || m_TeamButtons == null || m_PartyColumns == null
+                || m_CapLabel == null)
             {
                 // A missing element used to throw here, which left the root at its default picking
                 // mode and blocked the menu below with no visible cause.
@@ -70,9 +74,8 @@ namespace Dragoneye.Game
                 return;
             }
 
-            m_AddButton.clicked += OnAddClicked;
-
             BuildPartyButtons();
+            BuildPartyColumns();
             Refresh();
         }
 
@@ -113,7 +116,7 @@ namespace Dragoneye.Game
                 m_Roster.Changed += Refresh;
             }
 
-            PopulateCreatureDropdown();
+            PopulateCreatureDropdowns();
             Refresh();
         }
 
@@ -135,6 +138,8 @@ namespace Dragoneye.Game
             }
         }
 
+        // ---------- building ----------
+
         void BuildPartyButtons()
         {
             foreach (var party in PartyInfo.All)
@@ -147,21 +152,74 @@ namespace Dragoneye.Game
                 };
                 join.AddToClassList("button");
                 m_TeamButtons.Add(join);
-
-                var view = new Button(() =>
-                {
-                    m_Viewing = chosen;
-                    Refresh();
-                })
-                {
-                    text = PartyPalette.NameOf(chosen)
-                };
-                view.AddToClassList("button");
-                m_ViewButtons.Add(view);
             }
         }
 
-        void PopulateCreatureDropdown()
+        /// <summary>
+        /// One column per party, built once.
+        ///
+        /// The add control lives in the column rather than in a shared host panel, so the party a
+        /// creature joins is the column the host clicked in. That removes the "Viewing" mode the
+        /// old panel needed only to answer "add to which side".
+        /// </summary>
+        void BuildPartyColumns()
+        {
+            foreach (var party in PartyInfo.All)
+            {
+                var chosen = party;
+
+                var root = new VisualElement();
+                root.AddToClassList("party");
+
+                var head = new VisualElement();
+                head.AddToClassList("party__head");
+
+                var flag = new VisualElement();
+                flag.AddToClassList("party__flag");
+                flag.style.backgroundColor = PartyPalette.ForParty(party);
+                head.Add(flag);
+
+                var name = new Label(PartyPalette.NameOf(party).ToUpperInvariant());
+                name.AddToClassList("party__name");
+                head.Add(name);
+
+                var count = new Label();
+                count.AddToClassList("party__count");
+                head.Add(count);
+
+                root.Add(head);
+
+                var list = new VisualElement();
+                list.AddToClassList("party__list");
+                root.Add(list);
+
+                var addRow = new VisualElement();
+                addRow.AddToClassList("party__add");
+
+                var creatures = new DropdownField();
+                creatures.AddToClassList("dropdown");
+                addRow.Add(creatures);
+
+                var add = new Button(() => OnAddClicked(chosen)) { text = "Add" };
+                add.AddToClassList("button");
+                add.AddToClassList("button--compact");
+                addRow.Add(add);
+
+                root.Add(addRow);
+                m_PartyColumns.Add(root);
+
+                m_Columns[party] = new Column
+                {
+                    Root = root,
+                    List = list,
+                    Count = count,
+                    AddRow = addRow,
+                    Creatures = creatures
+                };
+            }
+        }
+
+        void PopulateCreatureDropdowns()
         {
             var catalog = m_Draft != null ? m_Draft.Catalog : null;
             var names = new List<string>();
@@ -174,36 +232,33 @@ namespace Dragoneye.Game
                 }
             }
 
-            m_CreatureDropdown.choices = names;
-            m_CreatureDropdown.index = names.Count > 0 ? 0 : -1;
+            foreach (var column in m_Columns.Values)
+            {
+                column.Creatures.choices = names;
+                column.Creatures.index = names.Count > 0 ? 0 : -1;
+            }
         }
 
-        void OnAddClicked()
+        void OnAddClicked(Party party)
         {
             var catalog = m_Draft != null ? m_Draft.Catalog : null;
-            if (catalog == null || m_CreatureDropdown.index < 0
-                || m_CreatureDropdown.index >= catalog.Count)
+
+            if (catalog == null || !m_Columns.TryGetValue(party, out var column))
             {
                 return;
             }
 
-            var definition = catalog.Creatures[m_CreatureDropdown.index];
-            m_Draft.AddCreatureRpc(catalog.IdOf(definition), (byte)m_Viewing);
-        }
+            var index = column.Creatures.index;
 
-        bool TryGetLocalSlot(out byte slot)
-        {
-            var manager = NetworkManager.Singleton;
-            if (m_Roster != null && manager != null
-                && m_Roster.TryGet(manager.LocalClientId, out var entry) && entry.Slot >= 0)
+            if (index < 0 || index >= catalog.Count)
             {
-                slot = (byte)entry.Slot;
-                return true;
+                return;
             }
 
-            slot = PartyInfo.Unclaimed;
-            return false;
+            m_Draft.AddCreatureRpc(catalog.IdOf(catalog.Creatures[index]), (byte)party);
         }
+
+        // ---------- refresh ----------
 
         void Refresh()
         {
@@ -222,106 +277,215 @@ namespace Dragoneye.Game
             }
 
             var isHost = NetworkManager.Singleton != null && NetworkManager.Singleton.IsServer;
-            m_HostTools.EnableInClassList("is-hidden", !isHost);
-
             var hasSlot = TryGetLocalSlot(out var slot);
             var myParty = default(Party);
             var hasParty = hasSlot && m_Draft.TryGetParty(slot, out myParty);
 
             for (var i = 0; i < PartyInfo.All.Length; i++)
             {
-                var party = PartyInfo.All[i];
-                m_TeamButtons[i].EnableInClassList("button--chosen", hasParty && party == myParty);
-                m_ViewButtons[i].EnableInClassList("button--viewing", party == m_Viewing);
+                m_TeamButtons[i].EnableInClassList("button--chosen",
+                    hasParty && PartyInfo.All[i] == myParty);
             }
 
             m_CapLabel.text = hasParty
-                ? $"{PartyPalette.NameOf(myParty)}: claimed {m_Draft.ClaimCountFor(slot)} of {m_Draft.CapFor(slot)}"
-                : "Pick a team to claim creatures.";
+                ? $"{PartyPalette.NameOf(myParty).ToUpperInvariant()}  ·  "
+                    + $"{m_Draft.ClaimCountFor(slot)} OF {m_Draft.CapFor(slot)} CLAIMED"
+                : "PICK A SIDE TO CLAIM CREATURES";
 
-            RebuildRoster(hasSlot, slot, isHost);
-            RebuildCharacters(isHost);
+            foreach (var party in PartyInfo.All)
+            {
+                RefreshColumn(party, hasSlot, slot, isHost, hasParty && party == myParty);
+            }
+        }
+
+        void RefreshColumn(Party party, bool hasSlot, byte slot, bool isHost, bool mine)
+        {
+            var column = m_Columns[party];
+
+            column.Root.EnableInClassList("party--mine", mine);
+            column.AddRow.EnableInClassList("is-hidden", !isHost);
+            column.List.Clear();
+
+            var members = 0;
+
+            // Brought characters first: they were spoken for before the draft began, and putting
+            // them at the top means a column reads owner-first rather than pool-first.
+            var characters = m_Characters;
+
+            if (characters != null)
+            {
+                foreach (var build in characters.All)
+                {
+                    if (!m_Draft.TryGetParty(build.Slot, out var on) || on != party)
+                    {
+                        continue;
+                    }
+
+                    column.List.Add(BroughtCard(characters, build,
+                        hasSlot && build.Slot == slot, isHost));
+                    members++;
+                }
+            }
+
+            var catalog = m_Draft.Catalog;
+
+            foreach (var entry in m_Draft.Roster)
+            {
+                if (entry.Party != party)
+                {
+                    continue;
+                }
+
+                column.List.Add(RosterCard(entry, catalog, hasSlot, slot, isHost));
+                members++;
+            }
+
+            column.Count.text = members.ToString();
+
+            if (members == 0)
+            {
+                var empty = new Label(isHost
+                    ? "Nobody yet. Add a creature below."
+                    : "Nobody yet.");
+                empty.AddToClassList("party__empty");
+                column.List.Add(empty);
+            }
         }
 
         /// <summary>
-        /// The characters players brought, and -- for the host -- which side each fights on.
+        /// A character somebody brought.
         ///
-        /// Listed apart from the draft pool because they behave differently: a brought character is
-        /// permanently its owner's and has no Claim button, so mixing the two lists would mean
-        /// explaining on every row why half of them cannot be taken.
+        /// No claim and no remove: it is permanently its owner's, and the only decision left is the
+        /// side it fights on, which is the host's. That is the whole difference between this card
+        /// and a pool one.
         /// </summary>
-        void RebuildCharacters(bool isHost)
+        VisualElement BroughtCard(PlayerCharacters characters, NetBuild build, bool mine,
+            bool isHost)
         {
-            if (m_CharacterRoster == null)
-            {
-                return;
-            }
-
-            m_CharacterRoster.Clear();
-
-            var characters = PlayerCharacters.Current;
-
-            if (characters == null || characters.All.Count == 0)
-            {
-                var none = new Label("Nobody has brought a character yet.");
-                none.AddToClassList("brought-row__none");
-                m_CharacterRoster.Add(none);
-                return;
-            }
-
-            foreach (var build in characters.All)
-            {
-                m_CharacterRoster.Add(BuildBroughtRow(characters, build, isHost));
-            }
-        }
-
-        VisualElement BuildBroughtRow(PlayerCharacters characters, NetBuild build, bool isHost)
-        {
-            var row = new VisualElement();
-            row.AddToClassList("brought-row");
+            var card = new VisualElement();
+            card.AddToClassList("fighter");
+            card.AddToClassList("fighter--brought");
+            card.EnableInClassList("fighter--mine", mine);
 
             var body = new VisualElement();
-            body.AddToClassList("brought-row__body");
+            body.AddToClassList("fighter__body");
 
             var name = new Label(build.Name.ToString());
-            name.AddToClassList("brought-row__name");
+            name.AddToClassList("fighter__name");
             body.Add(name);
 
             var loadout = characters.LoadoutFor(build.Slot);
-            var owner = OwnerName(build.Slot);
-            var className = loadout != null && loadout.Class != null ? loadout.Class.Name : "No class";
+            var owner = mine ? "You" : OwnerName(build.Slot);
 
             var detail = new Label(loadout != null
-                ? $"{owner} · {className} · {loadout.Vitals.MaxHealth} HP · {loadout.Vitals.MaxAp} AP"
+                ? $"{owner} · {loadout.Vitals.MaxHealth} HP · {loadout.Vitals.MaxAp} AP"
                 : owner);
-            detail.AddToClassList("brought-row__detail");
+            detail.AddToClassList("fighter__owner");
+            detail.EnableInClassList("fighter__owner--mine", mine);
             body.Add(detail);
 
-            row.Add(body);
+            card.Add(body);
 
             // Only the host reassigns sides, and only sides. Whose character it is was settled when
-            // its owner submitted it.
+            // its owner submitted it. Colour chips rather than four named buttons: the column
+            // already says which party this is, so all that is needed is somewhere else to send it.
             if (isHost && m_Draft != null)
             {
-                var buttons = new VisualElement();
-                buttons.AddToClassList("brought-row__party");
-
-                var onParty = m_Draft.TryGetParty(build.Slot, out var current);
-
-                foreach (var party in PartyInfo.All)
-                {
-                    var captured = party;
-                    var button = SmallButton(PartyPalette.NameOf(party),
-                        () => m_Draft.SetPartyForRpc(build.Slot, (byte)captured), true);
-
-                    button.EnableInClassList("button--chosen", onParty && current == party);
-                    buttons.Add(button);
-                }
-
-                row.Add(buttons);
+                card.Add(PartyChips(build.Slot));
             }
 
-            return row;
+            return card;
+        }
+
+        /// <summary>A chip per party, the current one lit. Moves a brought character to another side.</summary>
+        VisualElement PartyChips(byte slot)
+        {
+            var chips = new VisualElement();
+            chips.AddToClassList("fighter__actions");
+
+            var onParty = m_Draft.TryGetParty(slot, out var current);
+
+            foreach (var party in PartyInfo.All)
+            {
+                var chosen = party;
+
+                var chip = new Button(() => m_Draft.SetPartyForRpc(slot, (byte)chosen));
+                chip.AddToClassList("party-chip");
+                chip.EnableInClassList("party-chip--current", onParty && current == party);
+                chip.style.backgroundColor = PartyPalette.ForParty(party);
+                chip.tooltip = PartyPalette.NameOf(party);
+                chips.Add(chip);
+            }
+
+            return chips;
+        }
+
+        VisualElement RosterCard(RosterEntry entry, CreatureCatalog catalog, bool hasSlot,
+            byte slot, bool isHost)
+        {
+            var definition = catalog != null ? catalog.Resolve(entry.CreatureId) : null;
+            var mine = hasSlot && entry.ClaimedBySlot == slot;
+
+            var card = new VisualElement();
+            card.AddToClassList("fighter");
+            card.EnableInClassList("fighter--claimed", entry.IsClaimed);
+            card.EnableInClassList("fighter--mine", mine);
+
+            var body = new VisualElement();
+            body.AddToClassList("fighter__body");
+
+            var name = new Label(definition != null ? definition.DisplayName : "Unknown");
+            name.AddToClassList("fighter__name");
+            body.Add(name);
+
+            var owner = new Label(OwnerText(entry, mine));
+            owner.AddToClassList("fighter__owner");
+            owner.EnableInClassList("fighter__owner--mine", mine);
+            body.Add(owner);
+
+            card.Add(body);
+
+            var actions = new VisualElement();
+            actions.AddToClassList("fighter__actions");
+
+            var entryId = entry.EntryId;
+
+            if (mine)
+            {
+                actions.Add(SmallButton("Release", () => m_Draft.ReleaseRpc(entryId), true));
+            }
+            else
+            {
+                // The same predicate the server uses to decide, so the button is never enabled for
+                // something that will be refused.
+                var canClaim = hasSlot && m_Draft.CanClaim(slot, entryId);
+                actions.Add(SmallButton("Claim", () => m_Draft.ClaimRpc(entryId), canClaim));
+            }
+
+            if (isHost)
+            {
+                actions.Add(SmallButton("×", () => m_Draft.RemoveCreatureRpc(entryId), true));
+            }
+
+            card.Add(actions);
+            return card;
+        }
+
+        // ---------- naming ----------
+
+        bool TryGetLocalSlot(out byte slot)
+        {
+            var manager = NetworkManager.Singleton;
+
+            if (m_Roster != null && manager != null
+                && m_Roster.TryGet(manager.LocalClientId, out var entry) && entry.Slot >= 0)
+            {
+                slot = (byte)entry.Slot;
+                return true;
+            }
+
+            slot = PartyInfo.Unclaimed;
+            return false;
         }
 
         string OwnerName(byte slot)
@@ -335,87 +499,14 @@ namespace Dragoneye.Game
             return $"Player {slot + 1}";
         }
 
-        void RebuildRoster(bool hasSlot, byte slot, bool isHost)
-        {
-            m_RosterList.Clear();
-
-            var catalog = m_Draft.Catalog;
-
-            foreach (var entry in m_Draft.Roster)
-            {
-                if (entry.Party != m_Viewing)
-                {
-                    continue;
-                }
-
-                var definition = catalog != null ? catalog.Resolve(entry.CreatureId) : null;
-
-                var row = new VisualElement();
-                row.AddToClassList("roster-row");
-
-                var body = new VisualElement();
-                body.AddToClassList("roster-row__body");
-
-                var name = new Label(definition != null ? definition.DisplayName : "Unknown");
-                name.AddToClassList("roster-row__name");
-
-                var mine = hasSlot && entry.ClaimedBySlot == slot;
-                var owner = new Label(OwnerText(entry, mine));
-                owner.AddToClassList("roster-row__owner");
-                if (mine)
-                {
-                    owner.AddToClassList("roster-row__owner--mine");
-                }
-
-                body.Add(name);
-                body.Add(owner);
-                row.Add(body);
-
-                var entryId = entry.EntryId;
-
-                if (mine)
-                {
-                    row.Add(SmallButton("Release", () => m_Draft.ReleaseRpc(entryId), true));
-                }
-                else
-                {
-                    // The same predicate the server uses to decide, so the button is never enabled
-                    // for something that will be refused.
-                    var canClaim = hasSlot && m_Draft.CanClaim(slot, entryId);
-                    row.Add(SmallButton("Claim", () => m_Draft.ClaimRpc(entryId), canClaim));
-                }
-
-                if (isHost)
-                {
-                    row.Add(SmallButton("Remove", () => m_Draft.RemoveCreatureRpc(entryId), true));
-                }
-
-                m_RosterList.Add(row);
-            }
-        }
-
         string OwnerText(RosterEntry entry, bool mine)
         {
             if (!entry.IsClaimed)
             {
-                return "Unclaimed - computer";
+                return "Computer";
             }
 
-            if (mine)
-            {
-                return "Yours";
-            }
-
-            if (m_Roster != null && m_Roster.TryGetBySlot(entry.ClaimedBySlot, out var player))
-            {
-                var name = player.Name.ToString();
-                if (!string.IsNullOrEmpty(name))
-                {
-                    return name;
-                }
-            }
-
-            return $"Player {entry.ClaimedBySlot + 1}";
+            return mine ? "Yours" : OwnerName(entry.ClaimedBySlot);
         }
 
         static Button SmallButton(string text, System.Action action, bool enabled)

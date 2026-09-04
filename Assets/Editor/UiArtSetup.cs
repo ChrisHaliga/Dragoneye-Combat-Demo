@@ -23,6 +23,14 @@ namespace Dragoneye.MultiplayerEditor
     {
         const string k_Folder = "Assets/UI/Generated";
 
+        /// <summary>Everything that references these images by path, and so has to be reimported.</summary>
+        static readonly string[] k_Stylesheets =
+        {
+            "Assets/UI/SessionMenu.uss",
+            "Assets/UI/DraftPanel.uss",
+            "Assets/UI/ArenaHud.uss"
+        };
+
         // The palette. Everything else in the menu is a tint of these.
         static readonly Color32 k_Ink = new Color32(9, 11, 16, 255);
         static readonly Color32 k_Panel = new Color32(30, 34, 45, 255);
@@ -66,7 +74,16 @@ namespace Dragoneye.MultiplayerEditor
             Write("ui-glow", Glow(64));
 
             AssetDatabase.Refresh();
-            Debug.Log($"UI art baked into {k_Folder}.");
+
+            // The stylesheets name these images by path. A USS imported while they were missing
+            // keeps its unresolved references until something asks for it again, so a first run on
+            // a fresh clone would bake the art and still show a menu with no frames on it.
+            foreach (var sheet in k_Stylesheets)
+            {
+                AssetDatabase.ImportAsset(sheet, ImportAssetOptions.ForceUpdate);
+            }
+
+            Debug.Log($"UI art baked into {k_Folder}; {k_Stylesheets.Length} stylesheets reimported.");
         }
 
         // ---------- the backdrop ----------
