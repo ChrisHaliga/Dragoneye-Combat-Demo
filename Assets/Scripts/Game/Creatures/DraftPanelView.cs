@@ -376,9 +376,7 @@ namespace Dragoneye.Game
             // so it is said where it is actionable, and left out when it is not.
             var spare = m_Draft.CapFor(slot) - m_Draft.ClaimCountFor(slot);
 
-            return spare > 0 && claimed < total
-                ? line + $"  ·  {spare} MORE FOR YOU"
-                : line;
+            return spare > 0 && claimed < total ? line + $"  ·  CLAIM UP TO {spare}" : line;
         }
 
         /// <summary>
@@ -671,15 +669,27 @@ namespace Dragoneye.Game
             return label;
         }
 
-        /// <summary>Three cells of equal fixed width, so the headings line up over their numbers.</summary>
+        /// <summary>
+        /// HP / AP / SPD, with the slashes drawn rather than implied.
+        ///
+        /// Equal fixed cells with a separator between them, all centred. Written as one string the
+        /// numbers would not sit under their own captions -- a proportional font puts "24 / 5 / 4"
+        /// nowhere near "HP / AP / SPD" -- and right-aligning the cells lined up their right edges
+        /// rather than the numbers themselves.
+        /// </summary>
         static VisualElement Stats(string cellClass, string[] values)
         {
             var row = new VisualElement();
             row.AddToClassList("fighter__stats");
 
-            foreach (var value in values)
+            for (var i = 0; i < values.Length; i++)
             {
-                row.Add(Text(value, cellClass));
+                if (i > 0)
+                {
+                    row.Add(Text("/", "fighter__stat-slash"));
+                }
+
+                row.Add(Text(values[i], cellClass));
             }
 
             return row;

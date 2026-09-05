@@ -372,6 +372,38 @@ namespace Dragoneye.Game
             m_PartyChoices.Add(new PartyChoice(slot, party));
         }
 
+        /// <summary>
+        /// Server only. Undoes a departed player's part in the draft: what they claimed goes back
+        /// into the pool, and the side they picked is forgotten.
+        ///
+        /// Safe to do the moment they go, match or no match. A claim only decides who commands a
+        /// creature when one is spawned, and the creatures in a running fight were spawned long
+        /// before this.
+        /// </summary>
+        public void ServerReleaseSlot(byte slot)
+        {
+            if (!IsServer || slot == PartyInfo.Unclaimed)
+            {
+                return;
+            }
+
+            for (var i = 0; i < m_Roster.Count; i++)
+            {
+                if (m_Roster[i].ClaimedBySlot == slot)
+                {
+                    Release(i);
+                }
+            }
+
+            for (var i = m_PartyChoices.Count - 1; i >= 0; i--)
+            {
+                if (m_PartyChoices[i].Slot == slot)
+                {
+                    m_PartyChoices.RemoveAt(i);
+                }
+            }
+        }
+
         void Release(int index)
         {
             var entry = m_Roster[index];

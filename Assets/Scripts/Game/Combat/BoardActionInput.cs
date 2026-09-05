@@ -54,6 +54,25 @@ namespace Dragoneye.Game
         /// <summary>The action the cursor is currently over, with its price.</summary>
         public ActionPlan Hovered => m_Hovered;
 
+        // What the context menu needs, handed out rather than wired again. A second set of
+        // serialised references pointing at the same registry and map is a second set that can be
+        // pointed somewhere else, and the two would then disagree about what a click costs.
+
+        /// <summary>Where the mouse is, and what it is over.</summary>
+        public HexPointer Pointer => m_Pointer;
+
+        /// <summary>Who is standing where.</summary>
+        public UnitIndex Units => m_Units;
+
+        /// <summary>The arena being fought over.</summary>
+        public ArenaMap Map => m_Map;
+
+        /// <summary>What the card is showing.</summary>
+        public CreatureSelection Selection => m_Selection;
+
+        /// <summary>Routes and their cost, for the actor and the menu alike.</summary>
+        public ArenaBoard Board => m_Board;
+
         /// <summary>
         /// The creature the local player is acting with: the active one, if they control it.
         ///
@@ -134,6 +153,13 @@ namespace Dragoneye.Game
                 return PriceSkill(actor, armed, hex);
             }
 
+            // Nothing armed at all means the player has put the move away deliberately, and a click
+            // on the board is then a click on the board: it reads a card and does nothing else.
+            if (m_SkillBar == null || m_SkillBar.SelectedSkill != SkillBarView.MoveSkill)
+            {
+                return ActionPlan.Nothing;
+            }
+
             var occupied = m_Units.TryGet(hex, out _);
 
             return ActionResolver.Resolve(
@@ -144,10 +170,18 @@ namespace Dragoneye.Game
                 moveSteps: occupied ? -1 : m_Board.CostTo(actor.Cell, hex));
         }
 
-        /// <summary>The skill the bar has armed, resolved against what this creature knows.</summary>
+        /// <summary>
+        /// The skill the bar has armed, resolved against what this creature knows.
+        ///
+        /// Null for both of the bar's two non-skills -- nothing armed, and walking -- because
+        /// neither is a skill any creature knows. What each of them means to a click is decided by
+        /// the caller.
+        /// </summary>
         SkillSpec ArmedSkill(CreatureState actor)
         {
-            if (m_SkillBar == null || m_SkillBar.SelectedSkill == SkillBarView.NoSkill)
+            if (m_SkillBar == null
+                || m_SkillBar.SelectedSkill == SkillBarView.NoSkill
+                || m_SkillBar.SelectedSkill == SkillBarView.MoveSkill)
             {
                 return null;
             }

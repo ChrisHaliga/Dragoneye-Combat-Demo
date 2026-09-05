@@ -304,6 +304,12 @@ namespace Dragoneye.Multiplayer
 
         IEnumerator ReturnToMenuRoutine()
         {
+            // Being on the menu means being in no session, however we came to be here. A host that
+            // quits or drops takes its lobby with it without the service telling anybody, so
+            // waiting for an event that is never sent is what locked a guest out of hosting or
+            // joining again for the rest of the run.
+            m_Runner?.AbandonSession();
+
             ShutDownNetcode();
 
             // Shutdown is deferred, so loading a scene in the same frame would tear the scene's

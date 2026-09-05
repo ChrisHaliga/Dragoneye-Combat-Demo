@@ -45,13 +45,11 @@ namespace Dragoneye.CameraControl
         [SerializeField, Range(5f, 89f), Tooltip("Camera pitch when fully zoomed out. Higher is more top-down.")]
         float m_MaxPitch = 68f;
 
-        [SerializeField, Tooltip("Scales raw scroll input. Windows wheels report ~120 per notch, "
-             + "giving roughly ten notches across the full zoom range. If scrolling feels wrong on "
-             + "another platform, this is the knob.")]
-        float m_ZoomSensitivity = 0.0008f;
-
-        [SerializeField, Tooltip("Zoom change per pixel of vertical drag while orbit-dragging.")]
-        float m_ZoomDragSpeed = 0.0025f;
+        [SerializeField, Range(0.02f, 0.5f), Tooltip("How much of the zoom range one wheel notch "
+             + "covers. 0.2 is five notches from closest to furthest. Raw scroll is converted to "
+             + "notches first, so this means the same thing on every platform. Players have their "
+             + "own multiplier on top of it in Settings.")]
+        float m_ZoomSensitivity = 0.2f;
 
         [SerializeField, Min(0f), Tooltip("Seconds to settle on a new zoom level. 0 is instant. "
              + "Only zoom is smoothed -- cursor movement is deliberately direct.")]
@@ -73,8 +71,6 @@ namespace Dragoneye.CameraControl
         /// <summary>Signed: negative when the player has asked for inverted orbit drag.</summary>
         public float OrbitDragSpeed =>
             m_OrbitDragSpeed * GameSettings.OrbitSensitivity * GameSettings.OrbitDirection;
-
-        public float ZoomDragSpeed => m_ZoomDragSpeed * GameSettings.ZoomSensitivity;
 
         /// <summary>
         /// Camera offset from the cursor, in rig-local space. An applier copies this onto whatever

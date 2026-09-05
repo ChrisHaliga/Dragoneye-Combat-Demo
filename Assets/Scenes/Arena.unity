@@ -1132,8 +1132,7 @@ MonoBehaviour:
   m_MaxDistance: 34
   m_MinPitch: 35
   m_MaxPitch: 68
-  m_ZoomSensitivity: 0.0008
-  m_ZoomDragSpeed: 0.0025
+  m_ZoomSensitivity: 0.2
   m_ZoomSmoothTime: 0.1
 --- !u!4 &1295460252
 Transform:

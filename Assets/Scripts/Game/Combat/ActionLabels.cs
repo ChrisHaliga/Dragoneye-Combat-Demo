@@ -37,6 +37,30 @@ namespace Dragoneye.Game
         }
 
         /// <summary>
+        /// Why an action was refused, as a phrase on its own.
+        ///
+        /// <see cref="Describe"/> answers "what would this click do", which is a different question
+        /// and deliberately says nothing for the refusals not worth a cursor label. A menu that
+        /// lists an action and will not let you take it has to say why, so the reasons are spelled
+        /// out -- still in the one file that holds the wording, so a new refusal cannot be added
+        /// without deciding what the player is told.
+        /// </summary>
+        public static string DescribeRefusal(ActionRefusal refusal)
+        {
+            switch (refusal)
+            {
+                case ActionRefusal.None: return string.Empty;
+                case ActionRefusal.NotYourTurn: return "Not your turn";
+                case ActionRefusal.NotYours: return "Not yours to command";
+                case ActionRefusal.NoTarget: return "Nothing there to aim at";
+                case ActionRefusal.Unreachable: return "No route there";
+                case ActionRefusal.Occupied: return "Somebody is standing there";
+                case ActionRefusal.TooExpensive: return "Not enough action points";
+                default: return "Not allowed";
+            }
+        }
+
+        /// <summary>
         /// What the click would do and what it costs, with the walk named separately.
         ///
         /// "Strike -- 1.5 + 1 AP" rather than "Strike -- 2.5 AP", because half of that price is

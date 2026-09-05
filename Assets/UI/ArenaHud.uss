@@ -550,7 +550,88 @@
     opacity: 0.22;
 }
 
+/* ---------- context menu ---------- */
+
+/* The sheet behind the menu. Invisible, and pickable on purpose: it is what makes a click anywhere
+   else close the menu instead of reaching the board through it, so there is no other dismissal
+   handling anywhere. */
+.context-backdrop {
+    position: absolute;
+    left: 0;
+    top: 0;
+    right: 0;
+    bottom: 0;
+}
+
+.context-menu {
+    position: absolute;
+    min-width: 190px;
+    padding: 5px;
+    background-image: url("Generated/ui-panel.png");
+    -unity-slice-left: 16;
+    -unity-slice-right: 16;
+    -unity-slice-top: 16;
+    -unity-slice-bottom: 16;
+}
+
+/* A row, not a box with a word in it. These are read down a list rather than picked out of a
+   cluster, so they want to be as close together as a pointer allows. */
+.context-item {
+    flex-direction: row;
+    align-items: center;
+    height: 26px;
+    margin: 0;
+    padding: 0 9px;
+    background-color: rgba(0, 0, 0, 0);
+    background-image: none;
+    border-width: 0;
+}
+
+.context-item:hover {
+    background-color: rgba(120, 148, 200, 0.22);
+}
+
+.context-item:disabled {
+    opacity: 0.42;
+}
+
+.context-item__label {
+    flex-grow: 1;
+    font-size: 12px;
+    color: rgb(226, 222, 210);
+}
+
+.context-item__cost {
+    margin-left: 14px;
+    font-size: 10px;
+    -unity-font-style: bold;
+    letter-spacing: 1px;
+    color: rgb(139, 147, 165);
+}
+
+.context-title {
+    padding: 4px 9px 2px 9px;
+    font-size: 12px;
+    -unity-font-style: bold;
+    letter-spacing: 1px;
+    color: rgb(198, 158, 88);
+}
+
+.context-note {
+    padding: 0 9px 5px 9px;
+    font-size: 11px;
+    color: rgb(160, 168, 186);
+    white-space: normal;
+}
+
 /* ---------- skill bar ---------- */
+
+/* Walking. In the bar with everything else, because that is where a player looks to see what this
+   turn can do -- and it is armed when a turn starts, so "what does a click do right now" is
+   something they can see rather than a rule they have to remember. */
+.skill-button--move {
+    -unity-background-image-tint-color: rgb(178, 190, 214);
+}
 
 .skill-bar {
     flex-direction: row;

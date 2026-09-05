@@ -128,12 +128,12 @@ namespace Dragoneye.CameraControl
 
             var pointerDelta = m_PointerDelta.ReadValue<Vector2>();
 
-            // Right-drag orbits and zooms in one gesture: horizontal matches Q/E, vertical matches
-            // the scroll wheel. It takes priority so the two drag gestures cannot fight.
+            // Right-drag orbits, and only orbits. It used to zoom on the vertical too, which
+            // made every attempt to turn the camera also change how far away it was -- and playing
+            // with it, that is not a gesture anybody asked for. The wheel zooms.
             if (m_OrbitDrag.IsPressed())
             {
                 m_Rig.AddYaw(CameraRigMath.OrbitDragYaw(pointerDelta, m_Rig.OrbitDragSpeed));
-                m_Rig.AddZoom(CameraRigMath.OrbitDragZoom(pointerDelta, m_Rig.ZoomDragSpeed));
             }
             else if (m_DragPan.IsPressed() && focus != null)
             {

@@ -84,29 +84,36 @@ namespace Dragoneye.CameraControl
         public static float OrbitDragYaw(Vector2 pixelDelta, float degreesPerPixel) =>
             pixelDelta.x * degreesPerPixel;
 
-        /// <summary>
-        /// Zoom change from a vertical drag. Dragging down pulls the camera back, matching the
-        /// sense of dragging the world toward you.
-        /// </summary>
-        public static float OrbitDragZoom(Vector2 pixelDelta, float zoomPerPixel,
-            float maxPerFrame = 0.25f) =>
-            Mathf.Clamp(-pixelDelta.y * zoomPerPixel, -maxPerFrame, maxPerFrame);
+        /// <summary>What a Windows mouse wheel reports for one detent.</summary>
+        const float RawPerNotch = 120f;
 
         /// <summary>
-        /// Normalises a scroll-wheel reading into a zoom delta.
+        /// Turns a scroll-wheel reading into a zoom delta.
         ///
-        /// Raw scroll values are wildly inconsistent: a Windows mouse wheel reports 120 per notch
-        /// while a trackpad emits a stream of small values. Scaling and then clamping keeps one
-        /// notch meaningful without letting a trackpad fling cross the whole zoom range in a frame.
+        /// Raw scroll values are wildly inconsistent, and not by a small factor: a Windows wheel
+        /// reports 120 per detent while other setups report 1, and a trackpad emits a stream of
+        /// fractions. Scaling that raw number directly is what made zoom feel a hundred times too
+        /// slow on some machines and fine on others -- the sensitivity was doing the job of a unit
+        /// conversion as well as its own.
+        ///
+        /// So the reading is converted to notches first, and <paramref name="perNotch"/> then means
+        /// exactly what it says: how much of the zoom range one detent covers. Anything above one
+        /// is taken to be in the 120-per-notch convention; anything at or below it is already in
+        /// notches, so a trackpad's fractions stay fractions.
+        ///
+        /// The clamp is for flings, not for ordinary scrolling. A default that reached it would
+        /// make the clamp the zoom speed and throw away every finer movement.
         /// </summary>
-        public static float ZoomDelta(float rawScroll, float sensitivity, float maxPerFrame = 0.25f)
+        public static float ZoomDelta(float rawScroll, float perNotch, float maxPerFrame = 0.25f)
         {
             if (Mathf.Approximately(rawScroll, 0f))
             {
                 return 0f;
             }
 
-            return Mathf.Clamp(-rawScroll * sensitivity, -maxPerFrame, maxPerFrame);
+            var notches = Mathf.Abs(rawScroll) > 1f ? rawScroll / RawPerNotch : rawScroll;
+
+            return Mathf.Clamp(-notches * perNotch, -maxPerFrame, maxPerFrame);
         }
     }
 }

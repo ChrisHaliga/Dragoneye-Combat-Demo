@@ -282,13 +282,21 @@
     margin-left: 8px;
 }
 
-/* Equal and fixed. Sized to their own text, a heading would sit over whichever number happened to
-   be the same width as it. */
+/* Equal, fixed and centred, so a caption sits over its own number. Sized to their own text they
+   would not, and right-aligning them lined up the right-hand edges rather than the digits. */
 .fighter__stat-head,
 .fighter__stat-value {
-    width: 30px;
+    width: 22px;
     font-size: 11px;
-    -unity-text-align: middle-right;
+    -unity-text-align: middle-center;
+}
+
+/* The slashes. Drawn rather than implied, and dim enough to separate without competing. */
+.fighter__stat-slash {
+    width: 7px;
+    font-size: 10px;
+    -unity-text-align: middle-center;
+    color: rgb(78, 85, 102);
 }
 
 /* The captions: dimmer and italic, so the row reads as a name with a legend after it rather than

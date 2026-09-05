@@ -305,6 +305,10 @@ costs to stand where every character used to start, so no spread that fitted bef
 Dumping an attribute to zero is a real choice that pays for something. The budget and the ceiling are
 authored on `ContentCatalog`, not compiled.
 
+**Camera** — the wheel zooms and a right-drag turns. Raw scroll is converted to *notches* before
+being scaled (a Windows wheel reports 120 per detent, other setups report 1), so one notch means the
+same thing everywhere; the default is five notches from closest to furthest. Dragging does not zoom.
+
 **Levels** — start at 1, cap at 20. A level costs `2^level` experience. Killing a creature is worth
 its level. Multiple levels resolve in one pass (`Progression.Resolve`) so a character out of a long
 fight is asked what it becomes once, not once per level.
@@ -387,6 +391,15 @@ do nothing at all.
 
 Redraw only when something actually changed. The same shape of bug returned in the portrait picker,
 where the click handler rebuilt the row it had just been clicked in.
+
+### The world reads the mouse; the HUD does not get a say unless you ask
+
+`HexPointer` reads the pointer straight off the Input System, which has never heard of UI Toolkit.
+So a click on a skill button was *also* a click on whatever tile happened to be drawn behind it, and
+the turn went on walking there. `PickingMode.Ignore` on the HUD root does not help — that is about
+which element UI Toolkit hands the event to, not about whether the Input System also saw it.
+
+Anything that acts on a raw pointer press has to ask `PointerOverUi.AtScreenPoint` first.
 
 ### An editor step you forgot to run looks like a content bug
 

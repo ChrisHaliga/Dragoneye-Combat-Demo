@@ -71,14 +71,28 @@ namespace Dragoneye.Game
         /// One route search per candidate tile, which is thirty-seven at reach three -- affordable
         /// on a board this size, and asked once per hover rather than once per frame.
         /// </summary>
-        public int StepsToReach(Hex from, Hex target, int reach)
+        public int StepsToReach(Hex from, Hex target, int reach) =>
+            TryTileInReach(from, target, reach, out _, out var steps) ? steps : -1;
+
+        /// <summary>
+        /// The nearest tile this creature could stand on and still have the target within reach.
+        ///
+        /// The same search <see cref="StepsToReach"/> answers, returning where as well as how far.
+        /// One implementation, because a menu offering to walk somewhere and a label pricing the
+        /// walk must not be able to pick different tiles.
+        /// </summary>
+        /// <returns>False when there is no route to anywhere in reach.</returns>
+        public bool TryTileInReach(Hex from, Hex target, int reach, out Hex tile, out int steps)
         {
             if (CombatRules.InRange(Hex.Distance(from, target), reach))
             {
-                return 0;
+                tile = from;
+                steps = 0;
+                return true;
             }
 
-            var best = -1;
+            tile = from;
+            steps = -1;
 
             foreach (var candidate in Hex.Range(target, reach))
             {
@@ -87,17 +101,18 @@ namespace Dragoneye.Game
                     continue;
                 }
 
-                var steps = CostTo(from, candidate);
+                var cost = CostTo(from, candidate);
 
-                if (steps < 0 || (best >= 0 && steps >= best))
+                if (cost < 0 || (steps >= 0 && cost >= steps))
                 {
                     continue;
                 }
 
-                best = steps;
+                steps = cost;
+                tile = candidate;
             }
 
-            return best;
+            return steps >= 0;
         }
 
         public bool HasOpenNeighbour(Hex from)

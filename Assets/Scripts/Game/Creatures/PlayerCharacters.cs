@@ -260,6 +260,11 @@ namespace Dragoneye.Game
 
         readonly NetworkList<NetBuild> m_Builds = new NetworkList<NetBuild>();
         readonly NetworkList<XpAward> m_Xp = new NetworkList<XpAward>();
+
+        // Players who left while a fight was still going. Their characters are on the board and
+        // every one of them reads what it is from the build here, so the build cannot go until the
+        // board has.
+        readonly List<byte> m_Departed = new List<byte>();
         readonly List<NetBuild> m_View = new List<NetBuild>();
         readonly List<BuildFault> m_Faults = new List<BuildFault>();
 
@@ -452,6 +457,75 @@ namespace Dragoneye.Game
             return build != null && m_Content != null
                 ? LoadoutResolver.Resolve(build, m_Content)
                 : null;
+        }
+
+        /// <summary>
+        /// Server only. Takes back the character a departed player brought.
+        ///
+        /// Deferred while the arena is up. A creature resolves what it is from its owner's build
+        /// every time it is asked, so pulling the build out mid-fight would turn that player's
+        /// character into a nameless one-hit-point nobody in front of everybody still playing.
+        /// In the lobby, which is where this matters and where it was reported, it happens at once.
+        /// </summary>
+        public void ServerReleaseSlot(byte slot)
+        {
+            if (!IsServer || slot == PartyInfo.Unclaimed)
+            {
+                return;
+            }
+
+            if (ArenaContext.Current != null)
+            {
+                if (!m_Departed.Contains(slot))
+                {
+                    m_Departed.Add(slot);
+                }
+
+                return;
+            }
+
+            Forget(slot);
+        }
+
+        /// <summary>
+        /// Clears out anyone who left mid-match, once the match is over.
+        ///
+        /// Polled rather than hung off the end of a fight, because there is more than one way for
+        /// one to end -- won, host left, connection lost -- and a hook on any of them is a hook the
+        /// others skip. The arena being gone is the one fact common to all of them.
+        /// </summary>
+        void Update()
+        {
+            if (!IsServer || m_Departed.Count == 0 || ArenaContext.Current != null)
+            {
+                return;
+            }
+
+            foreach (var slot in m_Departed)
+            {
+                Forget(slot);
+            }
+
+            m_Departed.Clear();
+        }
+
+        void Forget(byte slot)
+        {
+            for (var i = m_Builds.Count - 1; i >= 0; i--)
+            {
+                if (m_Builds[i].Slot == slot)
+                {
+                    m_Builds.RemoveAt(i);
+                }
+            }
+
+            for (var i = m_Xp.Count - 1; i >= 0; i--)
+            {
+                if (m_Xp[i].Slot == slot)
+                {
+                    m_Xp.RemoveAt(i);
+                }
+            }
         }
 
         /// <summary>Client-side entry point. Offers this player's character to the host.</summary>

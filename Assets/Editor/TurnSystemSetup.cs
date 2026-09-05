@@ -1,4 +1,5 @@
 using Dragoneye.Game;
+using Unity.Netcode;
 using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
@@ -18,6 +19,7 @@ namespace Dragoneye.MultiplayerEditor
         const string k_BootScene = "Assets/Scenes/Bootstrap.unity";
         const string k_MatchPrefab = "Assets/NGO_Minimal_Setup/DraftState.prefab";
         const string k_UnitPrefab = "Assets/NGO_Minimal_Setup/Unit.prefab";
+        const string k_TurnObject = "Turn State";
 
         /// <summary>Runs the whole step. Called directly by the master setup.</summary>
         internal static void Run()
@@ -36,52 +38,66 @@ namespace Dragoneye.MultiplayerEditor
         }
 
         /// <summary>
-        /// Adds the turn state to the object that already carries the draft and the roster.
+        /// Puts on the match prefab what belongs to a match, and takes off it what belongs to a
+        /// fight.
         ///
-        /// That prefab is the match-wide networked object: spawned when the server starts and
-        /// carried into the arena, which is exactly the lifetime a turn order needs. A second prefab
-        /// would need its own NetworkPrefabsList entry and its own spawn call for no gain.
+        /// That prefab is spawned when the server starts and carried into the arena and back, which
+        /// is the right lifetime for the draft, the roster and the characters players bring -- all
+        /// of those outlive any one fight.
+        ///
+        /// The turn order does not, and it used to live here anyway. An initiative order, a round
+        /// number and a winner are facts about one fight, and keeping them on an object that
+        /// survives into the lobby meant a freshly loaded arena spent its first frames showing the
+        /// previous match's result to everyone in it. They live in the arena scene now, where they
+        /// are created and destroyed with the board they describe.
         /// </summary>
         static bool SetUpMatchPrefab()
         {
             var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(k_MatchPrefab);
             if (prefab == null)
             {
-                Debug.LogError($"No prefab at {k_MatchPrefab}; cannot install the turn state.");
+                Debug.LogError($"No prefab at {k_MatchPrefab}; cannot install the match objects.");
                 return false;
             }
 
-            var added = false;
-
-            if (prefab.GetComponent<TurnState>() == null)
-            {
-                prefab.AddComponent<TurnState>();
-                added = true;
-            }
-
-            if (prefab.GetComponent<TurnCommands>() == null)
-            {
-                prefab.AddComponent<TurnCommands>();
-                added = true;
-            }
+            var changed = false;
 
             // The characters players bring. On the match object because it has to exist from the
             // lobby, where they are submitted, through to the arena, where they are spawned.
             if (prefab.GetComponent<PlayerCharacters>() == null)
             {
                 prefab.AddComponent<PlayerCharacters>();
-                added = true;
+                changed = true;
             }
 
-            if (added)
+            // Moved to the arena. TurnCommands travels with it -- it requires TurnState and is
+            // fetched off the same object.
+            changed |= Strip<TurnCommands>(prefab);
+            changed |= Strip<TurnState>(prefab);
+
+            if (changed)
             {
                 PrefabUtility.SavePrefabAsset(prefab);
             }
 
-            Debug.Log(added
-                ? "Turn state and player characters added to the match prefab."
-                : "Match prefab already carries the turn state and player characters.");
+            Debug.Log(changed
+                ? "Match prefab updated: turn state moved out, player characters in."
+                : "Match prefab already correct.");
 
+            return true;
+        }
+
+        /// <summary>Removes a component from a prefab, if it is still on it.</summary>
+        static bool Strip<T>(GameObject prefab) where T : Component
+        {
+            var existing = prefab.GetComponent<T>();
+
+            if (existing == null)
+            {
+                return false;
+            }
+
+            Object.DestroyImmediate(existing, allowDestroyingAssets: true);
             return true;
         }
 
@@ -165,6 +181,8 @@ namespace Dragoneye.MultiplayerEditor
                 return;
             }
 
+            SetUpTurnState();
+
             var director = Ensure<CombatDirector>(host);
             Assign(director, ("m_Creatures", creatures), ("m_Units", units), ("m_Map", map));
 
@@ -190,6 +208,36 @@ namespace Dragoneye.MultiplayerEditor
                 + "Delete Assets/Editor/TurnSystemSetup.cs once you have verified play mode.");
         }
 
+        /// <summary>
+        /// The turn order, as an object in the arena scene.
+        ///
+        /// An in-scene networked object rather than a spawned one, because that is precisely the
+        /// lifetime wanted: NGO spawns it when the server loads this scene and destroys it when the
+        /// scene goes, so a fight's order cannot outlive the fight. Nothing has to remember to
+        /// clear it, which is the whole reason for moving it off the match prefab.
+        ///
+        /// Its own object rather than a component on the arena context, so that what is replicated
+        /// and what is local stay visibly separate in the hierarchy.
+        /// </summary>
+        static void SetUpTurnState()
+        {
+            var existing = Object.FindAnyObjectByType<TurnState>();
+            var host = existing != null ? existing.gameObject : GameObject.Find(k_TurnObject);
+
+            if (host == null)
+            {
+                host = new GameObject(k_TurnObject);
+            }
+
+            // The NetworkObject first: adding it is what earns the scene id that lets clients match
+            // this object to the host's.
+            Ensure<NetworkObject>(host);
+            Ensure<TurnState>(host);
+            Ensure<TurnCommands>(host);
+
+            EditorUtility.SetDirty(host);
+        }
+
         static void SetUpHud(CreatureRegistry creatures, UnitIndex units,
             Dragoneye.Hex.Systems.ArenaMap map, BoardActionInput input, CreatureSelection selection)
         {
@@ -211,6 +259,12 @@ namespace Dragoneye.MultiplayerEditor
 
             var controls = Ensure<TurnControlsView>(hud);
             Assign(controls, ("m_Input", input), ("m_Map", map), ("m_Units", units));
+
+            // Right-click asks what can be done here. It takes only the board input, because that
+            // already holds the map, the units and the routes -- a second set of references
+            // pointing at the same things is a second set that can be pointed somewhere else.
+            var context = Ensure<ContextMenuView>(hud);
+            Assign(context, ("m_Input", input));
         }
 
         /// <summary>

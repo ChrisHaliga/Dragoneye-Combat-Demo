@@ -360,6 +360,51 @@ namespace Dragoneye.Multiplayer
         }
 
         /// <summary>
+        /// Gives up the session handle without waiting for the service to agree.
+        ///
+        /// For the case the events do not cover. A host quitting or dropping off the network takes
+        /// its lobby with it, but a client only ever learns that through netcode -- no Deleted and
+        /// no RemovedFromSession arrives, because nothing is left to send one. The handle then sits
+        /// here looking exactly like a session the player is still in, and
+        /// <see cref="CanStartOperation"/> refuses every later host and join with AlreadyInSession
+        /// until the game is restarted. Which is what happened.
+        ///
+        /// Called on the way back to the menu, so "there is no session" is true of being on the
+        /// menu rather than true of having left politely.
+        ///
+        /// Idempotent, and a no-op after a clean leave, which has already detached.
+        /// </summary>
+        public void AbandonSession()
+        {
+            var abandoned = Session;
+
+            if (abandoned == null)
+            {
+                return;
+            }
+
+            DetachSession();
+            SetPhase(SessionPhase.Idle);
+
+            // Best effort, and nobody waits on it: the lobby has almost certainly gone with the
+            // host, and if it has not the service will time this player out of it on its own.
+            TaskUtil.Forget(LeaveQuietlyAsync(abandoned));
+        }
+
+        static async Task LeaveQuietlyAsync(ISession session)
+        {
+            try
+            {
+                await session.LeaveAsync();
+            }
+            catch (Exception e)
+            {
+                // Expected when the lobby is already gone, which is the usual reason for being here.
+                Debug.Log($"Leaving an abandoned session reported: {e.Message}");
+            }
+        }
+
+        /// <summary>
         /// Publishes our ready flag to everyone else in the lobby.
         /// Returns false if the write failed, in which case the caller should re-sync its UI from
         /// <see cref="IsPlayerReady"/> -- lobby player-data writes are rate limited, so a player

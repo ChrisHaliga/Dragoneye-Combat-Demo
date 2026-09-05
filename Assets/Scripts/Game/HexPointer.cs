@@ -34,6 +34,21 @@ namespace Dragoneye.Game
 
         InputAction m_PointerPosition;
         InputAction m_Select;
+        InputAction m_RightButton;
+
+        // Where the right button went down, so a press that turned the camera can be told from one
+        // that only asked a question.
+        Vector2 m_RightDownAt;
+        bool m_RightDown;
+
+        /// <summary>
+        /// How far the pointer may travel between a right press and its release and still count as
+        /// a click rather than a drag.
+        ///
+        /// Generous enough to survive a hand that is not quite still, tight enough that a
+        /// deliberate turn of the camera never opens a menu on top of it.
+        /// </summary>
+        const float k_ClickSlop = 6f;
 
         /// <summary>The hex under the cursor, or null when the cursor is off the map.</summary>
         public Hex? Hovered { get; private set; }
@@ -43,6 +58,16 @@ namespace Dragoneye.Game
 
         /// <summary>Raised whenever <see cref="Hovered"/> changes, including to null.</summary>
         public event Action<Hex?> HoverChanged;
+
+        /// <summary>
+        /// Raised when the right button is pressed and released on the same spot over a hex.
+        ///
+        /// The right button already turns the camera, so the two have to be told apart, and the
+        /// distinction is movement rather than time: a press that went nowhere was a question, and
+        /// a press that dragged was a gesture. Carries the screen position as well as the hex,
+        /// because whatever answers has to appear where the player asked.
+        /// </summary>
+        public event Action<Hex, Vector2> ContextRequested;
 
         void Awake()
         {
@@ -63,6 +88,11 @@ namespace Dragoneye.Game
 
             m_PointerPosition = map.FindAction("PointerPosition", throwIfNotFound: true);
             m_Select = map.FindAction("Select", throwIfNotFound: true);
+
+            // The right button, under the name the camera gave it. One button, two meanings, and
+            // one place that decides which -- a second action bound to the same control would be
+            // two places that each think they own it.
+            m_RightButton = map.FindAction("OrbitDrag", throwIfNotFound: true);
         }
 
         void OnEnable()
@@ -70,6 +100,12 @@ namespace Dragoneye.Game
             if (m_Select != null)
             {
                 m_Select.performed += OnSelectPerformed;
+            }
+
+            if (m_RightButton != null)
+            {
+                m_RightButton.started += OnRightPressed;
+                m_RightButton.canceled += OnRightReleased;
             }
         }
 
@@ -80,6 +116,13 @@ namespace Dragoneye.Game
                 m_Select.performed -= OnSelectPerformed;
             }
 
+            if (m_RightButton != null)
+            {
+                m_RightButton.started -= OnRightPressed;
+                m_RightButton.canceled -= OnRightReleased;
+            }
+
+            m_RightDown = false;
             SetHovered(null);
         }
 
@@ -125,6 +168,15 @@ namespace Dragoneye.Game
 
         void OnSelectPerformed(InputAction.CallbackContext _)
         {
+            // The HUD gets first refusal. This reads the mouse straight off the Input System, which
+            // has never heard of UI Toolkit, so without asking, a click on a skill button was also
+            // a click on whichever tile was drawn behind it -- and the turn went on walking there.
+            if (m_PointerPosition != null
+                && PointerOverUi.AtScreenPoint(m_PointerPosition.ReadValue<Vector2>()))
+            {
+                return;
+            }
+
             // Resolved fresh rather than reusing the cached hover: a click can arrive before this
             // component's Update has run for the frame.
             var hex = Resolve();
@@ -133,5 +185,45 @@ namespace Dragoneye.Game
                 Clicked?.Invoke(hex.Value);
             }
         }
+
+        void OnRightPressed(InputAction.CallbackContext _)
+        {
+            m_RightDownAt = Position();
+            m_RightDown = true;
+        }
+
+        void OnRightReleased(InputAction.CallbackContext _)
+        {
+            if (!m_RightDown)
+            {
+                return;
+            }
+
+            m_RightDown = false;
+
+            var position = Position();
+
+            // A press that moved was the camera being turned, and putting a menu on top of the
+            // gesture that just ended is the last thing the player asked for.
+            if ((position - m_RightDownAt).sqrMagnitude > k_ClickSlop * k_ClickSlop)
+            {
+                return;
+            }
+
+            if (PointerOverUi.AtScreenPoint(position))
+            {
+                return;
+            }
+
+            var hex = Resolve();
+
+            if (hex.HasValue)
+            {
+                ContextRequested?.Invoke(hex.Value, position);
+            }
+        }
+
+        Vector2 Position() =>
+            m_PointerPosition != null ? m_PointerPosition.ReadValue<Vector2>() : Vector2.zero;
     }
 }

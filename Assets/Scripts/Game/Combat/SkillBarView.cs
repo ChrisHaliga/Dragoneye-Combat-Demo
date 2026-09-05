@@ -34,11 +34,25 @@ namespace Dragoneye.Game
         uint m_DrawnFor;
         Ap m_DrawnAp;
         int m_DrawnPool;
-        int m_DrawnSelected = -1;
+        // Not -1: that is a real selection now, and a sentinel that collides with one means the
+        // first draw of a turn is skipped.
+        int m_DrawnSelected = int.MinValue;
         int m_DrawnCount = -1;
 
-        /// <summary>No skill armed; a board click means move or attack.</summary>
+        /// <summary>
+        /// Nothing armed. A board click inspects and does nothing else.
+        ///
+        /// Zero because no skill may be authored with that id, so it cannot be mistaken for one.
+        /// </summary>
         public const int NoSkill = 0;
+
+        /// <summary>
+        /// Walking, armed the same way a skill is.
+        ///
+        /// Negative for the same reason <see cref="NoSkill"/> is zero: authored ids start at one,
+        /// so neither can collide with a real skill.
+        /// </summary>
+        public const int MoveSkill = -1;
 
         /// <summary>The skill the next board click will use, or <see cref="NoSkill"/>.</summary>
         public int SelectedSkill => m_Selected;
@@ -99,6 +113,14 @@ namespace Dragoneye.Game
                 return;
             }
 
+            // A turn starts ready to walk. Moving is what a player does most of, and making the
+            // common case the one that needs a click first is backwards. Clicking Move again puts
+            // it away, and with nothing armed a stray click on the board costs nothing.
+            if (m_DrawnFor != actor.TurnId)
+            {
+                m_Selected = MoveSkill;
+            }
+
             var pool = actor.GetComponent<CreaturePool>();
             var poolHash = pool != null ? Hash(pool.Ledger.Pool) : 0;
             var count = SkillCount(actor);
@@ -155,6 +177,8 @@ namespace Dragoneye.Game
                 return;
             }
 
+            m_Bar.Add(BuildMoveButton());
+
             var ledger = pool.Ledger;
             var worstReason = SkillRefusal.None;
 
@@ -207,6 +231,41 @@ namespace Dragoneye.Game
             }
 
             m_Selected = NoSkill;
+        }
+
+        /// <summary>
+        /// Walking, as something you arm rather than something a click means by default.
+        ///
+        /// It sits in the bar with everything else because that is where a player looks to see what
+        /// this turn can do, and because "what does a click do right now" then has one answer they
+        /// can see rather than a rule they have to remember.
+        /// </summary>
+        VisualElement BuildMoveButton()
+        {
+            var button = new Button();
+            button.AddToClassList("skill-button");
+            button.AddToClassList("skill-button--move");
+            button.EnableInClassList("skill-button--selected", m_Selected == MoveSkill);
+
+            var name = new Label("Move");
+            name.AddToClassList("skill-button__name");
+            button.Add(name);
+            button.text = string.Empty;
+
+            var costs = new VisualElement();
+            costs.AddToClassList("skill-button__cost");
+
+            var ap = new Label("½ AP / TILE");
+            ap.AddToClassList("skill-button__ap");
+            costs.Add(ap);
+            button.Add(costs);
+
+            button.tooltip = "Walk. Half an action point for every tile of the route. "
+                + "Click again to put it away.";
+
+            button.clicked += () => m_Selected = m_Selected == MoveSkill ? NoSkill : MoveSkill;
+
+            return button;
         }
 
         VisualElement BuildButton(SkillSpec skill, SkillRefusal refusal)

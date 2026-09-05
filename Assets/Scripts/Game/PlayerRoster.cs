@@ -68,6 +68,7 @@ namespace Dragoneye.Game
                 }
 
                 NetworkManager.OnClientConnectedCallback += OnClientConnected;
+                NetworkManager.OnClientDisconnectCallback += OnClientDisconnected;
             }
 
             // Every peer reports its own name, including the host. Previously only the host's name
@@ -110,6 +111,7 @@ namespace Dragoneye.Game
             if (IsServer && NetworkManager != null)
             {
                 NetworkManager.OnClientConnectedCallback -= OnClientConnected;
+                NetworkManager.OnClientDisconnectCallback -= OnClientDisconnected;
             }
 
             if (Current == this)
@@ -121,6 +123,45 @@ namespace Dragoneye.Game
         void OnListChanged(NetworkListEvent<PlayerEntry> _) => Changed?.Invoke();
 
         void OnClientConnected(ulong clientId) => Register(clientId, string.Empty);
+
+        /// <summary>
+        /// Server only. Gives back everything a player was holding when they go.
+        ///
+        /// Nothing did this at all. A guest who left stayed in the lobby as a character nobody
+        /// could control, kept whatever they had claimed out of the pool, and on rejoining was
+        /// handed a fresh slot -- so they appeared twice and could command neither.
+        ///
+        /// The other two are told rather than notified. An event would need every listener to have
+        /// spawned and subscribed before the first disconnect, and these three ride the same prefab
+        /// with no guaranteed order between them -- which is exactly the kind of "works if you do it
+        /// in the right order" this is here to stop. Slots are handed out here, so they are taken
+        /// back here.
+        /// </summary>
+        void OnClientDisconnected(ulong clientId)
+        {
+            if (!IsServer)
+            {
+                return;
+            }
+
+            m_ReportedNames.Remove(clientId);
+
+            for (var i = 0; i < m_Entries.Count; i++)
+            {
+                if (m_Entries[i].ClientId != clientId)
+                {
+                    continue;
+                }
+
+                var slot = (byte)m_Entries[i].Slot;
+
+                DraftState.Current?.ServerReleaseSlot(slot);
+                PlayerCharacters.Current?.ServerReleaseSlot(slot);
+
+                m_Entries.RemoveAt(i);
+                return;
+            }
+        }
 
         /// <summary>Server only. Assigns the next free slot, or returns the existing one.</summary>
         public int Register(ulong clientId, string name)

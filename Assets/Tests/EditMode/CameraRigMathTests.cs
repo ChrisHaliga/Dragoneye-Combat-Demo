@@ -132,24 +132,11 @@ namespace Dragoneye.Hex.Tests
         }
 
         [Test]
-        public void VerticalDragDoesNotOrbitAndHorizontalDragDoesNotZoom()
+        public void VerticalDragDoesNothing()
         {
-            // The two axes of a right-drag must stay independent, or the gesture feels mushy.
+            // A right-drag turns the camera and does not move it. It used to zoom on the vertical
+            // as well, so every attempt to turn also changed how far away the camera was.
             Assert.AreEqual(0f, CameraRigMath.OrbitDragYaw(new Vector2(0f, 100f), 0.25f));
-            Assert.AreEqual(0f, CameraRigMath.OrbitDragZoom(new Vector2(100f, 0f), 0.0025f));
-        }
-
-        [Test]
-        public void DraggingDownZoomsOut()
-        {
-            Assert.Greater(CameraRigMath.OrbitDragZoom(new Vector2(0f, -100f), 0.0025f), 0f);
-            Assert.Less(CameraRigMath.OrbitDragZoom(new Vector2(0f, 100f), 0.0025f), 0f);
-        }
-
-        [Test]
-        public void DragZoomIsClampedLikeScrollZoom()
-        {
-            Assert.AreEqual(0.25f, CameraRigMath.OrbitDragZoom(new Vector2(0f, -100000f), 0.0025f), 1e-4f);
         }
 
         [Test]
@@ -198,37 +185,53 @@ namespace Dragoneye.Hex.Tests
         public void ScrollingUpZoomsIn()
         {
             // Positive scroll (wheel away from you) should reduce zoom, i.e. move closer.
-            Assert.Less(CameraRigMath.ZoomDelta(120f, 0.0008f), 0f);
-            Assert.Greater(CameraRigMath.ZoomDelta(-120f, 0.0008f), 0f);
+            Assert.Less(CameraRigMath.ZoomDelta(120f, Notch), 0f);
+            Assert.Greater(CameraRigMath.ZoomDelta(-120f, Notch), 0f);
         }
 
         [Test]
         public void NoScrollProducesNoZoom()
         {
-            Assert.AreEqual(0f, CameraRigMath.ZoomDelta(0f, 0.0008f));
+            Assert.AreEqual(0f, CameraRigMath.ZoomDelta(0f, Notch));
         }
 
         [Test]
         public void AWildTrackpadFlingCannotCrossTheWholeZoomRange()
         {
             // Trackpads can emit huge bursts; one frame must never jump the entire range.
-            var delta = CameraRigMath.ZoomDelta(100000f, 0.0008f);
+            var delta = CameraRigMath.ZoomDelta(100000f, Notch);
 
             Assert.AreEqual(-0.25f, delta, 1e-4f);
         }
 
         [Test]
+        public void ANotchIsANotchWhateverThePlatformCallsIt()
+        {
+            // A Windows wheel reports 120 per detent and other setups report 1. Scaling the raw
+            // number directly made the same sensitivity mean two things a hundred-odd times apart,
+            // which is why zoom felt unusably slow on some machines and fine on others.
+            Assert.AreEqual(CameraRigMath.ZoomDelta(1f, Notch), CameraRigMath.ZoomDelta(120f, Notch),
+                1e-5f);
+
+            // And a trackpad's fractions of a notch stay fractions rather than rounding up to one.
+            Assert.Less(
+                Mathf.Abs(CameraRigMath.ZoomDelta(0.1f, Notch)),
+                Mathf.Abs(CameraRigMath.ZoomDelta(1f, Notch)));
+        }
+
+        [Test]
         public void OneWheelNotchIsAMeaningfulButSmallStep()
         {
-            // A Windows wheel notch reports 120. It should move the camera noticeably without
-            // being so coarse that the range is only a few steps wide.
-            var delta = Mathf.Abs(CameraRigMath.ZoomDelta(120f, 0.0008f));
+            var delta = Mathf.Abs(CameraRigMath.ZoomDelta(120f, Notch));
 
-            Assert.Greater(delta, 0.02f, "A notch should do something visible");
+            Assert.Greater(delta, 0.05f, "A notch should do something visible");
 
             // Strictly below the per-frame clamp: if a normal notch saturates the trackpad-fling
             // guard, then wheel and trackpad feel identical and sensitivity has stopped mattering.
-            Assert.Less(delta, 0.2f, "A notch should not saturate the fling clamp");
+            Assert.Less(delta, 0.25f, "A notch should not saturate the fling clamp");
         }
+
+        /// <summary>The shipped default: five notches from closest to furthest out.</summary>
+        const float Notch = 0.2f;
     }
 }
