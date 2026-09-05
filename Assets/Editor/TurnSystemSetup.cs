@@ -274,6 +274,9 @@ namespace Dragoneye.MultiplayerEditor
             // it is not your turn, which is exactly the moment nothing else on screen is for you.
             var prompt = Ensure<ClashPromptView>(hud);
             Assign(prompt, ("m_Input", input));
+
+            // What the exchange came to, in one line everybody can read.
+            Ensure<ClashResultView>(hud);
         }
 
         /// <summary>

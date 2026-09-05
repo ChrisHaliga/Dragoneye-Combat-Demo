@@ -509,27 +509,12 @@ namespace Dragoneye.Game
 
             attacker.GetComponent<SkillCommands>()?.ServerRecordUse(skill.Id);
 
-            AnnounceClash(attacker, defender, reveal);
+            ClashCommands.Current?.ServerAnnounce(attacker.TurnId, defender.TurnId, skill.Id,
+                reveal.Attacker, reveal.Defender, reveal.Outcome);
             ResolveContested(attacker, skill, defender, clash.Scale(skill.Effect));
 
             // The attack is over, so whatever the pause was holding up can go on.
             ClashCommands.Current?.ServerClearPrompt();
-        }
-
-        /// <summary>What both sides put up, over the heads of the two creatures that put it up.</summary>
-        static void AnnounceClash(CreatureState attacker, CreatureState defender, ClashReveal reveal)
-        {
-            CombatNotices.Raise(attacker.TurnId, ClashLabels.Committed(reveal.Attacker),
-                NoticeTone.Loss);
-
-            if (reveal.Defender.Count > 0)
-            {
-                CombatNotices.Raise(defender.TurnId, ClashLabels.Committed(reveal.Defender),
-                    NoticeTone.Loss);
-            }
-
-            CombatNotices.Raise(defender.TurnId, ClashLabels.Describe(reveal.Outcome),
-                reveal.Outcome == ClashOutcome.AttackerWins ? NoticeTone.Loss : NoticeTone.Gain);
         }
 
         /// <summary>

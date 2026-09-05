@@ -39,6 +39,16 @@ namespace Dragoneye.Game
         /// <summary>Raised when the question is no longer open, answered or otherwise.</summary>
         public static event Action Closed;
 
+        /// <summary>
+        /// Raised on every peer once a clash is over, with what both sides put up.
+        ///
+        /// Broadcast rather than left to the machine running the fight. The announcement used to be
+        /// raised straight onto the server's own event, which meant a client watching their own
+        /// creature get attacked saw nothing happen at all -- and "did they even defend?" is the
+        /// one question a clash exists to answer.
+        /// </summary>
+        public static event Action<ClashReport> Resolved;
+
         // Server-side: who was asked, so an answer arriving from anybody else is ignored.
         CreatureState m_Asked;
 
@@ -124,6 +134,58 @@ namespace Dragoneye.Game
 
         [Rpc(SendTo.SpecifiedInParams)]
         void ClosedRpc(RpcParams rpc = default) => Closed?.Invoke();
+
+        /// <summary>
+        /// Server only. Tells everybody how a clash came out.
+        ///
+        /// Safe to broadcast, and only now: by the time this runs both commitments have been
+        /// revealed, so there is nothing left in it anybody was not entitled to.
+        /// </summary>
+        public void ServerAnnounce(uint attackerId, uint defenderId, int skillId,
+            IReadOnlyList<Element> attacker, IReadOnlyList<Element> defender, ClashOutcome outcome)
+        {
+            if (IsServer)
+            {
+                AnnounceRpc(attackerId, defenderId, skillId, Pack(attacker), Pack(defender),
+                    (int)outcome);
+            }
+        }
+
+        [Rpc(SendTo.Everyone)]
+        void AnnounceRpc(uint attackerId, uint defenderId, int skillId, byte[] attacker,
+            byte[] defender, int outcome) =>
+            Resolved?.Invoke(new ClashReport(attackerId, defenderId, skillId, Unpack(attacker),
+                Unpack(defender), (ClashOutcome)outcome));
+
+        static byte[] Pack(IReadOnlyList<Element> elements)
+        {
+            var packed = new byte[elements?.Count ?? 0];
+
+            for (var i = 0; i < packed.Length; i++)
+            {
+                packed[i] = (byte)elements[i];
+            }
+
+            return packed;
+        }
+
+        static List<Element> Unpack(byte[] packed)
+        {
+            var elements = new List<Element>(packed.Length);
+
+            foreach (var raw in packed)
+            {
+                var element = (Element)raw;
+
+                // An element arrives as a byte, and casting to an enum is not a checked conversion.
+                if (ElementInfo.IsDefined(element))
+                {
+                    elements.Add(element);
+                }
+            }
+
+            return elements;
+        }
 
         /// <summary>Client-side entry point. Answers with elements, or with nothing to decline.</summary>
         public void Answer(IReadOnlyList<Element> elements)

@@ -568,6 +568,76 @@
     opacity: 0.22;
 }
 
+/* ---------- what a clash came to ---------- */
+
+/* One line, centred, above the skill bar. This replaced three numbers floating off two different
+   heads at the same moment, which came to "something happened and I do not know what". */
+.clash-result {
+    position: absolute;
+    left: 50%;
+    top: 16%;
+    translate: -50% 0;
+    align-items: center;
+    padding: 10px 22px;
+    background-image: url("Generated/ui-panel.png");
+    -unity-slice-left: 16;
+    -unity-slice-right: 16;
+    -unity-slice-top: 16;
+    -unity-slice-bottom: 16;
+}
+
+.clash-result__skill {
+    font-size: 11px;
+    -unity-font-style: bold;
+    letter-spacing: 3px;
+    color: rgb(150, 158, 176);
+}
+
+.clash-result__exchange {
+    flex-direction: row;
+    align-items: center;
+    margin: 6px 0 4px 0;
+}
+
+.clash-result__side {
+    flex-direction: row;
+    align-items: center;
+}
+
+.clash-result__mark {
+    width: 30px;
+    height: 30px;
+    margin: 0 2px;
+    background-image: url("Generated/ui-gem.png");
+    -unity-background-scale-mode: scale-to-fit;
+}
+
+.clash-result__versus {
+    margin: 0 12px;
+    font-size: 11px;
+    -unity-font-style: italic;
+    color: rgb(120, 128, 146);
+}
+
+.clash-result__none {
+    margin: 0 4px;
+    font-size: 11px;
+    -unity-font-style: italic;
+    color: rgb(110, 118, 136);
+}
+
+.clash-result__outcome {
+    font-size: 15px;
+    -unity-font-style: bold;
+    letter-spacing: 2px;
+    color: rgb(226, 140, 120);
+}
+
+/* The defender got something out of it. Gold, like everything else in a player's favour. */
+.clash-result__outcome--held {
+    color: rgb(226, 191, 122);
+}
+
 /* ---------- the defender's prompt ---------- */
 
 /* Centred and large, because it appears when it is not your turn -- the one moment nothing else on
