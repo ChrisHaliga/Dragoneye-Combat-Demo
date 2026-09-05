@@ -235,8 +235,13 @@ namespace Dragoneye.Game
 
             // Element first: it is the cost that can still fail on a race, and spending AP before
             // discovering that would charge for an action that never happened.
+            //
+            // Committed rather than spent outright. A spend announces itself to everybody, and an
+            // attacker whose commitment appeared in their public reveal record the moment they
+            // swung has already told the defender what is coming -- which is the one thing DE-005
+            // exists to prevent. It is announced at the reveal, with the defender's.
             if (skill.ElementCost > 0
-                && !pool.ServerSpend(skill.Element, skill.ElementCost, out _))
+                && !pool.ServerCommit(skill.Element, skill.ElementCost, out _))
             {
                 refusal = SkillRefusal.NotEnoughElement;
                 return false;
@@ -350,7 +355,7 @@ namespace Dragoneye.Game
                 // clash directly, which skipped committing the answer to the sequence -- so it was
                 // still waiting when the reveal was asked for, and no computer creature ever took
                 // any damage at all. Two callers doing different halves of one job.
-                ServerAnswerClash(defender, ChooseDefence(defender, request), out _);
+                ServerAnswerClash(defender, ChooseDefence(defender, m_ClashAttacker, request), out _);
                 return;
             }
 
@@ -398,19 +403,65 @@ namespace Dragoneye.Game
 
             foreach (var element in answer)
             {
-                pool.ServerSpend(element, 1, out _);
+                // Committed, not spent, for the same reason the attacker's was: both are announced
+                // together once neither can be used to work out the other.
+                pool.ServerCommit(element, 1, out _);
             }
 
             SettleClash(answer, declined: false);
             return true;
         }
 
-        /// <summary>What a computer creature puts up. See <see cref="ClashDefence"/>.</summary>
-        static IReadOnlyList<Element> ChooseDefence(CreatureState defender, DefenceRequest request)
+        /// <summary>
+        /// What a computer creature puts up.
+        ///
+        /// Weighed against exactly what a player is shown -- what the attacker has been proven to
+        /// hold, and which elements their seen skills could arrive as -- and then rolled for. A
+        /// defender that always answered optimally is a defender who can be hard-countered every
+        /// time once somebody has learned the table, and a fight whose right answer never changes
+        /// has one turn in it.
+        ///
+        /// The randomness lives here rather than in the rules, because the rules have to be able to
+        /// give the same answer twice and this deliberately does not.
+        /// </summary>
+        static IReadOnlyList<Element> ChooseDefence(CreatureState defender, CreatureState attacker,
+            DefenceRequest request)
         {
-            var pool = defender.GetComponent<CreaturePool>();
+            var answer = new List<Element>();
+            var options = new List<Element>(request.Options);
+            var attack = CreatureKnowledge.PossibleAttacks(attacker);
 
-            return ClashDefence.Choose(request, pool != null ? pool.Pool : default);
+            var pool = defender.GetComponent<CreaturePool>();
+            var held = pool != null ? pool.Ledger.Pool : ElementCounts.Empty;
+
+            while (answer.Count < request.Required && options.Count > 0)
+            {
+                if (!ClashDefenceOdds.TryChoose(options, attack, ElementMatchups.Table,
+                        UnityEngine.Random.value, out var pick))
+                {
+                    break;
+                }
+
+                answer.Add(pick);
+
+                // Only offered again if another one is actually held.
+                var taken = 0;
+
+                foreach (var chosen in answer)
+                {
+                    if (chosen == pick)
+                    {
+                        taken++;
+                    }
+                }
+
+                if (held[pick] <= taken)
+                {
+                    options.Remove(pick);
+                }
+            }
+
+            return answer;
         }
 
         /// <summary>
@@ -449,6 +500,14 @@ namespace Dragoneye.Game
             {
                 return;
             }
+
+            // In order, and only now. DE-005 asks for each side's expenditure after that side's own
+            // reveal, which is what these two calls are -- until this point neither pool has said a
+            // word about what left it.
+            attacker.GetComponent<CreaturePool>()?.ServerAnnounceCommitted();
+            defender.GetComponent<CreaturePool>()?.ServerAnnounceCommitted();
+
+            attacker.GetComponent<SkillCommands>()?.ServerRecordUse(skill.Id);
 
             AnnounceClash(attacker, defender, reveal);
             ResolveContested(attacker, skill, defender, clash.Scale(skill.Effect));
@@ -575,6 +634,9 @@ namespace Dragoneye.Game
         /// </summary>
         void Resolve(CreatureState actor, SkillSpec skill, CreatureState target)
         {
+            // Uncontested, so there is no window to keep empty: it was used in the open.
+            actor.GetComponent<SkillCommands>()?.ServerRecordUse(skill.Id);
+
             switch (skill.Effect.Kind)
             {
                 case SkillEffectKind.Damage:

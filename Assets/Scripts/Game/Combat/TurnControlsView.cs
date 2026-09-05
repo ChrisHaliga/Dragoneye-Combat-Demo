@@ -175,6 +175,14 @@ namespace Dragoneye.Game
                 text += "  ·  " + ClashLabels.Advantage;
             }
 
+            // The odds on their own line. A player weighing an attack wants the price and the
+            // chances together, and running them into one line makes both harder to read than
+            // either would be alone.
+            if (m_Input.HoveredOdds.HasValue && !string.IsNullOrEmpty(text))
+            {
+                text += "\n" + ClashLabels.Forecast(m_Input.HoveredOdds.Value);
+            }
+
             m_Cursor.text = text;
             m_Cursor.EnableInClassList("is-flank", m_Input.HoveredIsFlank);
             m_Cursor.EnableInClassList("is-hidden", string.IsNullOrEmpty(text));

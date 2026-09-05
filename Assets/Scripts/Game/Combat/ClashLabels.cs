@@ -72,5 +72,38 @@ namespace Dragoneye.Game
 
         /// <summary>The word shown where an action's cost would be, when position has changed it.</summary>
         public const string Advantage = "ADVANTAGE";
+
+        /// <summary>
+        /// How a clash is expected to go, in three numbers.
+        ///
+        /// Named for what happens to the attack rather than for who wins, because that is the thing
+        /// a player is actually deciding about -- "62% through" answers "should I throw this" and
+        /// "62% win" makes them translate first.
+        ///
+        /// Rounded to whole percent and forced to sum to a hundred, so three numbers on a screen
+        /// never add up to ninety-nine and make somebody wonder what the missing one was.
+        /// </summary>
+        public static string Forecast(ClashOdds odds)
+        {
+            var through = Percent(odds.Win);
+            var half = Percent(odds.Tie);
+
+            return $"{through}% THROUGH  \u00b7  {half}% HALF  \u00b7  {100 - through - half}% STOPPED";
+        }
+
+        /// <summary>The same three, short enough to sit under an element on the prompt.</summary>
+        public static string Chances(ClashOdds odds)
+        {
+            var win = Percent(odds.Win);
+            var tie = Percent(odds.Tie);
+
+            return $"{win} / {tie} / {100 - win - tie}";
+        }
+
+        static int Percent(float share)
+        {
+            var value = (int)System.Math.Round(share * 100f);
+            return value < 0 ? 0 : value > 100 ? 100 : value;
+        }
     }
 }

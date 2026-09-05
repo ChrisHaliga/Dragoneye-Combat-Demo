@@ -124,6 +124,10 @@ namespace Dragoneye.Game
             m_Reason.AddToClassList("clash-prompt__reason");
             m_Panel.Add(m_Reason);
 
+            var key = new Label("Stopped / halved / through");
+            key.AddToClassList("clash-prompt__key");
+            m_Panel.Add(key);
+
             m_Options = new VisualElement();
             m_Options.AddToClassList("clash-prompt__options");
             m_Panel.Add(m_Options);
@@ -197,6 +201,24 @@ namespace Dragoneye.Game
             var count = new Label(staged > 0 ? $"{staged} of {left + staged}" : $"{left} held");
             count.AddToClassList("clash-option__count");
             button.Add(count);
+
+            // What this answer is worth, so nobody has to hold the matchup table in their head to
+            // play well. Built from what the attacker has been proven to hold and which elements
+            // their seen skills could arrive as -- all of it public, none of it their commitment.
+            var attacker = m_Input.Creatures != null
+                ? m_Input.Creatures.ByTurnId((uint)m_Request.AttackerId)
+                : null;
+
+            if (attacker != null)
+            {
+                var odds = CreatureKnowledge.ForecastDefence(element, attacker);
+
+                var chances = new Label(ClashLabels.Chances(odds));
+                chances.AddToClassList("clash-option__odds");
+                chances.tooltip = "Chance this answer stops the attack, halves it, or lets it "
+                    + "through -- worked out from what this attacker has been seen holding.";
+                button.Add(chances);
+            }
 
             // Full, or none of this left. Either way there is nothing to add.
             button.SetEnabled(m_Staged.Count < m_Request.Required && left > 0);

@@ -431,7 +431,9 @@
 
 /* ---------- cursor ---------- */
 
+/* Two lines now: what the click does, and how it is likely to go. */
 .cursor-action {
+    white-space: normal;
     position: absolute;
     padding: 5px 10px;
     font-size: 11px;
@@ -607,8 +609,8 @@
 /* One per element held, with what is left of it. The count is the defender's own business, which is
    why it can be shown at all. */
 .clash-option {
-    width: 74px;
-    height: 78px;
+    width: 84px;
+    height: 96px;
     margin: 0 8px 8px 0;
     padding: 6px 0;
     align-items: center;
@@ -653,6 +655,23 @@
 .clash-option__count {
     font-size: 9px;
     color: rgb(139, 147, 165);
+}
+
+/* What this answer is worth, in the same order as the key above the row. */
+.clash-option__odds {
+    margin-top: 2px;
+    font-size: 10px;
+    -unity-font-style: bold;
+    letter-spacing: 1px;
+    color: rgb(150, 176, 216);
+}
+
+.clash-prompt__key {
+    margin-top: 10px;
+    font-size: 9px;
+    -unity-font-style: bold;
+    letter-spacing: 2px;
+    color: rgb(110, 118, 136);
 }
 
 .clash-prompt__tally {

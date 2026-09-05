@@ -87,6 +87,16 @@ namespace Dragoneye.Game
         public bool HoveredIsFlank { get; private set; }
 
         /// <summary>
+        /// How the armed skill is expected to go against whatever is hovered, or null when the
+        /// hover is not an attack.
+        ///
+        /// Built from what everybody can see -- what the target has been proven to hold and how
+        /// much of it is spent. It tells a player nothing they could not have counted themselves,
+        /// and spares them counting it every turn.
+        /// </summary>
+        public ClashOdds? HoveredOdds { get; private set; }
+
+        /// <summary>
         /// The creature the local player is acting with: the active one, if they control it.
         ///
         /// Not the selection. A player may click an enemy to read its card without giving up their
@@ -141,6 +151,7 @@ namespace Dragoneye.Game
         void Reprice(Hex? hovered)
         {
             HoveredIsFlank = hovered.HasValue && WouldFlank(hovered.Value);
+            HoveredOdds = hovered.HasValue ? OddsAgainst(hovered.Value) : null;
 
             var plan = hovered.HasValue ? Price(hovered.Value) : ActionPlan.Nothing;
 
@@ -185,6 +196,34 @@ namespace Dragoneye.Game
 
             return FacingRules.IsFlank(target.Facing,
                 Facing.Of((int)Dragoneye.Hex.Hex.DirectionTo(target.Cell, from)));
+        }
+
+        /// <summary>
+        /// How an attack on whatever is here would be expected to go.
+        ///
+        /// Only for an armed skill that costs an element and is aimed at an enemy. A skill that
+        /// commits nothing is not contested, and putting odds on a walk or a heal would be putting
+        /// numbers on a certainty.
+        /// </summary>
+        ClashOdds? OddsAgainst(Hex hex)
+        {
+            var actor = Actor;
+            var skill = actor != null ? ArmedSkill(actor) : null;
+
+            if (skill == null || !skill.IsContested || skill.ElementCost <= 0
+                || !m_Units.TryGet(hex, out var occupant))
+            {
+                return null;
+            }
+
+            var target = occupant.GetComponent<CreatureState>();
+
+            if (target == null || target == actor || target.Party == actor.Party || !target.IsAlive)
+            {
+                return null;
+            }
+
+            return CreatureKnowledge.Forecast(skill.Element, target);
         }
 
         ActionPlan Price(Hex hex)

@@ -114,6 +114,10 @@ namespace Dragoneye.Game
 
         CreatureState m_Creature;
 
+        // A spend that has happened but has not been announced. Server only, and only while a clash
+        // is in flight -- see ServerCommit.
+        ElementLedger? m_Pending;
+
         void Awake() => m_Creature = GetComponent<CreatureState>();
 
         /// <summary>Raised on every peer when either half changes.</summary>
@@ -165,8 +169,14 @@ namespace Dragoneye.Game
         /// </summary>
         public bool CanSee => LocalPlayer.Controls(m_Creature);
 
-        public ElementLedger Ledger =>
-            new ElementLedger(Pool, Revealed, m_OutstandingView, Total, Identified);
+        /// <summary>
+        /// Everything about this creature's elements.
+        ///
+        /// The uncommitted spend wins where there is one, so a second question asked during a clash
+        /// gets the truth rather than the last thing that was announced.
+        /// </summary>
+        public ElementLedger Ledger => m_Pending
+            ?? new ElementLedger(Pool, Revealed, m_OutstandingView, Total, Identified);
 
         /// <summary>Spends not yet returned, oldest first. Public information.</summary>
         public IReadOnlyList<Element> Outstanding => m_OutstandingView;
@@ -239,6 +249,59 @@ namespace Dragoneye.Game
         }
 
         /// <summary>
+        /// Server only. Spends an element without saying what it was.
+        ///
+        /// This is the whole of DE-005's concealment on the pool's side, and it is not optional:
+        /// an ordinary spend publishes the reveal record to everybody, so an attacker whose
+        /// commitment left their pool the moment they swung had already told the defender exactly
+        /// what was coming. Reading an opponent's reveal record is not cheating -- it is public by
+        /// design -- which is precisely why the record must not move yet.
+        ///
+        /// The pool itself is written straight away. It reads to the owner alone, so the creature's
+        /// own player sees their hand shrink as they act and nobody else learns anything.
+        ///
+        /// <see cref="ServerAnnounceCommitted"/> is the other half, and DE-005 is specific about
+        /// when it runs: each side's expenditure is emitted after that side's own reveal.
+        /// </summary>
+        public bool ServerCommit(Element element, int amount, out SpendRefusal refusal)
+        {
+            refusal = SpendRefusal.None;
+
+            if (!IsServer)
+            {
+                return false;
+            }
+
+            if (!Ledger.TrySpend(element, amount, out var next, out refusal))
+            {
+                return false;
+            }
+
+            m_Pending = next;
+            m_Pool.Value = new NetElementCounts(next.Pool);
+
+            Changed?.Invoke();
+            return true;
+        }
+
+        /// <summary>
+        /// Server only. Says what was committed, now that saying so is allowed.
+        ///
+        /// Safe to call on a pool with nothing pending, because both sides of a clash are announced
+        /// together and only one of them may have committed anything.
+        /// </summary>
+        public void ServerAnnounceCommitted()
+        {
+            if (!IsServer || !m_Pending.HasValue)
+            {
+                return;
+            }
+
+            Publish(m_Pending.Value);
+            m_Pending = null;
+        }
+
+        /// <summary>
         /// Server only. Brings back the oldest outstanding spend, which is what Take a Breath does.
         /// </summary>
         public bool ServerReturn(out Element returned, out SpendRefusal refusal)
@@ -256,6 +319,10 @@ namespace Dragoneye.Game
                 return false;
             }
 
+            // Publishing settles anything pending along with it. Nothing returns an element
+            // mid-clash -- Take a Breath is a turn's action, not a defence -- so this is a
+            // consistency guarantee rather than a path anybody walks.
+            m_Pending = null;
             Publish(next);
             return true;
         }

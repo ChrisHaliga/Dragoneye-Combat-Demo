@@ -27,6 +27,11 @@ namespace Dragoneye.Game
     {
         readonly List<SkillSpec> m_Skills = new List<SkillSpec>();
 
+        // Skills this creature has been watched using. Public, because everybody was watching --
+        // and it is what lets an opponent narrow down what the next attack might be made of.
+        readonly NetworkList<int> m_Seen = new NetworkList<int>();
+        readonly List<int> m_SeenView = new List<int>();
+
         CreatureState m_Creature;
         ushort m_ResolvedId;
         byte m_ResolvedSlot;
@@ -34,6 +39,61 @@ namespace Dragoneye.Game
         bool m_Resolved;
 
         void Awake() => m_Creature = GetComponent<CreatureState>();
+
+        /// <summary>
+        /// Which skills this creature has been seen to use, in the order it first used them.
+        ///
+        /// Public information: a skill is used in front of everybody. What it is *for* here is the
+        /// forecast -- an attack costs the element its skill is made of, so knowing which skills
+        /// somebody has thrown narrows what the next one could be.
+        /// </summary>
+        public IReadOnlyList<int> SeenSkillIds => m_SeenView;
+
+        public override void OnNetworkSpawn()
+        {
+            m_Seen.OnListChanged += OnSeenChanged;
+            RebuildSeen();
+        }
+
+        public override void OnNetworkDespawn() => m_Seen.OnListChanged -= OnSeenChanged;
+
+        void OnSeenChanged(NetworkListEvent<int> _) => RebuildSeen();
+
+        void RebuildSeen()
+        {
+            m_SeenView.Clear();
+
+            for (var i = 0; i < m_Seen.Count; i++)
+            {
+                m_SeenView.Add(m_Seen[i]);
+            }
+        }
+
+        /// <summary>
+        /// Server only. Records that this creature has now been seen using a skill.
+        ///
+        /// Called when the skill's effect lands rather than when it is asked for, which for a
+        /// contested skill is after the defender has committed. Recording it at the moment of use
+        /// would publish the attacking skill -- and therefore its element -- into the very window
+        /// DE-005 exists to keep empty.
+        /// </summary>
+        public void ServerRecordUse(int skillId)
+        {
+            if (!IsServer)
+            {
+                return;
+            }
+
+            for (var i = 0; i < m_Seen.Count; i++)
+            {
+                if (m_Seen[i] == skillId)
+                {
+                    return;
+                }
+            }
+
+            m_Seen.Add(skillId);
+        }
 
         /// <summary>
         /// Everything this creature can do, resolved locally and cached.
