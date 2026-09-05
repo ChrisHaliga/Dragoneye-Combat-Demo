@@ -14,8 +14,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: Dragoneye.Data:Dragoneye.Data:EquipmentAsset
   m_Id: 30
   m_DisplayName: Shield
-  m_Description: Three damage off anything that reaches you, and you answer a clash
-    with the better of two elements -- which costs you both.
+  m_Description: Three damage off anything that reaches you, and it costs you no
+    speed.
   m_Slot: 2
   m_Modifiers:
     Toughness: 1
@@ -28,4 +28,4 @@ MonoBehaviour:
   m_Skills: []
   m_Armour: 0
   m_DamageReduction: 3
-  m_GrantsAdvantage: 1
+  m_GrantsAdvantage: 0

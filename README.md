@@ -357,8 +357,10 @@ hit, leaves the attack unopposed. Skills aimed at yourself or an ally never clas
 **Facing and advantage.** Five sectors of six are a creature's front; only the one directly behind
 is not. (DE-006 offered rear-three-of-six and it played badly — with half the board counting as a
 flank, advantage turned up so often it read as random.) An attack arriving from behind
-gives the defender disadvantage; a shield gives its holder advantage. Either means committing *two*
-elements instead of one — advantage keeps the better result, disadvantage the worse — so an edge is
+gives the defender disadvantage. Nothing currently grants *advantage* — DE-006 named a shield as its
+example and it was taken back out, because doubling a player's element burn for as long as an item is
+equipped is a cost they never chose. The rule and the authoring flag both remain, so an item can
+grant it. Either state means committing *two* elements instead of one — advantage keeps the better result, disadvantage the worse — so an edge is
 never free, and the two cancel on the same side. A side required to commit two while holding one
 commits the one.
 

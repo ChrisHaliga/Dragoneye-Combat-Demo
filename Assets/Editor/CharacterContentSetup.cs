@@ -117,14 +117,16 @@ namespace Dragoneye.MultiplayerEditor
             var mace = Equipment(15, "Mace", EquipmentSlot.Weapon, Attr(strength: 1, willpower: 1),
                 "Blunt and devout. The two go together more often than anyone admits.", smite);
 
-            // Three off every blow, in the offhand, so carrying one costs no speed -- and the
-            // advantage DE-006 names it as the example of. Advantage is not free: it commits two
-            // elements to a clash rather than one, so a shield drains its holder as fast as it
-            // protects them, and that coupling is the point rather than an accident.
+            // Three off every blow, in the offhand, so carrying one costs no speed.
+            //
+            // DE-006 names a shield as its example of something granting advantage, and it was
+            // authored that way and then taken out again. Advantage costs two elements instead of
+            // one, so it would have made every defence twice as expensive for as long as the shield
+            // was equipped -- a drain the player never chose and cannot switch off mid-fight. An
+            // item that quietly doubles your burn rate is not a defensive item.
             var shield = Equipment(30, "Shield", EquipmentSlot.Offhand, Attr(toughness: 1),
-                "Three damage off anything that reaches you, and you answer a clash with the "
-                + "better of two elements -- which costs you both.",
-                new SkillAsset[0], ArmourClass.None, damageReduction: 3, grantsAdvantage: true);
+                "Three damage off anything that reaches you, and it costs you no speed.",
+                new SkillAsset[0], ArmourClass.None, damageReduction: 3);
 
             var light = Armour(20, "Light armour", Attr(toughness: 1), ArmourClass.Light,
                 "Padding and leather. One damage off every blow, and you will still be quick.");
