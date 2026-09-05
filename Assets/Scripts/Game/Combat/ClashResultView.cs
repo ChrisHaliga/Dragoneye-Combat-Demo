@@ -44,6 +44,9 @@ namespace Dragoneye.Game
     [DisallowMultipleComponent]
     public sealed class ClashResultView : MonoBehaviour
     {
+        [SerializeField, Tooltip("The board input, which owns the creature registry.")]
+        BoardActionInput m_Input;
+
         [SerializeField, Min(0.5f), Tooltip("Seconds the exchange stays up before it fades.")]
         float m_Dwell = 3.5f;
 
@@ -121,10 +124,19 @@ namespace Dragoneye.Game
 
             m_Strip.Add(exchange);
 
-            var outcome = new Label(ClashLabels.Describe(report.Outcome));
+            // Oriented to whoever is reading it. A player watching their own creature swing and
+            // a player watching it come at them are looking at the same exchange and want opposite
+            // words for it; a bystander reads it from the defender's side, which is where the
+            // decision was made.
+            var attacker = m_Input != null && m_Input.Creatures != null
+                ? m_Input.Creatures.ByTurnId(report.AttackerId)
+                : null;
+
+            var mine = attacker != null && LocalPlayer.Controls(attacker);
+
+            var outcome = new Label(ClashLabels.Describe(report.Outcome, mine));
             outcome.AddToClassList("clash-result__outcome");
-            outcome.EnableInClassList("clash-result__outcome--held",
-                report.Outcome != ClashOutcome.AttackerWins);
+            outcome.style.color = Tint(ClashLabels.ColourOf(report.Outcome, mine));
             m_Strip.Add(outcome);
 
             m_Root.Add(m_Strip);
@@ -157,6 +169,10 @@ namespace Dragoneye.Game
 
             return side;
         }
+
+        /// <summary>A hex colour from the label palette, as a style colour.</summary>
+        static Color Tint(string hex) =>
+            ColorUtility.TryParseHtmlString(hex, out var colour) ? colour : Color.white;
 
         void Clear()
         {

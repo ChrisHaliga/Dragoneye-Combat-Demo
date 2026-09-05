@@ -275,8 +275,10 @@ namespace Dragoneye.MultiplayerEditor
             var prompt = Ensure<ClashPromptView>(hud);
             Assign(prompt, ("m_Input", input));
 
-            // What the exchange came to, in one line everybody can read.
-            Ensure<ClashResultView>(hud);
+            // What the exchange came to, in one line everybody can read -- worded for whoever is
+            // reading it, which is why it needs the registry.
+            var result = Ensure<ClashResultView>(hud);
+            Assign(result, ("m_Input", input));
         }
 
         /// <summary>

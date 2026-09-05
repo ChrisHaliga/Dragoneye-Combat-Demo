@@ -627,16 +627,13 @@
 }
 
 .clash-result__outcome {
-    font-size: 15px;
+    font-size: 17px;
     -unity-font-style: bold;
-    letter-spacing: 2px;
-    color: rgb(226, 140, 120);
+    letter-spacing: 3px;
 }
 
-/* The defender got something out of it. Gold, like everything else in a player's favour. */
-.clash-result__outcome--held {
-    color: rgb(226, 191, 122);
-}
+/* The colour is set from code, because it names an outcome and the outcome is oriented to whoever
+   is reading it -- green for a win, gold for a tie, red for a loss. */
 
 /* ---------- the defender's prompt ---------- */
 

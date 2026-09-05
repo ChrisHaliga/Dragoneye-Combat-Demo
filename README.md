@@ -349,10 +349,20 @@ same thing everywhere; the default is five notches from closest to furthest. Dra
 its level. Multiple levels resolve in one pass (`Progression.Resolve`) so a character out of a long
 fight is asked what it becomes once, not once per level.
 
-**Clashes.** An attack on an enemy commits the skill's element, the defender answers with one of
-their own, and the outcome scales the effect: winning lands it, a tie halves it rounding up, losing
-stops it. Both elements are spent regardless. A defender holding nothing, or choosing to take the
-hit, leaves the attack unopposed. Skills aimed at yourself or an ally never clash.
+**Clashes.** An attack on an enemy commits the skill's element and the defender answers with one of
+their own. From the defender's side: **win** — no damage, and the element stays in hand; **tie** — no
+damage, and the element is gone; **lose** — damage, and the element is gone. So an attack gets
+through only by winning, which makes attacking a war of attrition: you throw elements to drain a hand
+and the hits land once there is nothing left to answer with. The attacker never gets theirs back. A
+defender holding nothing, or choosing to take the hit, leaves the attack unopposed. Skills aimed at
+yourself or an ally never clash.
+
+**Odds** are shown to the attacker on hover, to the defender on every option, and used by the
+computer — the same function in all three, because a player shown one set of numbers and beaten by a
+creature working from another has been lied to. They read only public state: how big a hand is
+(total less what is outstanding — exact, everybody watched the spends), which of it has a name, and
+which skills a creature has been seen using. **Knowing nothing is not the same as knowing they hold
+nothing**, and conflating the two is what once made every option read as a certain loss.
 
 **Facing and advantage.** Five sectors of six are a creature's front; only the one directly behind
 is not. (DE-006 offered rear-three-of-six and it played badly — with half the board counting as a

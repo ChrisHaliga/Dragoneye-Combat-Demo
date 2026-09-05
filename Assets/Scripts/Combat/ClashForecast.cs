@@ -22,34 +22,71 @@ namespace Dragoneye.Combat
         /// <summary>Proven to be held, and not currently spent.</summary>
         public readonly ElementCounts Known;
 
-        /// <summary>Held, but nobody has put a name to them.</summary>
+        /// <summary>Held and available, but nobody has put a name to them.</summary>
         public readonly int Unknown;
 
         /// <summary>What an unidentified one might turn out to be.</summary>
         public readonly IReadOnlyList<Element> Candidates;
 
+        /// <summary>
+        /// Whether this hand is known to be empty, as opposed to merely unknown.
+        ///
+        /// The distinction is the whole difference between "they cannot answer" and "we have no
+        /// idea what they will answer with", and conflating the two is how every option on a
+        /// prompt came to read as a certain loss. Ignorance is not information.
+        /// </summary>
+        public readonly bool Empty;
+
         public PossibleElements(ElementCounts known, int unknown,
-            IReadOnlyList<Element> candidates = null)
+            IReadOnlyList<Element> candidates = null, bool empty = false)
         {
             Known = known;
             Unknown = unknown < 0 ? 0 : unknown;
             Candidates = candidates != null && candidates.Count > 0 ? candidates : ElementInfo.All;
+            Empty = empty;
         }
 
-        /// <summary>Nothing known and nothing left. An attack against this is unopposed.</summary>
-        public static PossibleElements None => new PossibleElements(ElementCounts.Empty, 0);
+        /// <summary>Known to hold nothing. An attack against this is unopposed.</summary>
+        public static PossibleElements None =>
+            new PossibleElements(ElementCounts.Empty, 0, null, empty: true);
+
+        /// <summary>Nothing is known at all. Every element is as likely as every other.</summary>
+        public static PossibleElements Unknowable =>
+            new PossibleElements(ElementCounts.Empty, 0);
 
         /// <summary>
         /// What an observer can work out from a creature's public record.
         ///
-        /// Proven, less whatever of it is currently spent. An element that has been seen and then
-        /// spent again is still known to exist, but it is not something the creature can put up
-        /// right now, and a forecast that counted it would be forecasting a hand nobody holds.
+        /// Two numbers matter and they are both exactly knowable without seeing the hand. How many
+        /// elements are in it: the total the creature owns, less however many are currently spent,
+        /// which is public because everybody watched them go. And which of those are identified:
+        /// the ones proven to exist and since taken back.
+        ///
+        /// Everything left over is unidentified and available, and that is the number the forecast
+        /// actually turns on. Working it out as "proven, less spent" -- which is what this used to
+        /// do -- gave nearly always zero, because an element is proven *by* being spent. The guess
+        /// then had nothing in it, which was read as certainty rather than as ignorance.
         /// </summary>
         public static PossibleElements Seen(ElementLedger ledger,
             IReadOnlyList<Element> candidates = null)
         {
-            var available = ElementCounts.Empty;
+            // How many are in the hand. Exact: spending moves an element out and returning moves it
+            // back, so the count is the total less what is outstanding, and both are public.
+            var inHand = ledger.Total - ledger.Outstanding.Count;
+
+            if (ledger.Total <= 0)
+            {
+                // Nothing has told us how big the hand is. That is ignorance, not an empty hand,
+                // and saying otherwise would forecast a certainty out of thin air.
+                return Unknowable;
+            }
+
+            if (inHand <= 0)
+            {
+                return None;
+            }
+
+            var identified = ElementCounts.Empty;
 
             foreach (var element in ElementInfo.All)
             {
@@ -63,15 +100,18 @@ namespace Dragoneye.Combat
                     }
                 }
 
+                // Proven to exist and not currently spent, so it is in the hand and has a name.
                 var left = ledger.Identified[element] - spent;
 
                 if (left > 0)
                 {
-                    available = available.With(element, left);
+                    identified = identified.With(element, left);
                 }
             }
 
-            return new PossibleElements(available, ledger.Unidentified, candidates);
+            var nameless = inHand - identified.Total;
+
+            return new PossibleElements(identified, nameless, candidates);
         }
 
         /// <summary>How much of the guess sits on one element.</summary>
@@ -150,18 +190,28 @@ namespace Dragoneye.Combat
         static ClashOdds Fold(Element mine, PossibleElements theirs, IElementMatchup matchup,
             bool mineAttacks)
         {
-            if (matchup == null || !theirs.Any)
+            if (matchup == null)
             {
-                // Nothing they can put up. For an attacker that is a certainty; for a defender
+                return ClashOdds.Unopposed;
+            }
+
+            if (theirs.Empty)
+            {
+                // Known to hold nothing. For an attacker that is a certainty; for a defender
                 // reading it the other way round, it is the same certainty against them.
                 return mineAttacks ? ClashOdds.Unopposed : new ClashOdds(0f, 0f, 1f);
             }
+
+            // Knowing nothing means every element is as likely as any other, which is the honest
+            // answer and emphatically not the same as knowing they have nothing. Saying "certain
+            // loss" because the guess was empty was the worst kind of wrong: confident.
+            var blind = !theirs.Any;
 
             float win = 0f, tie = 0f, loss = 0f, total = 0f;
 
             foreach (var element in ElementInfo.All)
             {
-                var weight = theirs.WeightOf(element);
+                var weight = blind ? Uniform(theirs, element) : theirs.WeightOf(element);
 
                 if (weight <= 0f)
                 {
@@ -195,6 +245,20 @@ namespace Dragoneye.Combat
             return total <= 0f
                 ? ClashOdds.Unopposed
                 : new ClashOdds(win / total, tie / total, loss / total);
+        }
+
+        /// <summary>Every candidate equally, for a hand nothing is known about.</summary>
+        static float Uniform(PossibleElements theirs, Element element)
+        {
+            for (var i = 0; i < theirs.Candidates.Count; i++)
+            {
+                if (theirs.Candidates[i] == element)
+                {
+                    return 1f;
+                }
+            }
+
+            return 0f;
         }
     }
 

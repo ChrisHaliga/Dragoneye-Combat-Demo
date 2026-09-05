@@ -204,25 +204,35 @@ namespace Dragoneye.Combat
         /// <summary>
         /// What the outcome leaves of the effect that was aimed.
         ///
-        /// Winning lands it, losing stops it, and a tie splits the difference rounding up -- so a
-        /// contested hit is never quietly worth nothing, and answering correctly is worth the
-        /// element it cost. Rounding up rather than down because a one-damage skill tying to zero
-        /// would make the clash look broken rather than close.
+        /// An attack gets through only by winning. A tie and a loss both stop it dead, and what
+        /// separates them is on the defender's side of the ledger rather than the attacker's --
+        /// see <see cref="Refunds"/>.
+        ///
+        /// Three outcomes, then, and each says something different to the person it happened to:
+        ///
+        ///   * win  -- no damage, and the element comes back
+        ///   * tie  -- no damage, and the element is gone
+        ///   * lose -- damage, and the element is gone
+        ///
+        /// That makes attacking a war of attrition rather than a coin flip. You throw elements to
+        /// drain somebody's hand, and the hits land once they have nothing left to answer with --
+        /// which is why a level-one creature holds four of them and not one.
         /// </summary>
-        public static SkillEffect Scale(SkillEffect effect, ClashOutcome outcome)
-        {
-            switch (outcome)
-            {
-                case ClashOutcome.AttackerWins:
-                    return effect;
+        public static SkillEffect Scale(SkillEffect effect, ClashOutcome outcome) =>
+            outcome == ClashOutcome.AttackerWins
+                ? effect
+                : new SkillEffect(effect.Kind, 0);
 
-                case ClashOutcome.Tie:
-                    return new SkillEffect(effect.Kind, (effect.Amount + 1) / 2);
-
-                default:
-                    return new SkillEffect(effect.Kind, 0);
-            }
-        }
+        /// <summary>
+        /// Whether the defender keeps what they put up.
+        ///
+        /// Only on a clean win. Answering correctly enough to stop the blow is worth something on
+        /// its own; answering well enough to stop it *and* keep the element is what makes reading
+        /// an opponent worth doing rather than merely worth guessing at.
+        ///
+        /// The attacker never gets theirs back. Theirs paid for the action.
+        /// </summary>
+        public static bool Refunds(ClashOutcome outcome) => outcome == ClashOutcome.DefenderWins;
 
         /// <summary>
         /// What a defender may answer with: everything they still hold, one entry per element.

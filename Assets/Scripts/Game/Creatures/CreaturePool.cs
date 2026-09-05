@@ -118,6 +118,9 @@ namespace Dragoneye.Game
         // is in flight -- see ServerCommit.
         ElementLedger? m_Pending;
 
+        // What was put up for the clash in flight, so it can be handed back if it is kept.
+        readonly List<Element> m_Committed = new List<Element>();
+
         void Awake() => m_Creature = GetComponent<CreatureState>();
 
         /// <summary>Raised on every peer when either half changes.</summary>
@@ -145,6 +148,22 @@ namespace Dragoneye.Game
 
         /// <summary>How many elements this creature owns altogether, spent or not. Public.</summary>
         public int Total => m_Total.Value;
+
+        /// <summary>
+        /// How many elements are in the hand right now. Public, and exact.
+        ///
+        /// Spending moves an element out and returning moves it back, so this is the total less
+        /// whatever is outstanding -- and both of those are things everybody watched. It is the
+        /// number an opponent counts to know how much answering somebody has left in them.
+        /// </summary>
+        public int InHand
+        {
+            get
+            {
+                var left = Total - m_OutstandingView.Count;
+                return left < 0 ? 0 : left;
+            }
+        }
 
         /// <summary>How many of them nobody has put a name to yet.</summary>
         public int Unidentified
@@ -280,6 +299,11 @@ namespace Dragoneye.Game
             m_Pending = next;
             m_Pool.Value = new NetElementCounts(next.Pool);
 
+            for (var i = 0; i < amount; i++)
+            {
+                m_Committed.Add(element);
+            }
+
             Changed?.Invoke();
             return true;
         }
@@ -290,14 +314,46 @@ namespace Dragoneye.Game
         /// Safe to call on a pool with nothing pending, because both sides of a clash are announced
         /// together and only one of them may have committed anything.
         /// </summary>
-        public void ServerAnnounceCommitted()
+        /// <param name="keep">
+        /// Whether the commitment goes back into the hand. A defender who answered well enough to
+        /// stop the blow outright keeps what they put up; everybody else has spent it.
+        /// </param>
+        public void ServerAnnounceCommitted(bool keep = false)
         {
             if (!IsServer || !m_Pending.HasValue)
             {
                 return;
             }
 
-            Publish(m_Pending.Value);
+            var ledger = m_Pending.Value;
+
+            if (keep && m_Committed.Count > 0)
+            {
+                // Shown, but not spent. The identification stands -- putting an element up is how
+                // you prove you have it, and nobody unsees that -- while the element itself goes
+                // back in the hand.
+                var pool = ledger.Pool;
+                var outstanding = new List<Element>(ledger.Outstanding);
+
+                foreach (var element in m_Committed)
+                {
+                    pool = pool.Plus(element, 1);
+
+                    // From the end: this commitment is the most recent thing to leave the hand.
+                    var last = outstanding.LastIndexOf(element);
+
+                    if (last >= 0)
+                    {
+                        outstanding.RemoveAt(last);
+                    }
+                }
+
+                ledger = new ElementLedger(pool, ledger.Revealed, outstanding,
+                    ledger.Total, ledger.Identified);
+            }
+
+            m_Committed.Clear();
+            Publish(ledger);
             m_Pending = null;
         }
 
@@ -323,6 +379,7 @@ namespace Dragoneye.Game
             // mid-clash -- Take a Breath is a turn's action, not a defence -- so this is a
             // consistency guarantee rather than a path anybody walks.
             m_Pending = null;
+            m_Committed.Clear();
             Publish(next);
             return true;
         }

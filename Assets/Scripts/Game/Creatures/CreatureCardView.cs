@@ -235,25 +235,45 @@ namespace Dragoneye.Game
             }
 
             var mine = m_ObservedPool.CanSee;
-            var counts = mine ? m_ObservedPool.Pool : m_ObservedPool.Identified;
 
-            m_ElementsTitle.text = mine ? "POOL" : "KNOWN";
+            if (mine)
+            {
+                m_ElementsTitle.text = "POOL";
+
+                foreach (var element in ElementInfo.All)
+                {
+                    var held = m_ObservedPool.Pool[element];
+                    m_Elements.Add(CharacterSheet.ElementChip(element, held, held == 0));
+                }
+
+                return;
+            }
+
+            // Somebody else's hand, so what is drawn is what has been worked out about it: how big
+            // it is, which of it has a name, and how much of it does not. The size is exact --
+            // everybody watched the spends -- and it is the number that decides whether attacking
+            // is worth it, so it goes in the heading rather than being left to be counted.
+            var guess = PossibleElements.Seen(m_ObservedPool.Ledger);
+
+            m_ElementsTitle.text = $"HAND  ·  {m_ObservedPool.InHand} OF {m_ObservedPool.Total}";
 
             foreach (var element in ElementInfo.All)
             {
-                // The same chip the creator and the roster draw, so a pool is read the same
-                // way on every screen. Elements the creature does not hold stay drawn but nearly
-                // dark, which keeps the row a fixed width as a fight drains it.
-                var held = counts[element];
-                m_Elements.Add(CharacterSheet.ElementChip(element, held, held == 0));
+                var available = guess.Known[element];
+                var chip = CharacterSheet.ElementChip(element, available, available == 0);
+
+                // Proven to exist but currently spent is a different thing from never seen, and a
+                // player tracking a fight wants both.
+                var spent = m_ObservedPool.Identified[element] - available;
+
+                chip.tooltip = spent > 0
+                    ? $"{ElementInfo.NameOf(element)} · {available} in hand, {spent} spent"
+                    : $"{ElementInfo.NameOf(element)} · {available} in hand";
+
+                m_Elements.Add(chip);
             }
 
-            // The eighth, and only for a creature whose pool you cannot see. On your own there is
-            // nothing unknown, and a question mark reading zero would be a question about nothing.
-            if (!mine)
-            {
-                m_Elements.Add(CharacterSheet.UnknownChip(m_ObservedPool.Unidentified));
-            }
+            m_Elements.Add(CharacterSheet.UnknownChip(guess.Unknown));
         }
 
         /// <summary>

@@ -505,7 +505,8 @@ namespace Dragoneye.Game
             // reveal, which is what these two calls are -- until this point neither pool has said a
             // word about what left it.
             attacker.GetComponent<CreaturePool>()?.ServerAnnounceCommitted();
-            defender.GetComponent<CreaturePool>()?.ServerAnnounceCommitted();
+            defender.GetComponent<CreaturePool>()?
+                .ServerAnnounceCommitted(keep: ClashRules.Refunds(reveal.Outcome));
 
             attacker.GetComponent<SkillCommands>()?.ServerRecordUse(skill.Id);
 
