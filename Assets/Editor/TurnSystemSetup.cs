@@ -269,6 +269,11 @@ namespace Dragoneye.MultiplayerEditor
             // pointing at the same things is a second set that can be pointed somewhere else.
             var context = Ensure<ContextMenuView>(hud);
             Assign(context, ("m_Input", input));
+
+            // Where a defender answers. On the HUD because it is the one panel that appears when
+            // it is not your turn, which is exactly the moment nothing else on screen is for you.
+            var prompt = Ensure<ClashPromptView>(hud);
+            Assign(prompt, ("m_Input", input));
         }
 
         /// <summary>

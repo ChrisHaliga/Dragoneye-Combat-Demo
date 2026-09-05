@@ -167,7 +167,16 @@ namespace Dragoneye.Game
         {
             var text = ActionLabels.Describe(m_Input.Hovered);
 
+            // Beside the price rather than instead of it. A player deciding whether to walk round
+            // the back is weighing what the walk costs against what the position buys, and hiding
+            // one half of that to make room for the other would be answering the question for them.
+            if (m_Input.HoveredIsFlank && !string.IsNullOrEmpty(text))
+            {
+                text += "  ·  " + ClashLabels.Advantage;
+            }
+
             m_Cursor.text = text;
+            m_Cursor.EnableInClassList("is-flank", m_Input.HoveredIsFlank);
             m_Cursor.EnableInClassList("is-hidden", string.IsNullOrEmpty(text));
 
             if (string.IsNullOrEmpty(text))

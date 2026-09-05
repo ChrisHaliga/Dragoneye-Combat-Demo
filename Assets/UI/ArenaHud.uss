@@ -566,6 +566,114 @@
     opacity: 0.22;
 }
 
+/* ---------- the defender's prompt ---------- */
+
+/* Centred and large, because it appears when it is not your turn -- the one moment nothing else on
+   screen is addressed to you, and the whole match is waiting on it. */
+.clash-prompt {
+    position: absolute;
+    left: 50%;
+    top: 30%;
+    translate: -50% 0;
+    min-width: 340px;
+    padding: 18px 20px 16px 20px;
+    background-image: url("Generated/ui-panel.png");
+    -unity-slice-left: 16;
+    -unity-slice-right: 16;
+    -unity-slice-top: 16;
+    -unity-slice-bottom: 16;
+}
+
+.clash-prompt__title {
+    font-size: 17px;
+    -unity-font-style: bold;
+    letter-spacing: 1px;
+    color: rgb(232, 226, 212);
+}
+
+.clash-prompt__reason {
+    margin-top: 4px;
+    font-size: 11px;
+    color: rgb(150, 158, 176);
+    white-space: normal;
+}
+
+.clash-prompt__options {
+    flex-direction: row;
+    flex-wrap: wrap;
+    margin-top: 12px;
+}
+
+/* One per element held, with what is left of it. The count is the defender's own business, which is
+   why it can be shown at all. */
+.clash-option {
+    width: 74px;
+    height: 78px;
+    margin: 0 8px 8px 0;
+    padding: 6px 0;
+    align-items: center;
+    justify-content: center;
+    background-color: rgba(0, 0, 0, 0);
+    background-image: url("Generated/ui-card.png");
+    -unity-slice-left: 14;
+    -unity-slice-right: 14;
+    -unity-slice-top: 14;
+    -unity-slice-bottom: 14;
+    border-width: 0;
+}
+
+.clash-option:hover {
+    -unity-background-image-tint-color: rgb(190, 200, 220);
+}
+
+.clash-option:disabled {
+    opacity: 0.32;
+}
+
+/* Chosen. Gold, the same "this is the one" the rest of the game uses. */
+.clash-option--staged {
+    -unity-background-image-tint-color: rgb(226, 191, 122);
+}
+
+.clash-option__mark {
+    width: 32px;
+    height: 32px;
+    background-image: url("Generated/ui-gem.png");
+    -unity-background-scale-mode: scale-to-fit;
+}
+
+.clash-option__name {
+    margin-top: 3px;
+    font-size: 11px;
+    -unity-font-style: bold;
+    letter-spacing: 1px;
+    color: rgb(226, 222, 210);
+}
+
+.clash-option__count {
+    font-size: 9px;
+    color: rgb(139, 147, 165);
+}
+
+.clash-prompt__tally {
+    font-size: 10px;
+    -unity-font-style: bold;
+    letter-spacing: 2px;
+    color: rgb(139, 147, 165);
+}
+
+.clash-prompt__actions {
+    flex-direction: row;
+    justify-content: flex-end;
+    margin-top: 12px;
+}
+
+/* An attack arriving outside the defender's front. Gold, because it is a thing in the player's
+   favour and everything in their favour in this game is gold. */
+.is-flank {
+    color: rgb(232, 197, 128);
+}
+
 /* ---------- context menu ---------- */
 
 /* The sheet behind the menu. Invisible, and pickable on purpose: it is what makes a click anywhere

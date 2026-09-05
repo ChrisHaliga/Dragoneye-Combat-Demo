@@ -73,6 +73,19 @@ namespace Dragoneye.Game
         /// <summary>Routes and their cost, for the actor and the menu alike.</summary>
         public ArenaBoard Board => m_Board;
 
+        /// <summary>Everything on the board, by turn id.</summary>
+        public CreatureRegistry Creatures => m_Creatures;
+
+        /// <summary>
+        /// Whether the armed skill would arrive outside the hovered creature's front.
+        ///
+        /// Worked out here because this is where the hover already is, and shown beside the cost
+        /// because that is where a player is already reading what a click will do to them. It says
+        /// nothing they could not see for themselves -- both facings are on the board -- it just
+        /// saves them doing the geometry.
+        /// </summary>
+        public bool HoveredIsFlank { get; private set; }
+
         /// <summary>
         /// The creature the local player is acting with: the active one, if they control it.
         ///
@@ -127,6 +140,8 @@ namespace Dragoneye.Game
 
         void Reprice(Hex? hovered)
         {
+            HoveredIsFlank = hovered.HasValue && WouldFlank(hovered.Value);
+
             var plan = hovered.HasValue ? Price(hovered.Value) : ActionPlan.Nothing;
 
             if (plan.Action == m_Hovered.Action && plan.Cost == m_Hovered.Cost
@@ -136,6 +151,40 @@ namespace Dragoneye.Game
             }
 
             m_Hovered = plan;
+        }
+
+        /// <summary>
+        /// Whether striking whatever is on this hex would land behind its guard.
+        ///
+        /// Only for an armed skill aimed at an enemy. Hovering the ground, or an ally, or nothing at
+        /// all is not an attack, and calling any of those a flank would be telling the player
+        /// something about a blow they are not about to throw.
+        /// </summary>
+        bool WouldFlank(Hex hex)
+        {
+            var actor = Actor;
+
+            if (actor == null || ArmedSkill(actor) == null || !m_Units.TryGet(hex, out var occupant))
+            {
+                return false;
+            }
+
+            var target = occupant.GetComponent<CreatureState>();
+
+            if (target == null || target == actor || target.Party == actor.Party)
+            {
+                return false;
+            }
+
+            // From where the actor would end up, not from where it is standing: a skill that walks
+            // its user into reach may arrive from a completely different side.
+            var from = m_Board.TryTileInReach(actor.Cell, hex, ArmedSkill(actor).Range,
+                out var tile, out _)
+                ? tile
+                : actor.Cell;
+
+            return FacingRules.IsFlank(target.Facing,
+                Facing.Of((int)Dragoneye.Hex.Hex.DirectionTo(target.Cell, from)));
         }
 
         ActionPlan Price(Hex hex)

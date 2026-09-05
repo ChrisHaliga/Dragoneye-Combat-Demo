@@ -117,12 +117,14 @@ namespace Dragoneye.MultiplayerEditor
             var mace = Equipment(15, "Mace", EquipmentSlot.Weapon, Attr(strength: 1, willpower: 1),
                 "Blunt and devout. The two go together more often than anyone admits.", smite);
 
-            // Three off every blow, in the offhand, so carrying one costs no speed. That is the
-            // whole of what a shield does now -- it used to grant "advantage when defending", which
-            // was a flag no rule ever read.
+            // Three off every blow, in the offhand, so carrying one costs no speed -- and the
+            // advantage DE-006 names it as the example of. Advantage is not free: it commits two
+            // elements to a clash rather than one, so a shield drains its holder as fast as it
+            // protects them, and that coupling is the point rather than an accident.
             var shield = Equipment(30, "Shield", EquipmentSlot.Offhand, Attr(toughness: 1),
-                "Three damage off anything that reaches you, and it costs you no speed.",
-                new SkillAsset[0], ArmourClass.None, damageReduction: 3);
+                "Three damage off anything that reaches you, and you answer a clash with the "
+                + "better of two elements -- which costs you both.",
+                new SkillAsset[0], ArmourClass.None, damageReduction: 3, grantsAdvantage: true);
 
             var light = Armour(20, "Light armour", Attr(toughness: 1), ArmourClass.Light,
                 "Padding and leather. One damage off every blow, and you will still be quick.");
@@ -392,7 +394,8 @@ namespace Dragoneye.MultiplayerEditor
 
         static EquipmentAsset Equipment(int id, string name, EquipmentSlot slot,
             AttributeValues modifiers, string description, IReadOnlyList<SkillAsset> skills,
-            ArmourClass armour = ArmourClass.None, int damageReduction = 0)
+            ArmourClass armour = ArmourClass.None, int damageReduction = 0,
+            bool grantsAdvantage = false)
         {
             var asset = Upsert<EquipmentAsset>($"{k_Folder}/{Sanitise(name)}.asset");
             var serialized = new SerializedObject(asset);
@@ -404,6 +407,7 @@ namespace Dragoneye.MultiplayerEditor
             serialized.FindProperty("m_Armour").intValue = (int)armour;
 
             serialized.FindProperty("m_DamageReduction").intValue = damageReduction;
+            serialized.FindProperty("m_GrantsAdvantage").boolValue = grantsAdvantage;
 
             WriteAttributes(serialized.FindProperty("m_Modifiers"), modifiers);
             WriteList(serialized.FindProperty("m_Skills"), skills);

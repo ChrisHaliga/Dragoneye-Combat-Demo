@@ -128,6 +128,14 @@ namespace Dragoneye.Game
                 return;
             }
 
+            // Not while somebody is being asked to answer an attack. The turn does not belong
+            // entirely to the active player any more, and ending it out from under a defender
+            // mid-decision would resolve their clash into a turn that had already moved on.
+            if (IsClashPending)
+            {
+                return;
+            }
+
             StopBrainTurn();
 
             if (!TurnState.Current.ServerAdvance(IsStillFighting))
@@ -685,8 +693,19 @@ namespace Dragoneye.Game
             // forever. The cap is generous enough that hitting it means a bug, and it is logged.
             var budget = 32;
 
-            while (budget-- > 0 && CanAct(actor))
+            while (budget-- > 0)
             {
+                // A clash suspends the fight, so the brain waits it out rather than reading a
+                // stopped turn as a finished one. Breaking here would end its turn in the middle of
+                // an attack it had already paid for, while the defender was still being asked.
+                // Bounded in practice by the clash watchdog, which settles an unanswered one.
+                yield return new WaitWhile(() => IsClashPending);
+
+                if (!CanAct(actor))
+                {
+                    break;
+                }
+
                 var decision = m_Brain.Decide(ViewOf(actor, includeHand: true),
                     OtherViews(actor), m_Board);
 
