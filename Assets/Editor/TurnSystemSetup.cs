@@ -183,6 +183,10 @@ namespace Dragoneye.MultiplayerEditor
 
             SetUpTurnState();
 
+            // Where a creature is about to stand, and which way it will be looking. Purely
+            // presentation; what is pending belongs to the board input.
+            var preview = Ensure<MovePreview>(host);
+
             var director = Ensure<CombatDirector>(host);
             Assign(director, ("m_Creatures", creatures), ("m_Units", units), ("m_Map", map));
 
@@ -190,6 +194,8 @@ namespace Dragoneye.MultiplayerEditor
             Assign(input,
                 ("m_Pointer", pointer), ("m_Units", units), ("m_Selection", selection),
                 ("m_Map", map), ("m_Creatures", creatures));
+
+            Assign(preview, ("m_Input", input));
 
             // Closing the match is lifecycle, not presentation, so it is its own component rather
             // than a few lines inside the HUD.

@@ -72,6 +72,9 @@ namespace Dragoneye.Game
 
         void OnContextRequested(Hex hex, Vector2 screenPosition)
         {
+            // Asking what is possible here is not answering the question a waiting move asked.
+            m_Input.CancelPendingMove();
+
             Close();
 
             var entries = Build(hex);

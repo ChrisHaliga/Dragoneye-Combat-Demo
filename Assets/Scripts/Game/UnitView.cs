@@ -44,6 +44,10 @@ namespace Dragoneye.Game
         [SerializeField, Tooltip("Height above the tile surface.")]
         float m_GroundOffset = 0.5f;
 
+        [SerializeField, Min(60f), Tooltip("Degrees per second the facing mark turns once the "
+             + "creature has landed. Fast: the rule is already true, this is the mark catching up.")]
+        float m_FacingTurnSpeed = 540f;
+
         [SerializeField, Tooltip("Colour property on the material. URP Lit uses _BaseColor.")]
         string m_ColorProperty = "_BaseColor";
 
@@ -60,7 +64,6 @@ namespace Dragoneye.Game
         bool m_Placed;
 
         Transform m_Pointer;
-        int m_ShownFacing = -1;
 
         static Material s_FacingMaterial;
 
@@ -293,32 +296,25 @@ namespace Dragoneye.Game
         /// <summary>
         /// Turns the facing mark to match the creature.
         ///
-        /// The token itself no longer turns. It used to swing round to look where it was walking,
-        /// which spun the portrait on its face and, now that facing is a rule rather than a flourish,
-        /// showed a direction that had nothing to do with the one the rules use. The wedge is the
-        /// only thing that turns, and it turns to the facing.
+        /// The token itself does not turn. It used to swing round to look where it was walking,
+        /// which spun the portrait on its face and, now that facing is a rule rather than a
+        /// flourish, showed a direction that had nothing to do with the one the rules use.
         ///
-        /// Snapped rather than eased. A facing decides whether the next blow lands in a flank, and a
-        /// mark still swinging round is showing something that is no longer true.
+        /// **After it has landed, not while it is walking.** A move reads as three beats -- go,
+        /// arrive, turn -- and turning on the way there loses the third one entirely: the creature
+        /// simply appears somewhere already facing a new way, and the player never sees the choice
+        /// they just made happen.
         ///
-        /// Compared before writing, because this runs every frame and a rotation assigned sixty
-        /// times a second is sixty transform dirties for nothing.
+        /// Eased rather than snapped, and quickly. The rule is already true the moment the server
+        /// says so; this is only the mark catching up, and a quarter of a second of it is the
+        /// difference between a piece being moved and a piece teleporting.
         /// </summary>
         void PointTheWay()
         {
-            if (m_Pointer == null || m_Creature == null)
+            if (m_Pointer == null || m_Creature == null || IsMoving)
             {
                 return;
             }
-
-            var facing = m_Creature.Facing.Index;
-
-            if (facing == m_ShownFacing)
-            {
-                return;
-            }
-
-            m_ShownFacing = facing;
 
             // The hex directions run clockwise from north, which is exactly what a Y rotation of
             // sixty degrees a step describes -- but north is the arena's north, not the world's.
@@ -326,8 +322,10 @@ namespace Dragoneye.Game
             // bearings instead of pointing every creature somewhere plausible and wrong.
             var arena = ArenaContext.Current != null ? ArenaContext.Current.Map : null;
             var basis = arena != null ? arena.transform.rotation : Quaternion.identity;
+            var wanted = basis * Quaternion.Euler(0f, m_Creature.Facing.Index * 60f, 0f);
 
-            m_Pointer.rotation = basis * Quaternion.Euler(0f, facing * 60f, 0f);
+            m_Pointer.rotation = Quaternion.RotateTowards(m_Pointer.rotation, wanted,
+                m_FacingTurnSpeed * Time.deltaTime);
         }
 
         /// <summary>

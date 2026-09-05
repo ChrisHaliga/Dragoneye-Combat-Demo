@@ -97,6 +97,28 @@ namespace Dragoneye.Game
         public ClashOdds? HoveredOdds { get; private set; }
 
         /// <summary>
+        /// Where the actor is about to walk, once the player has said which way to face when they
+        /// arrive. Null when no move is waiting on that.
+        ///
+        /// A move is two decisions and DE-006 folds the second into the first, so the click that
+        /// picks a tile does not send anything: it puts the creature down in ghost form and waits
+        /// for a bearing. The next click sends both together.
+        /// </summary>
+        public Hex? PendingMove { get; private set; }
+
+        /// <summary>Which way the pending move would arrive facing.</summary>
+        public Facing PendingFacing { get; private set; }
+
+        /// <summary>
+        /// Forgets a move that was waiting on a facing.
+        ///
+        /// Anything that changes what a click means cancels it -- arming a skill, the turn moving
+        /// on, a right-click opening a menu. A ghost still standing there after the decision it
+        /// belonged to has gone is a promise the next click will not keep.
+        /// </summary>
+        public void CancelPendingMove() => PendingMove = null;
+
+        /// <summary>
         /// The creature the local player is acting with: the active one, if they control it.
         ///
         /// Not the selection. A player may click an enemy to read its card without giving up their
@@ -150,6 +172,8 @@ namespace Dragoneye.Game
 
         void Reprice(Hex? hovered)
         {
+            AimPendingMove(hovered);
+
             HoveredIsFlank = hovered.HasValue && WouldFlank(hovered.Value);
             HoveredOdds = hovered.HasValue ? OddsAgainst(hovered.Value) : null;
 
@@ -162,6 +186,35 @@ namespace Dragoneye.Game
             }
 
             m_Hovered = plan;
+        }
+
+        /// <summary>
+        /// Turns a waiting move toward the cursor.
+        ///
+        /// Whichever of the six directions from the destination points nearest the hex under the
+        /// mouse. Pointing at the destination itself says nothing, so the last bearing stands --
+        /// otherwise the ghost would spin to a default every time the cursor crossed it.
+        /// </summary>
+        void AimPendingMove(Hex? hovered)
+        {
+            if (!PendingMove.HasValue)
+            {
+                return;
+            }
+
+            // Nothing to act with any more: the turn moved on, or the creature died.
+            if (Actor == null || m_SkillBar == null
+                || m_SkillBar.SelectedSkill != SkillBarView.MoveSkill)
+            {
+                PendingMove = null;
+                return;
+            }
+
+            if (hovered.HasValue && hovered.Value != PendingMove.Value)
+            {
+                PendingFacing = Facing.Of(
+                    (int)Dragoneye.Hex.Hex.DirectionTo(PendingMove.Value, hovered.Value));
+            }
         }
 
         /// <summary>
@@ -321,6 +374,21 @@ namespace Dragoneye.Game
 
         void OnClicked(Hex hex)
         {
+            // A move already waiting on a bearing takes this click, wherever it landed. The
+            // bearing is whatever the cursor was pointing at, so the click that settles it is the
+            // same click that aimed it.
+            if (PendingMove.HasValue)
+            {
+                var destination = PendingMove.Value;
+                var facing = PendingFacing;
+                var mover = Actor;
+
+                PendingMove = null;
+
+                mover?.GetComponent<UnitCommands>()?.RequestMove(destination, facing);
+                return;
+            }
+
             // Inspecting comes first and is always allowed. Reading a card mid-turn is a normal
             // thing to want, and it costs nothing.
             //
@@ -380,7 +448,12 @@ namespace Dragoneye.Game
 
             if (plan.Action == BoardAction.Move)
             {
-                commands.RequestMove(hex);
+                // First click puts the ghost down and waits for a bearing; the second sends both.
+                // The facing starts as the way the creature would be walking, which is what it
+                // means almost every time -- so a player who does not care can click twice in the
+                // same place and get exactly what they used to get.
+                PendingMove = hex;
+                PendingFacing = Facing.Of((int)Dragoneye.Hex.Hex.DirectionTo(actor.Cell, hex));
             }
         }
     }

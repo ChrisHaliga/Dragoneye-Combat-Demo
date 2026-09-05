@@ -165,6 +165,17 @@ namespace Dragoneye.Game
 
         void RefreshCursor()
         {
+            // A move waiting on a bearing has already chosen its tile, so pricing the one under the
+            // cursor would advertise something the next click is not going to do.
+            if (m_Input.PendingMove.HasValue)
+            {
+                m_Cursor.text = "Click to face this way";
+                m_Cursor.EnableInClassList("is-flank", false);
+                m_Cursor.EnableInClassList("is-hidden", false);
+                PlaceCursor();
+                return;
+            }
+
             var text = ActionLabels.Describe(m_Input.Hovered);
 
             // Beside the price rather than instead of it. A player deciding whether to walk round
@@ -187,12 +198,17 @@ namespace Dragoneye.Game
             m_Cursor.EnableInClassList("is-flank", m_Input.HoveredIsFlank);
             m_Cursor.EnableInClassList("is-hidden", string.IsNullOrEmpty(text));
 
-            if (string.IsNullOrEmpty(text))
+            if (!string.IsNullOrEmpty(text))
             {
-                return;
+                PlaceCursor();
             }
+        }
 
+        /// <summary>Puts the label beside the pointer, wherever the pointer is.</summary>
+        void PlaceCursor()
+        {
             var mouse = UnityEngine.InputSystem.Mouse.current;
+
             if (mouse == null || m_Cursor.panel == null)
             {
                 return;
