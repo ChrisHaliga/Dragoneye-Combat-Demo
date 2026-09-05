@@ -11,11 +11,17 @@ namespace Dragoneye.Combat
     /// it is the best guess the information allows, which is what both a player and a computer
     /// creature have to decide from.
     ///
-    /// The unidentified ones are spread evenly across <see cref="Candidates"/>. That is a
-    /// confession of ignorance rather than a model: knowing nothing about an element means every
-    /// element it could be is equally likely. Narrowing the candidates is how knowledge gets folded
-    /// in -- an attacker who has only ever been seen to throw Pyro and Aero has a candidate list of
-    /// two, and the guess sharpens accordingly.
+    /// **An unidentified element could be any element.** It is spread evenly over all seven, and
+    /// never over a shorter list. An earlier version narrowed it to the elements of whichever
+    /// skills a creature had been watched using, on the reasoning that an attack costs the element
+    /// its skill is made of -- which is true, and useless, because the skills you have watched are
+    /// a lower bound on the skills somebody has and never an upper one. Piling every unknown onto
+    /// the one element a goblin happened to have thrown made the forecast wildly, confidently
+    /// wrong: answers came out at ninety and a hundred per cent against a creature nobody knew
+    /// anything about.
+    ///
+    /// Weight is by count, so two known Pyro are twice as likely to come at you as one known Geo,
+    /// and each unidentified element carries a seventh of itself to every element it might be.
     /// </summary>
     public readonly struct PossibleElements
     {
@@ -25,8 +31,7 @@ namespace Dragoneye.Combat
         /// <summary>Held and available, but nobody has put a name to them.</summary>
         public readonly int Unknown;
 
-        /// <summary>What an unidentified one might turn out to be.</summary>
-        public readonly IReadOnlyList<Element> Candidates;
+
 
         /// <summary>
         /// Whether this hand is known to be empty, as opposed to merely unknown.
@@ -37,18 +42,16 @@ namespace Dragoneye.Combat
         /// </summary>
         public readonly bool Empty;
 
-        public PossibleElements(ElementCounts known, int unknown,
-            IReadOnlyList<Element> candidates = null, bool empty = false)
+        public PossibleElements(ElementCounts known, int unknown, bool empty = false)
         {
             Known = known;
             Unknown = unknown < 0 ? 0 : unknown;
-            Candidates = candidates != null && candidates.Count > 0 ? candidates : ElementInfo.All;
             Empty = empty;
         }
 
         /// <summary>Known to hold nothing. An attack against this is unopposed.</summary>
         public static PossibleElements None =>
-            new PossibleElements(ElementCounts.Empty, 0, null, empty: true);
+            new PossibleElements(ElementCounts.Empty, 0, empty: true);
 
         /// <summary>Nothing is known at all. Every element is as likely as every other.</summary>
         public static PossibleElements Unknowable =>
@@ -67,8 +70,7 @@ namespace Dragoneye.Combat
         /// do -- gave nearly always zero, because an element is proven *by* being spent. The guess
         /// then had nothing in it, which was read as certainty rather than as ignorance.
         /// </summary>
-        public static PossibleElements Seen(ElementLedger ledger,
-            IReadOnlyList<Element> candidates = null)
+        public static PossibleElements Seen(ElementLedger ledger)
         {
             // How many are in the hand. Exact: spending moves an element out and returning moves it
             // back, so the count is the total less what is outstanding, and both are public.
@@ -111,29 +113,17 @@ namespace Dragoneye.Combat
 
             var nameless = inHand - identified.Total;
 
-            return new PossibleElements(identified, nameless, candidates);
+            return new PossibleElements(identified, nameless);
         }
 
-        /// <summary>How much of the guess sits on one element.</summary>
-        public float WeightOf(Element element)
-        {
-            var weight = (float)Known[element];
-
-            if (Unknown <= 0)
-            {
-                return weight;
-            }
-
-            for (var i = 0; i < Candidates.Count; i++)
-            {
-                if (Candidates[i] == element)
-                {
-                    return weight + ((float)Unknown / Candidates.Count);
-                }
-            }
-
-            return weight;
-        }
+        /// <summary>
+        /// How much of the guess sits on one element.
+        ///
+        /// What is known counts once per element held. What is not known counts a seventh of itself
+        /// against every element it could be, which is all of them.
+        /// </summary>
+        public float WeightOf(Element element) =>
+            Known[element] + ((float)Unknown / ElementInfo.Count);
 
         /// <summary>Whether there is anything at all to put up.</summary>
         public bool Any => Known.Total > 0 || Unknown > 0;
@@ -160,6 +150,65 @@ namespace Dragoneye.Combat
 
         /// <summary>How much better than even this is, from -1 to 1.</summary>
         public float Edge => Win - Loss;
+
+        /// <summary>
+        /// The three shares as whole percentages that sum to exactly a hundred.
+        ///
+        /// By largest remainder, not by rounding each and hoping. Rounding independently gives
+        /// ninety-nine as often as it gives a hundred and can give a hundred and one, and a player
+        /// who adds up three numbers on a prompt and gets the wrong answer stops trusting all
+        /// three. Here every share is floored, and whatever is left over goes to whichever was
+        /// closest to rounding up -- so the total is always right and the largest share is never
+        /// the one that gets shortchanged.
+        ///
+        /// Here rather than beside the wording, because it is arithmetic, and because two screens
+        /// showing the same odds must show the same digits.
+        /// </summary>
+        public void AsPercent(out int win, out int tie, out int loss)
+        {
+            var shares = new[] { Win, Tie, Loss };
+            var whole = new int[3];
+            var given = 0;
+
+            for (var i = 0; i < 3; i++)
+            {
+                var raw = shares[i] * 100f;
+                whole[i] = raw <= 0f ? 0 : (int)raw;
+                given += whole[i];
+            }
+
+            // Hand out what the flooring dropped, biggest fraction first.
+            for (var spare = 100 - given; spare > 0; spare--)
+            {
+                var best = -1;
+                var most = -1f;
+
+                for (var i = 0; i < 3; i++)
+                {
+                    var fraction = (shares[i] * 100f) - whole[i];
+
+                    if (shares[i] > 0f && fraction > most)
+                    {
+                        most = fraction;
+                        best = i;
+                    }
+                }
+
+                // Nothing has a fraction to round up -- everything was already whole, or the shares
+                // did not add to one. The largest share takes the remainder.
+                if (best < 0)
+                {
+                    best = whole[0] >= whole[1] && whole[0] >= whole[2] ? 0
+                        : whole[1] >= whole[2] ? 1 : 2;
+                }
+
+                whole[best]++;
+            }
+
+            win = whole[0];
+            tie = whole[1];
+            loss = whole[2];
+        }
     }
 
     /// <summary>
@@ -247,19 +296,8 @@ namespace Dragoneye.Combat
                 : new ClashOdds(win / total, tie / total, loss / total);
         }
 
-        /// <summary>Every candidate equally, for a hand nothing is known about.</summary>
-        static float Uniform(PossibleElements theirs, Element element)
-        {
-            for (var i = 0; i < theirs.Candidates.Count; i++)
-            {
-                if (theirs.Candidates[i] == element)
-                {
-                    return 1f;
-                }
-            }
-
-            return 0f;
-        }
+        /// <summary>Every element equally, for a hand nothing at all is known about.</summary>
+        static float Uniform(PossibleElements theirs, Element element) => 1f;
     }
 
     /// <summary>

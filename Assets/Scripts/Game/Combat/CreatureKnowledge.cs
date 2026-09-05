@@ -35,23 +35,22 @@ namespace Dragoneye.Game
         /// <summary>
         /// What this creature might attack with.
         ///
-        /// Narrower than what it holds, because an attack costs the element its skill is made of --
-        /// so the only elements that can arrive are the ones its skills use. Which skills those are
-        /// is known only as far as it has been seen using them; before it has thrown anything, the
-        /// guess is as wide as its hand.
+        /// The same hand it would defend with. An attack does cost the element its skill is made
+        /// of, so it was tempting to narrow this to the skills the creature has been watched using
+        /// -- but the skills you have watched are a lower bound on the ones somebody has and never
+        /// an upper one, and treating them as an upper bound piled every unidentified element onto
+        /// whichever one a creature happened to have thrown first. That produced ninety and hundred
+        /// per cent answers about a creature nobody knew anything about.
+        ///
+        /// <see cref="RevealedAttackElements"/> is still worth having -- it is what a creature has
+        /// demonstrably got -- but it belongs on a panel showing what somebody can do, not in a
+        /// guess about what they are about to do.
         /// </summary>
         public static PossibleElements PossibleAttacks(CreatureState creature)
         {
             var pool = creature != null ? creature.GetComponent<CreaturePool>() : null;
 
-            if (pool == null)
-            {
-                return PossibleElements.None;
-            }
-
-            var seen = RevealedAttackElements(creature);
-
-            return PossibleElements.Seen(pool.Ledger, seen.Count > 0 ? seen : null);
+            return pool != null ? PossibleElements.Seen(pool.Ledger) : PossibleElements.None;
         }
 
         /// <summary>

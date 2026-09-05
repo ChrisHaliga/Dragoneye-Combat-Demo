@@ -99,31 +99,23 @@ namespace Dragoneye.Game
         /// </summary>
         public static string Forecast(ClashOdds odds)
         {
-            var win = Percent(odds.Win);
-            var tie = Percent(odds.Tie);
+            odds.AsPercent(out var win, out var tie, out var loss);
 
             return Tint(WinColour, $"{win}% WIN") + "  \u00b7  "
                 + Tint(TieColour, $"{tie}% TIE") + "  \u00b7  "
-                + Tint(LoseColour, $"{100 - win - tie}% LOSE");
+                + Tint(LoseColour, $"{loss}% LOSE");
         }
 
         /// <summary>The same three, short enough to sit under an element on the prompt.</summary>
         public static string Chances(ClashOdds odds)
         {
-            var win = Percent(odds.Win);
-            var tie = Percent(odds.Tie);
+            odds.AsPercent(out var win, out var tie, out var loss);
 
             return Tint(WinColour, $"{win}") + Tint(TieColour, $" / {tie}")
-                + Tint(LoseColour, $" / {100 - win - tie}");
+                + Tint(LoseColour, $" / {loss}");
         }
 
         /// <summary>Rich text, which UI Toolkit labels understand out of the box.</summary>
         static string Tint(string colour, string text) => $"<color={colour}>{text}</color>";
-
-        static int Percent(float share)
-        {
-            var value = (int)System.Math.Round(share * 100f);
-            return value < 0 ? 0 : value > 100 ? 100 : value;
-        }
     }
 }
