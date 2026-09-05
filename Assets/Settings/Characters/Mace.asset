@@ -28,3 +28,4 @@ MonoBehaviour:
   - {fileID: 11400000, guid: 882740fe99836254f91997dc62db780e, type: 2}
   m_Armour: 0
   m_DamageReduction: 0
+  m_GrantsAdvantage: 0

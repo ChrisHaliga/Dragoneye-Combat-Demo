@@ -131,6 +131,7 @@ GameObject:
   - component: {fileID: 82840557}
   - component: {fileID: 82840560}
   - component: {fileID: 82840559}
+  - component: {fileID: 82840561}
   m_Layer: 0
   m_Name: Turn State
   m_TagString: Untagged
@@ -205,6 +206,19 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 77756fed2d3faa643aff3c8b373f3f41, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Dragoneye.Game::Dragoneye.Game.TurnState
+  ShowTopMostFoldoutHeaderGroup: 1
+--- !u!114 &82840561
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 82840556}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0fb4f2acb07174242969cb7e07f49caf, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Dragoneye.Game::Dragoneye.Game.ClashCommands
   ShowTopMostFoldoutHeaderGroup: 1
 --- !u!1 &261654050
 GameObject:
@@ -382,6 +396,7 @@ MonoBehaviour:
   m_BrainActionDelay: 0.45
   m_BrainSkillDwell: 1.6
   m_MoveWaitLimit: 4
+  m_ClashWaitLimit: 20
 --- !u!114 &261654064
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -412,6 +427,7 @@ GameObject:
   - component: {fileID: 648006342}
   - component: {fileID: 648006343}
   - component: {fileID: 648006344}
+  - component: {fileID: 648006345}
   m_Layer: 0
   m_Name: Arena HUD
   m_TagString: Untagged
@@ -554,6 +570,19 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 46454bfcefe9197418aaa8bb48e7212d, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Dragoneye.Game::Dragoneye.Game.ContextMenuView
+  m_Input: {fileID: 261654062}
+--- !u!114 &648006345
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 648006334}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 978722e3d7eff2449b07754bcd690e5f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Dragoneye.Game::Dragoneye.Game.ClashPromptView
   m_Input: {fileID: 261654062}
 --- !u!1 &723212526
 GameObject:

@@ -55,13 +55,18 @@ namespace Dragoneye.Game
                     return s_Pointer;
                 }
 
+                // Outside the token, not under it. Built from the origin the first time round,
+                // which put the whole triangle inside a disc of larger radius -- so the mark was
+                // there, correct, and completely hidden.
                 var half = PointerWidth * 0.5f;
+                var start = Radius + 0.03f;
+                var tip = start + PointerReach;
 
                 var vertices = new[]
                 {
-                    new Vector3(-half, 0f, 0f),
-                    new Vector3(half, 0f, 0f),
-                    new Vector3(0f, 0f, PointerReach)
+                    new Vector3(-half, 0f, start),
+                    new Vector3(half, 0f, start),
+                    new Vector3(0f, 0f, tip)
                 };
 
                 s_Pointer = new Mesh

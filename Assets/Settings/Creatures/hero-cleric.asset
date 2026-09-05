@@ -21,15 +21,16 @@ MonoBehaviour:
   m_MaxHp: 20
   m_MaxAp: 7
   m_Speed: 5
+  m_Shielded: 0
   m_StartingPool:
     Geo: 0
-    Hydro: 1
+    Hydro: 2
     Pyro: 0
     Aero: 0
-    Lux: 1
+    Lux: 2
     Nyx: 0
     Arcana: 0
-  m_LevelUpPicks: 040000000400000004000000
+  m_LevelUpPicks: 0400000004000000040000000400000004000000040000000400000004000000
   m_Skills:
   - {fileID: 11400000, guid: 882740fe99836254f91997dc62db780e, type: 2}
   - {fileID: 11400000, guid: d3df0d8534ad78d4cb8e75b3ddc7042d, type: 2}

@@ -354,7 +354,9 @@ their own, and the outcome scales the effect: winning lands it, a tie halves it 
 stops it. Both elements are spent regardless. A defender holding nothing, or choosing to take the
 hit, leaves the attack unopposed. Skills aimed at yourself or an ally never clash.
 
-**Facing and advantage.** Three sectors of six are a creature's front. An attack arriving outside it
+**Facing and advantage.** Five sectors of six are a creature's front; only the one directly behind
+is not. (DE-006 offered rear-three-of-six and it played badly — with half the board counting as a
+flank, advantage turned up so often it read as random.) An attack arriving from behind
 gives the defender disadvantage; a shield gives its holder advantage. Either means committing *two*
 elements instead of one — advantage keeps the better result, disadvantage the worse — so an edge is
 never free, and the two cancel on the same side. A side required to commit two while holding one

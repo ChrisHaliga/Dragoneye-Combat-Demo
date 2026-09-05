@@ -55,15 +55,16 @@ namespace Dragoneye.Combat
     /// <summary>
     /// What a facing is worth: which arrivals it covers, and which it does not.
     ///
-    /// Three of six sectors are the front -- the way the creature is turned and the sector to
-    /// either side of it -- leaving three that are not. DE-006 names that split as the obvious
-    /// start, and it is the one that makes turning to attack a real cost: whichever way you turn,
-    /// you have opened exactly half the board on yourself.
+    /// A creature covers everything but the sector directly behind it. DE-006 offered rear-three-
+    /// of-six as a starting point and it played badly: with half the board counting as a flank,
+    /// advantage turned up so often that it read as random rather than as something anybody had
+    /// engineered. One sector makes flanking a manoeuvre -- you have to get all the way round --
+    /// and makes the word mean something when it appears.
     /// </summary>
     public static class FacingRules
     {
-        /// <summary>Sectors a creature covers: the way it is turned, and one either side.</summary>
-        public const int FrontSectors = 3;
+        /// <summary>Sectors a creature covers: everything but the one at its back.</summary>
+        public const int FrontSectors = 5;
 
         /// <summary>
         /// How many sectors apart two facings are, the short way round.
@@ -85,6 +86,6 @@ namespace Dragoneye.Combat
         /// way the blow is coming from, not which way anybody is walking.
         /// </summary>
         public static bool IsFlank(Facing facing, Facing bearing) =>
-            Separation(facing, bearing) > FrontSectors / 2;
+            Separation(facing, bearing) == Facing.Count / 2;
     }
 }

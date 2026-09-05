@@ -14,13 +14,13 @@ MonoBehaviour:
   m_EditorClassIdentifier: Dragoneye.Data::Dragoneye.Data.SkillAsset
   m_Id: 103
   m_DisplayName: Jab
-  m_Description: Costs nothing from the pool. What you use when the pool is what
-    you are short of.
+  m_Description: Quick, and it asks its question in Aero. What you throw when Aero
+    is what you are holding.
   m_Element: 3
   m_ApCost: 1
-  m_ElementCost: 0
+  m_ElementCost: 1
   m_Range: 1
   m_Target: 0
   m_Effect: 0
-  m_Amount: 3
+  m_Amount: 4
   m_LevelRequired: 1

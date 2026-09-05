@@ -28,3 +28,4 @@ MonoBehaviour:
   m_Skills: []
   m_Armour: 3
   m_DamageReduction: 0
+  m_GrantsAdvantage: 0

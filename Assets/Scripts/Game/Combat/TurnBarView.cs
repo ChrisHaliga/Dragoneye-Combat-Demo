@@ -154,13 +154,18 @@ namespace Dragoneye.Game
 
                 if (active)
                 {
-                    // The creature, and then whose turn it is. Who is acting is the question a
-                    // player asks first in a game where four sides take turns, and the name used
-                    // to float over a disc in the world where it answered nothing.
-                    m_ActiveName.text = creature.DisplayName;
-                    m_ActiveOwner.text = creature.IsComputerControlled
-                        ? "THE COMPUTER'S TURN"
-                        : $"{CreatureDisplay.ControllerName(creature)}'S TURN".ToUpperInvariant();
+                    // Whose turn, on the line that says whose turn it is. The second line
+                    // names a person, and only when there is one -- "the computer's turn" is a
+                    // sentence nobody needed, occupying the most-read strip of the screen to say
+                    // that the thing without a player attached has no player attached.
+                    m_ActiveName.text = $"{creature.DisplayName}'s turn";
+
+                    var player = creature.IsComputerControlled
+                        ? string.Empty
+                        : CreatureDisplay.ControllerName(creature).ToUpperInvariant();
+
+                    m_ActiveOwner.text = player;
+                    m_ActiveOwner.EnableInClassList("is-hidden", player.Length == 0);
                 }
             }
         }

@@ -112,6 +112,10 @@ namespace Dragoneye.Game
 
         ElementCounts m_StartingPool;
 
+        CreatureState m_Creature;
+
+        void Awake() => m_Creature = GetComponent<CreatureState>();
+
         /// <summary>Raised on every peer when either half changes.</summary>
         public event Action Changed;
 
@@ -148,8 +152,18 @@ namespace Dragoneye.Game
             }
         }
 
-        /// <summary>Whether this peer is entitled to <see cref="Pool"/>.</summary>
-        public bool CanSee => IsOwner;
+        /// <summary>
+        /// Whether this peer is entitled to <see cref="Pool"/>.
+        ///
+        /// Whether a *player* runs this creature, not whether this process owns the object. The two
+        /// come apart on the host, which owns every computer creature -- so the host could read
+        /// every enemy hand while everybody else was guessing, and saw no unknown count on the card
+        /// because as far as the card was concerned there was nothing unknown.
+        ///
+        /// The server still reads the pool directly to run the brain. That is a different question
+        /// from whether it may be drawn.
+        /// </summary>
+        public bool CanSee => LocalPlayer.Controls(m_Creature);
 
         public ElementLedger Ledger =>
             new ElementLedger(Pool, Revealed, m_OutstandingView, Total, Identified);

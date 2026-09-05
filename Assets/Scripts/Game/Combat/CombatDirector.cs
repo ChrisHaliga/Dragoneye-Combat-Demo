@@ -48,10 +48,6 @@ namespace Dragoneye.Game
              + "before carrying on regardless.")]
         float m_MoveWaitLimit = 4f;
 
-        [SerializeField, Min(1f), Tooltip("Longest a clash waits for a defender's answer before "
-             + "taking the attack unanswered on their behalf.")]
-        float m_ClashWaitLimit = 20f;
-
         /// <summary>
         /// Swapped wholesale to change the opponent. Not serialised: brains are code, not assets,
         /// and a ScriptableObject wrapper would be indirection for a choice nobody is authoring yet.
@@ -67,7 +63,6 @@ namespace Dragoneye.Game
         CreatureState m_ClashAttacker;
         CreatureState m_ClashDefender;
         SkillSpec m_ClashSkill;
-        float m_ClashWaited;
 
         // Creatures already complained about, so a toothless one does not warn every round.
         readonly HashSet<uint> m_Warned = new HashSet<uint>();
@@ -327,7 +322,6 @@ namespace Dragoneye.Game
             m_ClashAttacker = actor;
             m_ClashDefender = target;
             m_ClashSkill = skill;
-            m_ClashWaited = 0f;
 
             Ask(m_Clash.Request, target);
         }
@@ -352,10 +346,11 @@ namespace Dragoneye.Game
 
             if (defender.IsComputerControlled)
             {
-                var pool = defender.GetComponent<CreaturePool>();
-                var answer = ClashDefence.Choose(request, pool != null ? pool.Pool : default);
-
-                SettleClash(answer, declined: answer.Count == 0);
+                // Through the same door a player's answer comes in by. This used to settle the
+                // clash directly, which skipped committing the answer to the sequence -- so it was
+                // still waiting when the reveal was asked for, and no computer creature ever took
+                // any damage at all. Two callers doing different halves of one job.
+                ServerAnswerClash(defender, ChooseDefence(defender, request), out _);
                 return;
             }
 
@@ -394,13 +389,28 @@ namespace Dragoneye.Game
 
             var pool = defender.GetComponent<CreaturePool>();
 
+            // Committed before anything is spent, so an answer the sequence refuses costs nothing
+            // and the clash stays open for a better one.
             if (pool == null || !m_Clash.TryCommit(answer, pool.Ledger, out refusal))
             {
                 return false;
             }
 
+            foreach (var element in answer)
+            {
+                pool.ServerSpend(element, 1, out _);
+            }
+
             SettleClash(answer, declined: false);
             return true;
+        }
+
+        /// <summary>What a computer creature puts up. See <see cref="ClashDefence"/>.</summary>
+        static IReadOnlyList<Element> ChooseDefence(CreatureState defender, DefenceRequest request)
+        {
+            var pool = defender.GetComponent<CreaturePool>();
+
+            return ClashDefence.Choose(request, pool != null ? pool.Pool : default);
         }
 
         /// <summary>
@@ -433,15 +443,6 @@ namespace Dragoneye.Game
             if (declined)
             {
                 clash.Decline();
-            }
-            else if (answer != null)
-            {
-                var pool = defender.GetComponent<CreaturePool>();
-
-                foreach (var element in answer)
-                {
-                    pool?.ServerSpend(element, 1, out _);
-                }
             }
 
             if (!clash.TryReveal(out var reveal))
@@ -790,30 +791,34 @@ namespace Dragoneye.Game
         }
 
         /// <summary>
-        /// The clash watchdog, and nothing else.
+        /// Notices a defender who is no longer there.
         ///
-        /// A suspended fight is suspended for everybody, so a defender who has wandered off, lost
-        /// their connection or simply gone to make tea would otherwise stop the match for the rest
-        /// of it. Declining on their behalf is the least bad answer available: it is a legal choice
-        /// they were entitled to make, and it costs them nothing they were not about to lose.
+        /// **There is no timer on a decision, deliberately.** A player who takes an hour over a
+        /// clash is a player thinking about it, and this game does not measure skill in seconds --
+        /// putting a clock on the one genuinely difficult choice in a turn would hand the win to
+        /// whoever guesses fastest. An earlier version had one and it was wrong.
         ///
-        /// Generous, because being rushed into a decision is worse than waiting for one.
+        /// A client that has *gone*, though, is not thinking. That is a closed socket rather than a
+        /// slow decision, and the fight cannot wait on it, so the attack resolves unopposed -- which
+        /// is a choice the defender was entitled to make and costs them nothing they still had.
         /// </summary>
         void Update()
         {
-            if (!IsServer || m_Clash == null)
+            if (!IsServer || m_Clash == null || m_ClashDefender == null
+                || m_ClashDefender.IsComputerControlled)
             {
                 return;
             }
 
-            m_ClashWaited += Time.unscaledDeltaTime;
+            var manager = NetworkManager.Singleton;
 
-            if (m_ClashWaited < m_ClashWaitLimit)
+            if (manager != null
+                && manager.ConnectedClients.ContainsKey(m_ClashDefender.OwnerClientId))
             {
                 return;
             }
 
-            Debug.LogWarning("A clash went unanswered; taking the attack unopposed.", this);
+            Debug.Log("The defender left mid-clash; the attack resolves unopposed.", this);
             SettleClash(null, declined: true);
         }
 

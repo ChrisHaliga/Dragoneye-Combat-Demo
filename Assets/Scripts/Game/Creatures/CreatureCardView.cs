@@ -158,8 +158,12 @@ namespace Dragoneye.Game
                     definition.ClassName)
                 : string.Empty;
 
-            m_Controller.text = $"{PartyPalette.NameOf(creature.Party)}  ·  "
-                + $"Controlled by {CreatureDisplay.ControllerName(creature)}";
+            // The side always, the player only when there is one. Telling somebody that the
+            // goblin is run by the computer is telling them what a goblin is.
+            m_Controller.text = creature.IsComputerControlled
+                ? PartyPalette.NameOf(creature.Party)
+                : $"{PartyPalette.NameOf(creature.Party)}  ·  "
+                    + CreatureDisplay.ControllerName(creature);
             m_Hp.text = $"{creature.CurrentHp} / {creature.MaxHp}";
             m_Ap.text = $"{creature.CurrentAp} / {creature.MaxAp}";
             m_Speed.text = creature.Speed.ToString();
