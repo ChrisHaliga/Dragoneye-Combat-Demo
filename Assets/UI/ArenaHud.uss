@@ -741,6 +741,36 @@
     color: rgb(198, 158, 88);
 }
 
+/* The six ways to arrive. A row rather than six menu lines, because they are one choice made six
+   ways and reading them down a list would suggest six different things. */
+.context-facings {
+    flex-direction: row;
+    flex-wrap: wrap;
+    padding: 2px 7px 6px 7px;
+}
+
+.context-facing {
+    width: 40px;
+    height: 26px;
+    margin: 2px;
+    padding: 0;
+    font-size: 10px;
+    -unity-font-style: bold;
+    letter-spacing: 1px;
+    color: rgb(220, 224, 234);
+    background-color: rgba(0, 0, 0, 0);
+    background-image: url("Generated/ui-button.png");
+    -unity-slice-left: 11;
+    -unity-slice-right: 11;
+    -unity-slice-top: 11;
+    -unity-slice-bottom: 11;
+    border-width: 0;
+}
+
+.context-facing:hover {
+    background-image: url("Generated/ui-button-hot.png");
+}
+
 .context-note {
     padding: 0 9px 5px 9px;
     font-size: 11px;

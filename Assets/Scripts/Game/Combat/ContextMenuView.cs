@@ -166,6 +166,64 @@ namespace Dragoneye.Game
             entries.Add(new Entry("Move here", $"{plan.Cost} AP",
                 plan.IsAllowed ? null : ActionLabels.DescribeRefusal(plan.Refusal),
                 () => actor.GetComponent<UnitCommands>()?.RequestMove(hex)));
+
+            if (plan.IsAllowed)
+            {
+                entries.Add(new Entry("Move here, facing…", string.Empty, null,
+                    () => ShowFacings(actor, hex), closes: false));
+            }
+        }
+
+        /// <summary>
+        /// The six ways to arrive, in place of the menu that asked.
+        ///
+        /// DE-006 makes the facing part of the move rather than a follow-up, and this is where a
+        /// player says which one they want. Walking somewhere and then turning for free would be a
+        /// turn action, and the spec is explicit that there is not one -- so the choice is made
+        /// before the move goes in, not after it lands.
+        ///
+        /// Behind a second click because it is the uncommon case. Walking somewhere and looking
+        /// where you walked is what a player means almost every time, and six buttons in front of
+        /// them every time they want to take a step would be six buttons in the way.
+        /// </summary>
+        void ShowFacings(CreatureState actor, Hex hex)
+        {
+            if (m_Menu == null)
+            {
+                return;
+            }
+
+            m_Menu.Clear();
+
+            var title = new Label("Arrive facing");
+            title.AddToClassList("context-title");
+            m_Menu.Add(title);
+
+            var row = new VisualElement();
+            row.AddToClassList("context-facings");
+
+            for (var i = 0; i < Facing.Count; i++)
+            {
+                row.Add(FacingButton(actor, hex, Facing.Of(i)));
+            }
+
+            m_Menu.Add(row);
+        }
+
+        VisualElement FacingButton(CreatureState actor, Hex hex, Facing facing)
+        {
+            var button = new Button();
+            button.AddToClassList("context-facing");
+            button.text = FacingLabels.ShortNameOf(facing);
+            button.tooltip = $"Walk there and end up facing {FacingLabels.NameOf(facing)}";
+
+            button.clicked += () =>
+            {
+                actor.GetComponent<UnitCommands>()?.RequestMove(hex, facing);
+                Close();
+            };
+
+            return button;
         }
 
         /// <summary>

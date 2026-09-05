@@ -238,6 +238,42 @@ turn can be watched rather than resolving in one frame.
 The `Closing` state only accepts a destination strictly closer than where it started. Without that
 check the AI paced back and forth between equidistant tiles until its AP ran out.
 
+### Change what a clash does
+
+An attack on an enemy is a contest, not a subtraction. The attacker's skill commits its element and
+spends it; the defender is asked what they answer with, told nothing about what is coming, and
+commits one of their own; then both are revealed and the outcome scales the effect.
+
+| Want to change | Where |
+|---|---|
+| Which element answers which | `ElementMatchups.asset`, authored by `ElementMatchupSetup` |
+| What win / tie / loss do to the effect | `ClashRules.Scale` |
+| How many elements advantage costs | `ClashRules.CommitmentFor` |
+| What a defender may answer with | `ClashRules.AnswersFor` |
+| The whole sequence and its concealment | `ClashSequence` |
+| How a computer defender chooses | `ClashDefence.Choose` |
+
+**`ClashSequence` is in `Dragoneye.Combat` and must stay there.** It is the pause in an attack made
+into an object: who may answer, how many elements, whether an answer was legal, and what the two
+commitments come to are all decided in it, on whichever machine is running the fight. `ClashCommands`
+is a postbox — it carries a `DefenceRequest` one way and a list of elements back, and decides
+nothing. Anything decided there would be decided a second time, differently, the first time somebody
+changed a rule, and a fight that resolves one way on the host and another on a client is the hardest
+bug this project could grow.
+
+### Change facing
+
+Facing is stored on `CreatureState` and written by exactly two things: moving turns you the way you
+walked, attacking turns you toward whoever you swung at. There is no turn action, deliberately —
+DE-006 is explicit, and a creature that could move and then turn for free would have one.
+
+The facing rides in the move *intent* (`UnitCommands.RequestMove(hex, facing)`) rather than
+following as a second order, because two orders can be interrupted between and that would be a free
+turn for anybody who timed it.
+
+`FacingRules.IsFlank` decides which arrivals count; `Hex.DirectionTo` turns an offset into one of
+six. Both are pure and both are tested, including the boundary tiebreak.
+
 ### Change the combat maths
 
 All in `Dragoneye.Combat`:
@@ -312,6 +348,17 @@ same thing everywhere; the default is five notches from closest to furthest. Dra
 **Levels** — start at 1, cap at 20. A level costs `2^level` experience. Killing a creature is worth
 its level. Multiple levels resolve in one pass (`Progression.Resolve`) so a character out of a long
 fight is asked what it becomes once, not once per level.
+
+**Clashes.** An attack on an enemy commits the skill's element, the defender answers with one of
+their own, and the outcome scales the effect: winning lands it, a tie halves it rounding up, losing
+stops it. Both elements are spent regardless. A defender holding nothing, or choosing to take the
+hit, leaves the attack unopposed. Skills aimed at yourself or an ally never clash.
+
+**Facing and advantage.** Three sectors of six are a creature's front. An attack arriving outside it
+gives the defender disadvantage; a shield gives its holder advantage. Either means committing *two*
+elements instead of one — advantage keeps the better result, disadvantage the worse — so an edge is
+never free, and the two cancel on the same side. A side required to commit two while holding one
+commits the one.
 
 **Armour** is flat damage reduction: none 0, light 1, medium 2, heavy 4, shield +3. Reduction cannot
 heal — `DamageAfter` floors at zero. The floating combat text shows the arithmetic (`-2 HP (5 - 3
@@ -391,6 +438,22 @@ do nothing at all.
 
 Redraw only when something actually changed. The same shape of bug returned in the portrait picker,
 where the click handler rebuilt the row it had just been clicked in.
+
+### Concealment is ordering, not access control
+
+The one thing DE-005 exists for is that a defender cannot see what is coming. The way that stops
+being true is not a dramatic mistake — it is somebody adding a convenient field to the prompt in a
+year's time.
+
+So there is exactly one type that crosses the gap, `DefenceRequest`, and it has no room for the
+attacker's skill or element. `ClashSequence` holds the attacker's commitment from the start and
+simply does not hand it out: `TryReveal` refuses until the defender has answered. Nothing above has
+to remember to withhold anything.
+
+The test walks the prompt by reflection rather than by naming its fields, so a field added later is
+covered the day it is added — and there is a control beside it, a deliberately leaky prompt the same
+walk is asserted to catch. A concealment test that passes because it saw nothing reads as a
+guarantee and is a blank stare.
 
 ### The world reads the mouse; the HUD does not get a say unless you ask
 

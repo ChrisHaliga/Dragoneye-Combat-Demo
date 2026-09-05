@@ -301,10 +301,42 @@ namespace Dragoneye.Game
 
             var cells = HexSpawnPlacement.PlaceGrouped(arena.Map, groups, parties.Count);
 
+            // Everybody starts looking inward. Facing defaults to north, and a board where every
+            // creature faces north is a board where whoever spawned to the north is flanked before
+            // anybody has moved -- which is a coin toss decided by the seating, not by play.
+            var middle = Middle(cells);
+
             for (var i = 0; i < placements.Count; i++)
             {
-                SpawnUnit(placements[i].Entry, cells[i], placements[i].BuildSlot);
+                SpawnUnit(placements[i].Entry, cells[i], placements[i].BuildSlot,
+                    Facing.Of((int)Hex.DirectionTo(cells[i], middle)));
             }
+        }
+
+        /// <summary>
+        /// The middle of everybody, rounded to a hex.
+        ///
+        /// The average of where the parties were put rather than the map's origin, because a map is
+        /// not obliged to be centred on it -- a rectangle generated from a corner would send half
+        /// the board looking off the edge of it.
+        /// </summary>
+        static Hex Middle(IReadOnlyList<Hex> cells)
+        {
+            if (cells.Count == 0)
+            {
+                return Hex.Zero;
+            }
+
+            var q = 0;
+            var r = 0;
+
+            foreach (var cell in cells)
+            {
+                q += cell.Q;
+                r += cell.R;
+            }
+
+            return new Hex(q / cells.Count, r / cells.Count);
         }
 
         /// <summary>
@@ -384,7 +416,8 @@ namespace Dragoneye.Game
         /// it; an unclaimed creature stays owned by the server, which is what "computer-controlled"
         /// means for now.
         /// </summary>
-        void SpawnUnit(RosterEntry entry, Hex cell, byte buildSlot = PartyInfo.Unclaimed)
+        void SpawnUnit(RosterEntry entry, Hex cell, byte buildSlot = PartyInfo.Unclaimed,
+            Facing facing = default)
         {
             if (m_UnitPrefab == null)
             {
@@ -409,9 +442,10 @@ namespace Dragoneye.Game
                 // OnNetworkSpawn, which the server runs before the spawn message goes out -- so the
                 // unit reaches every client already on its hex and already the right creature.
                 instance.GetComponent<UnitState>().ServerPlaceAt(cell);
-                instance.GetComponent<CreatureState>()
-                    .ServerConfigure(entry.CreatureId, entry.Party, entry.ClaimedBySlot, buildSlot,
-                        entry.Level);
+                var creature = instance.GetComponent<CreatureState>();
+
+                creature.ServerConfigure(entry.CreatureId, entry.Party, entry.ClaimedBySlot,
+                    buildSlot, entry.Level);
 
                 // The starting pool is authored on the premade definition. A built character will
                 // bring its own from the creator; both arrive here before the spawn so the owning
@@ -437,6 +471,10 @@ namespace Dragoneye.Game
                 {
                     networkObject.Spawn(destroyWithScene: true);
                 }
+
+                // After the spawn, because ServerFace writes a NetworkVariable and one written
+                // before there is a spawned object to carry it goes nowhere.
+                creature.ServerFace(facing);
             }
             catch (Exception e)
             {
