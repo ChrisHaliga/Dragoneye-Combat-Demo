@@ -46,17 +46,58 @@ namespace Dragoneye.Combat
         /// </summary>
         public readonly IReadOnlyList<Element> Outstanding;
 
+        /// <summary>
+        /// How many elements this creature owns altogether, spent or not. Public.
+        ///
+        /// Constant for the life of a fight: spending moves an element out of the pool and into
+        /// <see cref="Outstanding"/>, and returning moves it back, so
+        /// <c>Pool.Total + Outstanding.Count</c> is always this. It is published because an
+        /// opponent has to be able to count what they have *not* identified, and the pool that
+        /// would tell them is the one thing they are not entitled to.
+        /// </summary>
+        public readonly int Total;
+
+        /// <summary>
+        /// What an opponent has proven this creature holds. Public.
+        ///
+        /// Not the same as <see cref="Revealed"/>, and the difference is the whole point. Revealed
+        /// is cumulative and counts every spend, so a creature that spends one Pyro, takes it back
+        /// and spends it again has revealed two -- but only ever owned one. This is the high-water
+        /// mark of how many of an element were outstanding *at once*, which is exactly what
+        /// watching proves and never more.
+        ///
+        /// What is left -- <c>Total</c> minus this -- is what nobody has identified yet.
+        /// </summary>
+        public readonly ElementCounts Identified;
+
         public ElementLedger(ElementCounts pool, ElementCounts revealed,
-            IReadOnlyList<Element> outstanding)
+            IReadOnlyList<Element> outstanding, int total = -1,
+            ElementCounts identified = default)
         {
             Pool = pool;
             Revealed = revealed;
             Outstanding = outstanding ?? System.Array.Empty<Element>();
+            Identified = identified;
+
+            // A total nobody supplied is derived from the halves, which is right wherever both are
+            // known -- and wrong nowhere, because the only reader who cannot see the pool is
+            // handed the total separately.
+            Total = total >= 0 ? total : Pool.Total + Outstanding.Count;
         }
 
         /// <summary>A creature at the start of a fight: a full pool, nothing spent.</summary>
         public static ElementLedger Starting(ElementCounts pool) =>
-            new ElementLedger(pool, ElementCounts.Empty, null);
+            new ElementLedger(pool, ElementCounts.Empty, null, pool.Total, ElementCounts.Empty);
+
+        /// <summary>Elements nobody has put a name to yet.</summary>
+        public int Unidentified
+        {
+            get
+            {
+                var left = Total - Identified.Total;
+                return left < 0 ? 0 : left;
+            }
+        }
 
         /// <summary>How much of an element is left to spend.</summary>
         public int Remaining(Element element) => Pool[element];
@@ -105,10 +146,29 @@ namespace Dragoneye.Combat
                 outstanding.Add(element);
             }
 
+            // Raised to however many of this element are outstanding together, and never lowered.
+            // Counting the spend itself would double-count an element spent, taken back and spent
+            // again -- an opponent watching that has still only ever seen one.
+            var held = 0;
+
+            foreach (var spent in outstanding)
+            {
+                if (spent == element)
+                {
+                    held++;
+                }
+            }
+
+            var identified = held > Identified[element]
+                ? Identified.With(element, held)
+                : Identified;
+
             result = new ElementLedger(
                 Pool.Minus(element, amount),
                 Revealed.Plus(element, amount),
-                outstanding);
+                outstanding,
+                Total,
+                identified);
 
             return true;
         }
@@ -135,7 +195,11 @@ namespace Dragoneye.Combat
             var outstanding = new List<Element>(Outstanding);
             outstanding.RemoveAt(0);
 
-            result = new ElementLedger(Pool.Plus(returned, 1), Revealed, outstanding);
+            // Identified is left alone as well as Revealed. Taking an element back does not unprove
+            // that the creature owns it; it only changes whether it can be spent again.
+            result = new ElementLedger(Pool.Plus(returned, 1), Revealed, outstanding,
+                Total, Identified);
+
             return true;
         }
 

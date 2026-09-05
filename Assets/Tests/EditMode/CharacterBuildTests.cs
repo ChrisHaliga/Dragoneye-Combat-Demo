@@ -93,8 +93,9 @@ namespace Dragoneye.Hex.Tests
 
             // Four at 3 is 16; one at 4 is 7 more, making 23; two at 2 bring it to 27.
             build.Attributes = new AttributeBlock(3, 3, 3, 3, 4, 2, 2);
-            // Four points of pool at level four. All four of these are a point each.
-            build.StartingPool = new ElementCounts(2, 1, 1, 0, 0, 0, 0);
+            // Seven points of pool at level four -- three every creature starts with, plus one
+            // a level. All seven of these are a point each.
+            build.StartingPool = new ElementCounts(3, 2, 2, 0, 0, 0, 0);
 
             return build;
         }

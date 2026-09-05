@@ -41,6 +41,47 @@ namespace Dragoneye.Hex
 
         public static Hex Offset(HexDirection direction) => k_Directions[(int)direction];
 
+        /// <summary>
+        /// Which of the six directions best describes the way from one hex to another.
+        ///
+        /// Wanted for facing: an attack arrives from somewhere, and "somewhere" has to become one of
+        /// six sectors before anything can ask whether it landed in a flank.
+        ///
+        /// Integer arithmetic, deliberately. The obvious implementation takes an angle and divides
+        /// it into sixths, and an angle means a trig call whose last bit is not guaranteed to match
+        /// across platforms -- which for a rule that decides a clash means two machines resolving
+        /// the same attack two ways, with nothing in the logs to say why. The cube dot product
+        /// falls monotonically with angle across all six (2, 1, -1, -2, -1, 1), so the largest one
+        /// is the nearest direction, and it is exact.
+        ///
+        /// **The tiebreak is stated, not discovered.** An offset lying exactly between two
+        /// directions -- (1, 1), say, which is equally north and north-east -- scores the same
+        /// against both. The lower direction index wins, which means ties resolve clockwise-first
+        /// from north. A hex has no direction to itself; that answers North.
+        /// </summary>
+        public static HexDirection DirectionTo(Hex from, Hex to)
+        {
+            var delta = to - from;
+            var best = HexDirection.North;
+            var bestScore = int.MinValue;
+
+            for (var i = 0; i < k_Directions.Length; i++)
+            {
+                var candidate = k_Directions[i];
+                var score = (delta.Q * candidate.Q) + (delta.R * candidate.R)
+                    + (delta.S * candidate.S);
+
+                // Strictly greater, so the first of any tie is kept.
+                if (score > bestScore)
+                {
+                    bestScore = score;
+                    best = (HexDirection)i;
+                }
+            }
+
+            return best;
+        }
+
         public Hex Neighbor(HexDirection direction) => this + k_Directions[(int)direction];
 
         /// <summary>The six adjacent hexes, clockwise from north.</summary>

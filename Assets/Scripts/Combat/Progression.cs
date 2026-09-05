@@ -95,6 +95,16 @@ namespace Dragoneye.Combat
         /// <see cref="ElementPricing"/>.
         /// </summary>
         public static int PoolBudget(int level) =>
-            level < FirstLevel ? FirstLevel : level;
+            StartingPool + (level < FirstLevel ? FirstLevel : level);
+
+        /// <summary>
+        /// What every creature is given before its level is counted.
+        ///
+        /// A level-one creature used to hold a single element, which made a clash a coin it could
+        /// flip once and then stand there for the rest of the fight with nothing to answer with.
+        /// Three on top of the level puts four in a starting hand: enough to keep a choice alive
+        /// through a fight, and still one more every level after.
+        /// </summary>
+        public const int StartingPool = 3;
     }
 }

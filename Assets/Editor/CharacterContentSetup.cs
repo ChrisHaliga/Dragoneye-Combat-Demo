@@ -77,9 +77,10 @@ namespace Dragoneye.MultiplayerEditor
             var loose = Skill(102, "Loose", Element.Aero, ap: 1, elementCost: 1, range: 4,
                 SkillTarget.Creature, SkillEffectKind.Damage, 5,
                 "From wherever you are standing, which is the whole idea.");
-            var jab = Skill(103, "Jab", Element.Aero, ap: 1, elementCost: 0, range: 1,
-                SkillTarget.Creature, SkillEffectKind.Damage, 3,
-                "Costs nothing from the pool. What you use when the pool is what you are short of.");
+            var jab = Skill(103, "Jab", Element.Aero, ap: 1, elementCost: 1, range: 1,
+                SkillTarget.Creature, SkillEffectKind.Damage, 4,
+                "Quick, and it asks its question in Aero. What you throw when Aero is what you "
+                + "are holding.");
             var ember = Skill(104, "Ember", Element.Pyro, ap: 2, elementCost: 2, range: 3,
                 SkillTarget.Creature, SkillEffectKind.Damage, 9,
                 "Reaches, and it is expensive in exactly the element it is made of.", level: 2);
@@ -192,32 +193,43 @@ namespace Dragoneye.MultiplayerEditor
         /// it buys as it levels. Health, speed, species and class stay as they were authored, so
         /// re-running this does not quietly undo somebody's tuning.
         ///
-        /// Pools cost exactly the creature's level, the same budget a player spends. Levels are what
-        /// the creature reads as: a recruit is a level one, a sergeant is a level three, and the
-        /// host can move either on the board.
+        /// Pools cost exactly the creature's budget, the same one a player spends -- three, plus a
+        /// point a level. Levels are what the creature reads as: a recruit is a level one, a
+        /// sergeant is a level three, and the host can move either on the board.
+        ///
+        /// Every one of them is authored as a spread rather than a stack of one element, because a
+        /// pool is now what a creature answers an attack with as well as what it attacks from. A
+        /// creature holding only Aero has exactly one answer to everything, which is not a decision.
         /// </summary>
         static void Creatures(SkillAsset strike, SkillAsset cleave, SkillAsset loose, SkillAsset jab,
             SkillAsset smite, SkillAsset recover, SkillAsset breath)
         {
-            // Rank and file: one cheap skill, one element, nothing clever.
-            Creature("guard-recruit", 1, Pool(pyro: 1), Element.Pyro, strike, cleave);
-            Creature("monster-goblin", 1, Pool(aero: 1), Element.Aero, jab, cleave);
-            Creature("monster-wolf", 1, Pool(aero: 1), Element.Aero, jab);
+            // Rank and file: two of what they attack with, and a couple of answers.
+            Creature("guard-recruit", 1, Pool(pyro: 2, geo: 1, hydro: 1), Element.Pyro,
+                strike, cleave);
+            Creature("monster-goblin", 1, Pool(aero: 2, geo: 1, pyro: 1), Element.Aero, jab, cleave);
 
-            // Skirmishers: reach, and enough pool to use it twice.
-            Creature("bandit-scout", 2, Pool(aero: 2), Element.Aero, loose);
-            Creature("guard-archer", 2, Pool(aero: 2), Element.Aero, loose);
-            Creature("hero-ranger", 2, Pool(aero: 2), Element.Aero, loose, jab);
-            Creature("bandit-cutpurse", 2, Pool(aero: 2), Element.Aero, jab, loose);
+            // All teeth and nothing held back: three jabs and one answer.
+            Creature("monster-wolf", 1, Pool(aero: 3, pyro: 1), Element.Aero, jab);
+
+            // Skirmishers: reach, and enough pool to use it three times.
+            Creature("bandit-scout", 2, Pool(aero: 3, hydro: 1, geo: 1), Element.Aero, loose);
+            Creature("guard-archer", 2, Pool(aero: 3, pyro: 1, geo: 1), Element.Aero, loose);
+            Creature("hero-ranger", 2, Pool(aero: 3, hydro: 1, geo: 1), Element.Aero, loose, jab);
+
+            // Two points of the five go on one Nyx, which answers anything common and nothing else.
+            Creature("bandit-cutpurse", 2, Pool(aero: 3, nyx: 1), Element.Aero, jab, loose);
 
             // The heavies. Cleave wants level three, so this is the first rank that has it.
-            Creature("bandit-brute", 3, Pool(geo: 1, pyro: 2), Element.Geo, strike, cleave);
-            Creature("guard-sergeant", 3, Pool(geo: 1, pyro: 2), Element.Pyro, strike, cleave);
-            Creature("monster-ogre", 3, Pool(geo: 2, pyro: 1), Element.Geo, strike, cleave);
-            Creature("hero-knight", 3, Pool(hydro: 1, pyro: 2), Element.Pyro, strike, cleave, recover);
+            Creature("bandit-brute", 3, Pool(geo: 2, pyro: 2, hydro: 2), Element.Geo, strike, cleave);
+            Creature("guard-sergeant", 3, Pool(pyro: 3, geo: 2, hydro: 1), Element.Pyro,
+                strike, cleave);
+            Creature("monster-ogre", 3, Pool(geo: 3, pyro: 2, aero: 1), Element.Geo, strike, cleave);
+            Creature("hero-knight", 3, Pool(pyro: 2, geo: 2, hydro: 2), Element.Pyro,
+                strike, cleave, recover);
 
-            // One Lux is two points, which is most of a level-three budget. That is the trade.
-            Creature("hero-cleric", 3, Pool(hydro: 1, lux: 1), Element.Lux, smite, recover);
+            // Two Lux is four of the six. Smite twice, and answer anything common with what is left.
+            Creature("hero-cleric", 3, Pool(lux: 2, hydro: 2), Element.Lux, smite, recover);
         }
 
         /// <summary>
@@ -244,12 +256,15 @@ namespace Dragoneye.MultiplayerEditor
             WriteElements(serialized.FindProperty("m_StartingPool"), pool);
             WriteList(serialized.FindProperty("m_Skills"), skills);
 
-            // What it spends the budget on if the host fields it above its authored level. Three
-            // deep, which is further than anybody is likely to push a bandit.
-            var picks = serialized.FindProperty("m_LevelUpPicks");
-            picks.arraySize = 3;
+            // What it spends the budget on if the host fields it above its authored level. Deep
+            // enough to cover any level a host is plausibly going to drag a bandit up to; a pick
+            // that never gets reached costs nothing.
+            const int depth = 8;
 
-            for (var i = 0; i < 3; i++)
+            var picks = serialized.FindProperty("m_LevelUpPicks");
+            picks.arraySize = depth;
+
+            for (var i = 0; i < depth; i++)
             {
                 picks.GetArrayElementAtIndex(i).intValue = (int)buys;
             }

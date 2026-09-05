@@ -37,6 +37,9 @@ namespace Dragoneye.Data
              + "Assets/Art/Elements.")]
         ElementIconLibrary m_ElementIcons;
 
+        [SerializeField, Tooltip("Which element answers which, for clashes.")]
+        ElementMatchupTable m_ElementMatchups;
+
         [Header("Build rules")]
         [SerializeField, Min(0), Tooltip("Points to spend raising attributes. Each step costs the "
              + "attribute's current value, so the first is cheap and the last is dear. Seven of "
@@ -211,6 +214,7 @@ namespace Dragoneye.Data
             // by the time anything wants to draw a face this is already answered.
             Portraits.Current = m_Portraits;
             ElementIcons.Current = m_ElementIcons;
+            ElementMatchups.Current = m_ElementMatchups;
 
             foreach (var asset in m_Skills)
             {
