@@ -123,6 +123,11 @@ namespace Dragoneye.Multiplayer
                 return false;
             }
 
+            // Before any screen draws. The catalog builds lazily on its first accessor, and the
+            // statics it fills on the way -- portraits, element runes -- are read by screens that
+            // never touch an accessor. Whichever of those drew first used to get nothing.
+            m_Content.Prepare();
+
             m_Characters = new CharacterListScreen(root, m_Content, OnEditCharacter,
                 () => Show(MenuScreen.Home));
 

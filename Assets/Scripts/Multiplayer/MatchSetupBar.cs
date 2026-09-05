@@ -162,22 +162,22 @@ namespace Dragoneye.Multiplayer
             flow.BeginArena();
         }
 
+        /// <summary>
+        /// Backing out, whichever kind of match this is.
+        ///
+        /// One call for both, because the difference -- whether there is a session to hand back --
+        /// is <see cref="MatchFlow"/>'s to know. This used to fork here, because leaving a solo
+        /// setup through the normal path left the host running under a board the player thought
+        /// they had closed. The path no longer does that, so the fork has nothing left to be.
+        /// </summary>
         void OnLeaveClicked()
         {
-            if (m_Runner != null && m_Runner.IsInSession)
+            if (m_Runner != null && m_Runner.IsBusy)
             {
-                if (!m_Runner.IsBusy)
-                {
-                    TaskUtil.Forget(m_Runner.LeaveAsync());
-                }
-
                 return;
             }
 
-            // Not MatchFlow.LeaveMatch: that routes through a return-to-menu which does nothing
-            // when the menu is already the active scene, leaving the solo host running under a
-            // board the player thought they had closed.
-            MatchFlow.Instance?.CancelSoloSetup();
+            MatchFlow.Instance?.LeaveMatch();
         }
 
         /// <summary>

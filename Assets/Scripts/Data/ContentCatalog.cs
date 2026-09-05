@@ -168,6 +168,23 @@ namespace Dragoneye.Data
             m_Built = false;
         }
 
+        /// <summary>
+        /// Resolves the content, and fills the seams that depend on it having been resolved.
+        ///
+        /// Building is lazy, and every accessor triggers it -- which is fine for the accessor and
+        /// not fine for <see cref="Portraits"/>, <see cref="ElementIcons"/> and the rest, which are
+        /// set as a side effect of the build and are read through statics that cannot trigger one.
+        /// So whatever reads them first sees them empty, and what it drew stays wrong until
+        /// something repaints it.
+        ///
+        /// That is not a hypothetical: the first row of the character list drew its portrait before
+        /// anything on the screen had touched an accessor, so the first character had no face until
+        /// the player clicked another one.
+        ///
+        /// Called once wherever content enters a scene. Cheap and idempotent after the first.
+        /// </summary>
+        public void Prepare() => Build();
+
         void Build()
         {
             if (m_Built)

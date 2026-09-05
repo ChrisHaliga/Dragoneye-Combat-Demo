@@ -85,6 +85,42 @@ namespace Dragoneye.Multiplayer
         }
 
         /// <summary>
+        /// The same progress, on one line rather than two.
+        ///
+        /// For a card where the bar has to share a row with something else. Split from
+        /// <see cref="Experience"/> in layout only -- both ask <see cref="Progression"/> the same
+        /// question, so a card and a sheet can never disagree about how close a character is.
+        /// </summary>
+        public static void ExperienceInline(VisualElement into, int level, int xp)
+        {
+            into.Clear();
+
+            var needed = Progression.XpToLeave(level);
+            var held = xp < 0 ? 0 : xp;
+            var ready = held >= needed;
+
+            var track = new VisualElement();
+            track.AddToClassList("xp-track");
+            track.AddToClassList("xp-track--inline");
+
+            var fill = new VisualElement();
+            fill.AddToClassList("xp-fill");
+            fill.EnableInClassList("xp-fill--ready", ready);
+            fill.style.width = Length.Percent(ready ? 100f : 100f * held / needed);
+            track.Add(fill);
+
+            // Shorter than the sheet's wording, which does not fit a card. The bar beside it is
+            // already full and gold, so the word only has to name what that means.
+            var label = new Label(ready ? "LEVEL UP" : $"{held} / {needed} XP");
+            label.AddToClassList("xp-label");
+            label.AddToClassList("xp-label--inline");
+            label.EnableInClassList("xp-label--ready", ready);
+
+            into.Add(track);
+            into.Add(label);
+        }
+
+        /// <summary>
         /// The seven resolved attributes.
         ///
         /// <paramref name="bought"/> is what the player actually paid for; where the resolved value

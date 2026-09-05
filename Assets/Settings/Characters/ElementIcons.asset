@@ -1,0 +1,29 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 337a4b23430980f4a9284a260daca0d1, type: 3}
+  m_Name: ElementIcons
+  m_EditorClassIdentifier: Dragoneye.Data::Dragoneye.Data.ElementIconLibrary
+  m_Icons:
+  - Element: 0
+    Image: {fileID: 21300000, guid: 39283da8d966a8843abb1cef860d1188, type: 3}
+  - Element: 1
+    Image: {fileID: 21300000, guid: 169b941d78e30c845930d208df011895, type: 3}
+  - Element: 2
+    Image: {fileID: 21300000, guid: 9f78b30bcfb811d4c9fb086237a4b8c7, type: 3}
+  - Element: 3
+    Image: {fileID: 21300000, guid: 7290af9f63330494ab917a0ece18caf6, type: 3}
+  - Element: 4
+    Image: {fileID: 21300000, guid: 95909785bc6fb574ba9bde3f9829c6db, type: 3}
+  - Element: 5
+    Image: {fileID: 21300000, guid: 01837c7ceb849fe42819eda26ce21aa4, type: 3}
+  - Element: 6
+    Image: {fileID: 21300000, guid: 7b7a422ed2030244f9f64854e3c725d7, type: 3}

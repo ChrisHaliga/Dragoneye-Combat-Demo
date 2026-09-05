@@ -171,15 +171,18 @@
     color: rgb(139, 147, 165);
 }
 
-/* Clipped rather than crushed. A flex item shrinks by default, so a column holding more
-   combatants than it has room for used to squeeze every card until the names drew outside them. */
+/* Scrolled rather than clipped or crushed. A flex item shrinks by default, so a column holding
+   more combatants than it has room for first squeezed every card until the names drew outside them,
+   and then, once that was stopped, simply hid the ones that did not fit. */
 .party__list {
     flex-grow: 1;
     margin-top: 6px;
-    overflow: hidden;
 }
 
-.party__list > * {
+/* The cards themselves, not the scroller's own furniture -- so this has to reach past the viewport
+   the ScrollView puts in between. */
+.party__list .fighter,
+.party__list .party__empty {
     flex-shrink: 0;
 }
 
@@ -203,10 +206,17 @@
 
 /* ---------- combatant cards ---------- */
 
+/* Three rows, each split left and right:
+
+       Kara                       HP   AP  SPD
+       LVL 3 · HUMAN · GUARDIAN    24    5    4
+       [====----] 3 / 8 XP             Chris
+
+   Every row has a fixed height and every stat cell the same fixed width, so a heading sits over its
+   own number and four columns of these read as a table. Letting rows size to their content is what
+   left a name fighting three stat chips for one line, and every name arrived as an ellipsis. */
 .fighter {
-    flex-direction: row;
-    align-items: center;
-    padding: 6px 9px;
+    padding: 7px 9px 6px 9px;
     margin-bottom: 5px;
     background-image: url("Generated/ui-card.png");
     -unity-slice-left: 14;
@@ -227,53 +237,24 @@
     -unity-background-image-tint-color: rgb(206, 176, 120);
 }
 
-/* Two rows against two rows. Every row has a fixed height so the stats sit level with the name and
-   the buttons sit level with the description -- four columns of these have to read as a table, and
-   letting each row size to its own content is what stopped them lining up. */
-.fighter__side {
-    align-items: flex-end;
-    flex-shrink: 0;
-}
-
-.fighter__stats {
-    flex-direction: row;
-    align-items: center;
-    height: 20px;
-}
-
-/* One stat, small enough that three fit beside a name. Inline rather than a caption over a number:
-   stacked, three of these would be as tall as the whole card. */
-.ministat {
-    flex-direction: row;
-    align-items: center;
-    margin-left: 9px;
-}
-
-.ministat__label {
-    margin-right: 3px;
-    font-size: 9px;
-    -unity-font-style: bold;
-    letter-spacing: 1px;
-    color: rgb(120, 128, 146);
-}
-
-.ministat__value {
-    font-size: 13px;
-    -unity-font-style: bold;
-    color: rgb(226, 222, 210);
-}
-
 .fighter--mine .fighter__name {
     color: rgb(240, 214, 160);
 }
 
-.fighter__body {
-    flex-grow: 1;
-    overflow: hidden;
+.fighter__row {
+    flex-direction: row;
+    align-items: center;
+}
+
+/* Taller than the two above it, because the buttons that live here are taller than text. */
+.fighter__row--foot {
+    height: 22px;
+    margin-top: 3px;
 }
 
 .fighter__name {
-    height: 20px;
+    flex-grow: 1;
+    height: 18px;
     font-size: 13px;
     -unity-font-style: bold;
     -unity-text-align: middle-left;
@@ -285,7 +266,8 @@
 /* Level, then species, then class -- the same line the hero card and the roster show, because a
    player should not have to re-learn how a creature is described on each screen. */
 .fighter__meta {
-    height: 24px;
+    flex-grow: 1;
+    height: 16px;
     font-size: 10px;
     letter-spacing: 1px;
     -unity-text-align: middle-left;
@@ -294,10 +276,50 @@
     text-overflow: ellipsis;
 }
 
+.fighter__stats {
+    flex-direction: row;
+    flex-shrink: 0;
+    margin-left: 8px;
+}
+
+/* Equal and fixed. Sized to their own text, a heading would sit over whichever number happened to
+   be the same width as it. */
+.fighter__stat-head,
+.fighter__stat-value {
+    width: 30px;
+    font-size: 11px;
+    -unity-text-align: middle-right;
+}
+
+/* The captions: dimmer and italic, so the row reads as a name with a legend after it rather than
+   as four things of equal weight. */
+.fighter__stat-head {
+    height: 18px;
+    -unity-font-style: italic;
+    color: rgb(106, 114, 132);
+}
+
+.fighter__stat-value {
+    height: 16px;
+    -unity-font-style: bold;
+    color: rgb(226, 222, 210);
+}
+
+/* How far this one is from its next level. Empty for a premade, which does not level -- the row
+   stays, so the cards keep a common height and the corner opposite keeps its place. */
+.fighter__xp {
+    flex-direction: row;
+    align-items: center;
+    flex-grow: 1;
+    overflow: hidden;
+}
+
 /* Whoever is running this one, in the corner a pool card keeps its buttons in. The two never
    appear together: a card you can act on has buttons, and one that is already somebody's has a
    name. */
 .fighter__owner {
+    flex-shrink: 1;
+    max-width: 108px;
     margin-left: 8px;
     font-size: 10px;
     letter-spacing: 1px;
@@ -314,13 +336,59 @@
 .fighter__actions {
     flex-direction: row;
     align-items: center;
-    height: 24px;
+    flex-shrink: 0;
+    margin-left: 8px;
 }
 
-/* Shorter than the Add button below, which stands beside a 30px dropdown. Here it stands beside a
-   level stepper and has to fit the row the description sets. */
+/* Shorter than the Add button below, which stands beside a 30px dropdown. Here it stands in a row
+   sized by the two lines of text above it. */
 .fighter__actions .button--compact {
-    height: 22px;
+    height: 20px;
+    padding: 0 7px;
+}
+
+/* ---------- experience ---------- */
+
+/* Duplicated from the menu stylesheet rather than shared: UI Toolkit gives each document its own
+   sheet, and these are the only four rules of it the board needs. */
+.xp-track {
+    height: 5px;
+    background-color: rgb(24, 27, 35);
+    border-width: 1px;
+    border-color: rgb(52, 59, 76);
+    overflow: hidden;
+}
+
+.xp-track--inline {
+    flex-grow: 1;
+    max-width: 84px;
+    margin-right: 7px;
+}
+
+.xp-fill {
+    height: 100%;
+    background-color: rgb(120, 148, 200);
+}
+
+/* Enough to level. Gold, because it is the same "there is a decision waiting" the menu uses
+   everywhere else, and a full blue bar reads as merely finished. */
+.xp-fill--ready {
+    background-color: rgb(226, 191, 122);
+}
+
+.xp-label {
+    font-size: 9px;
+    -unity-font-style: bold;
+    letter-spacing: 1px;
+    color: rgb(120, 128, 146);
+}
+
+.xp-label--inline {
+    flex-shrink: 0;
+}
+
+.xp-label--ready {
+    color: rgb(226, 191, 122);
 }
 
 /* ---------- buttons ---------- */

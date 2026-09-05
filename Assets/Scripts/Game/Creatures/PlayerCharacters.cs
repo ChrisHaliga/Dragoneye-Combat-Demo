@@ -371,6 +371,15 @@ namespace Dragoneye.Game
 
             // Owned here rather than by the arena: this object exists from server start to match
             // end, so the seam is never briefly empty between the lobby and the board.
+            //
+            // Prepared rather than merely handed over, because the portrait and rune seams are
+            // filled as a side effect of the catalog building, and nothing on the board triggers
+            // that by reading an accessor.
+            if (m_Content != null)
+            {
+                m_Content.Prepare();
+            }
+
             SkillCatalog.Current = m_Content;
 
             m_Builds.OnListChanged += OnListChanged;

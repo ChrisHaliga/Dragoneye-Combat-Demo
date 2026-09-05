@@ -29,6 +29,12 @@ namespace Dragoneye.Game
 
             if (turns == null || !turns.IsOver || m_Closing)
             {
+                // Counted from the moment the fight actually ended, not from the first frame this
+                // component happened to look. TurnState outlives a match -- it rides the draft
+                // object from lobby to arena and back -- so a fresh arena sees the *previous*
+                // match's result for the few frames before this one is begun, and a dwell that
+                // kept accumulating across that would be a dwell measuring the wrong match.
+                m_Elapsed = 0f;
                 return;
             }
 

@@ -49,6 +49,7 @@ MonoBehaviour:
   - {fileID: 11400000, guid: d57f35a51af6b494d9d323120731af2c, type: 2}
   - {fileID: 11400000, guid: fefeeeeca6617854181644d90f24fcf6, type: 2}
   m_Portraits: {fileID: 11400000, guid: 6633950f887b0bb43a52ee5680e98291, type: 2}
+  m_ElementIcons: {fileID: 11400000, guid: ae43c083302147146a111869a9e8eea8, type: 2}
   m_PointBudget: 27
   m_MaxPerAttribute: 8
   m_StartingLevel: 1

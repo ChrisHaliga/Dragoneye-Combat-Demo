@@ -152,25 +152,6 @@ namespace Dragoneye.Multiplayer
         public void BeginArena() => LoadArena();
 
         /// <summary>
-        /// Backs out of the solo setup stage: shuts netcode down and leaves the menu where it is.
-        ///
-        /// Not <see cref="LeaveMatch"/>, which routes through a return-to-menu that does nothing
-        /// when the menu is already the active scene -- so it would leave the host running and the
-        /// draft on screen.
-        /// </summary>
-        public void CancelSoloSetup()
-        {
-            var networkManager = NetworkManager.Singleton;
-
-            if (networkManager != null
-                && !networkManager.ShutdownInProgress
-                && (networkManager.IsListening || networkManager.IsClient))
-            {
-                networkManager.Shutdown();
-            }
-        }
-
-        /// <summary>
         /// Ends the match and goes back to the lobby, with the session left standing.
         ///
         /// What a finished match should do. Leaving tears down the session, which is right when a
@@ -294,12 +275,25 @@ namespace Dragoneye.Multiplayer
         void OnClientStopped(bool wasHost) => ReturnToMenu();
 
         /// <summary>
+        /// Ends whatever netcode is running and puts the player on a freshly loaded menu.
+        ///
+        /// Both halves, every time, whatever the active scene happens to be. The shutdown used to
+        /// be skipped whenever the menu was already loaded -- which is true of every leave from the
+        /// lobby, because the lobby *is* the menu scene. A guest who left one therefore kept a live
+        /// NetworkManager behind a connection that had gone, and could neither host nor join again
+        /// until the game was restarted.
+        ///
+        /// The menu is reloaded rather than left standing even when it is already up. A scene that
+        /// is torn down and built again is one that starts from its own Awake every time, so how
+        /// the player got here stops being something any screen has to account for. That is far
+        /// cheaper to guarantee than to audit.
+        ///
         /// Idempotent: the host leaving fires both a netcode disconnect and a session Deleted
         /// event, and either can arrive first.
         /// </summary>
         void ReturnToMenu()
         {
-            if (m_ReturningToMenu || SceneManager.GetActiveScene().name == m_MenuScene)
+            if (m_ReturningToMenu)
             {
                 return;
             }
@@ -310,22 +304,32 @@ namespace Dragoneye.Multiplayer
 
         IEnumerator ReturnToMenuRoutine()
         {
-            var networkManager = NetworkManager.Singleton;
-
-            // ShutdownInProgress matters because one of the callers is OnClientStopped, which NGO
-            // raises *during* shutdown -- calling Shutdown again from inside it is re-entrant.
-            if (networkManager != null
-                && !networkManager.ShutdownInProgress
-                && (networkManager.IsListening || networkManager.IsClient))
-            {
-                networkManager.Shutdown();
-            }
+            ShutDownNetcode();
 
             // Shutdown is deferred, so loading a scene in the same frame would tear the scene's
             // NetworkObjects out from under it. One frame is enough for NGO to finish.
             yield return null;
 
             SceneManager.LoadScene(m_MenuScene);
+        }
+
+        /// <summary>
+        /// Stops netcode if it is running, and does nothing if it is not.
+        ///
+        /// <c>ShutdownInProgress</c> matters because one of the callers is
+        /// <see cref="OnClientStopped"/>, which NGO raises *during* a shutdown -- calling Shutdown
+        /// again from inside it is re-entrant.
+        /// </summary>
+        static void ShutDownNetcode()
+        {
+            var networkManager = NetworkManager.Singleton;
+
+            if (networkManager != null
+                && !networkManager.ShutdownInProgress
+                && (networkManager.IsListening || networkManager.IsClient))
+            {
+                networkManager.Shutdown();
+            }
         }
 
         /// <summary>

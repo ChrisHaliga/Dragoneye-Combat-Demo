@@ -231,7 +231,10 @@ namespace Dragoneye.Game
 
                 root.Add(head);
 
-                var list = new VisualElement();
+                // A scroller, not a plain box. Cards are three rows tall now and a party has no
+                // fixed size, so "more combatants than the column is tall" is a normal state rather
+                // than an edge case -- and the old box clipped them out of existence.
+                var list = new ScrollView(ScrollViewMode.Vertical);
                 list.AddToClassList("party__list");
                 root.Add(list);
 
@@ -344,20 +347,84 @@ namespace Dragoneye.Game
                     hasParty && PartyInfo.All[i] == myParty);
             }
 
-            // A character somebody brought is claimed by definition: they cannot claim it twice and
-            // cannot give it up. Counting it on both sides of the tally is what stops a player who
-            // brought a hero and took nothing from the pool reading "0 OF 0 CLAIMED".
-            var brought = BroughtCountFor(slot);
-
-            m_CapLabel.text = hasParty
-                ? $"{PartyPalette.NameOf(myParty).ToUpperInvariant()}  ·  "
-                    + $"{m_Draft.ClaimCountFor(slot) + brought} OF "
-                    + $"{m_Draft.CapFor(slot) + brought} CLAIMED"
+            m_CapLabel.text = hasParty ? DescribeSide(myParty, slot)
                 : "PICK A SIDE TO CLAIM CREATURES";
 
             foreach (var party in PartyInfo.All)
             {
                 RefreshColumn(party, hasSlot, slot, isHost, hasParty && party == myParty);
+            }
+        }
+
+        /// <summary>
+        /// How the side you are on is doing: how many of its fighters have somebody running them,
+        /// and how many more of them you personally may take.
+        ///
+        /// The whole party, not your own share of it. A tally of your claims against your own cap
+        /// answered a question nobody was asking -- another player joining your side, or bringing a
+        /// character to it, left the line completely unmoved, which reads as the screen having
+        /// missed them.
+        /// </summary>
+        string DescribeSide(Party party, byte slot)
+        {
+            TallyFor(party, out var claimed, out var total);
+
+            var line = $"{PartyPalette.NameOf(party).ToUpperInvariant()}  ·  "
+                + $"{claimed} OF {total} CLAIMED";
+
+            // The personal cap still matters -- it is what stops one player taking the whole side --
+            // so it is said where it is actionable, and left out when it is not.
+            var spare = m_Draft.CapFor(slot) - m_Draft.ClaimCountFor(slot);
+
+            return spare > 0 && claimed < total
+                ? line + $"  ·  {spare} MORE FOR YOU"
+                : line;
+        }
+
+        /// <summary>
+        /// How many fighters a party has, and how many of them somebody is running.
+        ///
+        /// Brought characters count on both sides of it. They cannot be claimed or released --
+        /// they are already their owner's -- so a player who brought a hero and took nothing from
+        /// the pool would otherwise read "0 OF 0".
+        /// </summary>
+        void TallyFor(Party party, out int claimed, out int total)
+        {
+            claimed = 0;
+            total = 0;
+
+            if (m_Draft == null)
+            {
+                return;
+            }
+
+            foreach (var entry in m_Draft.Roster)
+            {
+                if (entry.Party != party)
+                {
+                    continue;
+                }
+
+                total++;
+
+                if (entry.IsClaimed)
+                {
+                    claimed++;
+                }
+            }
+
+            if (m_Characters == null)
+            {
+                return;
+            }
+
+            foreach (var build in m_Characters.All)
+            {
+                if (m_Draft.TryGetParty(build.Slot, out var on) && on == party)
+                {
+                    total++;
+                    claimed++;
+                }
             }
         }
 
@@ -374,27 +441,6 @@ namespace Dragoneye.Game
                 column.Count.text = "0";
                 column.List.Clear();
             }
-        }
-
-        /// <summary>How many characters this player brought. Always theirs, always in play.</summary>
-        int BroughtCountFor(byte slot)
-        {
-            if (m_Characters == null || slot == PartyInfo.Unclaimed)
-            {
-                return 0;
-            }
-
-            var count = 0;
-
-            foreach (var build in m_Characters.All)
-            {
-                if (build.Slot == slot)
-                {
-                    count++;
-                }
-            }
-
-            return count;
         }
 
         void RefreshColumn(Party party, bool hasSlot, byte slot, bool isHost, bool mine)
@@ -469,14 +515,19 @@ namespace Dragoneye.Game
                         loadout.Species != null ? loadout.Species.Name : "Unknown",
                         loadout.Class != null ? loadout.Class.Name : "Unknown", compact: true)
                     : string.Empty,
-                loadout?.Vitals,
-                out var actions);
+                loadout?.Vitals);
 
-            card.AddToClassList("fighter--brought");
-            card.EnableInClassList("fighter--mine", mine);
+            card.Root.AddToClassList("fighter--brought");
+            card.Root.EnableInClassList("fighter--mine", mine);
 
-            actions.Add(Owner(mine ? "You" : OwnerName(build.Slot), mine));
-            return card;
+            // What it walked in with plus what it has earned since. Banking writes to the owner's
+            // save rather than back into the replicated build, so the two have to be added here to
+            // read as one number.
+            CharacterSheet.ExperienceInline(card.Progress, build.Level,
+                build.Xp + characters.XpFor(build.Slot));
+
+            card.Actions.Add(Owner(mine ? "You" : OwnerName(build.Slot), mine));
+            return card.Root;
         }
 
         VisualElement RosterCard(RosterEntry entry, CreatureCatalog catalog, bool hasSlot,
@@ -491,11 +542,12 @@ namespace Dragoneye.Game
                     ? CharacterSheet.Describe(entry.Level, definition.SpeciesName,
                         definition.ClassName, compact: true)
                     : string.Empty,
-                new Vitals(entry.Level, profile.MaxHealth, profile.MaxAp, profile.Initiative),
-                out var actions);
+                new Vitals(entry.Level, profile.MaxHealth, profile.MaxAp, profile.Initiative));
 
-            card.EnableInClassList("fighter--claimed", entry.IsClaimed);
-            card.EnableInClassList("fighter--mine", mine);
+            card.Root.EnableInClassList("fighter--claimed", entry.IsClaimed);
+            card.Root.EnableInClassList("fighter--mine", mine);
+
+            var actions = card.Actions;
 
             var entryId = entry.EntryId;
 
@@ -535,74 +587,102 @@ namespace Dragoneye.Game
                 actions.Add(SmallButton("×", () => m_Draft.RemoveCreatureRpc(entryId), true));
             }
 
-            return card;
+            return card.Root;
+        }
+
+        /// <summary>The parts of a card its caller still has to fill.</summary>
+        sealed class CardParts
+        {
+            public VisualElement Root;
+
+            /// <summary>Bottom left: how far this one is from its next level, when it levels.</summary>
+            public VisualElement Progress;
+
+            /// <summary>Bottom right: who is running it, or what can be done to it. Never both.</summary>
+            public VisualElement Actions;
         }
 
         /// <summary>
-        /// The shape every combatant card shares: who it is and what it is on the left, what it can
-        /// do and who is running it on the right.
+        /// The shape every combatant card shares. Three rows, each split left and right.
         ///
-        /// Two rows against two rows. The stats line up with the name and the controls line up with
-        /// the description, so four columns of these read as a table rather than as a pile of
-        /// differently-shaped cards -- and a premade and a brought character differ only in what
-        /// goes in the bottom-right corner.
+        ///     Kara                       HP   AP  SPD
+        ///     LVL 3 · HUMAN · GUARDIAN    24    5    4
+        ///     [====----] 3 / 8 XP             Chris
+        ///
+        /// Every row is a fixed height and every stat cell a fixed width, so a heading sits over
+        /// its own number and four columns of these read as a table. Sizing each row to its own
+        /// content was what left the name fighting three stat chips for the same line -- which is
+        /// why every name arrived truncated to an ellipsis.
+        ///
+        /// A premade fills the same three rows minus the two things it has not got: it does not
+        /// level, so there is no bar, and nobody is running it unless somebody claimed it.
         /// </summary>
-        static VisualElement Card(string name, string meta, Vitals? vitals, out VisualElement actions)
+        static CardParts Card(string name, string meta, Vitals? vitals)
         {
             var card = new VisualElement();
             card.AddToClassList("fighter");
 
-            var body = new VisualElement();
-            body.AddToClassList("fighter__body");
+            var head = Row();
+            head.Add(Text(name, "fighter__name"));
+            head.Add(Stats("fighter__stat-head", vitals.HasValue
+                ? new[] { "HP", "AP", "SPD" }
+                : System.Array.Empty<string>()));
+            card.Add(head);
 
-            var title = new Label(name);
-            title.AddToClassList("fighter__name");
-            body.Add(title);
-
-            var subtitle = new Label(meta);
-            subtitle.AddToClassList("fighter__meta");
-            body.Add(subtitle);
-
+            var body = Row();
+            body.Add(Text(meta, "fighter__meta"));
+            body.Add(Stats("fighter__stat-value", vitals.HasValue
+                ? new[]
+                {
+                    vitals.Value.MaxHealth.ToString(),
+                    vitals.Value.MaxAp.ToString(),
+                    vitals.Value.Speed.ToString()
+                }
+                : System.Array.Empty<string>()));
             card.Add(body);
 
-            var side = new VisualElement();
-            side.AddToClassList("fighter__side");
+            var foot = Row();
+            foot.AddToClassList("fighter__row--foot");
 
-            var stats = new VisualElement();
-            stats.AddToClassList("fighter__stats");
+            var progress = new VisualElement();
+            progress.AddToClassList("fighter__xp");
+            foot.Add(progress);
 
-            if (vitals.HasValue)
-            {
-                stats.Add(MiniStat("HP", vitals.Value.MaxHealth.ToString()));
-                stats.Add(MiniStat("AP", vitals.Value.MaxAp.ToString()));
-                stats.Add(MiniStat("SPD", vitals.Value.Speed.ToString()));
-            }
-
-            side.Add(stats);
-
-            actions = new VisualElement();
+            var actions = new VisualElement();
             actions.AddToClassList("fighter__actions");
-            side.Add(actions);
+            foot.Add(actions);
 
-            card.Add(side);
-            return card;
+            card.Add(foot);
+
+            return new CardParts { Root = card, Progress = progress, Actions = actions };
         }
 
-        /// <summary>One stat, small enough that three of them fit beside a name.</summary>
-        static VisualElement MiniStat(string label, string value)
+        static VisualElement Row()
         {
-            var stat = new VisualElement();
-            stat.AddToClassList("ministat");
+            var row = new VisualElement();
+            row.AddToClassList("fighter__row");
+            return row;
+        }
 
-            var caption = new Label(label);
-            caption.AddToClassList("ministat__label");
-            stat.Add(caption);
+        static Label Text(string text, string className)
+        {
+            var label = new Label(text);
+            label.AddToClassList(className);
+            return label;
+        }
 
-            var number = new Label(value);
-            number.AddToClassList("ministat__value");
-            stat.Add(number);
+        /// <summary>Three cells of equal fixed width, so the headings line up over their numbers.</summary>
+        static VisualElement Stats(string cellClass, string[] values)
+        {
+            var row = new VisualElement();
+            row.AddToClassList("fighter__stats");
 
-            return stat;
+            foreach (var value in values)
+            {
+                row.Add(Text(value, cellClass));
+            }
+
+            return row;
         }
 
         /// <summary>Who is running this one, in the corner the buttons would otherwise be in.</summary>

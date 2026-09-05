@@ -132,6 +132,8 @@ namespace Dragoneye.Game
                 return;
             }
 
+            ClearPreviousMatch();
+
             var slots = RegisterPlayers();
 
             // Whatever the lobby did or did not do, everyone ends up on a side holding their share.
@@ -165,6 +167,46 @@ namespace Dragoneye.Game
             else
             {
                 Debug.LogError("No CombatDirector in the arena; the match will not take turns.", this);
+            }
+        }
+
+        /// <summary>
+        /// Despawns anything a previous match left behind.
+        ///
+        /// Belt as well as braces. Spawning with <c>destroyWithScene</c> is the statement that a
+        /// unit belongs to the arena, and it is the fix; this is the guarantee. What a match starts
+        /// with must not depend on how the last one ended, and checking that here costs one pass
+        /// over the spawned objects at the one moment nobody is looking.
+        ///
+        /// Only units and focus points. The draft is spawned to outlive a match on purpose -- the
+        /// party is still assembled when a fight ends -- so it is exactly what must not be swept.
+        /// </summary>
+        static void ClearPreviousMatch()
+        {
+            var spawnManager = NetworkManager.Singleton.SpawnManager;
+
+            if (spawnManager == null)
+            {
+                return;
+            }
+
+            // Copied first: despawning mutates the collection being read.
+            var leftovers = new List<NetworkObject>();
+
+            foreach (var spawned in spawnManager.SpawnedObjectsList)
+            {
+                if (spawned != null
+                    && (spawned.GetComponent<UnitState>() != null
+                        || spawned.GetComponent<FocusState>() != null))
+                {
+                    leftovers.Add(spawned);
+                }
+            }
+
+            foreach (var leftover in leftovers)
+            {
+                Debug.LogWarning($"{leftover.name} outlived its match; despawning it.", leftover);
+                leftover.Despawn();
             }
         }
 
@@ -320,7 +362,10 @@ namespace Dragoneye.Game
                     return;
                 }
 
-                networkObject.SpawnWithOwnership(clientId);
+                // Destroyed with the arena. A spawned NetworkObject survives a scene load by
+                // default -- that is what keeps the draft alive across a match -- and a focus point
+                // has no business outliving the board it points at.
+                networkObject.SpawnWithOwnership(clientId, destroyWithScene: true);
 
                 var roster = PlayerRoster.Current;
                 if (roster != null && roster.TryGet(clientId, out var entry))
@@ -380,13 +425,17 @@ namespace Dragoneye.Game
                             .StartingPool);
                 }
 
+                // Destroyed with the arena, which is the whole of a unit's life. Left at the
+                // default, a spawned NetworkObject is moved into DontDestroyOnLoad on a scene load
+                // and survives -- so every creature still standing when a match ended came back
+                // for the next one as an inert duplicate holding a hex.
                 if (owner.HasValue)
                 {
-                    networkObject.SpawnWithOwnership(owner.Value);
+                    networkObject.SpawnWithOwnership(owner.Value, destroyWithScene: true);
                 }
                 else
                 {
-                    networkObject.Spawn();
+                    networkObject.Spawn(destroyWithScene: true);
                 }
             }
             catch (Exception e)
