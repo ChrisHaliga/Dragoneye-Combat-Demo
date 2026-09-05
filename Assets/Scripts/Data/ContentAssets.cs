@@ -140,15 +140,22 @@ namespace Dragoneye.Data
              + "reduction comes from its class.")]
         int m_DamageReduction;
 
+        [SerializeField, Tooltip("Whether holding this answers a clash with the better of two "
+             + "elements. It costs two rather than one, so it drains as fast as it protects.")]
+        bool m_GrantsAdvantage;
+
         public int Id => m_Id;
 
         public string DisplayName => m_DisplayName;
 
         public EquipmentSlot Slot => m_Slot;
 
+        public bool GrantsAdvantage => m_GrantsAdvantage;
+
         public EquipmentSpec ToSpec() =>
             new EquipmentSpec(m_Id, m_DisplayName, m_Slot, m_Modifiers.ToBlock(),
-                ContentIds.SkillIds(m_Skills), m_Armour, m_Description, m_DamageReduction);
+                ContentIds.SkillIds(m_Skills), m_Armour, m_Description, m_DamageReduction,
+                m_GrantsAdvantage);
 
         void OnValidate()
         {

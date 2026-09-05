@@ -216,6 +216,38 @@ namespace Dragoneye.Multiplayer
         }
 
         /// <summary>
+        /// Elements somebody is holding that nobody has put a name to.
+        ///
+        /// The eighth mark in a row of seven, and the only honest way to show an opponent's hand:
+        /// what they have spent is theirs to have shown you, and what is left is a number and not a
+        /// list. It shrinks as they spend, and each one that leaves it turns up under its own rune.
+        /// </summary>
+        public static VisualElement UnknownChip(int count)
+        {
+            var chip = new VisualElement();
+            chip.AddToClassList("element-chip");
+            chip.EnableInClassList("element-chip--none", count <= 0);
+            chip.tooltip = count > 0
+                ? $"{count} element{(count == 1 ? string.Empty : "s")} you have not seen"
+                : "Everything this creature holds has been seen";
+
+            var mark = new VisualElement();
+            mark.AddToClassList("element-chip__mark");
+            mark.AddToClassList("element-chip__mark--unknown");
+
+            var glyph = new Label("?");
+            glyph.AddToClassList("element-chip__unknown");
+            mark.Add(glyph);
+            chip.Add(mark);
+
+            var value = new Label(count.ToString());
+            value.AddToClassList("element-chip__count");
+            chip.Add(value);
+
+            return chip;
+        }
+
+        /// <summary>
         /// The starting pool as one rune per element held, each carrying its count.
         ///
         /// The shape is free and the size is not, so what needs saying is the total against the

@@ -119,9 +119,10 @@ namespace Dragoneye.Combat
     {
         public EquipmentSpec(int id, string name, EquipmentSlot slot, AttributeBlock modifiers,
             IReadOnlyList<int> skillIds = null, ArmourClass armour = ArmourClass.None,
-            string description = "", int damageReduction = 0)
+            string description = "", int damageReduction = 0, bool grantsAdvantage = false)
         {
             Armour = armour;
+            GrantsAdvantage = grantsAdvantage;
             Id = id;
             Name = name ?? string.Empty;
             Slot = slot;
@@ -143,6 +144,14 @@ namespace Dragoneye.Combat
 
         /// <summary>How much this slows its wearer. Only armour is anything but None.</summary>
         public ArmourClass Armour { get; }
+
+        /// <summary>
+        /// Whether holding this gives its wearer the better of two elements in a clash.
+        ///
+        /// DE-006 names a shield as the example. It is not free: advantage costs two elements
+        /// rather than one, so a shield drains its holder twice as fast as it protects them.
+        /// </summary>
+        public bool GrantsAdvantage { get; }
 
         /// <summary>
         /// Skills this item grants while it is equipped.

@@ -44,9 +44,6 @@ namespace Dragoneye.Game
         [SerializeField, Tooltip("Height above the tile surface.")]
         float m_GroundOffset = 0.5f;
 
-        [SerializeField, Tooltip("Degrees per second the unit turns to face where it is going.")]
-        float m_TurnSpeed = 540f;
-
         [SerializeField, Tooltip("Colour property on the material. URP Lit uses _BaseColor.")]
         string m_ColorProperty = "_BaseColor";
 
@@ -61,6 +58,11 @@ namespace Dragoneye.Game
 
         Vector3 m_Target;
         bool m_Placed;
+
+        Transform m_Pointer;
+        int m_ShownFacing = -1;
+
+        static Material s_FacingMaterial;
 
         /// <summary>
         /// Whether this unit is still walking to where it already is, as far as the rules go.
@@ -138,6 +140,65 @@ namespace Dragoneye.Game
             Sit(transform.Find("Player Accent"), baseY + 0.008f);
 
             m_Portrait = BuildPortrait(baseY);
+            m_Pointer = BuildPointer(baseY);
+        }
+
+        /// <summary>
+        /// The wedge that says which way this creature is turned.
+        ///
+        /// Its own child rather than part of the token, because it turns and the token does not:
+        /// the portrait on the face has an up, and spinning it so the player can read a facing
+        /// would make every creature look like it was falling over.
+        /// </summary>
+        Transform BuildPointer(float baseY)
+        {
+            var pointer = transform.Find("Facing");
+
+            if (pointer == null)
+            {
+                pointer = new GameObject("Facing").transform;
+                pointer.SetParent(transform, worldPositionStays: false);
+            }
+
+            var filter = Ensure<MeshFilter>(pointer.gameObject);
+            var renderer = Ensure<MeshRenderer>(pointer.gameObject);
+
+            filter.sharedMesh = CreatureToken.Pointer;
+            renderer.sharedMaterial = FacingMaterial;
+            renderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            renderer.receiveShadows = false;
+
+            // Just above the rings and just below the token's lip, so it reads as attached to the
+            // base rather than as a decal on the floor.
+            pointer.localPosition = new Vector3(0f, baseY + 0.012f, 0f);
+            pointer.localScale = Vector3.one;
+
+            return pointer;
+        }
+
+        /// <summary>
+        /// One material for every facing mark in the arena.
+        ///
+        /// Shared, because a material per creature is a draw call per creature for a triangle.
+        /// </summary>
+        static Material FacingMaterial
+        {
+            get
+            {
+                if (s_FacingMaterial != null)
+                {
+                    return s_FacingMaterial;
+                }
+
+                var shader = Shader.Find("Universal Render Pipeline/Unlit")
+                    ?? Shader.Find("Unlit/Color");
+
+                s_FacingMaterial = new Material(shader) { name = "Facing" };
+                s_FacingMaterial.SetColor("_BaseColor", new Color(0.94f, 0.90f, 0.78f, 1f));
+                s_FacingMaterial.color = new Color(0.94f, 0.90f, 0.78f, 1f);
+
+                return s_FacingMaterial;
+            }
         }
 
         /// <summary>
@@ -226,7 +287,43 @@ namespace Dragoneye.Game
             }
 
             transform.position = Step(transform.position, m_Target, m_Speed, Time.deltaTime);
-            Face(m_Target, Time.deltaTime);
+            PointTheWay();
+        }
+
+        /// <summary>
+        /// Turns the facing mark to match the creature.
+        ///
+        /// The token itself no longer turns. It used to swing round to look where it was walking,
+        /// which spun the portrait on its face and, now that facing is a rule rather than a flourish,
+        /// showed a direction that had nothing to do with the one the rules use. The wedge is the
+        /// only thing that turns, and it turns to the facing.
+        ///
+        /// Snapped rather than eased. A facing decides whether the next blow lands in a flank, and a
+        /// mark still swinging round is showing something that is no longer true.
+        ///
+        /// Compared before writing, because this runs every frame and a rotation assigned sixty
+        /// times a second is sixty transform dirties for nothing.
+        /// </summary>
+        void PointTheWay()
+        {
+            if (m_Pointer == null || m_Creature == null)
+            {
+                return;
+            }
+
+            var facing = m_Creature.Facing.Index;
+
+            if (facing == m_ShownFacing)
+            {
+                return;
+            }
+
+            m_ShownFacing = facing;
+
+            // The hex directions run clockwise from north, which is exactly what a Y rotation of
+            // sixty degrees a step describes. The arena's own rotation is inherited, so a tilted
+            // board keeps its bearings.
+            m_Pointer.localRotation = Quaternion.Euler(0f, facing * 60f, 0f);
         }
 
         /// <summary>
@@ -258,20 +355,6 @@ namespace Dragoneye.Game
                 transform.position = m_Target;
                 m_Placed = true;
             }
-        }
-
-        void Face(Vector3 target, float deltaTime)
-        {
-            var toTarget = target - transform.position;
-            toTarget.y = 0f;
-
-            if (toTarget.sqrMagnitude < 1e-4f)
-            {
-                return;
-            }
-
-            transform.rotation = Quaternion.RotateTowards(
-                transform.rotation, Quaternion.LookRotation(toTarget), m_TurnSpeed * deltaTime);
         }
 
         void Repaint()

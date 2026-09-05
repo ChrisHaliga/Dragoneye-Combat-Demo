@@ -94,6 +94,17 @@ namespace Dragoneye.Game
         readonly NetworkVariable<NetElementCounts> m_Revealed = new NetworkVariable<NetElementCounts>(
             default, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Server);
 
+        // What an opponent has proven, and how many there are altogether. Both public, and both
+        // needed by anybody who is not the owner: they cannot see the pool, so without these they
+        // have no way to count what they have *not* worked out. Neither says anything the creature
+        // has not already shown them.
+        readonly NetworkVariable<NetElementCounts> m_Identified =
+            new NetworkVariable<NetElementCounts>(default,
+                NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Server);
+
+        readonly NetworkVariable<int> m_Total = new NetworkVariable<int>(0,
+            NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Server);
+
         // Public: everyone watched these being spent, and Take a Breath draws from the front.
         readonly NetworkList<byte> m_Outstanding = new NetworkList<byte>();
 
@@ -116,10 +127,32 @@ namespace Dragoneye.Game
         /// <summary>What this creature has been seen to spend. Public to everyone.</summary>
         public ElementCounts Revealed => m_Revealed.Value.ToCounts();
 
+        /// <summary>
+        /// What an opponent has proven this creature holds. Public to everyone.
+        ///
+        /// Not the same as <see cref="Revealed"/>: an element spent, taken back and spent again is
+        /// revealed twice and proven once, because only one of it ever existed.
+        /// </summary>
+        public ElementCounts Identified => m_Identified.Value.ToCounts();
+
+        /// <summary>How many elements this creature owns altogether, spent or not. Public.</summary>
+        public int Total => m_Total.Value;
+
+        /// <summary>How many of them nobody has put a name to yet.</summary>
+        public int Unidentified
+        {
+            get
+            {
+                var left = Total - Identified.Total;
+                return left < 0 ? 0 : left;
+            }
+        }
+
         /// <summary>Whether this peer is entitled to <see cref="Pool"/>.</summary>
         public bool CanSee => IsOwner;
 
-        public ElementLedger Ledger => new ElementLedger(Pool, Revealed, m_OutstandingView);
+        public ElementLedger Ledger =>
+            new ElementLedger(Pool, Revealed, m_OutstandingView, Total, Identified);
 
         /// <summary>Spends not yet returned, oldest first. Public information.</summary>
         public IReadOnlyList<Element> Outstanding => m_OutstandingView;
@@ -135,10 +168,13 @@ namespace Dragoneye.Game
             {
                 m_Pool.Value = new NetElementCounts(m_StartingPool);
                 m_Revealed.Value = new NetElementCounts(ElementCounts.Empty);
+                m_Identified.Value = new NetElementCounts(ElementCounts.Empty);
+                m_Total.Value = m_StartingPool.Total;
             }
 
             m_Pool.OnValueChanged += OnCountsChanged;
             m_Revealed.OnValueChanged += OnCountsChanged;
+            m_Identified.OnValueChanged += OnCountsChanged;
             m_Outstanding.OnListChanged += OnOutstandingChanged;
 
             RebuildOutstanding();
@@ -148,6 +184,7 @@ namespace Dragoneye.Game
         {
             m_Pool.OnValueChanged -= OnCountsChanged;
             m_Revealed.OnValueChanged -= OnCountsChanged;
+            m_Identified.OnValueChanged -= OnCountsChanged;
             m_Outstanding.OnListChanged -= OnOutstandingChanged;
         }
 
@@ -219,6 +256,7 @@ namespace Dragoneye.Game
         {
             m_Pool.Value = new NetElementCounts(ledger.Pool);
             m_Revealed.Value = new NetElementCounts(ledger.Revealed);
+            m_Identified.Value = new NetElementCounts(ledger.Identified);
 
             m_Outstanding.Clear();
 

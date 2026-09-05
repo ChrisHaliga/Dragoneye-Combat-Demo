@@ -207,9 +207,13 @@ namespace Dragoneye.Game
         /// The element counters, which DE-001 asks to be primary rather than behind a menu.
         ///
         /// Which of the two is shown depends on who is looking. Your own creature shows what it can
-        /// still spend, because that is the decision in front of you. Anyone else shows what it has
-        /// been seen to spend, because that is all you are entitled to know -- and it is the same
-        /// information every other player has, so nobody has to track it by hand.
+        /// still spend, because that is the decision in front of you.
+        ///
+        /// Anyone else shows what has been *proven* about them, plus a count of what has not --
+        /// which is what you actually know, and is the same for every player watching. Proven is
+        /// not the same as spent: an element spent, taken back and spent again was seen twice and
+        /// only ever existed once, and a tally that counted both would have opponents holding more
+        /// than they own.
         /// </summary>
         void BuildElements()
         {
@@ -227,9 +231,9 @@ namespace Dragoneye.Game
             }
 
             var mine = m_ObservedPool.CanSee;
-            var counts = mine ? m_ObservedPool.Pool : m_ObservedPool.Revealed;
+            var counts = mine ? m_ObservedPool.Pool : m_ObservedPool.Identified;
 
-            m_ElementsTitle.text = mine ? "POOL" : "SPENT";
+            m_ElementsTitle.text = mine ? "POOL" : "KNOWN";
 
             foreach (var element in ElementInfo.All)
             {
@@ -238,6 +242,13 @@ namespace Dragoneye.Game
                 // dark, which keeps the row a fixed width as a fight drains it.
                 var held = counts[element];
                 m_Elements.Add(CharacterSheet.ElementChip(element, held, held == 0));
+            }
+
+            // The eighth, and only for a creature whose pool you cannot see. On your own there is
+            // nothing unknown, and a question mark reading zero would be a question about nothing.
+            if (!mine)
+            {
+                m_Elements.Add(CharacterSheet.UnknownChip(m_ObservedPool.Unidentified));
             }
         }
 

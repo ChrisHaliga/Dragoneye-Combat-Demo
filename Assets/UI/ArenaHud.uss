@@ -538,6 +538,22 @@
     -unity-background-scale-mode: scale-to-fit;
 }
 
+/* The eighth mark: what is held and not identified. A plate rather than a rune, because there is
+   no rune for "something", and bright enough that it reads as a real quantity rather than as an
+   element that failed to load. */
+.element-chip__mark--unknown {
+    background-image: url("Generated/ui-gem.png");
+    -unity-background-image-tint-color: rgb(96, 104, 124);
+    justify-content: center;
+}
+
+.element-chip__unknown {
+    font-size: 17px;
+    -unity-font-style: bold;
+    color: rgb(236, 232, 222);
+    -unity-text-align: middle-center;
+}
+
 .element-chip__count {
     margin-left: 4px;
     font-size: 14px;

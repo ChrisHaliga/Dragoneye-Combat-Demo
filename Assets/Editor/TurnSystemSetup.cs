@@ -235,6 +235,10 @@ namespace Dragoneye.MultiplayerEditor
             Ensure<TurnState>(host);
             Ensure<TurnCommands>(host);
 
+            // The clash postbox. Match-scoped like the turn order, and for the same reason: a
+            // question about one attack has no business outliving the fight it was asked in.
+            Ensure<ClashCommands>(host);
+
             EditorUtility.SetDirty(host);
         }
 

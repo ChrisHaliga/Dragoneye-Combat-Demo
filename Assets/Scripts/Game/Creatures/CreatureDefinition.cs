@@ -47,6 +47,11 @@ namespace Dragoneye.Game
         [SerializeField, Min(0)]
         int m_Speed = 5;
 
+        [SerializeField, Tooltip("Whether this creature answers a clash with the better of two "
+             + "elements -- a shield, or whatever stands in for one. It costs two elements rather "
+             + "than one, so it drains as fast as it protects.")]
+        bool m_Shielded;
+
         [SerializeField, Tooltip("Elements this creature starts holding. Any spread; the total is "
              + "this creature's level.")]
         ElementValues m_StartingPool;
@@ -109,6 +114,9 @@ namespace Dragoneye.Game
 
             return pool;
         }
+
+        /// <summary>Whether this creature answers a clash with the better of two elements.</summary>
+        public bool Shielded => m_Shielded;
 
         public int MaxAp => m_MaxAp;
 

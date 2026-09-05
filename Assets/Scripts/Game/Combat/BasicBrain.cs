@@ -8,6 +8,61 @@ namespace Dragoneye.Game
     using Hex = Dragoneye.Hex.Hex;
 
     /// <summary>
+    /// How a computer creature answers an attack.
+    ///
+    /// Handed the prompt and its own pool, and nothing else. That is the whole guarantee: a
+    /// computer defender cannot answer better than a player could for want of information a player
+    /// would not have, because the information is not in the signature. Anything that changed that
+    /// would have to change this line, which is a much louder thing to do than reading a field.
+    ///
+    /// It spends what it holds most of. That keeps its scarce elements for a turn when it is the
+    /// one attacking, and it is the same reasoning a player uses with no idea what is coming.
+    /// </summary>
+    public static class ClashDefence
+    {
+        public static IReadOnlyList<Element> Choose(DefenceRequest request, ElementCounts pool)
+        {
+            var answer = new List<Element>();
+
+            if (request.Options == null)
+            {
+                return answer;
+            }
+
+            var taken = ElementCounts.Empty;
+
+            while (answer.Count < request.Required)
+            {
+                var best = -1;
+                var most = 0;
+
+                for (var i = 0; i < request.Options.Count; i++)
+                {
+                    var left = pool[request.Options[i]] - taken[request.Options[i]];
+
+                    if (left > most)
+                    {
+                        most = left;
+                        best = i;
+                    }
+                }
+
+                if (best < 0)
+                {
+                    // Nothing left to put up. A defender required to commit two while holding one
+                    // commits the one, which is a rule rather than a shortfall.
+                    break;
+                }
+
+                answer.Add(request.Options[best]);
+                taken = taken.Plus(request.Options[best], 1);
+            }
+
+            return answer;
+        }
+    }
+
+    /// <summary>
     /// What a creature has decided it is doing this instant.
     ///
     /// Named, and returned from a pure assessment, so a test can assert on the reasoning rather than

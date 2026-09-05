@@ -125,6 +125,20 @@ namespace Dragoneye.Combat
             Vitals = Vitals.From(attributes, level, armour,
                 species != null ? species.BaseAp : Vitals.DefaultBaseAp);
             DamageReduction = ResolveReduction(armour, Items);
+            Advantage = ResolveAdvantage(Items);
+        }
+
+        static bool ResolveAdvantage(IReadOnlyList<EquipmentSpec> items)
+        {
+            for (var i = 0; i < items.Count; i++)
+            {
+                if (items[i].GrantsAdvantage)
+                {
+                    return true;
+                }
+            }
+
+            return false;
         }
 
         /// <summary>
@@ -132,6 +146,14 @@ namespace Dragoneye.Combat
         /// that stops damage without being armour.
         /// </summary>
         public int DamageReduction { get; }
+
+        /// <summary>
+        /// Whether anything worn gives this creature the better of two elements in a clash.
+        ///
+        /// One flag rather than a count: two shields are not twice a shield, and DE-006 is explicit
+        /// that advantage and disadvantage are states rather than quantities.
+        /// </summary>
+        public bool Advantage { get; }
 
         static int ResolveReduction(ArmourClass armour, IReadOnlyList<EquipmentSpec> items)
         {

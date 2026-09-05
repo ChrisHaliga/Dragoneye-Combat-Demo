@@ -25,8 +25,61 @@ namespace Dragoneye.Game
         /// <summary>How much smaller the portrait is than the token, leaving a rim of party colour.</summary>
         public const float PortraitInset = 0.86f;
 
+        /// <summary>How far past the token's edge the facing mark reaches.</summary>
+        public const float PointerReach = 0.34f;
+
+        /// <summary>How wide the facing mark is at its base, as a fraction of the token.</summary>
+        public const float PointerWidth = 0.42f;
+
         static Mesh s_Disc;
         static Mesh s_Cylinder;
+        static Mesh s_Pointer;
+
+        /// <summary>
+        /// A flat triangle lying on the ground, pointing along positive Z.
+        ///
+        /// Which way a creature is turned has to be readable from across the board and from any
+        /// camera angle, and half of what facing is worth is opponents seeing it in time to walk
+        /// round the back. A wedge on the ground reads at a glance from directly above, which is
+        /// where this camera mostly is; anything drawn on the token's face would not.
+        ///
+        /// Built here rather than authored so it cannot go missing from a prefab, which is the
+        /// lesson the tokens themselves already taught this project.
+        /// </summary>
+        public static Mesh Pointer
+        {
+            get
+            {
+                if (s_Pointer != null)
+                {
+                    return s_Pointer;
+                }
+
+                var half = PointerWidth * 0.5f;
+
+                var vertices = new[]
+                {
+                    new Vector3(-half, 0f, 0f),
+                    new Vector3(half, 0f, 0f),
+                    new Vector3(0f, 0f, PointerReach)
+                };
+
+                s_Pointer = new Mesh
+                {
+                    name = "Token Pointer",
+                    vertices = vertices,
+
+                    // Wound both ways, so it is visible from under the board as well as over it --
+                    // a camera that can orbit will find the back of it otherwise.
+                    triangles = new[] { 0, 2, 1, 0, 1, 2 },
+                    uv = new[] { Vector2.zero, Vector2.right, new Vector2(0.5f, 1f) }
+                };
+
+                s_Pointer.RecalculateNormals();
+                s_Pointer.RecalculateBounds();
+                return s_Pointer;
+            }
+        }
 
         /// <summary>
         /// A flat disc of radius one half, facing up, with the texture mapped across it.

@@ -37,6 +37,10 @@ namespace Dragoneye.Game
         readonly NetworkVariable<byte> m_PremadeLevel =
             new NetworkVariable<byte>(Progression.FirstLevel);
 
+        // Which way this creature is turned. Public, because half of what a facing is worth is
+        // everybody else being able to see it and walk round the back.
+        readonly NetworkVariable<byte> m_Facing = new NetworkVariable<byte>();
+
         // Identity handed over before the spawn, held until there are NetworkVariables to put it in.
         ushort m_StartCreatureId;
         byte m_StartBuildSlot = PartyInfo.Unclaimed;
@@ -110,6 +114,9 @@ namespace Dragoneye.Game
         /// <summary>What this creature is worth to whoever kills it.</summary>
         public int Level => Profile.Level;
 
+        /// <summary>Whether this creature answers a clash with the better of two elements.</summary>
+        public bool HasAdvantage => Profile.Advantage;
+
         /// <summary>What this creature can do. Empty until the catalog is available.</summary>
         public IReadOnlyList<int> SkillIds => Profile.SkillIds;
 
@@ -169,6 +176,7 @@ namespace Dragoneye.Game
             m_CurrentApUnits.OnValueChanged += OnIntChanged;
             m_BuildSlot.OnValueChanged += OnByteChanged;
             m_PremadeLevel.OnValueChanged += OnByteChanged;
+            m_Facing.OnValueChanged += OnByteChanged;
 
             var context = ArenaContext.Current;
             m_Registry = context != null ? context.Creatures : null;
@@ -194,6 +202,7 @@ namespace Dragoneye.Game
             m_CurrentApUnits.OnValueChanged -= OnIntChanged;
             m_BuildSlot.OnValueChanged -= OnByteChanged;
             m_PremadeLevel.OnValueChanged -= OnByteChanged;
+            m_Facing.OnValueChanged -= OnByteChanged;
 
             if (m_Registry != null)
             {
@@ -280,6 +289,24 @@ namespace Dragoneye.Game
         }
 
         /// <summary>Server only. Restores health, never past the maximum.</summary>
+        /// <summary>
+        /// Which of six ways this creature is turned.
+        ///
+        /// Stored rather than worked out, which DE-006 is explicit about: it is a consequence of
+        /// the last thing the creature did, not of where anybody happens to be standing now. There
+        /// is no turn action -- moving and attacking are the only two things that write it.
+        /// </summary>
+        public Facing Facing => Combat.Facing.Of(m_Facing.Value);
+
+        /// <summary>Server only. Turns the creature.</summary>
+        public void ServerFace(Facing facing)
+        {
+            if (IsServer)
+            {
+                m_Facing.Value = (byte)facing.Index;
+            }
+        }
+
         public void ServerHeal(int amount)
         {
             if (IsServer && IsAlive)

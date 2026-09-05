@@ -29,10 +29,14 @@ namespace Dragoneye.Game
         /// <summary>What killing this is worth, and what it was strong enough to be.</summary>
         public readonly int Level;
 
+        /// <summary>Whether this creature answers a clash with the better of two elements.</summary>
+        public readonly bool Advantage;
+
         public CreatureProfile(string name, int maxHealth, Ap maxAp, int initiative,
             IReadOnlyList<int> skillIds, ElementCounts startingPool,
-            int level = Progression.FirstLevel)
+            int level = Progression.FirstLevel, bool advantage = false)
         {
+            Advantage = advantage;
             Name = string.IsNullOrEmpty(name) ? "Unknown" : name;
             MaxHealth = maxHealth < 1 ? 1 : maxHealth;
             MaxAp = maxAp;
@@ -56,7 +60,8 @@ namespace Dragoneye.Game
                 ? Unknown
                 : new CreatureProfile(definition.DisplayName, definition.MaxHpAt(level),
                     Ap.FromWhole(definition.MaxAp), definition.Speed,
-                    definition.SkillIdsAt(level), definition.PoolFor(level), level);
+                    definition.SkillIdsAt(level), definition.PoolFor(level), level,
+                    definition.Shielded);
 
         /// <summary>
         /// A character somebody built.
@@ -79,7 +84,8 @@ namespace Dragoneye.Game
             }
 
             return new CreatureProfile(name, loadout.Vitals.MaxHealth, loadout.Vitals.MaxAp,
-                loadout.Vitals.Speed, skillIds, loadout.StartingPool, loadout.Vitals.Level);
+                loadout.Vitals.Speed, skillIds, loadout.StartingPool, loadout.Vitals.Level,
+                loadout.Advantage);
         }
     }
 }

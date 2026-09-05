@@ -1,6 +1,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using Dragoneye.Combat;
+using Dragoneye.Data;
 using Dragoneye.Hex.Systems;
 using Unity.Netcode;
 using UnityEngine;
@@ -47,6 +48,10 @@ namespace Dragoneye.Game
              + "before carrying on regardless.")]
         float m_MoveWaitLimit = 4f;
 
+        [SerializeField, Min(1f), Tooltip("Longest a clash waits for a defender's answer before "
+             + "taking the attack unanswered on their behalf.")]
+        float m_ClashWaitLimit = 20f;
+
         /// <summary>
         /// Swapped wholesale to change the opponent. Not serialised: brains are code, not assets,
         /// and a ScriptableObject wrapper would be indirection for a choice nobody is authoring yet.
@@ -55,6 +60,14 @@ namespace Dragoneye.Game
 
         ArenaBoard m_Board;
         Coroutine m_BrainTurn;
+
+        // The attack that is waiting on an answer, and everything needed to finish it. Server only
+        // -- a clash is decided where the fight is run, and the sequence itself is what decides it.
+        ClashSequence m_Clash;
+        CreatureState m_ClashAttacker;
+        CreatureState m_ClashDefender;
+        SkillSpec m_ClashSkill;
+        float m_ClashWaited;
 
         // Creatures already complained about, so a toothless one does not warn every round.
         readonly HashSet<uint> m_Warned = new HashSet<uint>();
@@ -133,7 +146,15 @@ namespace Dragoneye.Game
         /// for a hex it cannot afford is refused with the same arithmetic the cursor showed it.
         /// </summary>
         /// <returns>False if the move was refused.</returns>
-        public bool ServerMove(CreatureState actor, Hex destination)
+        /// <summary>
+        /// Server only. Walks a creature, and turns it.
+        ///
+        /// The facing is part of the move rather than a follow-up, which DE-006 is explicit about:
+        /// there is no turn action, so a creature that could move and then turn for free would have
+        /// one. A caller that does not care which way it ends up facing gets the direction of
+        /// travel, which is what a creature that walked somewhere is looking at.
+        /// </summary>
+        public bool ServerMove(CreatureState actor, Hex destination, Facing? facing = null)
         {
             if (!CanAct(actor))
             {
@@ -155,7 +176,12 @@ namespace Dragoneye.Game
                 return false;
             }
 
+            // Read before the move, because afterwards the two hexes are the same one and the
+            // bearing between them is meaningless.
+            var travelled = Bearing(actor.Cell, destination);
+
             actor.Unit.ServerSetCell(destination);
+            actor.ServerFace(facing ?? travelled);
             return true;
         }
 
@@ -219,8 +245,244 @@ namespace Dragoneye.Game
                 return false;
             }
 
+            // Turning to strike is part of striking. DE-006: the attacker ends up facing whoever
+            // they swung at, which opens their own flank to everybody they did not.
+            if (occupant != null && occupant != actor)
+            {
+                actor.ServerFace(Bearing(actor.Cell, target));
+            }
+
+            if (IsContested(skill, actor, occupant))
+            {
+                BeginClash(actor, skill, occupant);
+                return true;
+            }
+
             Resolve(actor, skill, occupant);
             return true;
+        }
+
+        /// <summary>Which way one hex lies from another, as a facing.</summary>
+        static Facing Bearing(Hex from, Hex to) => Facing.Of((int)Hex.DirectionTo(from, to));
+
+        /// <summary>
+        /// Whether using this opens a clash.
+        ///
+        /// Only an attack on somebody else is contested. A skill aimed at the user or at an ally
+        /// has nobody on the other side of it, and a heal that stopped to ask its target whether
+        /// they would like to resist it would be a bug with a straight face.
+        /// </summary>
+        static bool IsContested(SkillSpec skill, CreatureState actor, CreatureState target) =>
+            skill != null
+            && skill.IsContested
+            && target != null
+            && target != actor
+            && target.IsAlive
+            && target.Party != actor.Party;
+
+        /// <summary>
+        /// Suspends the attack and asks the defender.
+        ///
+        /// The attacker's element has already left their pool by now -- DE-005 spends the
+        /// commitment before anybody is asked anything, so an attack cannot be taken back once the
+        /// defender has been made to think about it.
+        ///
+        /// What this holds is a <see cref="ClashSequence"/>, which is where every decision about
+        /// the clash is made. This only carries messages to it and applies what it says.
+        /// </summary>
+        void BeginClash(CreatureState actor, SkillSpec skill, CreatureState target)
+        {
+            var pool = target.GetComponent<CreaturePool>();
+
+            if (pool == null)
+            {
+                Resolve(actor, skill, target);
+                return;
+            }
+
+            // Which way the blow arrived, from the defender's point of view.
+            var flanked = FacingRules.IsFlank(target.Facing, Bearing(target.Cell, actor.Cell));
+
+            var committed = new List<Element>();
+
+            for (var i = 0; i < skill.ElementCost; i++)
+            {
+                committed.Add(skill.Element);
+            }
+
+            m_Clash = ClashSequence.Begin(committed,
+                new ClashSide((int)actor.TurnId, advantage: actor.HasAdvantage),
+                new ClashSide((int)target.TurnId, advantage: target.HasAdvantage,
+                    disadvantage: flanked),
+                pool.Ledger, ElementMatchups.Table);
+
+            m_ClashAttacker = actor;
+            m_ClashDefender = target;
+            m_ClashSkill = skill;
+            m_ClashWaited = 0f;
+
+            Ask(m_Clash.Request, target);
+        }
+
+        /// <summary>
+        /// Puts the question to whoever is running the defender.
+        ///
+        /// A computer defender answers from <see cref="BasicBrain.Defend"/>, which is handed the
+        /// prompt and its own pool and nothing else -- so it cannot answer better than a player
+        /// could for want of information a player would not have. That is a property of the
+        /// signature rather than of anybody's restraint.
+        /// </summary>
+        void Ask(DefenceRequest request, CreatureState defender)
+        {
+            if (!request.HasAnswer)
+            {
+                // Nothing to answer with. DE-005: the attack resolves unopposed rather than
+                // stopping to ask a question with no answers on it.
+                SettleClash(null, declined: true);
+                return;
+            }
+
+            if (defender.IsComputerControlled)
+            {
+                var pool = defender.GetComponent<CreaturePool>();
+                var answer = ClashDefence.Choose(request, pool != null ? pool.Pool : default);
+
+                SettleClash(answer, declined: answer.Count == 0);
+                return;
+            }
+
+            if (ClashCommands.Current != null)
+            {
+                ClashCommands.Current.ServerAsk(request, defender);
+                return;
+            }
+
+            Debug.LogWarning("No clash commands in the arena; the attack resolves unopposed.", this);
+            SettleClash(null, declined: true);
+        }
+
+        /// <summary>
+        /// Server only. The defender's answer, arriving from wherever they are.
+        ///
+        /// Checked against the sequence rather than trusted: an answer naming elements the defender
+        /// does not hold, or more than were asked for, is refused there and the clash stays open.
+        /// </summary>
+        public bool ServerAnswerClash(CreatureState defender, IReadOnlyList<Element> answer,
+            out DefenceRefusal refusal)
+        {
+            refusal = DefenceRefusal.None;
+
+            if (!IsServer || m_Clash == null || defender != m_ClashDefender)
+            {
+                refusal = DefenceRefusal.AlreadyResolved;
+                return false;
+            }
+
+            if (answer == null || answer.Count == 0)
+            {
+                SettleClash(null, declined: true);
+                return true;
+            }
+
+            var pool = defender.GetComponent<CreaturePool>();
+
+            if (pool == null || !m_Clash.TryCommit(answer, pool.Ledger, out refusal))
+            {
+                return false;
+            }
+
+            SettleClash(answer, declined: false);
+            return true;
+        }
+
+        /// <summary>
+        /// Spends what the defender put up, reveals both sides, and applies what is left of the
+        /// attack.
+        ///
+        /// The defender's spend happens here rather than when they chose, because DE-005 wants each
+        /// side's expenditure emitted after that side's own reveal -- and because an answer refused
+        /// by the sequence must not have cost anything.
+        /// </summary>
+        void SettleClash(IReadOnlyList<Element> answer, bool declined)
+        {
+            var clash = m_Clash;
+            var attacker = m_ClashAttacker;
+            var defender = m_ClashDefender;
+            var skill = m_ClashSkill;
+
+            // Cleared before anything else can run: applying the effect can kill a creature, which
+            // ends the match, and a clash still standing at that point would suspend the next one.
+            m_Clash = null;
+            m_ClashAttacker = null;
+            m_ClashDefender = null;
+            m_ClashSkill = null;
+
+            if (clash == null || attacker == null || defender == null || skill == null)
+            {
+                return;
+            }
+
+            if (declined)
+            {
+                clash.Decline();
+            }
+            else if (answer != null)
+            {
+                var pool = defender.GetComponent<CreaturePool>();
+
+                foreach (var element in answer)
+                {
+                    pool?.ServerSpend(element, 1, out _);
+                }
+            }
+
+            if (!clash.TryReveal(out var reveal))
+            {
+                return;
+            }
+
+            AnnounceClash(attacker, defender, reveal);
+            ResolveContested(attacker, skill, defender, clash.Scale(skill.Effect));
+
+            // The attack is over, so whatever the pause was holding up can go on.
+            ClashCommands.Current?.ServerClearPrompt();
+        }
+
+        /// <summary>What both sides put up, over the heads of the two creatures that put it up.</summary>
+        static void AnnounceClash(CreatureState attacker, CreatureState defender, ClashReveal reveal)
+        {
+            CombatNotices.Raise(attacker.TurnId, ClashLabels.Committed(reveal.Attacker),
+                NoticeTone.Loss);
+
+            if (reveal.Defender.Count > 0)
+            {
+                CombatNotices.Raise(defender.TurnId, ClashLabels.Committed(reveal.Defender),
+                    NoticeTone.Loss);
+            }
+
+            CombatNotices.Raise(defender.TurnId, ClashLabels.Describe(reveal.Outcome),
+                reveal.Outcome == ClashOutcome.AttackerWins ? NoticeTone.Loss : NoticeTone.Gain);
+        }
+
+        /// <summary>
+        /// Applies whatever the clash left of the attack.
+        ///
+        /// A separate path from <see cref="Resolve"/> only because the effect has been scaled and
+        /// the target is already known; everything it can do, that does too.
+        /// </summary>
+        void ResolveContested(CreatureState actor, SkillSpec skill, CreatureState target,
+            SkillEffect effect)
+        {
+            if (effect.Amount <= 0)
+            {
+                return;
+            }
+
+            if (skill.Effect.Kind == SkillEffectKind.Damage
+                && target.ServerApplyDamage(effect.Amount, ReductionOf(target)))
+            {
+                Kill(target, actor);
+            }
         }
 
         /// <summary>
@@ -377,8 +639,19 @@ namespace Dragoneye.Game
             IsServer
             && actor != null
             && actor.IsAlive
+            && !IsClashPending
             && TurnState.Current != null
             && TurnState.Current.IsActive(actor);
+
+        /// <summary>
+        /// Whether the fight is stopped waiting on somebody's answer.
+        ///
+        /// DE-005 suspends resolution partway, so a turn is not one uninterrupted stretch of the
+        /// active player's own decisions any more. Everything that acts checks this: the attacker
+        /// cannot spend the pause taking another action, and the turn cannot end out from under
+        /// the defender being asked.
+        /// </summary>
+        public bool IsClashPending => m_Clash != null;
 
         void BeginTurn()
         {
@@ -495,6 +768,34 @@ namespace Dragoneye.Game
                 waited += Time.deltaTime;
                 yield return null;
             }
+        }
+
+        /// <summary>
+        /// The clash watchdog, and nothing else.
+        ///
+        /// A suspended fight is suspended for everybody, so a defender who has wandered off, lost
+        /// their connection or simply gone to make tea would otherwise stop the match for the rest
+        /// of it. Declining on their behalf is the least bad answer available: it is a legal choice
+        /// they were entitled to make, and it costs them nothing they were not about to lose.
+        ///
+        /// Generous, because being rushed into a decision is worse than waiting for one.
+        /// </summary>
+        void Update()
+        {
+            if (!IsServer || m_Clash == null)
+            {
+                return;
+            }
+
+            m_ClashWaited += Time.unscaledDeltaTime;
+
+            if (m_ClashWaited < m_ClashWaitLimit)
+            {
+                return;
+            }
+
+            Debug.LogWarning("A clash went unanswered; taking the attack unopposed.", this);
+            SettleClash(null, declined: true);
         }
 
         void StopBrainTurn()
