@@ -95,6 +95,7 @@ replicated state are not.
 | Prices, damage, death | `CombatRules` | none |
 | What a click does | `ActionResolver` | none |
 | The opponent | `ICreatureBrain` / `BasicBrain` | none |
+| Levels and experience | `Progression` | none |
 | Round and turn state | `TurnState` | replicated |
 | The board (routes, occupancy, reach) | `ArenaBoard` | none |
 | Running the fight | `CombatDirector` | server only |
@@ -102,15 +103,18 @@ replicated state are not.
 
 - **Order.** Fastest first, ties broken on turn id. The tiebreak is load-bearing: every peer reads
   the same order, and an unstable sort would put two clients in different turns.
-- **Costs.** Moving is 1 AP per step *along a route*, so a wall makes a hex more expensive rather
-  than merely further. Attacking is 2 AP at melee range. All of it is in `CombatRules`.
+- **Costs.** Moving costs half an AP per step *along a route*, so a wall makes a hex more expensive
+  rather than merely further. Attacking is whatever the skill charges. There is no default attack:
+  a character acts through the skills it knows, and `ActionResolver.ResolveSkill` prices the move
+  and the skill together when the target is out of reach.
 - **One resolver, one board.** `ActionResolver` prices the hover label *and* decides the click;
   `ArenaBoard` answers "what does this route cost" for the client, the server and the brain alike.
   Two answers to either question is how a UI ends up promising a move the server refuses.
 - **Ending a turn.** Only ever on the player clicking End Turn. The button highlights when nothing
   is affordable; it never ends the turn itself, so AP can be held.
-- **The opponent** is one method behind `ICreatureBrain`. `BasicBrain` hits what is adjacent and
-  otherwise walks toward the nearest enemy. Replacing it is a new implementation and nothing else.
+- **The opponent** is one method behind `ICreatureBrain`. `BasicBrain` is a state machine: strike
+  what is in reach, catch a breath when the AP has run out, otherwise close — and only ever to a
+  tile strictly nearer than the one it left. Replacing it is a new implementation and nothing else.
 - **Victory.** Last party with a living creature wins; the banner shows and `MatchFlow` closes the
   match the same way a session ending does.
 
@@ -140,10 +144,10 @@ a test across the internet.
 One-off editor automation belongs under a **`ClaudeCode/`** menu root, so it is obvious at a
 glance which menus are real tooling and which are disposable scaffolding.
 
-`Assets/Editor/SceneSplitSetup.cs` (`ClaudeCode/Multiplayer/Split Into Bootstrap + MainMenu +
-Arena`) generated the three scenes above. It is spent once it has run and its output is committed
-— delete it then, the way `MultiplayerSceneSetup.cs` was deleted before it. Re-running it after
-the scenes are hand-edited would overwrite that work.
+The steps that generated the three scenes above have been deleted, per that convention: their
+output is committed, and re-running them after the scenes were hand-edited would overwrite that
+work. What remains under `Assets/Editor` is the set that is still idempotent and still worth
+re-running, and `ClaudeCode/Set Up Everything` runs all of it in dependency order.
 
 ## Characters
 
@@ -152,7 +156,7 @@ A character is built in the menu, saved on the machine that made it, and carried
 | Piece | Where | Netcode |
 |---|---|---|
 | The build, its rules and validation | `CharacterBuild`, `BuildValidator` (Combat) | none |
-| Resolving it into stats, skills and passives | `LoadoutResolver` (Combat) | none |
+| Resolving it into stats and skills | `Loadout` (Combat) | none |
 | Authored classes, items and skills | `ContentCatalog` (Data) | none |
 | Saving and portraits | `CharacterStore` (Data) | none |
 | Bringing one to a match | `PlayerCharacters` | replicated |
@@ -168,5 +172,6 @@ A character is built in the menu, saved on the machine that made it, and carried
 - **Premades stay available** alongside built characters, so a playtest can start without going
   through the creator. `CreatureProfile` is where the two sources meet: a premade answers from its
   authored definition, a built character from its loadout, and every reader asks the profile.
-- **Portraits never travel.** They are stored beside the character as PNGs and cached by id; other
-  players see an initial.
+- **Portraits are chosen, not uploaded.** The game ships a library of faces under
+  `Assets/Art/Portraits`; a character carries the integer id of the one it picked, so a face crosses
+  the wire as a number and every player sees the same picture. No image bytes are ever sent.

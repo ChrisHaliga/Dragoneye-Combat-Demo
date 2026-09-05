@@ -86,6 +86,7 @@ Coverage worth knowing about:
 
 ## Editor scaffolding
 
-`Assets/Editor/HexArenaSetup.cs` (`ClaudeCode/Hex/Set Up Arena Hex Map`) creates the terrain, map
-and material assets and drops a hex map into the Arena scene. Spent once it has run — delete it
-then, per the `ClaudeCode/` convention.
+The step that created the terrain, map and material assets and dropped a hex map into the Arena
+scene has been deleted: it was spent once it had run and its output is committed. Arena wiring that
+is still worth re-running lives in `AuditRewireSetup` and `ArenaVisualsSetup`, both driven by
+`ClaudeCode/Set Up Everything`.

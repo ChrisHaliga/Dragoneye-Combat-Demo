@@ -41,10 +41,6 @@ namespace Dragoneye.MultiplayerEditor
             importer.alphaIsTransparency = true;
             importer.mipmapEnabled = false;
             importer.wrapMode = TextureWrapMode.Clamp;
-
-            // A portrait is drawn on a 56-pixel card and a token a few pixels across. Anything
-            // larger than this is memory spent on detail nobody can see.
-            importer.maxTextureSize = 256;
         }
 
         static void OnPostprocessAllAssets(string[] imported, string[] deleted, string[] moved,
