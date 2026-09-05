@@ -189,13 +189,30 @@ namespace Dragoneye.Game
         public bool CanSee => LocalPlayer.Controls(m_Creature);
 
         /// <summary>
-        /// Everything about this creature's elements.
+        /// What everybody has been told about this creature's elements.
         ///
-        /// The uncommitted spend wins where there is one, so a second question asked during a clash
-        /// gets the truth rather than the last thing that was announced.
+        /// The published state, and deliberately *not* the uncommitted one. A commitment in flight
+        /// is held back from the record on purpose -- that is the whole of DE-005's concealment --
+        /// so anything drawing a hand or forecasting a clash has to read this and nothing else.
+        ///
+        /// Reading the uncommitted state instead is not a small error. The server is also a player,
+        /// so on a host the defender's prompt was working from a hand with the incoming attack
+        /// already deducted from it: the odds were computed against every element *except* the one
+        /// about to arrive. That reads as confident and lands as backwards, and it explains why a
+        /// hundred-per-cent answer kept losing. A remote client, reading the published state, saw
+        /// different numbers for the same clash.
         /// </summary>
-        public ElementLedger Ledger => m_Pending
-            ?? new ElementLedger(Pool, Revealed, m_OutstandingView, Total, Identified);
+        public ElementLedger Ledger =>
+            new ElementLedger(Pool, Revealed, m_OutstandingView, Total, Identified);
+
+        /// <summary>
+        /// The true state, including anything committed and not yet announced.
+        ///
+        /// Server only, and only for arithmetic the server does on its own behalf: whether a second
+        /// commitment can be afforded, what is left to spend. It must never reach a view or a
+        /// forecast -- see <see cref="Ledger"/> for what happens when it does.
+        /// </summary>
+        public ElementLedger ServerLedger => m_Pending ?? Ledger;
 
         /// <summary>Spends not yet returned, oldest first. Public information.</summary>
         public IReadOnlyList<Element> Outstanding => m_OutstandingView;
@@ -291,7 +308,7 @@ namespace Dragoneye.Game
                 return false;
             }
 
-            if (!Ledger.TrySpend(element, amount, out var next, out refusal))
+            if (!ServerLedger.TrySpend(element, amount, out var next, out refusal))
             {
                 return false;
             }
@@ -370,7 +387,7 @@ namespace Dragoneye.Game
                 return false;
             }
 
-            if (!Ledger.TryReturn(out var next, out returned, out refusal))
+            if (!ServerLedger.TryReturn(out var next, out returned, out refusal))
             {
                 return false;
             }

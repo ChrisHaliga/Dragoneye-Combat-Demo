@@ -225,7 +225,7 @@ namespace Dragoneye.Game
                 return false;
             }
 
-            refusal = SkillRules.Check(skill, true, actor.CurrentAp, pool.Ledger,
+            refusal = SkillRules.Check(skill, true, actor.CurrentAp, pool.ServerLedger,
                 Describe(actor, occupant, target));
 
             if (refusal != SkillRefusal.None)
@@ -322,7 +322,7 @@ namespace Dragoneye.Game
                 new ClashSide((int)actor.TurnId, advantage: actor.HasAdvantage),
                 new ClashSide((int)target.TurnId, advantage: target.HasAdvantage,
                     disadvantage: flanked),
-                pool.Ledger, ElementMatchups.Table);
+                pool.ServerLedger, ElementMatchups.Table);
 
             m_ClashAttacker = actor;
             m_ClashDefender = target;
@@ -396,7 +396,7 @@ namespace Dragoneye.Game
 
             // Committed before anything is spent, so an answer the sequence refuses costs nothing
             // and the clash stays open for a better one.
-            if (pool == null || !m_Clash.TryCommit(answer, pool.Ledger, out refusal))
+            if (pool == null || !m_Clash.TryCommit(answer, pool.ServerLedger, out refusal))
             {
                 return false;
             }
@@ -432,7 +432,7 @@ namespace Dragoneye.Game
             var attack = CreatureKnowledge.PossibleAttacks(attacker);
 
             var pool = defender.GetComponent<CreaturePool>();
-            var held = pool != null ? pool.Ledger.Pool : ElementCounts.Empty;
+            var held = pool != null ? pool.ServerLedger.Pool : ElementCounts.Empty;
 
             while (answer.Count < request.Required && options.Count > 0)
             {
@@ -1012,7 +1012,7 @@ namespace Dragoneye.Game
             return new BrainView(creature.TurnId, creature.Cell, creature.Party,
                 creature.CurrentAp, creature.CurrentHp,
                 skills != null ? skills.Skills : null,
-                pool != null ? pool.Ledger : default);
+                pool != null ? pool.ServerLedger : default);
         }
 
         List<BrainView> OtherViews(CreatureState actor)

@@ -16,6 +16,11 @@ namespace Dragoneye.Game
     /// have been seen are all replicated to everyone by design, so this runs identically on any
     /// peer and never touches the one thing that is private -- which is why it can be called from a
     /// client at all.
+    ///
+    /// **The published ledger, never the server's own.** A commitment in flight has left its pool
+    /// but has deliberately not been announced, and the server -- which is also a player -- can see
+    /// both. Forecasting from the uncommitted state means forecasting against every element except
+    /// the one about to arrive, which is worse than useless: it is confidently backwards.
     /// </summary>
     public static class CreatureKnowledge
     {
