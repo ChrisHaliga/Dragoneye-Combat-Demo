@@ -491,9 +491,24 @@ namespace Dragoneye.Multiplayer
         {
             m_MatchStarted = false;
 
-            if (Session != null && Session.IsHost)
+            if (Session == null)
+            {
+                Notify();
+                return;
+            }
+
+            if (Session.IsHost)
             {
                 TaskUtil.Forget(UnlockAsync(Session));
+            }
+
+            // Ready meant "ready for the match that just finished". Carrying it over means the next
+            // one can start before anybody has looked at the board, which is the opposite of what
+            // the lobby is for. Each player clears their own, because a player property is only
+            // writable by the player it belongs to.
+            if (CurrentLobby is { SelfIsReady: true })
+            {
+                TaskUtil.Forget(SetReadyAsync(false));
             }
 
             Notify();

@@ -186,6 +186,13 @@
     flex-shrink: 0;
 }
 
+/* A card is as wide as the column and no wider. Left to itself the scroller sizes its content to
+   whatever the widest child asks for, which is how a card that overflowed by a few pixels put a
+   horizontal bar under every column. */
+.party__list .unity-scroll-view__content-container {
+    width: 100%;
+}
+
 .party__empty {
     padding: 14px 4px;
     font-size: 11px;
@@ -276,39 +283,28 @@
     text-overflow: ellipsis;
 }
 
-.fighter__stats {
-    flex-direction: row;
-    flex-shrink: 0;
-    margin-left: 8px;
-}
-
-/* Equal, fixed and centred, so a caption sits over its own number. Sized to their own text they
-   would not, and right-aligning them lined up the right-hand edges rather than the digits. */
+/* One line, floated right, and no columns. Three fixed cells lined the numbers up under their
+   captions but cost more width than the card had -- which is what pushed the cards past their
+   column and put a scrollbar under all four. A caption over roughly the right number is worth more
+   than a caption over exactly the right number and no room for the name. */
 .fighter__stat-head,
 .fighter__stat-value {
-    width: 22px;
-    font-size: 11px;
-    -unity-text-align: middle-center;
+    flex-shrink: 0;
+    margin-left: 10px;
+    -unity-text-align: middle-right;
 }
 
-/* The slashes. Drawn rather than implied, and dim enough to separate without competing. */
-.fighter__stat-slash {
-    width: 7px;
-    font-size: 10px;
-    -unity-text-align: middle-center;
-    color: rgb(78, 85, 102);
-}
-
-/* The captions: dimmer and italic, so the row reads as a name with a legend after it rather than
-   as four things of equal weight. */
 .fighter__stat-head {
     height: 18px;
+    font-size: 10px;
     -unity-font-style: italic;
+    letter-spacing: 1px;
     color: rgb(106, 114, 132);
 }
 
 .fighter__stat-value {
     height: 16px;
+    font-size: 11px;
     -unity-font-style: bold;
     color: rgb(226, 222, 210);
 }

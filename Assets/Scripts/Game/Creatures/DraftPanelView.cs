@@ -234,7 +234,13 @@ namespace Dragoneye.Game
                 // A scroller, not a plain box. Cards are three rows tall now and a party has no
                 // fixed size, so "more combatants than the column is tall" is a normal state rather
                 // than an edge case -- and the old box clipped them out of existence.
-                var list = new ScrollView(ScrollViewMode.Vertical);
+                //
+                // Never sideways. A card is as wide as its column and nothing in it may argue,
+                // because a horizontal bar under four columns costs more room than it ever buys.
+                var list = new ScrollView(ScrollViewMode.Vertical)
+                {
+                    horizontalScrollerVisibility = ScrollerVisibility.Hidden
+                };
                 list.AddToClassList("party__list");
                 root.Add(list);
 
@@ -603,14 +609,15 @@ namespace Dragoneye.Game
         /// <summary>
         /// The shape every combatant card shares. Three rows, each split left and right.
         ///
-        ///     Kara                       HP   AP  SPD
-        ///     LVL 3 · HUMAN · GUARDIAN    24    5    4
-        ///     [====----] 3 / 8 XP             Chris
+        ///     Kara                      HP / AP / SPD
+        ///     LVL 3 - HUMAN - GUARDIAN       24 / 5 / 4
+        ///     [====----] 3 / 8 XP                Chris
         ///
-        /// Every row is a fixed height and every stat cell a fixed width, so a heading sits over
-        /// its own number and four columns of these read as a table. Sizing each row to its own
-        /// content was what left the name fighting three stat chips for the same line -- which is
-        /// why every name arrived truncated to an ellipsis.
+        /// The rows are fixed heights so four columns of these read as a table, and the stats are
+        /// one line rather than three cells. Cells lined the numbers up under their captions and
+        /// cost more width than the card had, which pushed every card past its column and put a
+        /// scrollbar under all four -- a caption over roughly the right number is worth more than
+        /// one over exactly the right number with no room left for the name.
         ///
         /// A premade fills the same three rows minus the two things it has not got: it does not
         /// level, so there is no bar, and nobody is running it unless somebody claimed it.
@@ -622,21 +629,24 @@ namespace Dragoneye.Game
 
             var head = Row();
             head.Add(Text(name, "fighter__name"));
-            head.Add(Stats("fighter__stat-head", vitals.HasValue
-                ? new[] { "HP", "AP", "SPD" }
-                : System.Array.Empty<string>()));
+
+            if (vitals.HasValue)
+            {
+                head.Add(Text("HP / AP / SPD", "fighter__stat-head"));
+            }
+
             card.Add(head);
 
             var body = Row();
             body.Add(Text(meta, "fighter__meta"));
-            body.Add(Stats("fighter__stat-value", vitals.HasValue
-                ? new[]
-                {
-                    vitals.Value.MaxHealth.ToString(),
-                    vitals.Value.MaxAp.ToString(),
-                    vitals.Value.Speed.ToString()
-                }
-                : System.Array.Empty<string>()));
+
+            if (vitals.HasValue)
+            {
+                body.Add(Text(
+                    $"{vitals.Value.MaxHealth} / {vitals.Value.MaxAp} / {vitals.Value.Speed}",
+                    "fighter__stat-value"));
+            }
+
             card.Add(body);
 
             var foot = Row();
@@ -667,32 +677,6 @@ namespace Dragoneye.Game
             var label = new Label(text);
             label.AddToClassList(className);
             return label;
-        }
-
-        /// <summary>
-        /// HP / AP / SPD, with the slashes drawn rather than implied.
-        ///
-        /// Equal fixed cells with a separator between them, all centred. Written as one string the
-        /// numbers would not sit under their own captions -- a proportional font puts "24 / 5 / 4"
-        /// nowhere near "HP / AP / SPD" -- and right-aligning the cells lined up their right edges
-        /// rather than the numbers themselves.
-        /// </summary>
-        static VisualElement Stats(string cellClass, string[] values)
-        {
-            var row = new VisualElement();
-            row.AddToClassList("fighter__stats");
-
-            for (var i = 0; i < values.Length; i++)
-            {
-                if (i > 0)
-                {
-                    row.Add(Text("/", "fighter__stat-slash"));
-                }
-
-                row.Add(Text(values[i], cellClass));
-            }
-
-            return row;
         }
 
         /// <summary>Who is running this one, in the corner the buttons would otherwise be in.</summary>

@@ -45,7 +45,12 @@ namespace Dragoneye.Game
                 return;
             }
 
-            m_Root = GetComponent<UIDocument>().rootVisualElement;
+            // The template root, not the document root. ArenaHud.uxml attaches its stylesheet
+            // *inside* that element, so a sibling of it gets no styles at all -- which is what
+            // happened: the backdrop was an unstyled box in normal flow, taking layout space and
+            // shoving the skill bar up the screen, with an unstyled menu invisible inside it.
+            var document = GetComponent<UIDocument>().rootVisualElement;
+            m_Root = document.Q<VisualElement>("root") ?? document;
 
             if (m_Input.Pointer != null)
             {
@@ -292,6 +297,11 @@ namespace Dragoneye.Game
         /// <summary>
         /// Puts the menu where it was asked for, and keeps it on screen.
         ///
+        /// Placed inside the backdrop rather than the HUD root, and converted into the backdrop's
+        /// own space: the root carries padding, and an absolutely positioned child is measured from
+        /// the padding edge rather than from where the panel thinks zero is. The backdrop has none,
+        /// so the two agree.
+        ///
         /// Measured after a layout pass rather than guessed at, because how tall it is depends on
         /// how many things this hex turned out to offer.
         /// </summary>
@@ -304,15 +314,15 @@ namespace Dragoneye.Game
                 return;
             }
 
-            var point = RuntimePanelUtils.ScreenToPanel(panel,
-                new Vector2(screenPosition.x, Screen.height - screenPosition.y));
+            var point = m_Backdrop.WorldToLocal(RuntimePanelUtils.ScreenToPanel(panel,
+                new Vector2(screenPosition.x, Screen.height - screenPosition.y)));
 
             m_Menu.style.left = point.x;
             m_Menu.style.top = point.y;
 
             m_Menu.RegisterCallback<GeometryChangedEvent>(_ =>
             {
-                var bounds = m_Root.layout;
+                var bounds = m_Backdrop.layout;
                 var size = m_Menu.layout;
 
                 if (float.IsNaN(size.width) || bounds.width <= 0f)
@@ -320,8 +330,8 @@ namespace Dragoneye.Game
                     return;
                 }
 
-                m_Menu.style.left = Mathf.Min(point.x, bounds.width - size.width - 4f);
-                m_Menu.style.top = Mathf.Min(point.y, bounds.height - size.height - 4f);
+                m_Menu.style.left = Mathf.Max(0f, Mathf.Min(point.x, bounds.width - size.width - 4f));
+                m_Menu.style.top = Mathf.Max(0f, Mathf.Min(point.y, bounds.height - size.height - 4f));
             });
         }
 
