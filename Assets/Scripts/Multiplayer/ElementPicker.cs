@@ -41,9 +41,9 @@ namespace Dragoneye.Multiplayer
         }
 
         /// <summary>
-        /// One element, its gem lit by how much of it is held.
+        /// One element, its rune lit by how much of it is held.
         ///
-        /// A gem rather than a coloured word: a pool is a hand of resources a player counts at a
+        /// A rune rather than a coloured word: a pool is a hand of resources a player counts at a
         /// glance mid-fight, and seven colour-coded labels read as a legend instead.
         /// </summary>
         VisualElement Row(Element element, Action<Element, int> adjust)
@@ -59,7 +59,7 @@ namespace Dragoneye.Multiplayer
 
             var gem = new VisualElement();
             gem.AddToClassList("element-row__gem");
-            gem.style.unityBackgroundImageTintColor = ElementPalette.ForElement(element);
+            CharacterSheet.PaintElement(gem, element);
             row.Add(gem);
 
             var label = new Label(ElementInfo.ShortNameOf(element));

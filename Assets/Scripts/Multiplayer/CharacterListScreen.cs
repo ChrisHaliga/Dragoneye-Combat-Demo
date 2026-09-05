@@ -286,22 +286,11 @@ namespace Dragoneye.Multiplayer
             return body;
         }
 
-        /// <summary>The line under the name: class, level and the headline stats.</summary>
-        string Describe(SavedCharacter character)
-        {
-            if (m_Content == null)
-            {
-                return string.Empty;
-            }
-
-            var loadout = LoadoutResolver.Resolve(character.Build, m_Content);
-            var className = loadout.Class != null ? loadout.Class.Name : "No class";
-            var level = loadout.Vitals.Level;
-
-            var species = loadout.Species != null ? loadout.Species.Name : "?";
-
-            return $"{species}  ·  {className}  ·  LVL {level}".ToUpperInvariant();
-        }
+        /// <summary>The line under the name: level, species and class.</summary>
+        string Describe(SavedCharacter character) =>
+            m_Content == null
+                ? string.Empty
+                : CharacterSheet.Describe(LoadoutResolver.Resolve(character.Build, m_Content));
 
         SavedCharacter Selected()
         {

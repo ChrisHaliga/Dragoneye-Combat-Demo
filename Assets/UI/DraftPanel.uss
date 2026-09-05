@@ -206,7 +206,7 @@
 .fighter {
     flex-direction: row;
     align-items: center;
-    padding: 8px 10px;
+    padding: 6px 9px;
     margin-bottom: 5px;
     background-image: url("Generated/ui-card.png");
     -unity-slice-left: 14;
@@ -227,6 +227,42 @@
     -unity-background-image-tint-color: rgb(206, 176, 120);
 }
 
+/* Two rows against two rows. Every row has a fixed height so the stats sit level with the name and
+   the buttons sit level with the description -- four columns of these have to read as a table, and
+   letting each row size to its own content is what stopped them lining up. */
+.fighter__side {
+    align-items: flex-end;
+    flex-shrink: 0;
+}
+
+.fighter__stats {
+    flex-direction: row;
+    align-items: center;
+    height: 20px;
+}
+
+/* One stat, small enough that three fit beside a name. Inline rather than a caption over a number:
+   stacked, three of these would be as tall as the whole card. */
+.ministat {
+    flex-direction: row;
+    align-items: center;
+    margin-left: 9px;
+}
+
+.ministat__label {
+    margin-right: 3px;
+    font-size: 9px;
+    -unity-font-style: bold;
+    letter-spacing: 1px;
+    color: rgb(120, 128, 146);
+}
+
+.ministat__value {
+    font-size: 13px;
+    -unity-font-style: bold;
+    color: rgb(226, 222, 210);
+}
+
 .fighter--mine .fighter__name {
     color: rgb(240, 214, 160);
 }
@@ -237,17 +273,35 @@
 }
 
 .fighter__name {
+    height: 20px;
     font-size: 13px;
     -unity-font-style: bold;
+    -unity-text-align: middle-left;
     color: rgb(232, 226, 212);
     overflow: hidden;
     text-overflow: ellipsis;
 }
 
-.fighter__owner {
-    margin-top: 1px;
+/* Level, then species, then class -- the same line the hero card and the roster show, because a
+   player should not have to re-learn how a creature is described on each screen. */
+.fighter__meta {
+    height: 24px;
     font-size: 10px;
     letter-spacing: 1px;
+    -unity-text-align: middle-left;
+    color: rgb(130, 138, 156);
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Whoever is running this one, in the corner a pool card keeps its buttons in. The two never
+   appear together: a card you can act on has buttons, and one that is already somebody's has a
+   name. */
+.fighter__owner {
+    margin-left: 8px;
+    font-size: 10px;
+    letter-spacing: 1px;
+    -unity-text-align: middle-right;
     color: rgb(130, 138, 156);
     overflow: hidden;
     text-overflow: ellipsis;
@@ -259,6 +313,14 @@
 
 .fighter__actions {
     flex-direction: row;
+    align-items: center;
+    height: 24px;
+}
+
+/* Shorter than the Add button below, which stands beside a 30px dropdown. Here it stands beside a
+   level stepper and has to fit the row the description sets. */
+.fighter__actions .button--compact {
+    height: 22px;
 }
 
 /* ---------- buttons ---------- */
@@ -337,14 +399,25 @@
 }
 
 .dropdown .unity-base-popup-field__input {
-    height: 30px;
-    padding-left: 10px;
+    min-height: 32px;
+    align-items: center;
+    padding: 0 6px 0 10px;
     font-size: 11px;
     color: rgb(220, 224, 234);
     background-color: rgb(11, 13, 18);
     border-radius: 0;
     border-width: 1px;
     border-color: rgb(52, 59, 76);
+}
+
+/* Centred and sized to its own text rather than stretched to the input. Stretched, it drew from
+   the top of a box that was exactly the ascent tall, and every descender was cut off. */
+.dropdown .unity-base-popup-field__text {
+    flex-grow: 1;
+    -unity-text-align: middle-left;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .is-hidden {

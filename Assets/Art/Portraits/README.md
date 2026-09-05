@@ -1,6 +1,7 @@
 # Portraits
 
-Drop images in here and run **ClaudeCode → Set Up Everything**. That is the whole workflow.
+Drop images in here. That is the whole workflow -- `ArtImporter` notices the folder changed and
+rebuilds the library from it, so there is nothing to run afterwards.
 
 ## Where they go
 

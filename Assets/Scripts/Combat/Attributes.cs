@@ -204,19 +204,39 @@ namespace Dragoneye.Combat
             }
         }
 
-        /// <summary>What raising it actually does, for the creation screen.</summary>
+        /// <summary>
+        /// What raising it actually does, in full, for a hover.
+        ///
+        /// What the rules do with it, not what the word evokes. Three of the seven are read by
+        /// nothing yet, and these say so: in a game where a point costs more than the last one, an
+        /// attribute that reads as useful and is not is a point the player will not get back.
+        ///
+        /// Kept beside the enum rather than in the screen because two screens ask -- the creator
+        /// while a character is being built, and the sheet wherever one is shown.
+        /// </summary>
         public static string DescribeEffect(Attribute attribute)
         {
             switch (attribute)
             {
-                case Attribute.Toughness: return "Health";
-                case Attribute.Dexterity: return "Speed";
-                case Attribute.Strength: return "Physical force";
-                case Attribute.Skill: return "Precision";
-                case Attribute.Vitality: return "Health";
-                case Attribute.Willpower: return "Resolve";
-                case Attribute.Endurance: return "Action points and speed";
-                default: return string.Empty;
+                case Attribute.Toughness:
+                    return "Toughness -- one more health for every point.";
+                case Attribute.Dexterity:
+                    return "Dexterity -- one more speed for every point. Speed decides who acts "
+                        + "first, and armour takes it away again.";
+                case Attribute.Strength:
+                    return "Strength -- how hard this creature hits. No rule reads it yet.";
+                case Attribute.Skill:
+                    return "Skill -- how precisely this creature fights. No rule reads it yet.";
+                case Attribute.Vitality:
+                    return "Vitality -- one more health for every point.";
+                case Attribute.Willpower:
+                    return "Willpower -- how well this creature holds itself together. No rule "
+                        + "reads it yet.";
+                case Attribute.Endurance:
+                    return "Endurance -- one more action point and one more speed for every "
+                        + "point. Action points are what a turn is spent out of.";
+                default:
+                    return string.Empty;
             }
         }
     }

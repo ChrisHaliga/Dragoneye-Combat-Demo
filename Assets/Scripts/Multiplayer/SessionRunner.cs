@@ -400,7 +400,7 @@ namespace Dragoneye.Multiplayer
         /// </summary>
         public async Task StartMatchAsync()
         {
-            if (Session == null || !Session.IsHost || m_MatchStarted)
+            if (Session == null || !Session.IsHost || m_MatchStarted || IsBusy)
             {
                 return;
             }
@@ -422,6 +422,69 @@ namespace Dragoneye.Multiplayer
             finally
             {
                 EndOperation();
+            }
+        }
+
+        /// <summary>
+        /// Puts the session back into the state it was in before the match, so the next one starts
+        /// the same way the first did.
+        ///
+        /// Called every time the menu scene finishes loading, whatever brought us there. That is
+        /// the point to hang it on precisely because there are several ways to arrive -- a fight
+        /// being won, a host pressing leave, a client following the host's scene load -- and a
+        /// reset attached to any one of them is a reset the other paths skip.
+        ///
+        /// Two things are undone. <see cref="m_MatchStarted"/> is a latch that only
+        /// <see cref="AttachSession"/> used to clear, so with the session deliberately kept alive
+        /// across a match it stayed set and every later Start silently did nothing. And the lobby
+        /// was locked on the way out and never unlocked, so the party could not take on anybody
+        /// new for the rest of its life.
+        ///
+        /// Idempotent, because the menu scene loads on paths that have nothing to reset.
+        /// </summary>
+        public void ReturnedToLobby()
+        {
+            m_MatchStarted = false;
+
+            if (Session != null && Session.IsHost)
+            {
+                TaskUtil.Forget(UnlockAsync(Session));
+            }
+
+            Notify();
+        }
+
+        /// <summary>
+        /// Reopens the lobby to joins.
+        ///
+        /// Separate and awaited nowhere the player waits on: whether the unlock reaches the service
+        /// decides only whether a fifth player can join, and blocking the return to the board on a
+        /// rate-limited write would be trading the thing that matters for the thing that does not.
+        /// A failure is logged rather than raised as a fault, because there is nothing the player
+        /// could do about it and nothing about the lobby they are in is broken by it.
+        /// </summary>
+        /// <param name="session">
+        /// Passed in rather than read off the field: this runs after the caller has returned, and
+        /// a player who left in the meantime would otherwise unlock whatever session came next.
+        /// </param>
+        async Task UnlockAsync(ISession session)
+        {
+            try
+            {
+                var host = session.AsHost();
+
+                if (!host.IsLocked)
+                {
+                    return;
+                }
+
+                host.IsLocked = false;
+                await host.SavePropertiesAsync();
+                Notify();
+            }
+            catch (Exception e)
+            {
+                Debug.LogWarning($"The lobby could not be reopened to new players: {e.Message}");
             }
         }
 

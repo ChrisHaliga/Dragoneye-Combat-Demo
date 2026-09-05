@@ -1,5 +1,4 @@
 using Dragoneye.Combat;
-using Dragoneye.Data;
 using Dragoneye.Multiplayer;
 using UnityEngine;
 using UnityEngine.UIElements;
@@ -151,11 +150,16 @@ namespace Dragoneye.Game
             }
 
             m_Name.text = creature.DisplayName;
-            m_Subtitle.text = definition != null
-                ? $"{definition.SpeciesName} · {definition.ClassName} · {PartyPalette.NameOf(creature.Party)}"
-                : PartyPalette.NameOf(creature.Party);
 
-            m_Controller.text = $"Controlled by {CreatureDisplay.ControllerName(creature)}";
+            // Level, species, class -- the same line every other screen shows. Which side it is on
+            // moved to the controller line below, where the rest of "who is running this" lives.
+            m_Subtitle.text = definition != null
+                ? CharacterSheet.Describe(creature.Level, definition.SpeciesName,
+                    definition.ClassName)
+                : string.Empty;
+
+            m_Controller.text = $"{PartyPalette.NameOf(creature.Party)}  ·  "
+                + $"Controlled by {CreatureDisplay.ControllerName(creature)}";
             m_Hp.text = $"{creature.CurrentHp} / {creature.MaxHp}";
             m_Ap.text = $"{creature.CurrentAp} / {creature.MaxAp}";
             m_Speed.text = creature.Speed.ToString();
@@ -229,30 +233,12 @@ namespace Dragoneye.Game
 
             foreach (var element in ElementInfo.All)
             {
-                m_Elements.Add(BuildElementCount(element, counts[element]));
+                // The same chip the creator and the roster draw, so a pool is read the same
+                // way on every screen. Elements the creature does not hold stay drawn but nearly
+                // dark, which keeps the row a fixed width as a fight drains it.
+                var held = counts[element];
+                m_Elements.Add(CharacterSheet.ElementChip(element, held, held == 0));
             }
-        }
-
-        /// <summary>
-        /// One element, drawn as a lit gem carrying its count.
-        ///
-        /// The same shape the creator and the roster use for a pool, so a player learns to read it
-        /// once. Elements a creature does not hold stay drawn but nearly dark, which keeps the row a
-        /// fixed width as a fight drains it.
-        /// </summary>
-        static VisualElement BuildElementCount(Element element, int amount)
-        {
-            var gem = new VisualElement();
-            gem.AddToClassList("element-count");
-            gem.EnableInClassList("element-count--none", amount == 0);
-            gem.style.unityBackgroundImageTintColor = ElementPalette.ForElement(element);
-            gem.tooltip = ElementInfo.NameOf(element);
-
-            var value = new Label(amount.ToString());
-            value.AddToClassList("element-count__value");
-            gem.Add(value);
-
-            return gem;
         }
 
         /// <summary>

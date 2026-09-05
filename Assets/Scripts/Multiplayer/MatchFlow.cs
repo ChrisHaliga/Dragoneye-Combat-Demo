@@ -328,12 +328,24 @@ namespace Dragoneye.Multiplayer
             SceneManager.LoadScene(m_MenuScene);
         }
 
+        /// <summary>
+        /// Everything that has to be true again once we are back on the menu.
+        ///
+        /// Hung on the scene load rather than on any of the ways of getting here. A match can end
+        /// by being won, by the host leaving, by a client following the host's scene load or by
+        /// netcode falling over, and a reset attached to one of those is a reset the others skip --
+        /// which is exactly how the host ended up with a Start button that did nothing after the
+        /// first match. Arriving at the menu is the one event common to all of them.
+        /// </summary>
         void OnSceneLoaded(Scene scene, LoadSceneMode mode)
         {
-            if (scene.name == m_MenuScene)
+            if (scene.name != m_MenuScene)
             {
-                m_ReturningToMenu = false;
+                return;
             }
+
+            m_ReturningToMenu = false;
+            m_Runner?.ReturnedToLobby();
         }
     }
 }

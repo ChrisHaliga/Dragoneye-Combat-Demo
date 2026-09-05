@@ -176,7 +176,7 @@ namespace Dragoneye.Combat
         public CharacterRules(int pointBudget, int maxPerAttribute, int startingLevel)
         {
             PointBudget = pointBudget < 0 ? 0 : pointBudget;
-            MaxPerAttribute = maxPerAttribute < PointBuy.Floor ? PointBuy.Floor : maxPerAttribute;
+            MaxPerAttribute = maxPerAttribute < 1 ? 1 : maxPerAttribute;
             StartingLevel = startingLevel < Progression.FirstLevel
                 ? Progression.FirstLevel
                 : startingLevel;

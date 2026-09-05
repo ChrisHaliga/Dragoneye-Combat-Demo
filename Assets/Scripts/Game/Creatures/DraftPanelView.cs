@@ -421,7 +421,7 @@ namespace Dragoneye.Game
                     }
 
                     column.List.Add(BroughtCard(characters, build,
-                        hasSlot && build.Slot == slot, isHost));
+                        hasSlot && build.Slot == slot));
                     members++;
                 }
             }
@@ -455,68 +455,28 @@ namespace Dragoneye.Game
         /// A character somebody brought.
         ///
         /// No claim and no remove: it is permanently its owner's, and the only decision left is the
-        /// side it fights on, which is the host's. That is the whole difference between this card
-        /// and a pool one.
+        /// side it fights on, which its owner makes for themselves in "Your side". That is the whole
+        /// difference between this card and a pool one -- the owner's name sits where a pool card
+        /// keeps its buttons, because a card never needs both.
         /// </summary>
-        VisualElement BroughtCard(PlayerCharacters characters, NetBuild build, bool mine,
-            bool isHost)
+        VisualElement BroughtCard(PlayerCharacters characters, NetBuild build, bool mine)
         {
-            var card = new VisualElement();
-            card.AddToClassList("fighter");
+            var loadout = characters.LoadoutFor(build.Slot);
+
+            var card = Card(build.Name.ToString(),
+                loadout != null
+                    ? CharacterSheet.Describe(loadout.Vitals.Level,
+                        loadout.Species != null ? loadout.Species.Name : "Unknown",
+                        loadout.Class != null ? loadout.Class.Name : "Unknown", compact: true)
+                    : string.Empty,
+                loadout?.Vitals,
+                out var actions);
+
             card.AddToClassList("fighter--brought");
             card.EnableInClassList("fighter--mine", mine);
 
-            var body = new VisualElement();
-            body.AddToClassList("fighter__body");
-
-            var name = new Label(build.Name.ToString());
-            name.AddToClassList("fighter__name");
-            body.Add(name);
-
-            var loadout = characters.LoadoutFor(build.Slot);
-            var owner = mine ? "You" : OwnerName(build.Slot);
-
-            var detail = new Label(loadout != null
-                ? $"{owner}  ·  LVL {loadout.Vitals.Level}  ·  {loadout.Vitals.MaxHealth} HP"
-                : owner);
-            detail.AddToClassList("fighter__owner");
-            detail.EnableInClassList("fighter__owner--mine", mine);
-            body.Add(detail);
-
-            card.Add(body);
-
-            // Only the host reassigns sides, and only sides. Whose character it is was settled when
-            // its owner submitted it. Colour chips rather than four named buttons: the column
-            // already says which party this is, so all that is needed is somewhere else to send it.
-            if (isHost && m_Draft != null)
-            {
-                card.Add(PartyChips(build.Slot));
-            }
-
+            actions.Add(Owner(mine ? "You" : OwnerName(build.Slot), mine));
             return card;
-        }
-
-        /// <summary>A chip per party, the current one lit. Moves a brought character to another side.</summary>
-        VisualElement PartyChips(byte slot)
-        {
-            var chips = new VisualElement();
-            chips.AddToClassList("fighter__actions");
-
-            var onParty = m_Draft.TryGetParty(slot, out var current);
-
-            foreach (var party in PartyInfo.All)
-            {
-                var chosen = party;
-
-                var chip = new Button(() => m_Draft.SetPartyForRpc(slot, (byte)chosen));
-                chip.AddToClassList("party-chip");
-                chip.EnableInClassList("party-chip--current", onParty && current == party);
-                chip.style.backgroundColor = PartyPalette.ForParty(party);
-                chip.tooltip = PartyPalette.NameOf(party);
-                chips.Add(chip);
-            }
-
-            return chips;
         }
 
         VisualElement RosterCard(RosterEntry entry, CreatureCatalog catalog, bool hasSlot,
@@ -524,37 +484,34 @@ namespace Dragoneye.Game
         {
             var definition = catalog != null ? catalog.Resolve(entry.CreatureId) : null;
             var mine = hasSlot && entry.ClaimedBySlot == slot;
+            var profile = CreatureProfile.FromDefinition(definition, entry.Level);
 
-            var card = new VisualElement();
-            card.AddToClassList("fighter");
+            var card = Card(definition != null ? definition.DisplayName : "Unknown",
+                definition != null
+                    ? CharacterSheet.Describe(entry.Level, definition.SpeciesName,
+                        definition.ClassName, compact: true)
+                    : string.Empty,
+                new Vitals(entry.Level, profile.MaxHealth, profile.MaxAp, profile.Initiative),
+                out var actions);
+
             card.EnableInClassList("fighter--claimed", entry.IsClaimed);
             card.EnableInClassList("fighter--mine", mine);
 
-            var body = new VisualElement();
-            body.AddToClassList("fighter__body");
-
-            var name = new Label(definition != null ? definition.DisplayName : "Unknown");
-            name.AddToClassList("fighter__name");
-            body.Add(name);
-
-            var owner = new Label($"{OwnerText(entry, mine)}  \u00b7  LVL {entry.Level}");
-            owner.AddToClassList("fighter__owner");
-            owner.EnableInClassList("fighter__owner--mine", mine);
-            body.Add(owner);
-
-            card.Add(body);
-
-            var actions = new VisualElement();
-            actions.AddToClassList("fighter__actions");
-
             var entryId = entry.EntryId;
+
+            // Whoever has it, or nothing. A creature nobody has claimed is run by the computer, and
+            // saying so on every unclaimed card in four columns is four columns of the same word.
+            if (entry.IsClaimed && !mine)
+            {
+                actions.Add(Owner(OwnerName(entry.ClaimedBySlot), false));
+            }
 
             // The host decides how much of a creature this is. The same goblin is a nuisance in one
             // match and a problem in the next, and the alternative -- authoring a second goblin --
             // is a second asset to keep in step with the first.
             if (isHost)
             {
-                actions.Add(LevelStep("\u2212", entryId, entry.Level - 1,
+                actions.Add(LevelStep("−", entryId, entry.Level - 1,
                     entry.Level > Progression.FirstLevel));
                 actions.Add(LevelStep("+", entryId, entry.Level + 1,
                     entry.Level < Progression.MaxLevel));
@@ -564,12 +521,13 @@ namespace Dragoneye.Game
             {
                 actions.Add(SmallButton("Release", () => m_Draft.ReleaseRpc(entryId), true));
             }
-            else
+            else if (!entry.IsClaimed)
             {
                 // The same predicate the server uses to decide, so the button is never enabled for
-                // something that will be refused.
-                var canClaim = hasSlot && m_Draft.CanClaim(slot, entryId);
-                actions.Add(SmallButton("Claim", () => m_Draft.ClaimRpc(entryId), canClaim));
+                // something that will be refused. Somebody else's creature gets their name instead:
+                // a Claim button that can never be pressed says less than the reason it cannot.
+                actions.Add(SmallButton("Claim", () => m_Draft.ClaimRpc(entryId),
+                    hasSlot && m_Draft.CanClaim(slot, entryId)));
             }
 
             if (isHost)
@@ -577,8 +535,83 @@ namespace Dragoneye.Game
                 actions.Add(SmallButton("×", () => m_Draft.RemoveCreatureRpc(entryId), true));
             }
 
-            card.Add(actions);
             return card;
+        }
+
+        /// <summary>
+        /// The shape every combatant card shares: who it is and what it is on the left, what it can
+        /// do and who is running it on the right.
+        ///
+        /// Two rows against two rows. The stats line up with the name and the controls line up with
+        /// the description, so four columns of these read as a table rather than as a pile of
+        /// differently-shaped cards -- and a premade and a brought character differ only in what
+        /// goes in the bottom-right corner.
+        /// </summary>
+        static VisualElement Card(string name, string meta, Vitals? vitals, out VisualElement actions)
+        {
+            var card = new VisualElement();
+            card.AddToClassList("fighter");
+
+            var body = new VisualElement();
+            body.AddToClassList("fighter__body");
+
+            var title = new Label(name);
+            title.AddToClassList("fighter__name");
+            body.Add(title);
+
+            var subtitle = new Label(meta);
+            subtitle.AddToClassList("fighter__meta");
+            body.Add(subtitle);
+
+            card.Add(body);
+
+            var side = new VisualElement();
+            side.AddToClassList("fighter__side");
+
+            var stats = new VisualElement();
+            stats.AddToClassList("fighter__stats");
+
+            if (vitals.HasValue)
+            {
+                stats.Add(MiniStat("HP", vitals.Value.MaxHealth.ToString()));
+                stats.Add(MiniStat("AP", vitals.Value.MaxAp.ToString()));
+                stats.Add(MiniStat("SPD", vitals.Value.Speed.ToString()));
+            }
+
+            side.Add(stats);
+
+            actions = new VisualElement();
+            actions.AddToClassList("fighter__actions");
+            side.Add(actions);
+
+            card.Add(side);
+            return card;
+        }
+
+        /// <summary>One stat, small enough that three of them fit beside a name.</summary>
+        static VisualElement MiniStat(string label, string value)
+        {
+            var stat = new VisualElement();
+            stat.AddToClassList("ministat");
+
+            var caption = new Label(label);
+            caption.AddToClassList("ministat__label");
+            stat.Add(caption);
+
+            var number = new Label(value);
+            number.AddToClassList("ministat__value");
+            stat.Add(number);
+
+            return stat;
+        }
+
+        /// <summary>Who is running this one, in the corner the buttons would otherwise be in.</summary>
+        static Label Owner(string name, bool mine)
+        {
+            var label = new Label(name);
+            label.AddToClassList("fighter__owner");
+            label.EnableInClassList("fighter__owner--mine", mine);
+            return label;
         }
 
         /// <summary>
@@ -626,16 +659,6 @@ namespace Dragoneye.Game
             }
 
             return $"Player {slot + 1}";
-        }
-
-        string OwnerText(RosterEntry entry, bool mine)
-        {
-            if (!entry.IsClaimed)
-            {
-                return "Computer";
-            }
-
-            return mine ? "Yours" : OwnerName(entry.ClaimedBySlot);
         }
 
         static Button SmallButton(string text, System.Action action, bool enabled)

@@ -1,5 +1,6 @@
 using Dragoneye.Combat;
 using Dragoneye.Data;
+using UnityEngine;
 using UnityEngine.UIElements;
 
 namespace Dragoneye.Multiplayer
@@ -102,6 +103,11 @@ namespace Dragoneye.Multiplayer
                 var tile = new VisualElement();
                 tile.AddToClassList("attr");
 
+                // The stepper rows in the creator carry the same text. These tiles are the only
+                // attributes on every other screen, so without it the description existed on one
+                // screen out of four.
+                tile.tooltip = AttributeInfo.DescribeEffect(attribute);
+
                 if (bought.HasValue)
                 {
                     var paid = bought.Value[attribute];
@@ -122,7 +128,59 @@ namespace Dragoneye.Multiplayer
         }
 
         /// <summary>
-        /// The starting pool as one gem per element held, each carrying its count.
+        /// Paints an element onto a mark: its rune, or the coloured gem the stylesheet already
+        /// carries when the art is missing.
+        ///
+        /// One implementation for the creator, the level-up screen, the roster and the arena card,
+        /// because "what does Nyx look like" has to have one answer -- four screens each reaching
+        /// for their own is how a player ends up learning two legends.
+        ///
+        /// The fallback is not defensive padding. The runes are built from a folder by the setup
+        /// step, so a project that has not run it, or an element somebody has not drawn yet, should
+        /// draw the thing it used to rather than a hole.
+        /// </summary>
+        public static void PaintElement(VisualElement mark, Element element)
+        {
+            var icon = ElementIcons.Get(element);
+
+            if (icon == null)
+            {
+                mark.style.unityBackgroundImageTintColor = ElementPalette.ForElement(element);
+                return;
+            }
+
+            mark.style.backgroundImage = new StyleBackground(icon);
+            mark.style.unityBackgroundImageTintColor = Color.white;
+        }
+
+        /// <summary>
+        /// One element and how much of it is held: the rune, then the number beside it.
+        ///
+        /// Beside rather than on top, which is where the count sat when the mark was a plain
+        /// coloured disc. A number printed over a rune is a number over a picture, and neither
+        /// survives it.
+        /// </summary>
+        public static VisualElement ElementChip(Element element, int count, bool dim = false)
+        {
+            var chip = new VisualElement();
+            chip.AddToClassList("element-chip");
+            chip.EnableInClassList("element-chip--none", dim);
+            chip.tooltip = ElementInfo.NameOf(element);
+
+            var mark = new VisualElement();
+            mark.AddToClassList("element-chip__mark");
+            PaintElement(mark, element);
+            chip.Add(mark);
+
+            var value = new Label(count.ToString());
+            value.AddToClassList("element-chip__count");
+            chip.Add(value);
+
+            return chip;
+        }
+
+        /// <summary>
+        /// The starting pool as one rune per element held, each carrying its count.
         ///
         /// The shape is free and the size is not, so what needs saying is the total against the
         /// level. Drawing empty slots would imply a fixed number of picks, which is exactly what a
@@ -141,18 +199,12 @@ namespace Dragoneye.Multiplayer
                     continue;
                 }
 
-                var gem = new VisualElement();
-                gem.AddToClassList("gem");
-                gem.style.unityBackgroundImageTintColor = ElementPalette.ForElement(element);
-                gem.tooltip = $"{ElementInfo.NameOf(element)} " + DotSeparator
+                var chip = ElementChip(element, held);
+                chip.tooltip = $"{ElementInfo.NameOf(element)} " + DotSeparator
                     + $" {ElementPricing.CostOf(element)} point"
                     + (ElementPricing.CostOf(element) == 1 ? string.Empty : "s") + " each";
 
-                var count = new Label(held.ToString());
-                count.AddToClassList("gem__count");
-                gem.Add(count);
-
-                into.Add(gem);
+                into.Add(chip);
             }
 
             // Points, not gems. The elements are not all the same price, so a count would say
@@ -218,13 +270,34 @@ namespace Dragoneye.Multiplayer
             }
         }
 
-        /// <summary>"Human · Guardian · Level 4", or whichever halves of it resolved.</summary>
-        public static string Describe(Loadout loadout)
-        {
-            var species = loadout.Species != null ? loadout.Species.Name : "No species";
-            var className = loadout.Class != null ? loadout.Class.Name : "No class";
+        /// <summary>"Level 4 · Human · Guardian", or whichever parts of it resolved.</summary>
+        public static string Describe(Loadout loadout) =>
+            Describe(loadout.Vitals.Level,
+                loadout.Species != null ? loadout.Species.Name : "No species",
+                loadout.Class != null ? loadout.Class.Name : "No class");
 
-            return $"{species}  ·  {className}  ·  Level {loadout.Vitals.Level}".ToUpperInvariant();
+        /// <summary>
+        /// What a creature is, in one line: level first, then species, then class.
+        ///
+        /// Level leads because it is the part that changes. Species and class are settled when a
+        /// character is made and never move again, so putting the one number that grows at the end
+        /// of the line is putting it where nobody looks.
+        ///
+        /// One implementation for every screen that shows it -- the roster, the hero card, the
+        /// draft board and the arena inspector -- because four copies of a format string is four
+        /// chances to reorder three of them.
+        /// </summary>
+        /// <param name="compact">
+        /// "LVL 4" rather than "LEVEL 4", for the draft cards, which are four to a row.
+        /// </param>
+        public static string Describe(int level, string species, string className,
+            bool compact = false)
+        {
+            var word = compact ? "LVL" : "LEVEL";
+            var gap = compact ? " " : "  ";
+
+            return ($"{word} {level}{gap}{DotSeparator}{gap}{species}{gap}{DotSeparator}{gap}"
+                + className).ToUpperInvariant();
         }
     }
 }

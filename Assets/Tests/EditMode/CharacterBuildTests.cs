@@ -18,7 +18,10 @@ namespace Dragoneye.Hex.Tests
         const int SwordId = 10;
         const int BowId = 11;
         const int PlateId = 20;
-        const int Budget = 20;
+        // Seven more than it was. Attributes now start at zero, so the first point of each is
+        // bought rather than given, and the budget covers exactly that -- every spread that fitted
+        // before still fits, and dumping one now pays for something.
+        const int Budget = 27;
         const int Level = 4;
 
         sealed class FakeContent : IContentIndex
@@ -79,8 +82,8 @@ namespace Dragoneye.Hex.Tests
         /// <summary>
         /// A build that passes, so each case below can break exactly one thing.
         ///
-        /// Four attributes at three costs 4 x (1 + 2) = 12, and two at five costs 2 x (1 + 2 + 3 + 4)
-        /// = 20 -- so this spends the budget exactly.
+        /// Four attributes at three cost 4 x (1 + 1 + 2) = 16, one at four costs 7, and two at two
+        /// cost 2 x (1 + 1) = 4 -- so this spends the budget exactly.
         /// </summary>
         static CharacterBuild Valid(IContentIndex content)
         {
@@ -88,8 +91,7 @@ namespace Dragoneye.Hex.Tests
             var build = CharacterBuild.StartingFrom(content.Species[0], guardian, Level);
             build.Name = "Ansel";
 
-            // 1 + 2 = 3 each on four attributes is 12; 1 + 2 + 3 = 6 more on one is 18; two more
-            // single steps bring it to 20.
+            // Four at 3 is 16; one at 4 is 7 more, making 23; two at 2 bring it to 27.
             build.Attributes = new AttributeBlock(3, 3, 3, 3, 4, 2, 2);
             // Four points of pool at level four. All four of these are a point each.
             build.StartingPool = new ElementCounts(2, 1, 1, 0, 0, 0, 0);
@@ -114,13 +116,23 @@ namespace Dragoneye.Hex.Tests
         }
 
         [Test]
+        public void TheFirstPointIsNotFree()
+        {
+            // The rule is "a step costs the value it leaves", and the value it leaves is now zero.
+            // Taken literally that would make the first point of all seven attributes free, which
+            // is not a floor at zero -- it is a floor at one wearing a different number.
+            Assert.AreEqual(1, PointBuy.CostToRaise(0));
+        }
+
+        [Test]
         public void ReachingAValueCostsEveryStepAlongTheWay()
         {
-            Assert.AreEqual(0, PointBuy.CostOf(1), "the floor is free");
-            Assert.AreEqual(1, PointBuy.CostOf(2));
-            Assert.AreEqual(3, PointBuy.CostOf(3), "1 + 2");
-            Assert.AreEqual(6, PointBuy.CostOf(4), "1 + 2 + 3");
-            Assert.AreEqual(10, PointBuy.CostOf(5), "1 + 2 + 3 + 4");
+            Assert.AreEqual(0, PointBuy.CostOf(0), "the floor is free");
+            Assert.AreEqual(1, PointBuy.CostOf(1), "but standing off it is not");
+            Assert.AreEqual(2, PointBuy.CostOf(2), "1 + 1");
+            Assert.AreEqual(4, PointBuy.CostOf(3), "1 + 1 + 2");
+            Assert.AreEqual(7, PointBuy.CostOf(4), "1 + 1 + 2 + 3");
+            Assert.AreEqual(11, PointBuy.CostOf(5), "1 + 1 + 2 + 3 + 4");
         }
 
         [Test]
@@ -132,12 +144,12 @@ namespace Dragoneye.Hex.Tests
         [Test]
         public void OneHighAttributeCostsFarMoreThanSeveralMiddling()
         {
-            // The whole point of the curve: twenty points buys breadth or depth, never both.
+            // The whole point of the curve: the budget buys breadth or depth, never both.
             var deep = AttributeBlock.Uniform(1).With(Attribute.Strength, 6);
             var broad = new AttributeBlock(3, 3, 3, 3, 1, 1, 1);
 
-            Assert.AreEqual(15, PointBuy.TotalCost(deep), "1+2+3+4+5");
-            Assert.AreEqual(12, PointBuy.TotalCost(broad), "four attributes at 3 apiece");
+            Assert.AreEqual(22, PointBuy.TotalCost(deep), "six ones, and 1+1+2+3+4+5 for the six");
+            Assert.AreEqual(19, PointBuy.TotalCost(broad), "four at 3 apiece, three at 1");
         }
 
         [Test]
@@ -145,8 +157,20 @@ namespace Dragoneye.Hex.Tests
         {
             var spent = new AttributeBlock(3, 3, 3, 3, 4, 2, 2);
 
-            Assert.AreEqual(0, PointBuy.Remaining(spent, Budget), "this spread spends exactly 20");
+            Assert.AreEqual(0, PointBuy.Remaining(spent, Budget), "this spread spends the lot");
             Assert.IsFalse(PointBuy.CanRaise(spent, Attribute.Strength, Budget, 8));
+        }
+
+        [Test]
+        public void DumpingAnAttributeGivesItsPointsBack()
+        {
+            // What a floor of zero is for. At a floor of one this was not a decision anybody could
+            // make: every character was adequate at all seven whether it wanted to be or not.
+            var spread = new AttributeBlock(3, 3, 3, 3, 4, 2, 2);
+
+            Assert.AreEqual(2, PointBuy.TotalCost(spread)
+                - PointBuy.TotalCost(spread.With(Attribute.Willpower, 0)),
+                "dropping a 2 refunds what reaching 2 cost");
         }
 
         [Test]
@@ -175,6 +199,13 @@ namespace Dragoneye.Hex.Tests
             // No floor any more. A floor and an authored base are two answers to the same question,
             // and with both in place the authored one did nothing until Endurance had cleared the
             // floor on its own -- which made "AP is species dependent" untrue in every real build.
+            // The untouched character is the one that mattered. With attributes starting at one
+            // it arrived a point of Endurance ahead, so a species authored with four action points
+            // fielded five and the authored number was never the number anybody saw.
+            var untouched = Vitals.From(AttributeBlock.Zero, 1, ArmourClass.None);
+            Assert.AreEqual(Ap.FromWhole(Vitals.DefaultBaseAp), untouched.MaxAp,
+                "exactly what the species says, and nothing on top");
+
             var weak = Vitals.From(AttributeBlock.Uniform(1), 1, ArmourClass.None);
             Assert.AreEqual(Ap.FromWhole(5), weak.MaxAp, "the default base of four, plus one END");
 
@@ -240,11 +271,28 @@ namespace Dragoneye.Hex.Tests
         [Test]
         public void AnAttributeBelowTheFloorIsRefused()
         {
+            // Zero is a legal choice now, and a cheap one. Below it is still nonsense: the derived
+            // stats count attributes, and a negative one would buy health back off the character.
             var content = Content();
             var build = Valid(content);
-            build.Attributes = build.Attributes.With(Attribute.Willpower, 0);
+            build.Attributes = build.Attributes.With(Attribute.Willpower, -1);
 
             CollectionAssert.Contains(Problems(build, content), BuildProblem.AttributeBelowFloor);
+        }
+
+        [Test]
+        public void AnAttributeAtZeroIsAllowed()
+        {
+            var content = Content();
+            var build = Valid(content);
+
+            // Willpower dumped, and the two points it refunds spent on Endurance, so the spread
+            // still costs the budget exactly and the whole build has to come back clean.
+            build.Attributes = build.Attributes
+                .With(Attribute.Willpower, 0)
+                .With(Attribute.Endurance, 3);
+
+            CollectionAssert.IsEmpty(Problems(build, content));
         }
 
         [Test]

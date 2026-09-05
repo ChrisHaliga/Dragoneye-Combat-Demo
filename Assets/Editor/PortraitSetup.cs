@@ -34,7 +34,7 @@ namespace Dragoneye.MultiplayerEditor
         /// True while this is writing assets of its own.
         ///
         /// Fixing the import settings of a picture reimports it, which is a change to the folder,
-        /// which is what <see cref="PortraitImporter"/> watches for -- so without this the two would
+        /// which is what <see cref="ArtImporter"/> watches for -- so without this the two would
         /// call each other until the editor gave up.
         /// </summary>
         internal static bool IsRebuilding { get; private set; }

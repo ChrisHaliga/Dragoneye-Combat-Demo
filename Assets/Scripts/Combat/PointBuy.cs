@@ -13,17 +13,32 @@ namespace Dragoneye.Combat
     /// </summary>
     public static class PointBuy
     {
-        /// <summary>Every attribute starts here, and points are spent raising it.</summary>
-        public const int Floor = 1;
+        /// <summary>
+        /// Every attribute starts here, and points are spent raising it.
+        ///
+        /// Zero, so that a fresh character adds nothing to what its species already gives it. A
+        /// floor of one looked harmless and was not: every derived stat counts attributes, so an
+        /// untouched character came out a point of Endurance ahead and every species with a base of
+        /// four action points fielded five. A floor is not the place to hand out stats.
+        ///
+        /// It also makes dumping an attribute a real choice rather than a rounding error. Nothing
+        /// forces a character to be adequate at all seven any more.
+        /// </summary>
+        public const int Floor = 0;
 
-        /// <summary>What it costs to go from <paramref name="current"/> to one higher.</summary>
-        public static int CostToRaise(int current) => current < Floor ? Floor : current;
+        /// <summary>
+        /// What it costs to go from <paramref name="current"/> to one higher.
+        ///
+        /// Its current value, except for the first point, which would otherwise be free -- and a
+        /// free step repeated seven times is not a floor, it is a different budget.
+        /// </summary>
+        public static int CostToRaise(int current) => current < 1 ? 1 : current;
 
         /// <summary>
         /// What it costs to reach a value from the floor.
         ///
-        /// The sum of every step along the way -- 1 + 2 + ... + (value - 1) -- which is the triangular
-        /// number, computed directly rather than looped.
+        /// One for the first point, then the triangular number for every step after it, computed
+        /// directly rather than looped.
         /// </summary>
         public static int CostOf(int value)
         {
@@ -32,8 +47,8 @@ namespace Dragoneye.Combat
                 return 0;
             }
 
-            var steps = value - Floor;
-            return (steps * (steps + 2 * Floor - 1)) / 2;
+            var above = value - 1;
+            return 1 + (above * (above + 1)) / 2;
         }
 
         /// <summary>What a whole spread costs.</summary>

@@ -523,26 +523,31 @@
     flex-wrap: wrap;
 }
 
-/* A lit gem carrying its count, the same shape the creator and the roster draw a pool with. Seven
-   coloured words in a row is a legend; seven gems is a hand. */
-.element-count {
-    width: 28px;
-    height: 28px;
-    margin: 0 5px 5px 0;
-    justify-content: center;
+/* One element and how much of it is held. The rune is set inline from the icon library; the gem
+   below it is what shows through when a project has no art for that element yet. */
+.element-chip {
+    flex-direction: row;
+    align-items: center;
+    margin: 0 10px 5px 0;
+}
+
+.element-chip__mark {
+    width: 26px;
+    height: 26px;
     background-image: url("Generated/ui-gem.png");
+    -unity-background-scale-mode: scale-to-fit;
 }
 
-.element-count__value {
-    font-size: 12px;
+.element-chip__count {
+    margin-left: 4px;
+    font-size: 14px;
     -unity-font-style: bold;
-    color: rgb(14, 16, 22);
-    -unity-text-align: middle-center;
+    color: rgb(226, 222, 210);
 }
 
-/* Nothing held or nothing spent, still drawn so the row does not change width as a fight goes on. */
-.element-count--none {
-    opacity: 0.2;
+/* Nothing held, still drawn so the row does not change width as a fight goes on. */
+.element-chip--none {
+    opacity: 0.22;
 }
 
 /* ---------- skill bar ---------- */

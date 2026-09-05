@@ -33,10 +33,15 @@ namespace Dragoneye.Data
              + "from Assets/Art/Portraits.")]
         PortraitLibrary m_Portraits;
 
+        [SerializeField, Tooltip("The rune drawn for each element. Rebuilt by the setup step from "
+             + "Assets/Art/Elements.")]
+        ElementIconLibrary m_ElementIcons;
+
         [Header("Build rules")]
         [SerializeField, Min(0), Tooltip("Points to spend raising attributes. Each step costs the "
-             + "attribute's current value, so the first is cheap and the last is dear.")]
-        int m_PointBudget = 20;
+             + "attribute's current value, so the first is cheap and the last is dear. Seven of "
+             + "these buy the first point of each attribute, which used to be free.")]
+        int m_PointBudget = 27;
 
         [SerializeField, Min(1), Tooltip("The highest any one attribute may be bought to.")]
         int m_MaxPerAttribute = 8;
@@ -188,6 +193,7 @@ namespace Dragoneye.Data
             // Filled here because building content is the first thing any screen or match does, so
             // by the time anything wants to draw a face this is already answered.
             Portraits.Current = m_Portraits;
+            ElementIcons.Current = m_ElementIcons;
 
             foreach (var asset in m_Skills)
             {

@@ -14,6 +14,7 @@ their own subjects:
 | [`Assets/Scripts/Hex/README.md`](Assets/Scripts/Hex/README.md) | Coordinates, layout, pathfinding, rendering |
 | [`Assets/Scripts/Multiplayer/README.md`](Assets/Scripts/Multiplayer/README.md) | Sessions, Relay, scenes, the match lifecycle |
 | [`Assets/Art/Portraits/README.md`](Assets/Art/Portraits/README.md) | Adding faces |
+| [`Assets/Art/Elements/README.md`](Assets/Art/Elements/README.md) | The element runes |
 
 ---
 
@@ -205,6 +206,20 @@ Images are cropped to their **centre square** at every point of use — the boar
 square onto the disc, and every UI class uses `-unity-background-scale-mode: scale-and-crop`. Source
 files are never modified. Keep the face away from the corners.
 
+### Add or replace an element rune
+
+Drop a square, transparent `.png` named after the element into `Assets/Art/Elements/` — `Geo.png`,
+`Hydro.png`, `Pyro.png`, `Aero.png`, `Lux.png`, `Nyx.png`, `Arcana.png`. `ArtImporter` picks it up
+and rebuilds `ElementIcons.asset`; there is no id to derive and nothing to orphan, because the enum
+is permanent and the file name is the whole mapping.
+
+An element with no file falls back to the flat coloured gem it used to be drawn as, tinted from
+`ElementPalette`. That is not defensive padding — it is what a project sees before the library has
+been built, and it means missing art looks like missing art rather than a hole.
+
+`ElementPalette` is still the answer for **text**: a skill's cost is written in its element's colour,
+and a rune cannot colour a word.
+
 ### Change the AI
 
 `BasicBrain` is a state machine behind `ICreatureBrain`:
@@ -282,6 +297,13 @@ floats would across platforms. Base AP is a species property, currently 4 for al
 **Elements** — seven, three letters each: Geo, Hyd, Pyr, Æro, Lux, Nyx, Arc. They cost
 1 / 1 / 1 / 1 / 2 / 2 / 3 from the pool budget, so the rarer the element the more of your depth one
 of it takes. Pool budget equals level.
+
+**Attributes** start at **0** and are bought with 27 points. A step costs the value it leaves, except
+the first, which costs one — so reaching 5 costs 11 and reaching 3 costs 4. Seven of the 27 buy the
+first point of each attribute, which is why the budget is 27 and not 20: it is exactly what it now
+costs to stand where every character used to start, so no spread that fitted before stops fitting.
+Dumping an attribute to zero is a real choice that pays for something. The budget and the ceiling are
+authored on `ContentCatalog`, not compiled.
 
 **Levels** — start at 1, cap at 20. A level costs `2^level` experience. Killing a creature is worth
 its level. Multiple levels resolve in one pass (`Progression.Resolve`) so a character out of a long

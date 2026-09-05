@@ -458,7 +458,7 @@ namespace Dragoneye.MultiplayerEditor
 
             // Twenty points, every attribute starting at one and each step costing the attribute's
             // current value. Deliberately tight: a budget that covers everything is not a choice.
-            serialized.FindProperty("m_PointBudget").intValue = 20;
+            serialized.FindProperty("m_PointBudget").intValue = 27;
             serialized.FindProperty("m_MaxPerAttribute").intValue = 8;
             serialized.FindProperty("m_StartingLevel").intValue = 1;
 

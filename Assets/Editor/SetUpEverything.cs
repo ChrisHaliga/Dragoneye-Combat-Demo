@@ -42,6 +42,7 @@ namespace Dragoneye.MultiplayerEditor
             Step("Main menu", MainMenuSetup.Run);
             Step("Character content", CharacterContentSetup.Run);
             Step("Portraits", PortraitSetup.Run);
+            Step("Element icons", ElementIconSetup.Run);
 
             AssetDatabase.SaveAssets();
 
