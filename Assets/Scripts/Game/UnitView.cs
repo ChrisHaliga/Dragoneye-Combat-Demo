@@ -321,9 +321,13 @@ namespace Dragoneye.Game
             m_ShownFacing = facing;
 
             // The hex directions run clockwise from north, which is exactly what a Y rotation of
-            // sixty degrees a step describes. The arena's own rotation is inherited, so a tilted
-            // board keeps its bearings.
-            m_Pointer.localRotation = Quaternion.Euler(0f, facing * 60f, 0f);
+            // sixty degrees a step describes -- but north is the arena's north, not the world's.
+            // Taken from the map rather than assumed, so a board laid down at an angle keeps its
+            // bearings instead of pointing every creature somewhere plausible and wrong.
+            var arena = ArenaContext.Current != null ? ArenaContext.Current.Map : null;
+            var basis = arena != null ? arena.transform.rotation : Quaternion.identity;
+
+            m_Pointer.rotation = basis * Quaternion.Euler(0f, facing * 60f, 0f);
         }
 
         /// <summary>
