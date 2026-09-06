@@ -16,6 +16,8 @@ MonoBehaviour:
   m_DisplayName: Loose
   m_Description: From wherever you are standing, which is the whole idea.
   m_Element: 3
+  m_ElementOptions: 
+  m_Conditions: []
   m_ApCost: 1
   m_ElementCost: 1
   m_Range: 4

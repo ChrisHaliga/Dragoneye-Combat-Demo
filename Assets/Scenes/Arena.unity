@@ -269,6 +269,8 @@ GameObject:
   - component: {fileID: 261654064}
   - component: {fileID: 261654065}
   - component: {fileID: 261654066}
+  - component: {fileID: 261654068}
+  - component: {fileID: 261654067}
   m_Layer: 0
   m_Name: Arena Context
   m_TagString: Untagged
@@ -468,6 +470,39 @@ MonoBehaviour:
   m_Input: {fileID: 261654062}
   m_Opacity: 0.55
   m_Scale: 0.34
+--- !u!114 &261654067
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 261654050}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: af5523462a76ead43b9a8a5db2f10b81, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Dragoneye.Game::Dragoneye.Game.ActiveCreatureMarker
+  m_Creatures: {fileID: 261654061}
+  m_Selection: {fileID: 261654058}
+  m_Size: 2.3
+  m_Swell: 0.07
+  m_Breath: 2.2
+--- !u!114 &261654068
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 261654050}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a4507ce0b6efc0a49924fa3bd5a2e4e7, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Dragoneye.Game::Dragoneye.Game.ArenaAtmosphere
+  m_TableSize: 110
+  m_TableDrop: 0.2
+  m_FogStart: 26
+  m_FogEnd: 84
 --- !u!1 &454632036
 GameObject:
   m_ObjectHideFlags: 0
@@ -557,6 +592,7 @@ GameObject:
   - component: {fileID: 648006346}
   - component: {fileID: 648006347}
   - component: {fileID: 648006348}
+  - component: {fileID: 648006349}
   m_Layer: 0
   m_Name: Arena HUD
   m_TagString: Untagged
@@ -686,6 +722,8 @@ MonoBehaviour:
   m_Creatures: {fileID: 261654061}
   m_Lifetime: 5
   m_Rise: 1.2
+  m_Pop: 1.6
+  m_PopTime: 0.18
   m_Height: 1.6
 --- !u!114 &648006344
 MonoBehaviour:
@@ -755,6 +793,20 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Dragoneye.Game::Dragoneye.Game.OpportunityPromptView
   m_Input: {fileID: 261654062}
+--- !u!114 &648006349
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 648006334}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ebb56c44bc92d424c996a55cdd45b2ce, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Dragoneye.Game::Dragoneye.Game.TurnBannerView
+  m_Creatures: {fileID: 261654061}
+  m_Hold: 1.25
 --- !u!1 &723212526
 GameObject:
   m_ObjectHideFlags: 0
@@ -1500,6 +1552,9 @@ MonoBehaviour:
   m_TileMaterial: {fileID: 2100000, guid: 050b82a830e0384498e5ff1257bf2d74, type: 2}
   m_TilePrefab: {fileID: 0}
   m_TileFill: 0.94
+  m_TileDepth: 0.16
+  m_TileBevel: 0.045
+  m_TileVariance: 0.12
   m_ColorProperty: _BaseColor
 --- !u!114 &1461267523
 MonoBehaviour:

@@ -25,4 +25,5 @@ MonoBehaviour:
     Endurance: 0
   m_Skills:
   - {fileID: 11400000, guid: a013b91b99223bd4e83379f9e358d8e4, type: 2}
+  - {fileID: 11400000, guid: c2e089dd8cfc08841bc2f8c64add57d3, type: 2}
   m_BaseAp: 4

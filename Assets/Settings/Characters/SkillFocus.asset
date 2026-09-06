@@ -16,6 +16,8 @@ MonoBehaviour:
   m_DisplayName: Focus
   m_Description: A longer breath. Two elements back, at twice the price of one.
   m_Element: 6
+  m_ElementOptions: 
+  m_Conditions: []
   m_ApCost: 2
   m_ElementCost: 0
   m_Range: 0

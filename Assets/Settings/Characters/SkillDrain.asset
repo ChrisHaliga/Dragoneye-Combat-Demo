@@ -16,6 +16,8 @@ MonoBehaviour:
   m_DisplayName: Drain
   m_Description: Nyx answers questions nobody wanted asked.
   m_Element: 5
+  m_ElementOptions: 
+  m_Conditions: []
   m_ApCost: 2
   m_ElementCost: 1
   m_Range: 2

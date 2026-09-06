@@ -16,6 +16,8 @@ MonoBehaviour:
   m_DisplayName: Strike
   m_Description: A committed swing. Cheap, and it asks its question in Pyro.
   m_Element: 2
+  m_ElementOptions: 
+  m_Conditions: []
   m_ApCost: 1
   m_ElementCost: 1
   m_Range: 1

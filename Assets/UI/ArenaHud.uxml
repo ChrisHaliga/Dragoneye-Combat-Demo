@@ -10,13 +10,19 @@
         </ui:VisualElement>
 
         <ui:VisualElement name="turn-footer" class="turn-footer">
-            <ui:Label name="ap-label" text="" class="turn-footer__ap" />
-
             <!-- What the creature you are playing is holding. Above the skills rather than in the
                  card, because the card follows what you clicked and this has to follow you. -->
             <ui:VisualElement name="own-hand" class="own-hand" />
             <ui:VisualElement name="skill-bar" class="skill-bar" />
-            <ui:Label name="skill-reason" text="" class="skill-reason" />
+
+            <!-- Action points, as pips, between the things they buy and the button that gives the
+                 rest away. The one currency a turn is spent out of, drawn the same way the card
+                 draws it. -->
+            <ui:VisualElement name="ap-row" class="ap-row">
+                <ui:VisualElement name="ap-pips" class="pips pips--footer" />
+                <ui:Label name="ap-text" text="" class="ap-row__text" />
+            </ui:VisualElement>
+
             <ui:Button name="end-turn-button" text="End Turn" class="button end-turn" />
         </ui:VisualElement>
 

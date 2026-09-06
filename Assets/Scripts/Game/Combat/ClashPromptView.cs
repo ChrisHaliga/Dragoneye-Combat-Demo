@@ -170,8 +170,8 @@ namespace Dragoneye.Game
             }
 
             m_Tally.text = m_Request.Required > 1
-                ? $"{m_Staged.Count} of {m_Request.Required} committed"
-                : m_Staged.Count > 0 ? "Committed" : "Choose one";
+                ? $"{m_Staged.Count} of {m_Request.Required} chosen"
+                : m_Staged.Count > 0 ? "Ready to answer" : "Choose an element";
 
             m_Answer.SetEnabled(m_Staged.Count > 0);
         }
@@ -207,7 +207,9 @@ namespace Dragoneye.Game
             // than take it on trust.
             button.tooltip = ElementLore.Describe(element);
 
-            var count = new Label(staged > 0 ? $"{staged} of {left + staged}" : $"{left} held");
+            var count = new Label(staged > 0
+                ? $"{staged} of {left + staged} chosen"
+                : $"{left} held");
             count.AddToClassList("clash-option__count");
             button.Add(count);
 
@@ -230,15 +232,42 @@ namespace Dragoneye.Game
                 button.Add(chances);
             }
 
-            // Full, or none of this left. Either way there is nothing to add.
-            button.SetEnabled(m_Staged.Count < m_Request.Required && left > 0);
-            button.clicked += () =>
-            {
-                m_Staged.Add(element);
-                Refresh();
-            };
+            // Only an element the defender holds none of is off the table. Everything else stays
+            // live so a choice can be changed: the first cut disabled every option the moment one
+            // was picked, which read as the panel breaking rather than as a decision being made.
+            button.SetEnabled(left + staged > 0);
+            button.clicked += () => Toggle(element);
 
             return button;
+        }
+
+        /// <summary>
+        /// Picks an element, or puts it back.
+        ///
+        /// Room left: it is added. No room and it is already chosen: one of it is taken back. No
+        /// room and it is something else: when one element is asked for it simply replaces the
+        /// choice, because "pick another" should not need "unpick this" first; when two are, the
+        /// player is holding a pair and has to say which to give up.
+        /// </summary>
+        void Toggle(Element element)
+        {
+            var room = m_Staged.Count < m_Request.Required;
+
+            if (room && Held(element) > 0)
+            {
+                m_Staged.Add(element);
+            }
+            else if (m_Staged.Contains(element))
+            {
+                m_Staged.Remove(element);
+            }
+            else if (m_Request.Required == 1)
+            {
+                m_Staged.Clear();
+                m_Staged.Add(element);
+            }
+
+            Refresh();
         }
 
         /// <summary>

@@ -10,19 +10,22 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 0cf33f73d5fe1f5499fed1e4fddc1ebf, type: 3}
-  m_Name: SkillMeditate
+  m_Name: SkillClaws
   m_EditorClassIdentifier: Dragoneye.Data::Dragoneye.Data.SkillAsset
-  m_Id: 111
-  m_DisplayName: Meditate
-  m_Description: Trade a point now for two later. Only worth it if you have somewhere
-    to spend them.
-  m_Element: 3
-  m_ElementOptions: 
-  m_Conditions: []
+  m_Id: 121
+  m_DisplayName: Claws
+  m_Description: What you were born holding. It has never needed sharpening.
+  m_Element: 0
+  m_ElementOptions: 00000000010000000200000003000000
+  m_Conditions:
+  - Kind: 1
+    Value: 0
+  - Kind: 3
+    Value: 2
   m_ApCost: 1
-  m_ElementCost: 0
-  m_Range: 0
-  m_Target: 1
-  m_Effect: 2
-  m_Amount: 2
+  m_ElementCost: 1
+  m_Range: 1
+  m_Target: 0
+  m_Effect: 0
+  m_Amount: 4
   m_LevelRequired: 1

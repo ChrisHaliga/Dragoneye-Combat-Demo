@@ -45,8 +45,11 @@ namespace Dragoneye.MultiplayerEditor
             importer.textureType = TextureImporterType.Sprite;
             importer.spriteImportMode = SpriteImportMode.Single;
             importer.alphaIsTransparency = true;
-            importer.mipmapEnabled = false;
             importer.wrapMode = TextureWrapMode.Clamp;
+
+            // Drawn far smaller than they are, so they need a chain to sample from.
+            importer.mipmapEnabled = true;
+            importer.filterMode = FilterMode.Trilinear;
         }
 
         static void OnPostprocessAllAssets(string[] imported, string[] deleted, string[] moved,

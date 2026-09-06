@@ -99,7 +99,7 @@ namespace Dragoneye.Game
             m_Hand = root.Q<VisualElement>("own-hand");
             m_Reason = root.Q<Label>("skill-reason");
 
-            if (m_Bar == null || m_Reason == null)
+            if (m_Bar == null)
             {
                 Debug.LogError($"{nameof(SkillBarView)} could not find its elements; "
                     + "check ArenaHud.uxml.", this);
@@ -130,7 +130,10 @@ namespace Dragoneye.Game
                 {
                     m_Bar.Clear();
                     m_Hand?.Clear();
-                    m_Reason.text = string.Empty;
+                    if (m_Reason != null)
+                    {
+                        m_Reason.text = string.Empty;
+                    }
                     m_Selected = NoSkill;
                     m_DrawnFor = 0;
                     m_DrawnCount = 0;
@@ -241,9 +244,14 @@ namespace Dragoneye.Game
                 m_Bar.Add(BuildButton(skill, refusal));
             }
 
-            m_Reason.text = m_Selected == NoSkill && worstReason != SkillRefusal.None
-                ? SkillLabels.Describe(worstReason)
-                : string.Empty;
+            // The reason line is gone from the HUD -- every button explains itself on hover and the
+            // points are drawn under the bar -- but a document that still has one gets it filled.
+            if (m_Reason != null)
+            {
+                m_Reason.text = m_Selected == NoSkill && worstReason != SkillRefusal.None
+                    ? SkillLabels.Describe(worstReason)
+                    : string.Empty;
+            }
         }
 
         /// <summary>
@@ -355,7 +363,10 @@ namespace Dragoneye.Game
             cancel.AddToClassList("skill-choice--cancel");
             m_Bar.Add(cancel);
 
-            m_Reason.text = string.Empty;
+            if (m_Reason != null)
+            {
+                m_Reason.text = string.Empty;
+            }
         }
 
         /// <summary>

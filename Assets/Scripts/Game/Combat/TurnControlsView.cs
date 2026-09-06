@@ -33,7 +33,8 @@ namespace Dragoneye.Game
 
         VisualElement m_Footer;
         VisualElement m_Banner;
-        Label m_Ap;
+        VisualElement m_ApPips;
+        Label m_ApText;
         Label m_Cursor;
         Label m_OutcomeTitle;
         Button m_EndTurn;
@@ -55,12 +56,14 @@ namespace Dragoneye.Game
 
             m_Footer = root.Q<VisualElement>("turn-footer");
             m_Banner = root.Q<VisualElement>("outcome-banner");
-            m_Ap = root.Q<Label>("ap-label");
+            m_ApPips = root.Q<VisualElement>("ap-pips");
+            m_ApText = root.Q<Label>("ap-text");
             m_Cursor = root.Q<Label>("cursor-action");
             m_OutcomeTitle = root.Q<Label>("outcome-title");
             m_EndTurn = root.Q<Button>("end-turn-button");
 
-            if (m_Footer == null || m_Banner == null || m_Ap == null || m_Cursor == null
+            if (m_Footer == null || m_Banner == null || m_ApPips == null || m_ApText == null
+                || m_Cursor == null
                 || m_OutcomeTitle == null || m_EndTurn == null)
             {
                 Debug.LogError($"{nameof(TurnControlsView)} could not find its elements; "
@@ -75,6 +78,12 @@ namespace Dragoneye.Game
 
             m_EndTurn.clicked += OnEndTurnClicked;
             m_Cursor.pickingMode = PickingMode.Ignore;
+
+            // The outline on End Turn blinks while there is nothing left to spend. A class flipped
+            // on a schedule with an eased border is the closest USS comes to a pulse, and it is
+            // only visible while the spent class is on, so the schedule can simply run.
+            var endTurn = m_EndTurn;
+            endTurn.schedule.Execute(() => endTurn.ToggleInClassList("end-turn--pulse")).Every(650);
         }
 
         void OnDestroy()
@@ -109,7 +118,8 @@ namespace Dragoneye.Game
                 return;
             }
 
-            m_Ap.text = $"{actor.DisplayName} -- {actor.CurrentAp} / {actor.MaxAp} AP";
+            ApPips.Fill(m_ApPips, actor.CurrentAp, actor.MaxAp);
+            m_ApText.text = $"{actor.CurrentAp} / {actor.MaxAp} AP";
 
             // What "nothing left to do" means now depends on what the creature knows: a bow can
             // still act at four tiles where a dagger cannot act at two.
@@ -118,8 +128,9 @@ namespace Dragoneye.Game
                 m_Board.HasOpenNeighbour(actor.Cell),
                 AnySkillUsable(actor));
 
+            // The words never change; the outline does. A button whose label rewrites itself
+            // reads as two buttons, and the player already knows the number -- it is right above.
             m_EndTurn.EnableInClassList("end-turn--spent", spent);
-            m_EndTurn.text = spent ? "End Turn (no AP)" : "End Turn";
         }
 
         /// <summary>

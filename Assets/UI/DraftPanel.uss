@@ -48,7 +48,7 @@
 
 .draft__eyebrow {
     margin-right: 14px;
-    font-size: 10px;
+    font-size: 11px;
     -unity-font-style: bold;
     letter-spacing: 3px;
     color: rgb(139, 147, 165);
@@ -278,7 +278,7 @@
 .fighter__meta {
     flex-grow: 1;
     height: 16px;
-    font-size: 10px;
+    font-size: 11px;
     letter-spacing: 1px;
     -unity-text-align: middle-left;
     color: rgb(130, 138, 156);
@@ -299,7 +299,7 @@
 
 .fighter__stat-head {
     height: 18px;
-    font-size: 10px;
+    font-size: 11px;
     -unity-font-style: italic;
     letter-spacing: 1px;
     color: rgb(106, 114, 132);
@@ -328,7 +328,7 @@
     flex-shrink: 1;
     max-width: 108px;
     margin-left: 8px;
-    font-size: 10px;
+    font-size: 11px;
     letter-spacing: 1px;
     -unity-text-align: middle-right;
     color: rgb(130, 138, 156);
@@ -384,7 +384,7 @@
 }
 
 .xp-label {
-    font-size: 9px;
+    font-size: 10px;
     -unity-font-style: bold;
     letter-spacing: 1px;
     color: rgb(120, 128, 146);
@@ -462,7 +462,7 @@
 .button--compact {
     height: 24px;
     padding: 0 9px;
-    font-size: 10px;
+    font-size: 11px;
 }
 
 /* The side you are on. */

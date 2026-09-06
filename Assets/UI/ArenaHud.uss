@@ -428,18 +428,11 @@
     align-items: center;
 }
 
-.turn-footer__ap {
-    min-height: 16px;
-    margin-bottom: 8px;
-    font-size: 11px;
-    -unity-font-style: bold;
-    letter-spacing: 2px;
-    color: rgb(139, 147, 165);
-}
-
 .end-turn {
     height: 42px;
     padding: 0 34px;
+    border-width: 2px;
+    border-color: rgba(0, 0, 0, 0);
     font-size: 13px;
     -unity-font-style: bold;
     letter-spacing: 3px;
@@ -459,10 +452,17 @@
     color: rgb(245, 247, 252);
 }
 
-/* Prompts, never forces: the turn still only ends on a click. */
+/* Prompts, never forces: the turn still only ends on a click. Nothing left to spend puts a gold
+   outline on the button and blinks it; the words stay the words. */
 .end-turn--spent {
-    background-image: url("Generated/ui-button-primary.png");
-    color: rgb(255, 244, 234);
+    border-color: rgba(226, 191, 122, 0.45);
+    transition-property: border-color, scale;
+    transition-duration: 0.5s, 0.12s;
+    transition-timing-function: ease-in-out;
+}
+
+.end-turn--spent.end-turn--pulse {
+    border-color: rgb(226, 191, 122);
 }
 
 /* ---------- floating notes ---------- */
@@ -794,7 +794,7 @@
 
 .clash-prompt__reason {
     margin-top: 4px;
-    font-size: 11px;
+    font-size: 12px;
     color: rgb(150, 158, 176);
     white-space: normal;
 }
@@ -808,10 +808,12 @@
 /* One per element held, with what is left of it. The count is the defender's own business, which is
    why it can be shown at all. */
 .clash-option {
-    width: 84px;
-    height: 96px;
+    width: 98px;
+    height: 122px;
     margin: 0 8px 8px 0;
-    padding: 6px 0;
+    padding: 8px 0;
+    border-width: 2px;
+    border-color: rgba(0, 0, 0, 0);
     align-items: center;
     justify-content: center;
     background-color: rgba(0, 0, 0, 0);
@@ -832,35 +834,42 @@
     opacity: 0.32;
 }
 
-/* Chosen. Gold, the same "this is the one" the rest of the game uses. */
+/* Chosen. A gold edge and a warm fill, the same "this is the one" the rest of the game uses --
+   and unmistakable, because the earlier version marked the choice with a tint alone and the
+   player could not tell it from the ones they had not picked. */
 .clash-option--staged {
-    -unity-background-image-tint-color: rgb(226, 191, 122);
+    border-color: rgb(226, 191, 122);
+    -unity-background-image-tint-color: rgb(236, 206, 150);
+}
+
+.clash-option--staged .clash-option__name {
+    color: rgb(255, 244, 234);
 }
 
 .clash-option__mark {
-    width: 32px;
-    height: 32px;
+    width: 48px;
+    height: 48px;
     background-image: url("Generated/ui-gem.png");
     -unity-background-scale-mode: scale-to-fit;
 }
 
 .clash-option__name {
-    margin-top: 3px;
-    font-size: 11px;
+    margin-top: 5px;
+    font-size: 12px;
     -unity-font-style: bold;
     letter-spacing: 1px;
     color: rgb(226, 222, 210);
 }
 
 .clash-option__count {
-    font-size: 9px;
+    font-size: 11px;
     color: rgb(139, 147, 165);
 }
 
 /* What this answer is worth, in the same order as the key above the row. */
 .clash-option__odds {
-    margin-top: 2px;
-    font-size: 10px;
+    margin-top: 3px;
+    font-size: 12px;
     -unity-font-style: bold;
     letter-spacing: 1px;
     color: rgb(150, 176, 216);
@@ -868,14 +877,14 @@
 
 .clash-prompt__key {
     margin-top: 10px;
-    font-size: 9px;
+    font-size: 10px;
     -unity-font-style: bold;
     letter-spacing: 2px;
     color: rgb(110, 118, 136);
 }
 
 .clash-prompt__tally {
-    font-size: 10px;
+    font-size: 11px;
     -unity-font-style: bold;
     letter-spacing: 2px;
     color: rgb(139, 147, 165);
@@ -924,14 +933,14 @@
     opacity: 0.4;
 }
 
-/* The answer the panel expects. Gold, like everything else in this game that is the thing to do. */
+/* The answer the panel expects: the ember frame, with light text on it, the same as the menu. */
 .button--primary {
-    color: rgb(28, 22, 14);
-    -unity-background-image-tint-color: rgb(214, 176, 104);
+    color: rgb(255, 244, 234);
 }
 
 .button--primary:hover {
-    -unity-background-image-tint-color: rgb(234, 198, 128);
+    color: rgb(255, 255, 255);
+    -unity-background-image-tint-color: rgb(255, 236, 220);
 }
 
 /* An option with nothing to choose: the one attack a swing is made of. It reads like the defence
@@ -1203,13 +1212,6 @@
     -unity-font-style: bold;
 }
 
-.skill-reason {
-    min-height: 16px;
-    font-size: 11px;
-    -unity-font-style: bold;
-    letter-spacing: 1px;
-    color: rgb(226, 122, 63);
-}
 
 /* ---------- combat log ---------- */
 
@@ -1413,4 +1415,37 @@
     letter-spacing: 5px;
     color: rgb(139, 147, 165);
     text-shadow: 0 2px 4px rgba(0, 0, 0, 0.95);
+}
+
+/* ---------- action points in the footer ---------- */
+
+.ap-row {
+    flex-direction: row;
+    align-items: center;
+    min-height: 22px;
+    margin-bottom: 10px;
+}
+
+.ap-row__text {
+    margin-left: 12px;
+    font-size: 13px;
+    -unity-font-style: bold;
+    letter-spacing: 2px;
+    color: rgb(226, 191, 122);
+}
+
+/* Larger than the card's: these are the ones a player counts every turn. */
+.pips--footer {
+    flex-grow: 0;
+    margin-right: 0;
+}
+
+.pips--footer .pip {
+    width: 11px;
+    height: 17px;
+    margin-right: 3px;
+}
+
+.pips--footer .pip--whole {
+    margin-right: 9px;
 }

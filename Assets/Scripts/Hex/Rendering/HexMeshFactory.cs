@@ -109,9 +109,11 @@ namespace Dragoneye.Hex.Rendering
         /// <summary>
         /// One outward-facing quad, wound so its normal points the way given.
         ///
-        /// The four corners go round the quad in order: near-top, next-top, next-bottom,
-        /// near-bottom, with "next" being the counter-clockwise neighbour when seen from above --
-        /// which, seen from outside the slab, is clockwise, and that is the winding that faces out.
+        /// The four corners go round the quad: near-top, next-top, next-bottom, near-bottom, with
+        /// "next" the counter-clockwise neighbour seen from above. Seen from *outside* the slab
+        /// that order runs top-left, top-right, bottom-right, bottom-left -- clockwise, which is
+        /// the winding Unity draws as a front face. The first cut of this had the two triangles
+        /// the other way round and every side of every tile rendered from the inside only.
         /// </summary>
         static void Quad(System.Collections.Generic.List<Vector3> vertices,
             System.Collections.Generic.List<Vector3> normals,
@@ -137,12 +139,12 @@ namespace Dragoneye.Hex.Rendering
             uvs.Add(Vector2.up);
 
             triangles.Add(start);
-            triangles.Add(start + 2);
             triangles.Add(start + 1);
+            triangles.Add(start + 2);
 
             triangles.Add(start);
-            triangles.Add(start + 3);
             triangles.Add(start + 2);
+            triangles.Add(start + 3);
         }
 
         static Mesh Finish(System.Collections.Generic.List<Vector3> vertices,

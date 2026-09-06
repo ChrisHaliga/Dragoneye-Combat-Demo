@@ -157,7 +157,8 @@ namespace Dragoneye.MultiplayerEditor
         {
             var importer = AssetImporter.GetAtPath(path) as TextureImporter;
 
-            if (importer == null || importer.textureType == TextureImporterType.Sprite)
+            if (importer == null
+                || (importer.textureType == TextureImporterType.Sprite && importer.mipmapEnabled))
             {
                 return;
             }
@@ -165,7 +166,8 @@ namespace Dragoneye.MultiplayerEditor
             importer.textureType = TextureImporterType.Sprite;
             importer.spriteImportMode = SpriteImportMode.Single;
             importer.alphaIsTransparency = true;
-            importer.mipmapEnabled = false;
+            importer.mipmapEnabled = true;
+            importer.filterMode = FilterMode.Trilinear;
             importer.wrapMode = TextureWrapMode.Clamp;
 
             importer.SaveAndReimport();

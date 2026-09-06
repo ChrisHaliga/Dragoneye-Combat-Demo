@@ -16,6 +16,8 @@ MonoBehaviour:
   m_DisplayName: Smite
   m_Description: Light, at a distance, for a price only the devout tend to be holding.
   m_Element: 4
+  m_ElementOptions: 
+  m_Conditions: []
   m_ApCost: 2
   m_ElementCost: 1
   m_Range: 2

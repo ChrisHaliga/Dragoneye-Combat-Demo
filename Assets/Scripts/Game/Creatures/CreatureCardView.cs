@@ -478,19 +478,6 @@ namespace Dragoneye.Game
         /// skill reads as a bug rather than as a half spent on movement. Every second pip is marked
         /// so a whole point is still countable at a glance.
         /// </summary>
-        void BuildPips(Ap filled, Ap total)
-        {
-            m_ApPips.Clear();
-
-            for (var i = 0; i < total.Units; i++)
-            {
-                var pip = new VisualElement();
-                pip.AddToClassList("pip");
-                pip.EnableInClassList("pip--filled", i < filled.Units);
-                pip.EnableInClassList("pip--whole", (i + 1) % Ap.UnitsPerPoint == 0);
-
-                m_ApPips.Add(pip);
-            }
-        }
+        void BuildPips(Ap filled, Ap total) => ApPips.Fill(m_ApPips, filled, total);
     }
 }
