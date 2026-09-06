@@ -534,7 +534,7 @@ namespace Dragoneye.Multiplayer
 
             var stats = new VisualElement();
             stats.AddToClassList("statline");
-            CharacterSheet.Stats(stats, loadout.Vitals);
+            CharacterSheet.Stats(stats, loadout);
             m_HeroBody.Add(stats);
         }
 

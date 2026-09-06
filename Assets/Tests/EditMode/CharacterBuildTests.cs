@@ -74,9 +74,9 @@ namespace Dragoneye.Hex.Tests
             new FakeContent(new CharacterRules(Budget, 8, Level))
                 .With(new ClassSpec(1, "Guardian", AttributeBlock.Zero, new[] { SwordId }))
                 .With(new ClassSpec(2, "Hunter", AttributeBlock.Zero, new[] { BowId }))
-                .With(new EquipmentSpec(SwordId, "Sword", EquipmentSlot.Weapon, AttributeBlock.Zero))
-                .With(new EquipmentSpec(BowId, "Bow", EquipmentSlot.Weapon, AttributeBlock.Zero))
-                .With(new EquipmentSpec(PlateId, "Plate", EquipmentSlot.Armor, AttributeBlock.Zero,
+                .With(new EquipmentSpec(SwordId, "Sword", EquipmentSlot.Weapon))
+                .With(new EquipmentSpec(BowId, "Bow", EquipmentSlot.Weapon))
+                .With(new EquipmentSpec(PlateId, "Plate", EquipmentSlot.Armor,
                     null, ArmourClass.Heavy));
 
         /// <summary>
@@ -185,17 +185,20 @@ namespace Dragoneye.Hex.Tests
         // ---------- derived stats ----------
 
         [Test]
-        public void HealthIsThreePlusLevelPlusVitalityPlusToughness()
+        public void HealthIsThreePlusLevelPlusVitality()
         {
+            // Toughness used to add health too. It heals now, and an attribute that fed two stats
+            // was worth two for the price of one.
             var vitals = Vitals.From(
                 AttributeBlock.Uniform(1).With(Attribute.Vitality, 4).With(Attribute.Toughness, 2),
                 level: 3, armour: ArmourClass.None);
 
-            Assert.AreEqual(3 + 3 + 4 + 2, vitals.MaxHealth);
+            Assert.AreEqual(3 + 3 + 4, vitals.MaxHealth);
+            Assert.AreEqual(2, vitals.Regen, "Toughness is what comes back each turn");
         }
 
         [Test]
-        public void ActionPointsAreTheSpeciesBasePlusEndurance()
+        public void ActionPointsAreTheSpeciesBasePlusWillpower()
         {
             // No floor any more. A floor and an authored base are two answers to the same question,
             // and with both in place the authored one did nothing until Endurance had cleared the
@@ -208,25 +211,50 @@ namespace Dragoneye.Hex.Tests
                 "exactly what the species says, and nothing on top");
 
             var weak = Vitals.From(AttributeBlock.Uniform(1), 1, ArmourClass.None);
-            Assert.AreEqual(Ap.FromWhole(5), weak.MaxAp, "the default base of four, plus one END");
+            Assert.AreEqual(Ap.FromWhole(5), weak.MaxAp, "the default base of four, plus one WIL");
 
             var brisk = Vitals.From(AttributeBlock.Uniform(1), 1, ArmourClass.None, baseAp: 6);
             Assert.AreEqual(Ap.FromWhole(7), brisk.MaxAp, "a species that says otherwise is obeyed");
 
             var strong = Vitals.From(
-                AttributeBlock.Uniform(1).With(Attribute.Endurance, 6), 1, ArmourClass.None);
+                AttributeBlock.Uniform(1).With(Attribute.Willpower, 6), 1, ArmourClass.None);
             Assert.AreEqual(Ap.FromWhole(10), strong.MaxAp);
+
+            var enduring = Vitals.From(
+                AttributeBlock.Uniform(1).With(Attribute.Endurance, 6), 1, ArmourClass.None);
+            Assert.AreEqual(Ap.FromWhole(5), enduring.MaxAp, "Endurance no longer buys AP");
         }
 
         [Test]
-        public void SpeedIsDexterityPlusEnduranceLessArmour()
+        public void SpeedIsEightPlusEnduranceLessArmour()
         {
-            var attributes = AttributeBlock.Uniform(1)
-                .With(Attribute.Dexterity, 5)
-                .With(Attribute.Endurance, 3);
+            var attributes = AttributeBlock.Uniform(1).With(Attribute.Endurance, 3);
 
-            Assert.AreEqual(8, Vitals.From(attributes, 1, ArmourClass.None).Speed);
-            Assert.AreEqual(5, Vitals.From(attributes, 1, ArmourClass.Heavy).Speed, "heavy costs 3");
+            Assert.AreEqual(8 + 3, Vitals.From(attributes, 1, ArmourClass.None).Speed);
+            Assert.AreEqual(8 + 3 - 2, Vitals.From(attributes, 1, ArmourClass.Light).Speed, "light costs 2");
+            Assert.AreEqual(8 + 3 - 4, Vitals.From(attributes, 1, ArmourClass.Medium).Speed, "medium costs 4");
+            Assert.AreEqual(8 + 3 - 8, Vitals.From(attributes, 1, ArmourClass.Heavy).Speed, "heavy costs 8");
+
+            // Dexterity is damage now, not speed.
+            var nimble = AttributeBlock.Uniform(1).With(Attribute.Dexterity, 9);
+            Assert.AreEqual(8 + 1, Vitals.From(nimble, 1, ArmourClass.None).Speed);
+        }
+
+        [Test]
+        public void EquipmentNeverTouchesAnAttribute()
+        {
+            // A weapon is its skills, armour is its pool and its weight. The resolved attributes
+            // are the baselines plus what was bought, whatever is worn.
+            var content = Content();
+            var bare = Valid(content);
+            bare.WeaponId = CharacterBuild.NoEquipment;
+            bare.ArmorId = CharacterBuild.NoEquipment;
+
+            var armed = Valid(content);
+            armed.ArmorId = PlateId;
+
+            Assert.AreEqual(LoadoutResolver.Resolve(bare, content).Attributes,
+                LoadoutResolver.Resolve(armed, content).Attributes);
         }
 
         [Test]

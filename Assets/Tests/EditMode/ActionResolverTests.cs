@@ -12,9 +12,9 @@ namespace Dragoneye.Hex.Tests
     {
         static readonly Ap k_Step = CombatRules.BaseStepCost;
 
-        static ActionPlan Move(int wholeAp, int steps, ArmourClass worn = ArmourClass.None) =>
+        static ActionPlan Move(int wholeAp, int steps, int speed = Vitals.BaseSpeed) =>
             ActionResolver.Resolve(true, true, Ap.FromWhole(wholeAp), false, steps,
-                ArmourRules.StepCost(worn));
+                CombatRules.StepCostFor(speed));
 
         static ActionPlan OnACreature(int wholeAp) =>
             ActionResolver.Resolve(true, true, Ap.FromWhole(wholeAp), true, -1, k_Step);
@@ -30,18 +30,18 @@ namespace Dragoneye.Hex.Tests
         }
 
         [Test]
-        public void TheSuitPricesTheStep()
+        public void SpeedPricesTheStep()
         {
-            // Two tiles: one point in nothing, two in leather, four in plate. The same route,
-            // priced by what the walker is wearing rather than by a constant.
+            // Two tiles: one point at the base speed, two at speed six, four at speed two. The
+            // same route, priced by how fast the walker is rather than by a constant.
             Assert.AreEqual(Ap.FromWhole(1), Move(6, 2).Cost);
-            Assert.AreEqual(Ap.FromWhole(2), Move(6, 2, ArmourClass.Light).Cost);
-            Assert.AreEqual(Ap.FromWhole(3), Move(6, 2, ArmourClass.Medium).Cost);
-            Assert.AreEqual(Ap.FromWhole(4), Move(6, 2, ArmourClass.Heavy).Cost);
+            Assert.AreEqual(Ap.FromWhole(2), Move(6, 2, speed: 6).Cost);
+            Assert.AreEqual(Ap.FromWhole(3), Move(6, 2, speed: 3).Cost);
+            Assert.AreEqual(Ap.FromWhole(4), Move(6, 2, speed: 2).Cost);
 
-            // And a walk plate cannot afford is one leather can.
-            Assert.IsTrue(Move(2, 2, ArmourClass.Light).IsAllowed);
-            Assert.IsTrue(Move(2, 2, ArmourClass.Heavy).IsUnaffordable);
+            // And a walk the slow one cannot afford is one the quick one can.
+            Assert.IsTrue(Move(2, 2, speed: 6).IsAllowed);
+            Assert.IsTrue(Move(2, 2, speed: 2).IsUnaffordable);
         }
 
         [Test]

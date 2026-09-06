@@ -12,15 +12,41 @@ namespace Dragoneye.Combat
     /// and a skill costs whole points, so a turn is a real trade between covering ground and acting
     /// -- which is the whole reason DE-000 asks for the half-unit.
     ///
-    /// What a step costs is not a constant any more: it is the wearer's suit's to say, through
-    /// <see cref="ArmourRules.StepCost"/>, so every method here that prices a walk takes the step
-    /// cost in rather than assuming one. A caller that wants the unarmoured price can pass
+    /// What a step costs is not a constant any more: it follows from the walker's speed, through
+    /// <see cref="StepCostFor"/>, so every method here that prices a walk takes the step cost in
+    /// rather than assuming one. A caller that wants the ordinary price can pass
     /// <see cref="BaseStepCost"/>; a caller pricing a creature's walk asks the creature.
     /// </summary>
     public static class CombatRules
     {
-        /// <summary>What one tile costs with nothing worn. Half a point, per DE-000.</summary>
+        /// <summary>What one tile costs at the base speed. Half a point, per DE-000.</summary>
         public static readonly Ap BaseStepCost = Ap.Step;
+
+        /// <summary>
+        /// Tiles a whole action point buys at the base speed, which is what the speed is divided
+        /// by: a creature at speed 8 goes two tiles a point, at speed 4 one, at speed 2 half of one.
+        /// </summary>
+        public const int TilesPerPointAtBase = 2;
+
+        /// <summary>
+        /// What one tile costs at this speed.
+        ///
+        /// Tiles per point is speed over four; this is that turned over and rounded up to the
+        /// half, which is the smallest thing an action point splits into. Speed 8 is half a point
+        /// a tile, 6 is a whole one, 3 is one and a half, 2 is two. Speed never prices a step below
+        /// half a point, and a speed of nothing is treated as one -- four points a tile, which is a
+        /// creature that can still be dragged somewhere but not much further.
+        /// </summary>
+        public static Ap StepCostFor(int speed)
+        {
+            var effective = speed < 1 ? 1 : speed;
+
+            // Half-units per tile = ceil(2 * 4 / speed) = ceil(8 / speed).
+            var perTile = 2 * 2 * TilesPerPointAtBase;
+            var units = (perTile + effective - 1) / effective;
+
+            return Ap.FromUnits(units < 1 ? 1 : units);
+        }
 
         /// <summary>
         /// Whether a target at this distance is inside a reach.

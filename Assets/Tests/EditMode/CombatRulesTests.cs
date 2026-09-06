@@ -46,19 +46,25 @@ namespace Dragoneye.Hex.Tests
         }
 
         [Test]
-        public void TheSuitSetsThePriceOfAStep()
+        public void SpeedSetsThePriceOfAStep()
         {
-            // Half a point unarmoured, and half a point more per class: the numbers the help
-            // page promises, pinned so a retune of one does not quietly drift the others.
-            Assert.AreEqual(Ap.Step, ArmourRules.StepCost(ArmourClass.None));
-            Assert.AreEqual(Ap.FromWhole(1), ArmourRules.StepCost(ArmourClass.Light));
-            Assert.AreEqual(Ap.FromWhole(1) + Ap.Step, ArmourRules.StepCost(ArmourClass.Medium));
-            Assert.AreEqual(Ap.FromWhole(2), ArmourRules.StepCost(ArmourClass.Heavy));
+            // Tiles per point is speed over four; the price is that turned over and rounded up
+            // to the half. Pinned so a retune of the base speed does not quietly drift the rest.
+            Assert.AreEqual(Ap.Step, CombatRules.StepCostFor(Vitals.BaseSpeed));
+            Assert.AreEqual(CombatRules.BaseStepCost, CombatRules.StepCostFor(Vitals.BaseSpeed));
+            Assert.AreEqual(Ap.FromWhole(1), CombatRules.StepCostFor(6), "light armour, no Endurance");
+            Assert.AreEqual(Ap.FromWhole(1), CombatRules.StepCostFor(4), "medium armour");
+            Assert.AreEqual(Ap.FromWhole(1) + Ap.Step, CombatRules.StepCostFor(3));
+            Assert.AreEqual(Ap.FromWhole(2), CombatRules.StepCostFor(2));
+            Assert.AreEqual(Ap.FromWhole(4), CombatRules.StepCostFor(1));
 
-            // Three points is six tiles in nothing and one tile in plate.
-            Assert.AreEqual(6, CombatRules.StepsAffordable(Ap.FromWhole(3), Ap.Step));
-            Assert.AreEqual(1, CombatRules.StepsAffordable(Ap.FromWhole(3),
-                ArmourRules.StepCost(ArmourClass.Heavy)));
+            // Faster than the base never goes below the half, and no speed at all is one.
+            Assert.AreEqual(Ap.Step, CombatRules.StepCostFor(16));
+            Assert.AreEqual(CombatRules.StepCostFor(1), CombatRules.StepCostFor(0));
+
+            // Three points is six tiles at the base speed and one tile at speed two.
+            Assert.AreEqual(6, CombatRules.StepsAffordable(Ap.FromWhole(3), CombatRules.StepCostFor(8)));
+            Assert.AreEqual(1, CombatRules.StepsAffordable(Ap.FromWhole(3), CombatRules.StepCostFor(2)));
         }
 
         [Test]
@@ -89,10 +95,10 @@ namespace Dragoneye.Hex.Tests
             Assert.IsFalse(CombatRules.CanAffordAnything(Ap.Step,
                 anyMoveInRange: false, anySkillUsable: false, stepCost: k_Step));
 
-            // But not in plate, where a step is two whole points.
+            // But not at speed two, where a step is two whole points.
             Assert.IsFalse(CombatRules.CanAffordAnything(Ap.Step,
                 anyMoveInRange: true, anySkillUsable: false,
-                stepCost: ArmourRules.StepCost(ArmourClass.Heavy)));
+                stepCost: CombatRules.StepCostFor(2)));
         }
 
         [Test]

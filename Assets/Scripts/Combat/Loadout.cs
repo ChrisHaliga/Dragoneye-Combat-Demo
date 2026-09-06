@@ -14,10 +14,11 @@ namespace Dragoneye.Combat
     /// <summary>
     /// What armour does.
     ///
-    /// Three separate things, which is why the class is an enum rather than a trio of numbers on
-    /// each asset: the speed it costs is its ordinal, the price of a step climbs with that same
-    /// ordinal, and the damage it stops is this table. Plate stopping sixteen rather than eight is
-    /// a tuning decision that belongs in one place, not spread across every suit somebody authors.
+    /// Two things, which is why the class is an enum rather than a pair of numbers on each asset:
+    /// the pool it gives and the speed it costs are both this file's tables. Plate stopping
+    /// sixteen rather than eight is a tuning decision that belongs in one place, not spread across
+    /// every suit somebody authors. What a step costs is not armour's to say directly -- it
+    /// follows from the speed, so a suit slows you down and *that* is what makes walking dear.
     /// </summary>
     public static class ArmourRules
     {
@@ -38,18 +39,32 @@ namespace Dragoneye.Combat
             }
         }
 
-        /// <summary>Speed this costs its wearer.</summary>
-        public static int SpeedCostOf(ArmourClass armour) => (int)armour;
-
         /// <summary>
-        /// What one tile costs in this suit.
-        ///
-        /// Half a point unarmoured, and half a point more for every class above that: one in
-        /// leather, one and a half in mail, two in plate. The same ordinal that costs speed, so a
-        /// heavier suit is slower to act *and* slower to cover ground -- the second of which is the
-        /// one a player feels every turn.
+        /// Speed this costs its wearer. Doubling each class, against a base speed of eight: plate
+        /// takes the whole of it, and only Endurance puts any back.
         /// </summary>
-        public static Ap StepCost(ArmourClass armour) => Ap.Step * (1 + (int)armour);
+        public static int SpeedCostOf(ArmourClass armour)
+        {
+            switch (armour)
+            {
+                case ArmourClass.Light: return 2;
+                case ArmourClass.Medium: return 4;
+                case ArmourClass.Heavy: return 8;
+                default: return 0;
+            }
+        }
+
+        /// <summary>"Light armour", for a tooltip that has to name what a number came from.</summary>
+        public static string NameOf(ArmourClass armour)
+        {
+            switch (armour)
+            {
+                case ArmourClass.Light: return "light armour";
+                case ArmourClass.Medium: return "medium armour";
+                case ArmourClass.Heavy: return "heavy armour";
+                default: return "no armour";
+            }
+        }
     }
 
     /// <summary>
@@ -66,6 +81,9 @@ namespace Dragoneye.Combat
         /// <summary>Health every creature has before its attributes are counted.</summary>
         public const int BaseHealth = 3;
 
+        /// <summary>Speed before Endurance and before armour. What an unarmoured nobody moves at.</summary>
+        public const int BaseSpeed = 8;
+
         /// <summary>
         /// Action points before Endurance, for a species that does not say otherwise.
         ///
@@ -81,37 +99,49 @@ namespace Dragoneye.Combat
         /// <summary>Action points a turn, in half-units.</summary>
         public readonly Ap MaxAp;
 
-        /// <summary>Speed, which decides turn order.</summary>
+        /// <summary>Speed, which decides turn order and prices every step.</summary>
         public readonly int Speed;
 
-        public Vitals(int level, int maxHealth, Ap maxAp, int speed)
+        /// <summary>Health back at the start of every turn. Toughness, and never below zero.</summary>
+        public readonly int Regen;
+
+        public Vitals(int level, int maxHealth, Ap maxAp, int speed, int regen = 0)
         {
             Level = level;
             MaxHealth = maxHealth;
             MaxAp = maxAp;
             Speed = speed;
+            Regen = regen < 0 ? 0 : regen;
         }
+
+        /// <summary>What one tile costs at this speed. See <see cref="CombatRules.StepCostFor"/>.</summary>
+        public Ap StepCost => CombatRules.StepCostFor(Speed);
 
         /// <summary>
         /// Resolves attributes into the stats a fight uses.
         ///
-        /// HP = 3 + LVL + VIT + TGH.
-        /// AP = the species base + END. There is no floor under it any more: a floor and an authored
-        /// base are two answers to the same question, and with both in place the authored one did
-        /// nothing until Endurance had already cleared the floor on its own.
-        /// SPD = DEX + END - armour class, so heavier protection costs initiative.
+        /// HP = 3 + LVL + VIT.
+        /// AP = the species base + WIL. There is no floor under it: a floor and an authored base
+        /// are two answers to the same question, and with both in place the authored one did
+        /// nothing until the attribute had already cleared the floor on its own.
+        /// SPD = 8 + END - armour, so heavier protection costs initiative and every step.
+        /// Regen = TGH, back every turn.
+        ///
+        /// Each attribute feeds exactly one stat. An attribute that fed two was worth two, and the
+        /// point buy priced them all the same.
         /// </summary>
         public static Vitals From(AttributeBlock attributes, int level, ArmourClass armour,
             int baseAp = DefaultBaseAp)
         {
-            var health = BaseHealth + level + attributes.Vitality + attributes.Toughness;
-            var ap = (baseAp < 1 ? 1 : baseAp) + attributes.Endurance;
+            var health = BaseHealth + level + attributes.Vitality;
+            var ap = (baseAp < 1 ? 1 : baseAp) + attributes.Willpower;
 
             return new Vitals(
                 level,
                 health < 1 ? 1 : health,
                 Ap.FromWhole(ap < 1 ? 1 : ap),
-                attributes.Dexterity + attributes.Endurance - ArmourRules.SpeedCostOf(armour));
+                BaseSpeed + attributes.Endurance - ArmourRules.SpeedCostOf(armour),
+                attributes.Toughness);
         }
     }
 
@@ -136,7 +166,7 @@ namespace Dragoneye.Combat
             Armour = armour;
             Items = items ?? System.Array.Empty<EquipmentSpec>();
             StartingPool = startingPool;
-            Skills = skills ?? System.Array.Empty<SkillSpec>();
+            Skills = Scale(skills, attributes);
             Vitals = Vitals.From(attributes, level, armour,
                 species != null ? species.BaseAp : Vitals.DefaultBaseAp);
             ArmourPoints = ResolveArmour(armour, Items);
@@ -162,8 +192,33 @@ namespace Dragoneye.Combat
         /// </summary>
         public int ArmourPoints { get; }
 
-        /// <summary>What one tile costs this creature, which is the suit's to say.</summary>
-        public Ap StepCost => ArmourRules.StepCost(Armour);
+        /// <summary>What one tile costs this creature, which its speed decides.</summary>
+        public Ap StepCost => Vitals.StepCost;
+
+        /// <summary>
+        /// The skills with this creature's attributes folded into them.
+        ///
+        /// "4 + STR" is what a weapon says; "6" is what this fighter does with it. Settled here,
+        /// once, so the sheet, the bar and the server all read the same number and none of them
+        /// has to know that skills scale.
+        /// </summary>
+        static IReadOnlyList<SkillSpec> Scale(IReadOnlyList<SkillSpec> skills,
+            AttributeBlock attributes)
+        {
+            if (skills == null || skills.Count == 0)
+            {
+                return System.Array.Empty<SkillSpec>();
+            }
+
+            var scaled = new List<SkillSpec>(skills.Count);
+
+            foreach (var skill in skills)
+            {
+                scaled.Add(skill.Scaled(attributes));
+            }
+
+            return scaled;
+        }
 
         /// <summary>
         /// Whether anything worn gives this creature the better of two elements in a clash.
@@ -190,7 +245,7 @@ namespace Dragoneye.Combat
 
         public ClassSpec Class { get; }
 
-        /// <summary>Baseline plus what was bought plus every equipped modifier.</summary>
+        /// <summary>The species baseline, the class baseline and what was bought. Equipment adds nothing.</summary>
         public AttributeBlock Attributes { get; }
 
         /// <summary>The heaviest armour worn, which costs Speed.</summary>
@@ -261,10 +316,11 @@ namespace Dragoneye.Combat
 
             var armour = ArmourClass.None;
 
+            // Equipment does not touch the attributes. A weapon is its skills, armour is its pool
+            // and its weight, and an offhand is one or the other -- a sword that also made you
+            // stronger was a second thing to compare on every line of a list that already had one.
             foreach (var item in items)
             {
-                attributes += item.Modifiers;
-
                 // The heaviest worn wins rather than the sum, so a second piece of armour cannot
                 // stack a speed penalty that the rules never intended.
                 if (item.Armour > armour)
@@ -275,8 +331,9 @@ namespace Dragoneye.Combat
 
             var level = build.Level < Progression.FirstLevel ? Progression.FirstLevel : build.Level;
 
-            // Equipment may subtract, but never below zero, where the derived numbers stop meaning
+            // A baseline may subtract, but never below zero, where the derived numbers stop meaning
             // anything.
+            //
             // What the conditions on a skill get to ask about. Built once, from the same
             // resolution that decided everything else, so the sheet and the arena cannot disagree
             // about whether somebody is holding a weapon.

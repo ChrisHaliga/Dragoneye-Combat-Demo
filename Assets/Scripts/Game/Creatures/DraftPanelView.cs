@@ -530,7 +530,7 @@ namespace Dragoneye.Game
                         loadout.Species != null ? loadout.Species.Name : "Unknown",
                         loadout.Class != null ? loadout.Class.Name : "Unknown", compact: true)
                     : string.Empty,
-                loadout?.Vitals);
+                loadout?.Vitals, loadout != null ? loadout.ArmourPoints : 0);
 
             card.Root.AddToClassList("fighter--brought");
             card.Root.EnableInClassList("fighter--mine", mine);
@@ -562,7 +562,8 @@ namespace Dragoneye.Game
                     ? CharacterSheet.Describe(entry.Level, definition.SpeciesName,
                         definition.ClassName, compact: true)
                     : string.Empty,
-                new Vitals(entry.Level, profile.MaxHealth, profile.MaxAp, profile.Initiative));
+                new Vitals(entry.Level, profile.MaxHealth, profile.MaxAp, profile.Initiative),
+                profile.Armour);
 
             card.Root.EnableInClassList("fighter--claimed", entry.IsClaimed);
             card.Root.EnableInClassList("fighter--mine", mine);
@@ -638,7 +639,7 @@ namespace Dragoneye.Game
         /// A premade fills the same three rows minus the two things it has not got: it does not
         /// level, so there is no bar, and nobody is running it unless somebody claimed it.
         /// </summary>
-        static CardParts Card(string name, string meta, Vitals? vitals)
+        static CardParts Card(string name, string meta, Vitals? vitals, int armour = 0)
         {
             var card = new VisualElement();
             card.AddToClassList("fighter");
@@ -648,7 +649,7 @@ namespace Dragoneye.Game
 
             if (vitals.HasValue)
             {
-                head.Add(Text("HP / AP / SPD", "fighter__stat-head"));
+                head.Add(Text("HP / AP / SPD / ARM", "fighter__stat-head"));
             }
 
             card.Add(head);
@@ -659,7 +660,7 @@ namespace Dragoneye.Game
             if (vitals.HasValue)
             {
                 body.Add(Text(
-                    $"{vitals.Value.MaxHealth} / {vitals.Value.MaxAp} / {vitals.Value.Speed}",
+                    $"{vitals.Value.MaxHealth} / {vitals.Value.MaxAp} / {vitals.Value.Speed} / {armour}",
                     "fighter__stat-value"));
             }
 

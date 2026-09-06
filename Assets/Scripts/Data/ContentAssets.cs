@@ -125,9 +125,6 @@ namespace Dragoneye.Data
         [SerializeField]
         EquipmentSlot m_Slot = EquipmentSlot.Weapon;
 
-        [SerializeField, Tooltip("Added to resolved stats. May be negative.")]
-        AttributeValues m_Modifiers;
-
         [SerializeField, Tooltip("Skills this item grants while equipped. Unequipping removes them.")]
         List<SkillAsset> m_Skills = new List<SkillAsset>();
 
@@ -153,7 +150,7 @@ namespace Dragoneye.Data
         public bool GrantsAdvantage => m_GrantsAdvantage;
 
         public EquipmentSpec ToSpec() =>
-            new EquipmentSpec(m_Id, m_DisplayName, m_Slot, m_Modifiers.ToBlock(),
+            new EquipmentSpec(m_Id, m_DisplayName, m_Slot,
                 ContentIds.SkillIds(m_Skills), m_Armour, m_Description, m_DamageReduction,
                 m_GrantsAdvantage);
 

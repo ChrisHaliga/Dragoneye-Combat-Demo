@@ -141,11 +141,14 @@ namespace Dragoneye.Game
                 m_ResolvedLevel = level;
                 m_Resolved = true;
 
+                // Scaled here, at the one place the catalog's formulas meet a creature, so the
+                // bar, the prompt and the server all read the number this fighter does and none
+                // of them has to know that "4 + STR" was ever written.
                 foreach (var skillId in m_Creature.SkillIds)
                 {
                     if (catalog.TryGetSkill(skillId, out var spec))
                     {
-                        m_Skills.Add(spec);
+                        m_Skills.Add(spec.Scaled(m_Creature.Attributes));
                     }
                 }
 

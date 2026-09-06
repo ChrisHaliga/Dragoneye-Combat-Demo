@@ -12,12 +12,19 @@
     max-width: 760px;
 }
 
-.help > * {
-    flex-shrink: 0;
+/* The page's own parts must not shrink -- but the page's parts are what is *inside* the scroll
+   view, not the scroll view's own viewport. An earlier rule pinned the viewport itself, which
+   meant it grew to fit every paragraph and there was never anything to scroll. */
+.help {
+    min-height: 0;
 }
 
 .help .unity-scroll-view__content-container {
     flex-direction: column;
+}
+
+.help .unity-scroll-view__content-container > * {
+    flex-shrink: 0;
 }
 
 .help__section {

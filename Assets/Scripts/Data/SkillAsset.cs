@@ -68,8 +68,17 @@ namespace Dragoneye.Data
         [SerializeField]
         SkillEffectKind m_Effect = SkillEffectKind.Damage;
 
-        [SerializeField, Min(0)]
+        [SerializeField, Min(0), Tooltip("The number before any attribute is added. For a weapon "
+             + "skill that reads '4 + STR', this is the 4.")]
         int m_Amount = 5;
+
+        [SerializeField, Tooltip("Whether an attribute is added to the amount. Weapon skills "
+             + "scale; a heal or a breath does not.")]
+        bool m_Scales;
+
+        [SerializeField, Tooltip("Which attribute, when it scales. Strength for heavy weapons, "
+             + "Dexterity for quick ones.")]
+        Attribute m_ScalesWith = Attribute.Strength;
 
         [SerializeField, Min(1), Tooltip("The level a creature reaches before this is theirs. A "
              + "skill above a creature's level is left out of its list entirely, not greyed out.")]
@@ -84,7 +93,9 @@ namespace Dragoneye.Data
 
         public SkillSpec ToSpec() =>
             new SkillSpec(m_Id, m_DisplayName, m_Element, Ap.FromWhole(m_ApCost), m_ElementCost,
-                m_Range, m_Target, new SkillEffect(m_Effect, m_Amount), m_Description,
+                m_Range, m_Target,
+                new SkillEffect(m_Effect, m_Amount, m_Scales ? m_ScalesWith : (Attribute?)null),
+                m_Description,
                 m_LevelRequired, Conditions(), Options());
 
         /// <summary>

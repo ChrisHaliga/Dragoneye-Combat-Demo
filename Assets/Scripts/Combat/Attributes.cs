@@ -207,8 +207,8 @@ namespace Dragoneye.Combat
         /// <summary>
         /// What raising it actually does, in full, for a hover.
         ///
-        /// What the rules do with it, not what the word evokes. Three of the seven are read by
-        /// nothing yet, and these say so: in a game where a point costs more than the last one, an
+        /// What the rules do with it, not what the word evokes. One of the seven is read by
+        /// nothing yet, and it says so: in a game where a point costs more than the last one, an
         /// attribute that reads as useful and is not is a point the player will not get back.
         ///
         /// Kept beside the enum rather than in the screen because two screens ask -- the creator
@@ -219,22 +219,26 @@ namespace Dragoneye.Combat
             switch (attribute)
             {
                 case Attribute.Toughness:
-                    return "Toughness -- one more health for every point.";
+                    return "Toughness -- heals this much at the start of every turn. Armour never "
+                        + "comes back; health does, and this is how.";
                 case Attribute.Dexterity:
-                    return "Dexterity -- one more speed for every point. Speed decides who acts "
-                        + "first, and armour takes it away again.";
+                    return "Dexterity -- added to the damage of every weapon skill that scales "
+                        + "with it. Quick weapons do: a bow, a dagger.";
                 case Attribute.Strength:
-                    return "Strength -- how hard this creature hits. No rule reads it yet.";
+                    return "Strength -- added to the damage of every weapon skill that scales "
+                        + "with it. Heavy weapons do: a sword, an axe, a mace, a fist.";
                 case Attribute.Skill:
-                    return "Skill -- how precisely this creature fights. No rule reads it yet.";
+                    return "Skill -- some skills roll to hit, and every point here raises that "
+                        + "chance. None of the shipped skills roll yet, so a point here waits for "
+                        + "one.";
                 case Attribute.Vitality:
                     return "Vitality -- one more health for every point.";
                 case Attribute.Willpower:
-                    return "Willpower -- how well this creature holds itself together. No rule "
-                        + "reads it yet.";
+                    return "Willpower -- one more action point for every point. Action points "
+                        + "are what a turn is spent out of.";
                 case Attribute.Endurance:
-                    return "Endurance -- one more action point and one more speed for every "
-                        + "point. Action points are what a turn is spent out of.";
+                    return "Endurance -- one more speed for every point. Speed decides who acts "
+                        + "first, and how far a point of movement goes.";
                 default:
                     return string.Empty;
             }

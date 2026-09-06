@@ -263,7 +263,7 @@ namespace Dragoneye.Multiplayer
             m_SummaryName.text = m_Name.text;
             m_SummaryClass.text = CharacterSheet.Describe(loadout);
 
-            CharacterSheet.Stats(m_Stats, loadout.Vitals);
+            CharacterSheet.Stats(m_Stats, loadout);
             CharacterSheet.Experience(m_XpBar, m_Build.Level, m_Build.Xp);
             CharacterSheet.Attributes(m_Attrs, loadout.Attributes, m_Build.Attributes);
             CharacterSheet.Pool(m_Pool, m_Build.StartingPool, budget);

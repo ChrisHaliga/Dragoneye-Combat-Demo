@@ -51,11 +51,6 @@ namespace Dragoneye.Game
              + "and never restored. Zero for most.")]
         int m_Armour;
 
-        [SerializeField, Tooltip("How heavy what it wears is. Prices every step it takes -- half "
-             + "a point in nothing, a whole point in light, two in heavy. Separate from the pool "
-             + "above so a thick hide can be armour without being slow.")]
-        ArmourClass m_ArmourClass = ArmourClass.None;
-
         [SerializeField, Tooltip("Whether this creature answers a clash with the better of two "
              + "elements -- a shield, or whatever stands in for one. It costs two elements rather "
              + "than one, so it drains as fast as it protects.")]
@@ -130,12 +125,20 @@ namespace Dragoneye.Game
         /// <summary>The armour pool this creature brings to the match.</summary>
         public int Armour => m_Armour;
 
-        /// <summary>How heavy what it wears is, which is what each of its steps costs.</summary>
-        public ArmourClass ArmourClass => m_ArmourClass;
-
         public int MaxAp => m_MaxAp;
 
+        /// <summary>Authored directly, and it prices every step: see CombatRules.StepCostFor.</summary>
         public int Speed => m_Speed;
+
+        /// <summary>
+        /// What this creature is made of: its species baseline, with nothing bought on top.
+        ///
+        /// A premade does not visit the creator, so the baseline is the whole of its attributes --
+        /// which is what feeds its weapon skills and its regeneration, exactly as it would a
+        /// character who had spent no points.
+        /// </summary>
+        public AttributeBlock Attributes =>
+            m_Species != null ? m_Species.Baseline : AttributeBlock.Zero;
 
         /// <summary>
         /// The pool a premade creature starts with.

@@ -68,19 +68,25 @@ namespace Dragoneye.MultiplayerEditor
 
             // The self-directed ones are the point of the rest of the set. Without something worth
             // spending a turn on that is not an attack, every turn is the same turn.
+            // Weapon skills scale: the number here is the base, and the fighter's Strength or
+            // Dexterity is added on top. Heavy things scale with Strength, quick ones with
+            // Dexterity, so a bow in a strongman's hands is still a bow.
             var strike = Skill(100, "Strike", Element.Pyro, ap: 1, elementCost: 1, range: 1,
-                SkillTarget.Creature, SkillEffectKind.Damage, 6,
-                "A committed swing. Cheap, and it asks its question in Pyro.");
-            var cleave = Skill(101, "Cleave", Element.Geo, ap: 2, elementCost: 2, range: 1,
-                SkillTarget.Creature, SkillEffectKind.Damage, 11,
-                "Slower and dearer, and it ends arguments.", level: 3);
-            var loose = Skill(102, "Loose", Element.Aero, ap: 1, elementCost: 1, range: 4,
-                SkillTarget.Creature, SkillEffectKind.Damage, 5,
-                "From wherever you are standing, which is the whole idea.");
-            var jab = Skill(103, "Jab", Element.Aero, ap: 1, elementCost: 1, range: 1,
                 SkillTarget.Creature, SkillEffectKind.Damage, 4,
+                "A committed swing. Cheap, and it asks its question in Pyro.",
+                scaling: Attribute.Strength);
+            var cleave = Skill(101, "Cleave", Element.Geo, ap: 2, elementCost: 2, range: 1,
+                SkillTarget.Creature, SkillEffectKind.Damage, 8,
+                "Slower and dearer, and it ends arguments.", level: 3,
+                scaling: Attribute.Strength);
+            var loose = Skill(102, "Loose", Element.Aero, ap: 1, elementCost: 1, range: 4,
+                SkillTarget.Creature, SkillEffectKind.Damage, 3,
+                "From wherever you are standing, which is the whole idea.",
+                scaling: Attribute.Dexterity);
+            var jab = Skill(103, "Jab", Element.Aero, ap: 1, elementCost: 1, range: 1,
+                SkillTarget.Creature, SkillEffectKind.Damage, 2,
                 "Quick, and it asks its question in Aero. What you throw when Aero is what you "
-                + "are holding.");
+                + "are holding.", scaling: Attribute.Dexterity);
             var ember = Skill(104, "Ember", Element.Pyro, ap: 2, elementCost: 2, range: 3,
                 SkillTarget.Creature, SkillEffectKind.Damage, 9,
                 "Reaches, and it is expensive in exactly the element it is made of.", level: 2);
@@ -103,18 +109,19 @@ namespace Dragoneye.MultiplayerEditor
 
             // Ids are hand-assigned and permanent: they are written into saved characters and cross
             // the network. Grouped by kind so a new weapon is obviously an 1x.
-            var sword = Equipment(10, "Sword", EquipmentSlot.Weapon, Attr(strength: 1),
+            // A weapon is its skills and nothing else. It used to nudge an attribute as well,
+            // and every weapon in the list was two things to compare instead of one.
+            var sword = Equipment(10, "Sword", EquipmentSlot.Weapon,
                 "A soldier's blade. Reliable, and heavy enough to matter.", strike);
             var greataxe = Equipment(11, "Greataxe", EquipmentSlot.Weapon,
-                Attr(strength: 2, dexterity: -1),
                 "Enormous. You will hit first only by accident.", strike, cleave);
-            var bow = Equipment(12, "Bow", EquipmentSlot.Weapon, Attr(skill: 1),
+            var bow = Equipment(12, "Bow", EquipmentSlot.Weapon,
                 "Keeps the fight at the distance you choose.", loose);
-            var dagger = Equipment(13, "Dagger", EquipmentSlot.Weapon, Attr(dexterity: 1),
+            var dagger = Equipment(13, "Dagger", EquipmentSlot.Weapon,
                 "Short reach, and you will be somewhere else before it is answered.", jab);
-            var staff = Equipment(14, "Staff", EquipmentSlot.Weapon, Attr(willpower: 1),
+            var staff = Equipment(14, "Staff", EquipmentSlot.Weapon,
                 "Focuses what you draw from the pool.", ember);
-            var mace = Equipment(15, "Mace", EquipmentSlot.Weapon, Attr(strength: 1, willpower: 1),
+            var mace = Equipment(15, "Mace", EquipmentSlot.Weapon,
                 "Blunt and devout. The two go together more often than anyone admits.", smite);
 
             // Four armour, in the offhand, so carrying one costs no speed and no step. What it
@@ -125,17 +132,19 @@ namespace Dragoneye.MultiplayerEditor
             // one, so it would have made every defence twice as expensive for as long as the shield
             // was equipped -- a drain the player never chose and cannot switch off mid-fight. An
             // item that quietly doubles your burn rate is not a defensive item.
-            var shield = Equipment(30, "Shield", EquipmentSlot.Offhand, Attr(toughness: 1),
-                "Four armour between you and anything that reaches you, and no speed for it. "
-                + "It costs you the other hand.",
+            var shield = Equipment(30, "Shield", EquipmentSlot.Offhand,
+                "Between you and anything that reaches you, and no speed for it. It costs you "
+                + "the other hand.",
                 new SkillAsset[0], ArmourClass.None, damageReduction: 4);
 
-            var light = Armour(20, "Light armour", Attr(toughness: 1), ArmourClass.Light,
-                "Padding and leather. Four armour, and a whole point a tile.");
-            var medium = Armour(21, "Medium armour", Attr(toughness: 2), ArmourClass.Medium,
-                "Mail. Eight armour, at two speed and a point and a half a tile.");
-            var heavy = Armour(22, "Heavy armour", Attr(toughness: 3), ArmourClass.Heavy,
-                "Plate. Sixteen armour, two points a tile, and everyone else has already acted.");
+            // The numbers are not in the words: the creator prints "+4 ARM  -2 SPD" beside the
+            // name from the rules, so a retune does not leave a description telling a lie.
+            var light = Armour(20, "Light armour", ArmourClass.Light,
+                "Padding and leather. You will still be quick.");
+            var medium = Armour(21, "Medium armour", ArmourClass.Medium,
+                "Mail. A fair trade, most days.");
+            var heavy = Armour(22, "Heavy armour", ArmourClass.Heavy,
+                "Plate. Everyone else has already acted, and the walk is long.");
 
             // One per species, all four conditioned on having nothing in the weapon slot. The
             // numbers are deliberately identical: what differs today is the name and the flavour,
@@ -385,10 +394,10 @@ namespace Dragoneye.MultiplayerEditor
         /// </summary>
         static SkillAsset Unarmed(int id, int speciesId, string name, string description) =>
             Skill(id, name, Element.Geo, ap: 1, elementCost: 1, range: 1,
-                SkillTarget.Creature, SkillEffectKind.Damage, 4, description,
+                SkillTarget.Creature, SkillEffectKind.Damage, 2, description,
                 level: 1,
                 conditions: new[] { SkillCondition.NoWeapon, SkillCondition.Species(speciesId) },
-                options: k_Physical);
+                options: k_Physical, scaling: Attribute.Strength);
 
         /// <summary>
         /// The four an unarmed strike may be made of.
@@ -403,7 +412,7 @@ namespace Dragoneye.MultiplayerEditor
         static SkillAsset Skill(int id, string name, Element element, int ap, int elementCost,
             int range, SkillTarget target, SkillEffectKind effect, int amount, string description,
             int level = 1, IReadOnlyList<SkillCondition> conditions = null,
-            IReadOnlyList<Element> options = null)
+            IReadOnlyList<Element> options = null, Attribute? scaling = null)
         {
             var asset = Upsert<SkillAsset>($"{k_Folder}/Skill{Sanitise(name)}.asset");
             var serialized = new SerializedObject(asset);
@@ -418,6 +427,9 @@ namespace Dragoneye.MultiplayerEditor
             serialized.FindProperty("m_Target").intValue = (int)target;
             serialized.FindProperty("m_Effect").intValue = (int)effect;
             serialized.FindProperty("m_Amount").intValue = amount;
+            serialized.FindProperty("m_Scales").boolValue = scaling.HasValue;
+            serialized.FindProperty("m_ScalesWith").intValue =
+                (int)(scaling ?? Attribute.Strength);
             serialized.FindProperty("m_LevelRequired").intValue = level;
 
             WriteConditions(serialized.FindProperty("m_Conditions"), conditions);
@@ -466,20 +478,18 @@ namespace Dragoneye.MultiplayerEditor
         }
 
         static EquipmentAsset Equipment(int id, string name, EquipmentSlot slot,
-            AttributeValues modifiers, string description, params SkillAsset[] skills) =>
-            Equipment(id, name, slot, modifiers, description, skills, ArmourClass.None);
+            string description, params SkillAsset[] skills) =>
+            Equipment(id, name, slot, description, skills, ArmourClass.None);
 
         /// <summary>
-        /// Armour carries no reduction of its own: what a suit stops comes from its class, so that
-        /// "medium stops two" is one rule rather than a number repeated on every suit.
+        /// Armour carries no pool of its own: what a suit stops comes from its class, so that
+        /// "medium stops eight" is one rule rather than a number repeated on every suit.
         /// </summary>
-        static EquipmentAsset Armour(int id, string name, AttributeValues modifiers,
-            ArmourClass armour, string description) =>
-            Equipment(id, name, EquipmentSlot.Armor, modifiers, description, new SkillAsset[0],
-                armour);
+        static EquipmentAsset Armour(int id, string name, ArmourClass armour, string description) =>
+            Equipment(id, name, EquipmentSlot.Armor, description, new SkillAsset[0], armour);
 
         static EquipmentAsset Equipment(int id, string name, EquipmentSlot slot,
-            AttributeValues modifiers, string description, IReadOnlyList<SkillAsset> skills,
+            string description, IReadOnlyList<SkillAsset> skills,
             ArmourClass armour = ArmourClass.None, int damageReduction = 0,
             bool grantsAdvantage = false)
         {
@@ -495,7 +505,6 @@ namespace Dragoneye.MultiplayerEditor
             serialized.FindProperty("m_DamageReduction").intValue = damageReduction;
             serialized.FindProperty("m_GrantsAdvantage").boolValue = grantsAdvantage;
 
-            WriteAttributes(serialized.FindProperty("m_Modifiers"), modifiers);
             WriteList(serialized.FindProperty("m_Skills"), skills);
             serialized.ApplyModifiedPropertiesWithoutUndo();
 

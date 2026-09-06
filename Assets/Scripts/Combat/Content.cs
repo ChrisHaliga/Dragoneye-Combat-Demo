@@ -116,11 +116,15 @@ namespace Dragoneye.Combat
     ///
     /// Described by what it grants rather than by a kind, so two weapons may share nothing but a
     /// slot. "Heavy armour" is not a category the rules know about -- it is an item in the armour
-    /// slot whose modifiers happen to trade speed for vitality.
+    /// slot with a class, and the class is what costs speed and what stops blows.
+    ///
+    /// An item never touches an attribute. A weapon is its skills, armour is its pool and its
+    /// weight, and an offhand is one or the other. There used to be modifiers here, and every item
+    /// in a list was two things to compare instead of one.
     /// </summary>
     public sealed class EquipmentSpec
     {
-        public EquipmentSpec(int id, string name, EquipmentSlot slot, AttributeBlock modifiers,
+        public EquipmentSpec(int id, string name, EquipmentSlot slot,
             IReadOnlyList<int> skillIds = null, ArmourClass armour = ArmourClass.None,
             string description = "", int armourPoints = 0, bool grantsAdvantage = false)
         {
@@ -129,7 +133,6 @@ namespace Dragoneye.Combat
             Id = id;
             Name = name ?? string.Empty;
             Slot = slot;
-            Modifiers = modifiers;
             SkillIds = skillIds ?? System.Array.Empty<int>();
             Description = description ?? string.Empty;
             ArmourPoints = armourPoints < 0 ? 0 : armourPoints;
@@ -142,11 +145,19 @@ namespace Dragoneye.Combat
 
         public EquipmentSlot Slot { get; }
 
-        /// <summary>Added to the resolved attributes. May be negative.</summary>
-        public AttributeBlock Modifiers { get; }
-
-        /// <summary>How much this slows its wearer. Only armour is anything but None.</summary>
+        /// <summary>How much this slows its wearer, and what it stops. Only armour is anything but None.</summary>
         public ArmourClass Armour { get; }
+
+        /// <summary>
+        /// The whole armour pool this gives: the class's, plus anything on top.
+        ///
+        /// One answer for a suit and a shield alike, so a tooltip does not have to know which it
+        /// is holding.
+        /// </summary>
+        public int TotalArmour => ArmourRules.PointsFor(Armour) + ArmourPoints;
+
+        /// <summary>What wearing this does to speed. Zero for anything that is not a suit.</summary>
+        public int SpeedCost => ArmourRules.SpeedCostOf(Armour);
 
         /// <summary>
         /// Whether holding this gives its wearer the better of two elements in a clash.

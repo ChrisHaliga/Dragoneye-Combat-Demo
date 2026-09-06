@@ -22,23 +22,28 @@ namespace Dragoneye.Multiplayer
         const string DotSeparator = "\u00b7";
 
         /// <summary>
-        /// The three numbers that decide a fight, big enough to read at a glance.
+        /// The four numbers that decide a fight, big enough to read at a glance, each carrying
+        /// where it came from and what it does.
         ///
         /// Not level. Level is in the subtitle above every one of these, and a number already on
-        /// screen does not earn a quarter of the row.
+        /// screen does not earn a fifth of the row.
         /// </summary>
-        public static void Stats(VisualElement into, Vitals vitals)
+        public static void Stats(VisualElement into, Loadout loadout)
         {
+            var vitals = loadout.Vitals;
+
             into.Clear();
-            into.Add(Stat("HP", vitals.MaxHealth.ToString()));
-            into.Add(Stat("AP", vitals.MaxAp.ToString()));
-            into.Add(Stat("SPD", vitals.Speed.ToString()));
+            into.Add(Stat("HP", vitals.MaxHealth.ToString(), StatLore.Health(loadout)));
+            into.Add(Stat("AP", vitals.MaxAp.ToString(), StatLore.ActionPoints(loadout)));
+            into.Add(Stat("SPD", vitals.Speed.ToString(), StatLore.Speed(loadout)));
+            into.Add(Stat("ARM", loadout.ArmourPoints.ToString(), StatLore.Armour(loadout)));
         }
 
-        public static VisualElement Stat(string label, string value)
+        public static VisualElement Stat(string label, string value, string tooltip = null)
         {
             var stat = new VisualElement();
             stat.AddToClassList("stat");
+            stat.tooltip = tooltip;
 
             var name = new Label(label);
             name.AddToClassList("stat__label");
@@ -310,9 +315,13 @@ namespace Dragoneye.Multiplayer
             {
                 var line = new VisualElement();
                 line.AddToClassList("skill-line");
+
+                // What it does, in numbers, after what it is in words. The list already resolves
+                // the attributes in, so "6 damage" here is the 6 this character will do.
+                var effect = SkillEffectInfo.Describe(skill.Effect);
                 line.tooltip = string.IsNullOrWhiteSpace(skill.Description)
-                    ? skill.Name
-                    : skill.Description;
+                    ? $"{skill.Name}\n\n{effect}"
+                    : $"{skill.Description}\n\n{effect}";
 
                 var name = new Label(skill.Name);
                 name.AddToClassList("skill-line__name");
@@ -327,21 +336,6 @@ namespace Dragoneye.Multiplayer
                 line.Add(cost);
                 into.Add(line);
             }
-
-            // Armour reads here rather than in a passive line, because it is a number: the pool a
-            // creature has above its health, once, for the match.
-            if (loadout.ArmourPoints > 0)
-            {
-                var armour = new Label($"{loadout.ArmourPoints} armour, gone when it is gone");
-                armour.AddToClassList("passive-line");
-                into.Add(armour);
-            }
-
-            // What every tile will cost. Said even at the unarmoured price, because the one thing
-            // a player has to know before they buy plate is what walking cost them before it.
-            var step = new Label($"Moves at {loadout.StepCost} AP a tile");
-            step.AddToClassList("passive-line");
-            into.Add(step);
         }
 
         /// <summary>"Level 4 · Human · Guardian", or whichever parts of it resolved.</summary>

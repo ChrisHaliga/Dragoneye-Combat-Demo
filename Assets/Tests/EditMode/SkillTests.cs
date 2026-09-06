@@ -14,6 +14,26 @@ namespace Dragoneye.Hex.Tests
     /// </summary>
     public class SkillTests
     {
+        [Test]
+        public void AScalingSkillBecomesANumberInAFighterHands()
+        {
+            // "4 + STR" is what the sword says; 6 is what this fighter does with it. Everything
+            // downstream reads the number, and a skill that does not scale is untouched.
+            var strike = new SkillSpec(1, "Strike", Element.Pyro, Ap.FromWhole(1), 1, 1,
+                SkillTarget.Creature, new SkillEffect(SkillEffectKind.Damage, 4, Attribute.Strength));
+            var heal = new SkillSpec(2, "Recover", Element.Hydro, Ap.FromWhole(1), 1, 0,
+                SkillTarget.Self, new SkillEffect(SkillEffectKind.Heal, 6));
+
+            var fighter = AttributeBlock.Zero.With(Attribute.Strength, 2);
+
+            Assert.AreEqual("4 + STR", strike.Effect.Formula);
+            Assert.AreEqual(6, strike.Scaled(fighter).Effect.Amount);
+            Assert.IsFalse(strike.Scaled(fighter).Effect.Scales);
+            Assert.AreSame(heal, heal.Scaled(fighter));
+            Assert.AreEqual("6 damage", SkillEffectInfo.Describe(strike.Scaled(fighter).Effect));
+            Assert.AreEqual("4 + STR damage", SkillEffectInfo.Describe(strike.Effect));
+        }
+
         const int StrikeId = 100;
         const int RecoverId = 110;
 
@@ -181,9 +201,9 @@ namespace Dragoneye.Hex.Tests
             new SkillContent()
                 .With(Strike()).With(Recover())
                 .With(new ClassSpec(1, "Warrior", AttributeBlock.Zero, new[] { 10 }, new[] { RecoverId }))
-                .With(new EquipmentSpec(10, "Sword", EquipmentSlot.Weapon, AttributeBlock.Zero,
+                .With(new EquipmentSpec(10, "Sword", EquipmentSlot.Weapon,
                     new[] { StrikeId }))
-                .With(new EquipmentSpec(20, "Charm", EquipmentSlot.Armor, AttributeBlock.Zero,
+                .With(new EquipmentSpec(20, "Charm", EquipmentSlot.Armor,
                     new[] { StrikeId }));
 
         sealed class SkillContent : IContentIndex

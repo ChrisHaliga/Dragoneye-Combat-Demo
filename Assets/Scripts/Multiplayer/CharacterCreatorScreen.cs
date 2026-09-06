@@ -524,11 +524,16 @@ namespace Dragoneye.Multiplayer
         /// <summary>
         /// What an item is, for a tooltip: what it was written to be, then what it does.
         ///
-        /// Pulled off the spec rather than written here. Equipment is authored, so its description
-        /// is authored too -- a table of item text in the creation screen would be a second place
-        /// for a designer to have to remember to edit.
+        /// A weapon does its skills, so hovering one lists them, each with its price and what it
+        /// hits for -- the formula, because the attributes are still being decided on the same
+        /// screen. Armour and shields do numbers, and the numbers are the same shorthand as the
+        /// stats they change.
+        ///
+        /// The description is pulled off the spec rather than written here. Equipment is authored,
+        /// so its description is authored too -- a table of item text in the creation screen would
+        /// be a second place for a designer to have to remember to edit.
         /// </summary>
-        static string Explain(EquipmentSpec spec)
+        string Explain(EquipmentSpec spec)
         {
             if (spec == null)
             {
@@ -536,37 +541,35 @@ namespace Dragoneye.Multiplayer
             }
 
             var text = string.IsNullOrWhiteSpace(spec.Description) ? spec.Name : spec.Description;
-            var modifiers = Modifiers(spec.Modifiers);
+            var effects = Shorthand(spec);
 
-            if (modifiers.Length > 0)
+            if (effects.Length > 0)
             {
-                text += $"\n\n{modifiers}";
+                text += $"\n\n{effects}";
             }
 
-            var guard = ArmourRules.PointsFor(spec.Armour) + spec.ArmourPoints;
-
-            if (guard > 0)
+            foreach (var id in spec.SkillIds)
             {
-                text += $"\n{guard} armour";
-            }
-
-            // Only where the suit changes the price of a step. A shield says nothing here, which is
-            // the point of a shield.
-            if (spec.Armour != ArmourClass.None)
-            {
-                text += $"\n{ArmourRules.StepCost(spec.Armour)} AP a tile";
-            }
-
-            var speed = ArmourRules.SpeedCostOf(spec.Armour);
-
-            if (speed > 0)
-            {
-                text += $"\n-{speed} Speed";
+                if (m_Content != null && m_Content.TryGetSkill(id, out var skill))
+                {
+                    text += $"\n{skill.Name}  \u00b7  {SkillLine(skill)}";
+                }
             }
 
             return text;
         }
 
+        /// <summary>"1 AP · 1 PYR · 4 + STR damage", the way the skill list writes it.</summary>
+        static string SkillLine(SkillSpec skill)
+        {
+            var cost = skill.ElementCost > 0
+                ? $"{skill.ApCost} AP \u00b7 {skill.ElementCost} {ElementInfo.ShortNameOf(skill.Element)}"
+                : $"{skill.ApCost} AP";
+
+            return $"{cost} \u00b7 {SkillEffectInfo.Describe(skill.Effect)}";
+        }
+
+        /// <summary>The dropdown text: the name, and for anything worn, what it does to the stats.</summary>
         static string Describe(EquipmentSpec spec)
         {
             if (spec == null)
@@ -574,25 +577,31 @@ namespace Dragoneye.Multiplayer
                 return "None";
             }
 
-            var modifiers = Modifiers(spec.Modifiers);
-            return modifiers.Length == 0 ? spec.Name : $"{spec.Name}   {modifiers}";
+            var effects = Shorthand(spec);
+            return effects.Length == 0 ? spec.Name : $"{spec.Name}   {effects}";
         }
 
-        /// <summary>"+2 Power  -1 Speed", or empty when an item changes nothing.</summary>
-        static string Modifiers(AttributeBlock block)
+        /// <summary>
+        /// "+4 ARM  -2 SPD", in the same three letters the stats beside it use, or empty for a
+        /// weapon -- a weapon is its skills, and those are the tooltip's to list.
+        /// </summary>
+        static string Shorthand(EquipmentSpec spec)
         {
             var text = string.Empty;
 
-            foreach (var stat in AttributeInfo.All)
+            if (spec.TotalArmour > 0)
             {
-                var value = block[stat];
+                text += $"+{spec.TotalArmour} ARM  ";
+            }
 
-                if (value == 0)
-                {
-                    continue;
-                }
+            if (spec.SpeedCost > 0)
+            {
+                text += $"-{spec.SpeedCost} SPD  ";
+            }
 
-                text += $"{(value > 0 ? "+" : "")}{value} {AttributeInfo.NameOf(stat)}  ";
+            if (spec.GrantsAdvantage)
+            {
+                text += "Advantage  ";
             }
 
             return text.TrimEnd();
@@ -703,7 +712,7 @@ namespace Dragoneye.Multiplayer
 
             RefreshPortrait();
 
-            CharacterSheet.Stats(m_Stats, loadout.Vitals);
+            CharacterSheet.Stats(m_Stats, loadout);
 
             if (m_Xp != null)
             {

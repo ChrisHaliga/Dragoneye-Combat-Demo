@@ -86,7 +86,7 @@ namespace Dragoneye.Hex.Tests
                 .With(new SpeciesSpec(9, "Construct", AttributeBlock.Zero))
                 .With(new ClassSpec(1, "Guardian", AttributeBlock.Zero, new[] { SwordId },
                     new[] { RecoverId }))
-                .With(new EquipmentSpec(SwordId, "Sword", EquipmentSlot.Weapon, AttributeBlock.Zero,
+                .With(new EquipmentSpec(SwordId, "Sword", EquipmentSlot.Weapon,
                     new[] { StrikeId }));
 
         static CharacterBuild Human(Content content)
@@ -167,7 +167,10 @@ namespace Dragoneye.Hex.Tests
 
             Assert.AreEqual(human.Attributes.Strength + 1, resolved.Attributes.Strength);
             Assert.AreEqual(human.Attributes.Dexterity - 1, resolved.Attributes.Dexterity);
-            Assert.AreEqual(human.Vitals.Speed - 1, resolved.Vitals.Speed);
+
+            // Dexterity no longer feeds speed, so a Giantkin and a Human move alike; what the
+            // baseline reaches is the damage its weapon skills do.
+            Assert.AreEqual(human.Vitals.Speed, resolved.Vitals.Speed);
         }
 
         [Test]

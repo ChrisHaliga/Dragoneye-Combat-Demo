@@ -48,6 +48,9 @@ namespace Dragoneye.Data
 
         public int BaseAp => m_BaseAp;
 
+        /// <summary>What a creature of this species starts with, before anything is bought.</summary>
+        public AttributeBlock Baseline => m_Baseline.ToBlock();
+
         public SpeciesSpec ToSpec() =>
             new SpeciesSpec(m_Id, m_DisplayName, m_Baseline.ToBlock(),
                 ContentIds.SkillIds(m_Skills), m_Description, m_BaseAp);

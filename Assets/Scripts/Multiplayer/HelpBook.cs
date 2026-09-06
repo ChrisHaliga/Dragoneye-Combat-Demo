@@ -30,11 +30,22 @@ namespace Dragoneye.Multiplayer
 
             into.Clear();
 
+            // Declared here as well as in the stylesheet, the way the combat log's is: a scroll
+            // view whose mode was left to the markup has, more than once, ended up not scrolling.
+            if (into is ScrollView scroll)
+            {
+                scroll.mode = ScrollViewMode.Vertical;
+                scroll.verticalScrollerVisibility = ScrollerVisibility.Auto;
+                scroll.horizontalScrollerVisibility = ScrollerVisibility.Hidden;
+                scroll.mouseWheelScrollSize = 40;
+            }
+
             into.Add(Section("THE FIGHT"));
             into.Add(Text(
                 "Two sides take turns, one creature at a time. Turn order runs on Speed, highest "
                 + "first, and the bar across the top of the arena shows it. When everyone has had "
-                + "a turn the round ends and the order begins again."));
+                + "a turn the round ends and the order begins again. A creature also heals its "
+                + "Toughness at the start of each of its turns."));
             into.Add(Text(
                 "A creature refills its action points at the start of its own turn, and keeps "
                 + "whatever it does not spend until then. A turn ends when you say so -- never "
@@ -52,16 +63,17 @@ namespace Dragoneye.Multiplayer
                 + "silver bar over the health bar is the armour, in the turn order and on the "
                 + "card, and the number beside it is what is left."));
             into.Add(Text(
-                "Heavier armour holds more and costs more to move in. Light armour is four points "
-                + "and a whole action point per tile; medium is eight at one and a half; heavy is "
-                + "sixteen at two. With nothing worn a tile costs half a point. A shield adds four "
-                + "more and costs nothing to walk in -- what it costs is the hand, which a second "
-                + "weapon or a two-handed one would want."));
+                "Heavier armour holds more and costs more speed. Light armour is +4 ARM for -2 "
+                + "SPD; medium is +8 for -4; heavy is +16 for -8. A shield adds +4 ARM and costs no "
+                + "speed -- what it costs is the hand, which a second weapon or a two-handed one "
+                + "would want. Nothing you wear changes an attribute."));
 
             into.Add(Section("ACTION POINTS"));
             into.Add(Text(
-                "Everything costs action points. Walking costs half a point per tile with nothing "
-                + "worn, and more in armour; a skill costs whatever it says on it. Half points are "
+                "Everything costs action points. A skill costs whatever it says on it. Walking "
+                + "costs by your Speed: a point of movement carries you Speed-over-four tiles, so "
+                + "at the base speed of eight a tile costs half a point, at four it costs a whole "
+                + "one, and in plate with nothing to make up for it you crawl. Half points are "
                 + "real -- a light attack can cost half a point where a heavy one costs two."));
             into.Add(Text(
                 "Moving to reach a target is part of using a skill, not a separate order. If you "
@@ -167,14 +179,21 @@ namespace Dragoneye.Multiplayer
                 + "side cancel out, leaving an ordinary single commitment."));
 
             into.Add(Section("BUILDING A CHARACTER"));
-            into.Add(Bullet("Toughness and Vitality each give one more health per point."));
+            into.Add(Bullet("Vitality gives one more health per point."));
+            into.Add(Bullet("Willpower gives one more action point per point."));
             into.Add(Bullet(
-                "Dexterity gives one more speed per point. Speed decides who acts first, and "
-                + "armour takes it away again -- and prices every step you take."));
+                "Endurance gives one more speed per point, on a base of eight. Armour takes "
+                + "speed away, and speed prices every step."));
+            into.Add(Bullet("Toughness is healed back at the start of every one of your turns."));
             into.Add(Bullet(
-                "Endurance gives one more action point and one more speed per point."));
+                "Strength and Dexterity are added to weapon damage. Each weapon skill says which "
+                + "one it uses: a sword hits for 4 + STR, a bow for 3 + DEX."));
             into.Add(Bullet(
-                "Strength, Skill and Willpower are recorded but no rule reads them yet."));
+                "Skill will raise the chance to hit on skills that roll for it. None of the "
+                + "shipped skills roll yet."));
+            into.Add(Bullet(
+                "Weapons grant skills. Armour grants armour and costs speed. A shield grants "
+                + "armour and costs the hand. Nothing you equip touches an attribute."));
             into.Add(Text(
                 "Attributes get more expensive the higher you push them, so a spread and a spike "
                 + "cost differently for the same total. Elements are bought out of a separate "

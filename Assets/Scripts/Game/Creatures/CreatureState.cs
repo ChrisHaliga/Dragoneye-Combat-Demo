@@ -129,8 +129,14 @@ namespace Dragoneye.Game
         /// <summary>What the armour pool was when the match began. It only goes down.</summary>
         public int MaxArmour => Profile.Armour;
 
-        /// <summary>What one tile costs this creature, which its armour decides.</summary>
+        /// <summary>What one tile costs this creature, which its speed decides.</summary>
         public Ap StepCost => Profile.StepCost;
+
+        /// <summary>What this creature is made of, for the skills that scale with it.</summary>
+        public AttributeBlock Attributes => Profile.Attributes;
+
+        /// <summary>Health back at the start of every one of its turns.</summary>
+        public int Regen => Profile.Regen;
 
         /// <summary>What is left of the armour pool right now.</summary>
         public int CurrentArmour => m_CurrentArmour.Value;

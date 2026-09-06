@@ -205,14 +205,33 @@ namespace Dragoneye.Game
             m_Controller.EnableInClassList("is-hidden", creature.IsComputerControlled);
             m_Hp.text = $"{creature.CurrentHp} / {creature.MaxHp}";
 
-            // Only for creatures that have any. A row reading "0 / 0" is a row that says nothing.
+            // Always shown, even at nothing. Armour is one of the four numbers a creature is, and
+            // a row that comes and goes is a row the player cannot learn the position of.
             if (m_Armour != null && m_ArmourRow != null)
             {
                 m_Armour.text = $"{creature.CurrentArmour} / {creature.MaxArmour}";
-                m_ArmourRow.EnableInClassList("is-hidden", creature.MaxArmour <= 0);
+                m_ArmourRow.tooltip = StatLore.Armour(creature.MaxArmour);
             }
+
             m_Ap.text = $"{creature.CurrentAp} / {creature.MaxAp}";
             m_Speed.text = creature.Speed.ToString();
+
+            // What each number does, on the row. The card is where a player goes to understand a
+            // creature, and a stat with no explanation is a number they are being asked to guess.
+            if (m_Hp.parent != null)
+            {
+                m_Hp.parent.tooltip = StatLore.Health(creature.Regen);
+            }
+
+            if (m_Ap.parent != null)
+            {
+                m_Ap.parent.tooltip = StatLore.ActionPoints();
+            }
+
+            if (m_Speed.parent != null)
+            {
+                m_Speed.parent.tooltip = StatLore.Speed(creature.Speed);
+            }
             m_Description.text = definition != null ? definition.Description : string.Empty;
 
             BuildPips(creature.CurrentAp, creature.MaxAp);

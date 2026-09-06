@@ -157,7 +157,7 @@ namespace Dragoneye.Multiplayer
 
             var stats = new VisualElement();
             stats.AddToClassList("statline");
-            CharacterSheet.Stats(stats, loadout.Vitals);
+            CharacterSheet.Stats(stats, loadout);
             titles.Add(stats);
 
             var xp = new VisualElement();

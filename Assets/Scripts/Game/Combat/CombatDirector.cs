@@ -172,6 +172,13 @@ namespace Dragoneye.Game
 
             active.ServerRefillAp();
 
+            // Toughness. Health comes back a little every turn and armour never does, which is
+            // the whole difference between the two bars.
+            if (active.Regen > 0)
+            {
+                active.ServerHeal(active.Regen);
+            }
+
             if (active.IsComputerControlled)
             {
                 m_BrainTurn = StartCoroutine(m_BrainRunner.Run(active));

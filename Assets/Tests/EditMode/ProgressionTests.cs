@@ -274,11 +274,11 @@ namespace Dragoneye.Hex.Tests
         static FakeContent Content() =>
             new FakeContent()
                 .With(new ClassSpec(1, "Warrior", AttributeBlock.Zero, new[] { SwordId }))
-                .With(new EquipmentSpec(SwordId, "Sword", EquipmentSlot.Weapon, AttributeBlock.Zero,
+                .With(new EquipmentSpec(SwordId, "Sword", EquipmentSlot.Weapon,
                     new[] { 100, 101 }))
-                .With(new EquipmentSpec(PlateId, "Plate", EquipmentSlot.Armor, AttributeBlock.Zero,
+                .With(new EquipmentSpec(PlateId, "Plate", EquipmentSlot.Armor,
                     null, ArmourClass.Heavy))
-                .With(new EquipmentSpec(ShieldId, "Shield", EquipmentSlot.Offhand, AttributeBlock.Zero,
+                .With(new EquipmentSpec(ShieldId, "Shield", EquipmentSlot.Offhand,
                     null, ArmourClass.None, "", 3))
                 .With(new SkillSpec(100, "Strike", Element.Pyro, Ap.FromWhole(1), 1, 1,
                     SkillTarget.Creature, new SkillEffect(SkillEffectKind.Damage, 6)))

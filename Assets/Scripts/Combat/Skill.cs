@@ -46,12 +46,60 @@ namespace Dragoneye.Combat
     public readonly struct SkillEffect
     {
         public readonly SkillEffectKind Kind;
+
+        /// <summary>The authored number, before any attribute is added to it.</summary>
         public readonly int Amount;
 
-        public SkillEffect(SkillEffectKind kind, int amount)
+        /// <summary>
+        /// Which attribute is added to <see cref="Amount"/>, where one is. "4 + STR" is a weapon
+        /// skill's damage; a heal or a breath has none and is the number it says.
+        /// </summary>
+        public readonly Attribute? Scaling;
+
+        public SkillEffect(SkillEffectKind kind, int amount, Attribute? scaling = null)
         {
             Kind = kind;
             Amount = amount < 0 ? 0 : amount;
+            Scaling = scaling;
+        }
+
+        /// <summary>Whether an attribute still has to be added before this is a number.</summary>
+        public bool Scales => Scaling.HasValue;
+
+        /// <summary>The same effect with the attribute folded in. What the fighter actually does.</summary>
+        public SkillEffect Resolved(AttributeBlock attributes) =>
+            Scaling.HasValue
+                ? new SkillEffect(Kind, Amount + attributes[Scaling.Value])
+                : this;
+
+        /// <summary>"4 + STR", or "6" when there is nothing to add.</summary>
+        public string Formula =>
+            Scaling.HasValue
+                ? $"{Amount} + {AttributeInfo.ShortNameOf(Scaling.Value)}"
+                : Amount.ToString();
+    }
+
+    /// <summary>What an effect does, in words, for a tooltip or a line on a card.</summary>
+    public static class SkillEffectInfo
+    {
+        /// <summary>"6 damage", "4 + STR damage", "Heals 6", "2 AP back", "1 element back".</summary>
+        public static string Describe(SkillEffect effect)
+        {
+            switch (effect.Kind)
+            {
+                case SkillEffectKind.Damage:
+                    return $"{effect.Formula} damage";
+                case SkillEffectKind.Heal:
+                    return $"Heals {effect.Formula}";
+                case SkillEffectKind.RestoreAp:
+                    return $"{effect.Formula} AP back";
+                case SkillEffectKind.ReturnElement:
+                    return effect.Amount == 1 && !effect.Scales
+                        ? "1 spent element back"
+                        : $"{effect.Formula} spent elements back";
+                default:
+                    return string.Empty;
+            }
         }
     }
 
@@ -181,6 +229,20 @@ namespace Dragoneye.Combat
                 ? this
                 : new SkillSpec(Id, Name, element, ApCost, ElementCost, Range, Target, Effect,
                     Description, LevelRequired, Conditions, new[] { element });
+
+        /// <summary>
+        /// The same skill with a fighter's attributes folded into its effect.
+        ///
+        /// A skill that scales is a formula until somebody holds it; this is where it becomes a
+        /// number. Everything that reads <see cref="Effect"/> after this -- the bar, the prompt,
+        /// the clash, the log -- sees the number and nothing else.
+        /// </summary>
+        public SkillSpec Scaled(AttributeBlock attributes) =>
+            Effect.Scales
+                ? new SkillSpec(Id, Name, Element, ApCost, ElementCost, Range, Target,
+                    Effect.Resolved(attributes), Description, LevelRequired, Conditions,
+                    ElementOptions)
+                : this;
 
         /// <summary>Whether this element is one the skill may be made of.</summary>
         public bool Offers(Element element)
