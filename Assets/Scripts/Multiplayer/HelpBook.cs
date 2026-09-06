@@ -101,6 +101,17 @@ namespace Dragoneye.Multiplayer
                 + "which is how they work out what you might still be holding -- and how you work "
                 + "out what they are."));
 
+            into.Add(Section("FIGHTING WITH NOTHING"));
+            into.Add(Text(
+                "A character carrying no weapon is not unarmed in the useless sense. Every species "
+                + "has its own strike -- fists, claws, a slam, a shiv -- and it appears the moment "
+                + "the weapon slot is empty and goes away again the moment it is not."));
+            into.Add(Text(
+                "It hits for less than a real weapon, and in exchange it is the only attack in the "
+                + "game you choose the element of: any of the four common ones, picked each time "
+                + "you throw it. A sword asks its question in one element because a sword is a "
+                + "particular thing. A fist is not."));
+
             into.Add(Section("WHICH ELEMENT ANSWERS WHICH"));
             into.Add(Text(
                 "The four common elements answer Arcana. Arcana answers Lux and Nyx. Lux and Nyx "

@@ -91,12 +91,17 @@ namespace Dragoneye.Game
             public readonly Facing? Facing;
             public readonly int SkillId;
 
-            public PendingAction(CreatureState actor, Hex where, Facing? facing, int skillId)
+            /// <summary>Which element the skill was going to arrive as, where that was a choice.</summary>
+            public readonly Element Element;
+
+            public PendingAction(CreatureState actor, Hex where, Facing? facing, int skillId,
+                Element element = default)
             {
                 Actor = actor;
                 Where = where;
                 Facing = facing;
                 SkillId = skillId;
+                Element = element;
             }
 
             public bool Exists => Actor != null;
@@ -275,7 +280,7 @@ namespace Dragoneye.Game
         /// creature that cannot pay either cost to be unable to use the skill at all.
         /// </summary>
         public bool ServerUseSkill(CreatureState actor, int skillId, Hex target,
-            out SkillRefusal refusal)
+            out SkillRefusal refusal, Element? element = null)
         {
             refusal = SkillRefusal.NoSkill;
 
@@ -293,6 +298,17 @@ namespace Dragoneye.Game
                 return false;
             }
 
+            // The choice settled before anything reads the skill. Everything downstream -- the cost
+            // check, the commitment, the clash -- asks for one element, so resolving the pick here
+            // means none of it has to know that skills with options exist.
+            skill = Settle(skill, element, pool.ServerLedger);
+
+            if (skill == null)
+            {
+                refusal = SkillRefusal.NotEnoughElement;
+                return false;
+            }
+
             var occupant = TargetAt(target);
 
             // A skill that has to walk into range is a walk, and it provokes like one. Checked
@@ -301,7 +317,7 @@ namespace Dragoneye.Game
                 && skill.Target != SkillTarget.Self
                 && !CombatRules.InRange(Hex.Distance(actor.Cell, target), skill.Range)
                 && CanAffordApproach(actor, skill, target, pool)
-                && Interrupt(actor, new PendingAction(actor, target, null, skillId)))
+                && Interrupt(actor, new PendingAction(actor, target, null, skillId, skill.Element)))
             {
                 refusal = SkillRefusal.None;
                 return true;
@@ -380,6 +396,25 @@ namespace Dragoneye.Game
             return pool == null
                 || SkillRules.CheckAffordable(skill, true, actor.CurrentAp, pool.ServerLedger)
                     == SkillRefusal.None;
+        }
+
+        /// <summary>
+        /// A skill with its element decided, or null when none of its options can be paid for.
+        ///
+        /// A pick the skill does not offer is discarded rather than refused: the client that sent
+        /// it is either out of date or lying, and in both cases the honest answer is the one the
+        /// skill would have given on its own.
+        /// </summary>
+        static SkillSpec Settle(SkillSpec skill, Element? element, ElementLedger ledger)
+        {
+            if (element.HasValue && skill.Offers(element.Value))
+            {
+                return skill.WithElement(element.Value);
+            }
+
+            return SkillRules.TryChooseElement(skill, ledger, out var chosen)
+                ? skill.WithElement(chosen)
+                : null;
         }
 
         /// <summary>Which way one hex lies from another, as a facing.</summary>
@@ -565,6 +600,10 @@ namespace Dragoneye.Game
             var pool = watcher.GetComponent<CreaturePool>();
             var skill = SwingOf(watcher);
 
+            // A fist has a choice of elements and nobody to ask, so it takes the first it can pay
+            // for -- the same one the prompt showed, because the prompt asked the same question.
+            skill = pool != null ? Settle(skill, null, pool.ServerLedger) : null;
+
             // Committed, not spent: a swing hides what it is made of until the answer is in, the
             // same as any other attack.
             if (pool == null || skill == null
@@ -621,7 +660,7 @@ namespace Dragoneye.Game
             // Replayed from the top. Everything it checks may have changed while the swings landed
             // -- health, action points, who is standing where -- and the check that suspended it
             // will not fire twice, because the action is no longer pending.
-            ServerUseSkill(pending.Actor, pending.SkillId, pending.Where, out _);
+            ServerUseSkill(pending.Actor, pending.SkillId, pending.Where, out _, pending.Element);
         }
 
         /// <summary>

@@ -1128,6 +1128,35 @@
     background-image: url("Generated/ui-button-primary.png");
 }
 
+/* Picking what a fist is made of. The bar becomes the question while it is being asked, so the
+   options sit where the skills were and read at the same size. */
+.skill-choice__title {
+    -unity-text-align: middle-center;
+    margin-right: 10px;
+    font-size: 11px;
+    -unity-font-style: bold;
+    letter-spacing: 2px;
+    color: rgb(198, 158, 88);
+}
+
+.skill-choice {
+    align-items: center;
+    justify-content: center;
+}
+
+.skill-choice__mark {
+    width: 26px;
+    height: 26px;
+    margin-bottom: 4px;
+    -unity-background-scale-mode: scale-to-fit;
+}
+
+.skill-choice--cancel {
+    -unity-text-align: middle-center;
+    font-size: 11px;
+    color: rgb(139, 147, 165);
+}
+
 .skill-button__name {
     flex-grow: 1;
     font-size: 11px;

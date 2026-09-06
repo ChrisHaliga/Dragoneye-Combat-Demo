@@ -101,8 +101,10 @@ namespace Dragoneye.Combat
                 return SkillRefusal.NotEnoughAp;
             }
 
-            // Element cost of zero is legal and means the skill draws on nothing.
-            if (skill.ElementCost > 0 && !ledger.CanSpend(skill.Element, skill.ElementCost))
+            // Element cost of zero is legal and means the skill draws on nothing. A skill with
+            // a choice is affordable when any one of its options is: a fist you can only afford to
+            // throw as fire is still a fist you can throw.
+            if (skill.ElementCost > 0 && !TryChooseElement(skill, ledger, out _))
             {
                 return SkillRefusal.NotEnoughElement;
             }
@@ -115,6 +117,45 @@ namespace Dragoneye.Combat
             }
 
             return SkillRefusal.None;
+        }
+
+        /// <summary>
+        /// The first element this skill could be made of that the creature can actually pay for.
+        ///
+        /// In the order the skill offers them, so the answer is the one the player would predict
+        /// rather than the one that happens to be best -- an automatic choice that outsmarts its
+        /// owner is a choice they cannot learn to make themselves.
+        ///
+        /// Used to decide whether a skill with options is usable at all, to settle one that arrives
+        /// without a pick, and to make an opportunity attack out of a fist.
+        /// </summary>
+        public static bool TryChooseElement(SkillSpec skill, ElementLedger ledger,
+            out Element chosen)
+        {
+            chosen = default;
+
+            if (skill == null)
+            {
+                return false;
+            }
+
+            chosen = skill.Element;
+
+            if (skill.ElementCost <= 0)
+            {
+                return true;
+            }
+
+            foreach (var option in skill.ElementOptions)
+            {
+                if (ledger.CanSpend(option, skill.ElementCost))
+                {
+                    chosen = option;
+                    return true;
+                }
+            }
+
+            return false;
         }
 
         /// <summary>

@@ -135,18 +135,31 @@ namespace Dragoneye.MultiplayerEditor
             var heavy = Armour(22, "Heavy armour", Attr(toughness: 3), ArmourClass.Heavy,
                 "Plate. Four damage off every blow, and everyone else has already acted.");
 
+            // One per species, all four conditioned on having nothing in the weapon slot. The
+            // numbers are deliberately identical: what differs today is the name and the flavour,
+            // which is the hook to differentiate them on later without inventing balance now.
+            var fists = Unarmed(120, 1, "Fists",
+                "No weapon, and no excuses. Whatever you throw, you throw with.");
+            var claws = Unarmed(121, 2, "Claws",
+                "What you were born holding. It has never needed sharpening.");
+            var slam = Unarmed(122, 3, "Slam",
+                "The whole of you, arriving at once.");
+            var shiv = Unarmed(123, 4, "Shiv",
+                "Not a weapon. Nobody has ever successfully argued otherwise.");
+
             var species = new List<SpeciesDefinition>
             {
                 // Four action points each. The field exists so that something quick or something
                 // ponderous does not need a rule of its own; nothing authored today differs yet.
                 Species(1, "Human", Attr(),
-                    "Adaptable, and the only species with nothing to apologise for.", 4, breath),
+                    "Adaptable, and the only species with nothing to apologise for.", 4,
+                    breath, fists),
                 Species(2, "Beast", Attr(dexterity: 1, willpower: -1),
-                    "Quick, and disinclined to argue about it.", 4, breath),
+                    "Quick, and disinclined to argue about it.", 4, breath, claws),
                 Species(3, "Giantkin", Attr(strength: 1, toughness: 1, dexterity: -1),
-                    "Slow to arrive and hard to remove.", 4, breath),
+                    "Slow to arrive and hard to remove.", 4, breath, slam),
                 Species(4, "Goblinoid", Attr(dexterity: 1, toughness: -1),
-                    "Small, fast, and entirely aware of both.", 4, breath)
+                    "Small, fast, and entirely aware of both.", 4, breath, shiv)
             };
 
             // The seven. Baselines are deliberately flat: a class is what it may carry and what it
@@ -356,9 +369,39 @@ namespace Dragoneye.MultiplayerEditor
             return asset;
         }
 
+        /// <summary>
+        /// An unarmed strike: what a species does with nothing in its hands.
+        ///
+        /// Conditioned on the weapon slot being empty rather than removed from the list by hand,
+        /// which is the whole point of conditions -- the same asset is a skill or is not one
+        /// depending on what the character is holding, and nothing has to remember to take it away.
+        ///
+        /// It offers the four physical elements. A sword asks its question in one element because a
+        /// sword is a particular thing; a fist is not, so what it arrives as is the fighter own
+        /// decision -- which makes going unarmed a real trade rather than a penalty: less damage,
+        /// and the only attack in the game that can answer whatever it needs to.
+        /// </summary>
+        static SkillAsset Unarmed(int id, int speciesId, string name, string description) =>
+            Skill(id, name, Element.Geo, ap: 1, elementCost: 1, range: 1,
+                SkillTarget.Creature, SkillEffectKind.Damage, 4, description,
+                level: 1,
+                conditions: new[] { SkillCondition.NoWeapon, SkillCondition.Species(speciesId) },
+                options: k_Physical);
+
+        /// <summary>
+        /// The four an unarmed strike may be made of.
+        ///
+        /// The commons, and not Lux, Nyx or Arcana. Those three are the tiers a pool is built to
+        /// reach for, and a fist that could be any of them would answer everything -- the point of
+        /// paying for Arcana is that not everybody has it.
+        /// </summary>
+        static readonly Element[] k_Physical =
+            { Element.Geo, Element.Hydro, Element.Pyro, Element.Aero };
+
         static SkillAsset Skill(int id, string name, Element element, int ap, int elementCost,
             int range, SkillTarget target, SkillEffectKind effect, int amount, string description,
-            int level = 1)
+            int level = 1, IReadOnlyList<SkillCondition> conditions = null,
+            IReadOnlyList<Element> options = null)
         {
             var asset = Upsert<SkillAsset>($"{k_Folder}/Skill{Sanitise(name)}.asset");
             var serialized = new SerializedObject(asset);
@@ -375,10 +418,49 @@ namespace Dragoneye.MultiplayerEditor
             serialized.FindProperty("m_Amount").intValue = amount;
             serialized.FindProperty("m_LevelRequired").intValue = level;
 
+            WriteConditions(serialized.FindProperty("m_Conditions"), conditions);
+            WriteElements(serialized.FindProperty("m_ElementOptions"), options);
+
             serialized.ApplyModifiedPropertiesWithoutUndo();
 
             EditorUtility.SetDirty(asset);
             return asset;
+        }
+
+        static void WriteConditions(SerializedProperty list,
+            IReadOnlyList<SkillCondition> conditions)
+        {
+            list.ClearArray();
+
+            if (conditions == null)
+            {
+                return;
+            }
+
+            for (var i = 0; i < conditions.Count; i++)
+            {
+                list.InsertArrayElementAtIndex(i);
+
+                var entry = list.GetArrayElementAtIndex(i);
+                entry.FindPropertyRelative("Kind").intValue = (int)conditions[i].Kind;
+                entry.FindPropertyRelative("Value").intValue = conditions[i].Value;
+            }
+        }
+
+        static void WriteElements(SerializedProperty list, IReadOnlyList<Element> elements)
+        {
+            list.ClearArray();
+
+            if (elements == null)
+            {
+                return;
+            }
+
+            for (var i = 0; i < elements.Count; i++)
+            {
+                list.InsertArrayElementAtIndex(i);
+                list.GetArrayElementAtIndex(i).intValue = (int)elements[i];
+            }
         }
 
         static EquipmentAsset Equipment(int id, string name, EquipmentSlot slot,

@@ -168,25 +168,40 @@ namespace Dragoneye.Game
             return false;
         }
 
-        /// <summary>Client-side entry point. Asks the server to use a skill on a hex.</summary>
-        public void RequestUse(int skillId, Hex target)
+        /// <summary>
+        /// Client-side entry point. Asks the server to use a skill on a hex.
+        ///
+        /// The element is only meaningful for a skill that offers a choice of them. Sent rather
+        /// than decided on the server so that what the player picked is what happens -- an element
+        /// chosen for them, however sensibly, is a decision they cannot learn from.
+        /// </summary>
+        public void RequestUse(int skillId, Hex target, Element? element = null)
         {
             if (LocalPlayer.Controls(m_Creature)
                 && TurnState.Current != null && TurnState.Current.IsActive(m_Creature))
             {
-                RequestUseRpc(skillId, new NetCell(target));
+                RequestUseRpc(skillId, new NetCell(target),
+                    element.HasValue ? (byte)element.Value : (byte)0, element.HasValue);
             }
         }
 
         [Rpc(SendTo.Server, InvokePermission = RpcInvokePermission.Owner)]
-        void RequestUseRpc(int skillId, NetCell cell, RpcParams rpc = default)
+        void RequestUseRpc(int skillId, NetCell cell, byte element, bool chose,
+            RpcParams rpc = default)
         {
             if (!SenderControlsThis(rpc.Receive.SenderClientId) || CombatDirector.Current == null)
             {
                 return;
             }
 
-            if (!CombatDirector.Current.ServerUseSkill(m_Creature, skillId, cell.ToHex(), out var why))
+            var picked = (Element)element;
+
+            // An element arrives as a byte, and casting to an enum is not a checked conversion.
+            // Whether the skill actually offers it is the director question, not this one.
+            var chosen = chose && ElementInfo.IsDefined(picked) ? picked : (Element?)null;
+
+            if (!CombatDirector.Current.ServerUseSkill(m_Creature, skillId, cell.ToHex(),
+                    out var why, chosen))
             {
                 // Refusals are ordinary -- a misclick out of range is one -- so this is verbose
                 // rather than a warning.

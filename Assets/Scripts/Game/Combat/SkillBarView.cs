@@ -31,6 +31,14 @@ namespace Dragoneye.Game
 
         int m_Selected = NoSkill;
 
+        // Which element the armed skill will arrive as, for the few that offer a choice. Null for
+        // everything else, and for a skill still waiting to be told.
+        Element? m_SelectedElement;
+
+        // The skill whose element the player is picking right now, if any. The bar shows the
+        // options in place of the skills while this is set.
+        int m_Choosing = NoSkill;
+
         // What the bar was last drawn from. A click is a press and a release on the same element,
         // so rebuilding every frame destroyed the button between the two and nothing was ever
         // clicked -- the bar looked alive and did nothing at all.
@@ -40,6 +48,7 @@ namespace Dragoneye.Game
         // Not -1: that is a real selection now, and a sentinel that collides with one means the
         // first draw of a turn is skipped.
         int m_DrawnSelected = int.MinValue;
+        int m_DrawnChoosing = int.MinValue;
         int m_DrawnCount = -1;
 
         /// <summary>
@@ -60,8 +69,20 @@ namespace Dragoneye.Game
         /// <summary>The skill the next board click will use, or <see cref="NoSkill"/>.</summary>
         public int SelectedSkill => m_Selected;
 
+        /// <summary>
+        /// Which element the armed skill will arrive as, for the few that offer a choice.
+        ///
+        /// Null for everything else, which is what the server reads as "the skill decides".
+        /// </summary>
+        public Element? SelectedElement => m_SelectedElement;
+
         /// <summary>Disarms, after a skill has been used or the turn has passed.</summary>
-        public void ClearSelection() => m_Selected = NoSkill;
+        public void ClearSelection()
+        {
+            m_Selected = NoSkill;
+            m_SelectedElement = null;
+            m_Choosing = NoSkill;
+        }
 
         void Start()
         {
@@ -132,7 +153,7 @@ namespace Dragoneye.Game
 
             if (m_DrawnFor == actor.TurnId && m_DrawnAp == actor.CurrentAp
                 && m_DrawnPool == poolHash && m_DrawnSelected == m_Selected
-                && m_DrawnCount == count)
+                && m_DrawnChoosing == m_Choosing && m_DrawnCount == count)
             {
                 return;
             }
@@ -141,6 +162,7 @@ namespace Dragoneye.Game
             m_DrawnAp = actor.CurrentAp;
             m_DrawnPool = poolHash;
             m_DrawnSelected = m_Selected;
+            m_DrawnChoosing = m_Choosing;
             m_DrawnCount = count;
 
             Rebuild(actor);
@@ -184,6 +206,17 @@ namespace Dragoneye.Game
 
             DrawHand(pool);
 
+            // Picking what a fist is made of takes the bar over entirely. It is one question with
+            // four answers and a way out, and leaving the rest of the bar live beside it would
+            // offer a second decision on top of the one already being asked.
+            if (m_Choosing != NoSkill && commands.TryGetSkill(m_Choosing, out var choosing))
+            {
+                DrawElementChoice(choosing, actor, pool.Ledger);
+                return;
+            }
+
+            m_Choosing = NoSkill;
+
             m_Bar.Add(BuildMoveButton());
 
             var ledger = pool.Ledger;
@@ -223,9 +256,35 @@ namespace Dragoneye.Game
         /// </summary>
         void OnSkillClicked(SkillSpec skill)
         {
+            // A skill made of one thing goes straight to being armed. One that offers a choice asks
+            // first, because the answer changes what it beats -- and a fist thrown as the wrong
+            // element is a fist thrown away.
+            if (skill.ChoosesElement)
+            {
+                BeginChoosing(skill.Id);
+                return;
+            }
+
+            Use(skill, null);
+        }
+
+        /// <summary>
+        /// Arms a skill, or uses it outright when there is nothing to aim it at.
+        ///
+        /// Something you do to yourself has one possible target, and making the player then click
+        /// their own piece to confirm it is a step that answers no question. Everything aimed at
+        /// somebody else is armed and takes the next board click, and clicking an armed skill again
+        /// puts it away.
+        /// </summary>
+        void Use(SkillSpec skill, Element? element)
+        {
+            m_Choosing = NoSkill;
+
             if (skill.Target != SkillTarget.Self)
             {
-                m_Selected = m_Selected == skill.Id ? NoSkill : skill.Id;
+                var same = m_Selected == skill.Id;
+                m_Selected = same ? NoSkill : skill.Id;
+                m_SelectedElement = same ? null : element;
                 return;
             }
 
@@ -234,10 +293,69 @@ namespace Dragoneye.Game
 
             if (commands != null)
             {
-                commands.RequestUse(skill.Id, actor.Cell);
+                commands.RequestUse(skill.Id, actor.Cell, element);
             }
 
             m_Selected = NoSkill;
+            m_SelectedElement = null;
+        }
+
+        /// <summary>
+        /// Opens the element picker for a skill that offers one.
+        ///
+        /// Public because the context menu offers the same skills and must not use one without
+        /// asking. A menu item that quietly picked an element would be a second answer to a
+        /// question the bar asks out loud.
+        /// </summary>
+        public void BeginChoosing(int skillId)
+        {
+            m_Choosing = skillId;
+            m_Selected = NoSkill;
+            m_SelectedElement = null;
+        }
+
+        /// <summary>
+        /// The one question, with the elements that could answer it.
+        ///
+        /// Options the creature cannot pay for are shown and disabled rather than hidden: which
+        /// elements a fist could be made of is a fact about the skill, and a row that changed
+        /// length as the pool drained would teach the player nothing about either.
+        /// </summary>
+        void DrawElementChoice(SkillSpec skill, CreatureState actor, ElementLedger ledger)
+        {
+            var title = new Label($"{skill.Name} as");
+            title.AddToClassList("skill-choice__title");
+            m_Bar.Add(title);
+
+            foreach (var element in skill.ElementOptions)
+            {
+                var option = skill.WithElement(element);
+                var refusal = SkillRules.CheckAffordable(option, true, actor.CurrentAp, ledger);
+
+                var button = new Button(() => Use(option, element));
+                button.AddToClassList("skill-button");
+                button.AddToClassList("skill-choice");
+                button.SetEnabled(refusal == SkillRefusal.None);
+                button.tooltip = ElementLore.Describe(element);
+
+                var mark = new VisualElement();
+                mark.AddToClassList("skill-choice__mark");
+                CharacterSheet.PaintElement(mark, element);
+                button.Add(mark);
+
+                var name = new Label(ElementInfo.ShortNameOf(element));
+                name.AddToClassList("skill-button__name");
+                button.Add(name);
+
+                m_Bar.Add(button);
+            }
+
+            var cancel = new Button(() => m_Choosing = NoSkill) { text = "Cancel" };
+            cancel.AddToClassList("skill-button");
+            cancel.AddToClassList("skill-choice--cancel");
+            m_Bar.Add(cancel);
+
+            m_Reason.text = string.Empty;
         }
 
         /// <summary>

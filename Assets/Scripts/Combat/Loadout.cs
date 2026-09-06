@@ -195,6 +195,15 @@ namespace Dragoneye.Combat
         /// </summary>
         public IReadOnlyList<SkillSpec> Skills { get; }
 
+        /// <summary>
+        /// Whether anything is in the weapon slot.
+        ///
+        /// The same answer the conditions were resolved against, asked of the finished loadout.
+        /// One implementation, so what the skill list was filtered on and what anything else reads
+        /// cannot come apart.
+        /// </summary>
+        public bool HasWeapon => LoadoutResolver.HasWeapon(Items);
+
     }
 
     /// <summary>
@@ -250,9 +259,18 @@ namespace Dragoneye.Combat
 
             // Equipment may subtract, but never below zero, where the derived numbers stop meaning
             // anything.
+            // What the conditions on a skill get to ask about. Built once, from the same
+            // resolution that decided everything else, so the sheet and the arena cannot disagree
+            // about whether somebody is holding a weapon.
+            var situation = new SkillSituation(level,
+                species != null ? species.Id : 0,
+                classSpec != null ? classSpec.Id : 0,
+                HasWeapon(items));
+
             return new Loadout(species, classSpec, attributes.ClampedLow(0), level,
                 armour, items, build.StartingPool,
-                ResolveSkills(species, classSpec, items, build.LearnedSkillIds, content, level));
+                ResolveSkills(species, classSpec, items, build.LearnedSkillIds, content,
+                    situation));
         }
 
         /// <summary>
@@ -264,28 +282,48 @@ namespace Dragoneye.Combat
         /// duplicates are dropped rather than stacked -- two sources granting the same skill grant
         /// one skill.
         /// </summary>
+        /// <summary>Whether anything is in the weapon slot.</summary>
+        public static bool HasWeapon(IReadOnlyList<EquipmentSpec> items)
+        {
+            if (items == null)
+            {
+                return false;
+            }
+
+            foreach (var item in items)
+            {
+                if (item != null && item.Slot == EquipmentSlot.Weapon)
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
         static List<SkillSpec> ResolveSkills(SpeciesSpec species, ClassSpec classSpec,
-            List<EquipmentSpec> items, IReadOnlyList<int> learned, ISkillIndex skills, int level)
+            List<EquipmentSpec> items, IReadOnlyList<int> learned, ISkillIndex skills,
+            SkillSituation situation)
         {
             var resolved = new List<SkillSpec>();
             var seen = new HashSet<int>();
 
             if (species != null)
             {
-                AddAll(species.SkillIds, skills, resolved, seen, level);
+                AddAll(species.SkillIds, skills, resolved, seen, situation);
             }
 
             if (classSpec != null)
             {
-                AddAll(classSpec.SkillIds, skills, resolved, seen, level);
+                AddAll(classSpec.SkillIds, skills, resolved, seen, situation);
             }
 
             foreach (var item in items)
             {
-                AddAll(item.SkillIds, skills, resolved, seen, level);
+                AddAll(item.SkillIds, skills, resolved, seen, situation);
             }
 
-            AddAll(learned, skills, resolved, seen, level);
+            AddAll(learned, skills, resolved, seen, situation);
 
             return resolved;
         }
@@ -299,7 +337,7 @@ namespace Dragoneye.Combat
         /// makes "not until you are high enough" true everywhere at once.
         /// </summary>
         static void AddAll(IReadOnlyList<int> ids, ISkillIndex skills, List<SkillSpec> into,
-            HashSet<int> seen, int level)
+            HashSet<int> seen, SkillSituation situation)
         {
             if (ids == null)
             {
@@ -308,8 +346,11 @@ namespace Dragoneye.Combat
 
             foreach (var id in ids)
             {
+                // Marked seen whether it makes the cut or not: a skill granted twice and refused
+                // once is refused, and letting the second grant slip it past the first would make
+                // availability depend on how many things happened to hand it over.
                 if (seen.Add(id) && skills.TryGetSkill(id, out var spec)
-                    && spec.LevelRequired <= level)
+                    && spec.IsAvailable(situation))
                 {
                     into.Add(spec);
                 }

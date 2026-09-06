@@ -1,8 +1,26 @@
+using System.Collections.Generic;
 using Dragoneye.Combat;
 using UnityEngine;
 
 namespace Dragoneye.Data
 {
+    /// <summary>
+    /// One authored condition, in a shape Unity can serialise.
+    ///
+    /// <see cref="SkillCondition"/> is a readonly struct because the rules have no business being
+    /// mutable; the inspector needs fields it can write. This is the seam between the two, and it
+    /// is the only place that knows both.
+    /// </summary>
+    [System.Serializable]
+    public struct SkillConditionEntry
+    {
+        [Tooltip("What has to be true.")]
+        public SkillConditionKind Kind;
+
+        [Tooltip("What it is about, where it is about something. A species or class id, usually.")]
+        public int Value;
+    }
+
     /// <summary>
     /// An authored skill: the six fields DE-002 asks for, and nothing else.
     ///
@@ -22,8 +40,17 @@ namespace Dragoneye.Data
         [SerializeField, TextArea(2, 4)]
         string m_Description = "";
 
-        [SerializeField, Tooltip("Fixed by the skill. The user does not choose it.")]
+        [SerializeField, Tooltip("What this skill is made of, or the first of the elements it "
+             + "may be made of.")]
         Element m_Element = Element.Pyro;
+
+        [SerializeField, Tooltip("Leave empty for a skill made of one thing. Fill it in to let "
+             + "the user choose, and the element above is the default.")]
+        List<Element> m_ElementOptions = new List<Element>();
+
+        [SerializeField, Tooltip("What has to be true of a character before this is one of their "
+             + "skills. Empty means always.")]
+        List<SkillConditionEntry> m_Conditions = new List<SkillConditionEntry>();
 
         [SerializeField, Min(0), Tooltip("Whole action points. Stored as half-units internally.")]
         int m_ApCost = 1;
@@ -58,7 +85,30 @@ namespace Dragoneye.Data
         public SkillSpec ToSpec() =>
             new SkillSpec(m_Id, m_DisplayName, m_Element, Ap.FromWhole(m_ApCost), m_ElementCost,
                 m_Range, m_Target, new SkillEffect(m_Effect, m_Amount), m_Description,
-                m_LevelRequired);
+                m_LevelRequired, Conditions(), Options());
+
+        /// <summary>
+        /// The authored conditions, as the rules see them.
+        ///
+        /// Converted rather than stored in the rules type, because a readonly struct is not
+        /// something Unity can serialise -- and making the rules type mutable so an inspector could
+        /// fill it in would be letting the editor decide the shape of the rules.
+        /// </summary>
+        List<SkillCondition> Conditions()
+        {
+            var conditions = new List<SkillCondition>(m_Conditions.Count);
+
+            foreach (var entry in m_Conditions)
+            {
+                conditions.Add(new SkillCondition(entry.Kind, entry.Value));
+            }
+
+            return conditions;
+        }
+
+        /// <summary>Null where nothing was authored, which the spec reads as "just this one".</summary>
+        List<Element> Options() =>
+            m_ElementOptions.Count > 0 ? new List<Element>(m_ElementOptions) : null;
 
         void OnValidate()
         {

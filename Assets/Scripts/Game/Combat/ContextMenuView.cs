@@ -297,9 +297,17 @@ namespace Dragoneye.Game
                     ? $"{plan.Cost} AP  (incl. {plan.MoveCost} to close)"
                     : $"{plan.Cost} AP";
 
-                entries.Add(new Entry(skill.Name, cost,
+                // A skill with a choice of element is armed from here rather than used, because
+                // the menu has nowhere to ask the question and picking one silently would be a
+                // second answer to something the bar asks out loud.
+                var chooses = skill.ChoosesElement;
+                var bar = m_Input.SkillBar;
+
+                entries.Add(new Entry(chooses ? skill.Name + "..." : skill.Name, cost,
                     plan.IsAllowed ? null : ActionLabels.DescribeRefusal(plan.Refusal),
-                    () => commands.RequestUse(id, hex)));
+                    chooses && bar != null
+                        ? (System.Action)(() => bar.BeginChoosing(id))
+                        : () => commands.RequestUse(id, hex)));
             }
         }
 

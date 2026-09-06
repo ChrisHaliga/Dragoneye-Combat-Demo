@@ -72,6 +72,14 @@ namespace Dragoneye.Combat
                 return null;
             }
 
+            // Empty-handed is a way of being armed, not a way of being harmless. Species resolve
+            // before anything else, so the first attack on the list of somebody carrying nothing is
+            // their unarmed strike -- which is exactly what they would swing with.
+            if (!loadout.HasWeapon)
+            {
+                return FirstAttack(loadout.Skills, null);
+            }
+
             foreach (var item in loadout.Items)
             {
                 if (item == null || item.Slot != EquipmentSlot.Weapon)

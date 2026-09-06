@@ -56,18 +56,29 @@ namespace Dragoneye.Combat
     }
 
     /// <summary>
-    /// An authored skill: the six fields DE-002 asks for, and nothing else.
+    /// An authored skill: the six fields DE-002 asks for, and two more it did not foresee.
     ///
-    /// The element is fixed by the skill rather than chosen by the user, so a creature is limited to
-    /// answering with what its kit actually grants. Both costs are authored rather than derived,
-    /// because deriving them would tie a skill's price to stats that equipment can move.
+    /// Both costs are authored rather than derived, because deriving them would tie a skill price
+    /// to stats that equipment can move.
+    ///
+    /// The element is usually fixed by the skill, so a creature is limited to answering with what
+    /// its kit actually grants. <see cref="ElementOptions"/> is the exception: a skill may offer a
+    /// choice between several, and an unarmed strike is the first that does -- a fist is not made
+    /// of anything in particular, so which element it arrives as is the fighter own decision.
+    ///
+    /// <see cref="Conditions"/> is the other addition, and it answers a question list membership
+    /// could not: not "where did this skill come from" but "when does it go away".
     /// </summary>
     public sealed class SkillSpec
     {
         public SkillSpec(int id, string name, Element element, Ap apCost, int elementCost,
             int range, SkillTarget target, SkillEffect effect, string description = "",
-            int levelRequired = Progression.FirstLevel)
+            int levelRequired = Progression.FirstLevel,
+            IReadOnlyList<SkillCondition> conditions = null,
+            IReadOnlyList<Element> elementOptions = null)
         {
+            Conditions = conditions ?? System.Array.Empty<SkillCondition>();
+            ElementOptions = ResolveOptions(element, elementOptions);
             LevelRequired = levelRequired < Progression.FirstLevel
                 ? Progression.FirstLevel
                 : levelRequired;
@@ -87,8 +98,33 @@ namespace Dragoneye.Combat
 
         public string Name { get; }
 
-        /// <summary>Fixed by the skill. The user does not choose it.</summary>
+        /// <summary>
+        /// What the skill is made of, or the first of the elements it may be made of.
+        ///
+        /// Always one of <see cref="ElementOptions"/>, and the one a caller gets if it does not
+        /// choose. For the great majority of skills it is the only one.
+        /// </summary>
         public Element Element { get; }
+
+        /// <summary>
+        /// Every element this skill may be made of, in the order they are offered.
+        ///
+        /// Never empty: a skill with nothing authored offers exactly its own element, so callers
+        /// that do not care about the distinction can read this and get one answer.
+        /// </summary>
+        public IReadOnlyList<Element> ElementOptions { get; }
+
+        /// <summary>Whether the user picks which element this arrives as.</summary>
+        public bool ChoosesElement => ElementOptions.Count > 1;
+
+        /// <summary>
+        /// What has to be true of a character before this is one of their skills.
+        ///
+        /// Empty for almost everything: a skill granted by a class or a weapon is available
+        /// because you have the class or the weapon, and saying so twice would be a second place
+        /// for the answer to live.
+        /// </summary>
+        public IReadOnlyList<SkillCondition> Conditions { get; }
 
         public Ap ApCost { get; }
 
@@ -120,6 +156,73 @@ namespace Dragoneye.Combat
         /// contest them and resolve where they are used.
         /// </summary>
         public bool IsContested => Target == SkillTarget.Creature;
+
+        /// <summary>
+        /// Whether a character in this situation has this skill at all.
+        ///
+        /// Level and conditions together, because they are the same question asked twice: a skill
+        /// you are not high enough for and a skill you are not holding the right thing for are both
+        /// skills you do not have yet. Left out of the resolved list entirely rather than shown
+        /// disabled -- a bar full of things you cannot do reads as a paywall.
+        /// </summary>
+        public bool IsAvailable(SkillSituation situation) =>
+            LevelRequired <= situation.Level && SkillCondition.AllMet(Conditions, situation);
+
+        /// <summary>
+        /// The same skill, settled on one element.
+        ///
+        /// How a choice stops being a choice. Everything downstream -- the cost check, the
+        /// commitment, the clash -- reads <see cref="Element"/>, so resolving the pick into an
+        /// ordinary single-element spec at the edge means none of it has to know that skills with
+        /// options exist.
+        /// </summary>
+        public SkillSpec WithElement(Element element) =>
+            element == Element && !ChoosesElement
+                ? this
+                : new SkillSpec(Id, Name, element, ApCost, ElementCost, Range, Target, Effect,
+                    Description, LevelRequired, Conditions, new[] { element });
+
+        /// <summary>Whether this element is one the skill may be made of.</summary>
+        public bool Offers(Element element)
+        {
+            foreach (var option in ElementOptions)
+            {
+                if (option == element)
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        /// <summary>
+        /// The options, with the authored element guaranteed to be among them and first.
+        ///
+        /// Forgiving rather than strict: a spec whose default is not one of its own options is
+        /// incoherent, and correcting it here means no caller downstream has to handle the case.
+        /// </summary>
+        static IReadOnlyList<Element> ResolveOptions(Element element,
+            IReadOnlyList<Element> options)
+        {
+            if (options == null || options.Count == 0)
+            {
+                return new[] { element };
+            }
+
+            foreach (var option in options)
+            {
+                if (option == element)
+                {
+                    return options;
+                }
+            }
+
+            var withDefault = new List<Element>(options.Count + 1) { element };
+            withDefault.AddRange(options);
+
+            return withDefault;
+        }
     }
 
     /// <summary>Everything a creature can do, in a fixed order.</summary>

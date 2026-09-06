@@ -40,6 +40,9 @@ namespace Dragoneye.Game
         [SerializeField, Tooltip("Which skill, if any, the next board click uses.")]
         SkillBarView m_SkillBar;
 
+        /// <summary>The bar, for anything that has to arm a skill rather than use one.</summary>
+        public SkillBarView SkillBar => m_SkillBar;
+
         ArenaBoard m_Board;
 
         ActionPlan m_Hovered = ActionPlan.Nothing;
@@ -497,7 +500,7 @@ namespace Dragoneye.Game
 
                 if (skills != null)
                 {
-                    skills.RequestUse(m_SkillBar.SelectedSkill, hex);
+                    skills.RequestUse(m_SkillBar.SelectedSkill, hex, m_SkillBar.SelectedElement);
                 }
 
                 m_SkillBar.ClearSelection();
