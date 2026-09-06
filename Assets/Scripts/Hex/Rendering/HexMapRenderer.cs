@@ -26,6 +26,17 @@ namespace Dragoneye.Hex.Rendering
         [SerializeField, Range(0.5f, 1f), Tooltip("Shrinks tiles to leave a gutter between them.")]
         float m_TileFill = 0.94f;
 
+        [SerializeField, Min(0f), Tooltip("How thick a tile is. Zero draws the old flat hexagon.")]
+        float m_TileDepth = 0.16f;
+
+        [SerializeField, Min(0f), Tooltip("How far the top face is chamfered in at the lip.")]
+        float m_TileBevel = 0.045f;
+
+        [SerializeField, Range(0f, 0.5f), Tooltip("How much lighter or darker one tile is than the "
+             + "next. Ninety identical tiles read as a pattern; ninety nearly identical ones read as "
+             + "a floor.")]
+        float m_TileVariance = 0.12f;
+
         [SerializeField, Tooltip("Colour property on the material. URP Lit uses _BaseColor.")]
         string m_ColorProperty = "_BaseColor";
 
@@ -106,7 +117,8 @@ namespace Dragoneye.Hex.Rendering
 
             if (m_TilePrefab == null)
             {
-                m_SharedMesh = HexMeshFactory.Create(map.Layout.Size, m_TileFill);
+                m_SharedMesh = HexMeshFactory.Create(map.Layout.Size, m_TileFill, m_TileDepth,
+                    m_TileBevel);
             }
 
             foreach (var tile in map.Tiles)
@@ -160,11 +172,29 @@ namespace Dragoneye.Hex.Rendering
                 return;
             }
 
+            var colour = tile.Terrain != null ? tile.Terrain.Color : Color.magenta;
+
+            // A little tonal variation, fixed per tile so it never shimmers. From the coordinates
+            // rather than a random draw, because every peer draws the same board and a floor that
+            // was speckled differently on each machine would be a floor nobody could describe.
+            var shade = 1f + ((Noise(tile.Coordinates) - 0.5f) * m_TileVariance);
+
             view.GetPropertyBlock(m_PropertyBlock);
-            m_PropertyBlock.SetColor(
-                m_ColorPropertyId,
-                tile.Terrain != null ? tile.Terrain.Color : Color.magenta);
+            m_PropertyBlock.SetColor(m_ColorPropertyId,
+                new Color(colour.r * shade, colour.g * shade, colour.b * shade, colour.a));
             view.SetPropertyBlock(m_PropertyBlock);
+        }
+
+        /// <summary>A number in [0, 1) that depends only on the tile, and looks like it does not.</summary>
+        static float Noise(Hex hex)
+        {
+            unchecked
+            {
+                var h = (uint)(hex.Q * 374761393) ^ (uint)(hex.R * 668265263);
+                h = (h ^ (h >> 13)) * 1274126177u;
+                h ^= h >> 16;
+                return (h & 0xFFFFFF) / (float)0x1000000;
+            }
         }
 
         /// <summary>

@@ -153,6 +153,10 @@ namespace Dragoneye.Game
             m_Panel.Add(actions);
             m_Root.Add(m_Panel);
 
+            // The frame after it exists, so it can ease in from the state the stylesheet starts it in.
+            var panel = m_Panel;
+            panel.schedule.Execute(() => panel.AddToClassList("clash-prompt--in"));
+
             Refresh();
         }
 

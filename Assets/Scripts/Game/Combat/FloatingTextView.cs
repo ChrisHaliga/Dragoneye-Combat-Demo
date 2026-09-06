@@ -34,10 +34,16 @@ namespace Dragoneye.Game
         CreatureRegistry m_Creatures;
 
         [SerializeField, Tooltip("How long a note stays on screen.")]
-        float m_Lifetime = 5f;
+        float m_Lifetime = 2.4f;
 
         [SerializeField, Tooltip("World units the note drifts upward over its life.")]
-        float m_Rise = 1.2f;
+        float m_Rise = 0.9f;
+
+        [SerializeField, Min(1f), Tooltip("How much larger a note starts than it settles at.")]
+        float m_Pop = 1.6f;
+
+        [SerializeField, Min(0.01f), Tooltip("Seconds the pop takes to settle.")]
+        float m_PopTime = 0.18f;
 
         [SerializeField, Tooltip("Height above the creature's origin the note starts at.")]
         float m_Height = 1.6f;
@@ -131,7 +137,16 @@ namespace Dragoneye.Game
                 }
 
                 var life = note.Age / m_Lifetime;
-                note.Label.style.opacity = 1f - (life * life);
+
+                // Solid for most of its life and gone quickly at the end, rather than fading from
+                // the moment it appears -- a number that starts disappearing as it arrives is a
+                // number that was never quite there.
+                note.Label.style.opacity = 1f - Mathf.Clamp01((life - 0.6f) / 0.4f);
+
+                // Arrives large and settles, which is what makes it land rather than float up.
+                var settle = Mathf.Clamp01(note.Age / m_PopTime);
+                var scale = Mathf.Lerp(m_Pop, 1f, 1f - ((1f - settle) * (1f - settle)));
+                note.Label.style.scale = new Scale(new Vector2(scale, scale));
 
                 var creature = m_Creatures.ByTurnId(note.TurnId);
 

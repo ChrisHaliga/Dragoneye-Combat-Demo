@@ -326,6 +326,13 @@ namespace Dragoneye.Game
 
             m_Panel.EnableInClassList("is-hidden", !live);
             m_Panel.pickingMode = live ? PickingMode.Position : PickingMode.Ignore;
+            m_Panel.RemoveFromClassList("draft--in");
+
+            if (live)
+            {
+                var panel = m_Panel;
+                panel.schedule.Execute(() => panel.AddToClassList("draft--in"));
+            }
 
             if (!live)
             {

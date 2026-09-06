@@ -22,10 +22,11 @@
 .pause-plate {
     padding: 26px 30px 22px 30px;
     background-image: url("Generated/ui-panel.png");
-    -unity-slice-left: 16;
-    -unity-slice-right: 16;
-    -unity-slice-top: 16;
-    -unity-slice-bottom: 16;
+    -unity-slice-left: 32;
+    -unity-slice-right: 32;
+    -unity-slice-top: 32;
+    -unity-slice-bottom: 32;
+    -unity-slice-scale: 0.5;
 }
 
 .pause-plate--menu {
@@ -73,4 +74,28 @@
 /* The help page is a scroller here rather than a stage body, so it needs its own room to grow. */
 .pause-plate--page .help {
     max-width: 100%;
+}
+
+/* ---------- motion ---------- */
+
+.pause-root {
+    opacity: 0;
+    transition-property: opacity;
+    transition-duration: 0.16s;
+    transition-timing-function: ease-out;
+}
+
+.pause-root--in {
+    opacity: 1;
+}
+
+.pause-plate {
+    scale: 0.97;
+    transition-property: scale;
+    transition-duration: 0.16s;
+    transition-timing-function: ease-out;
+}
+
+.pause-root--in .pause-plate {
+    scale: 1;
 }

@@ -145,6 +145,9 @@ namespace Dragoneye.Game
 
             m_Root.Add(m_Strip);
             m_Shown = 0f;
+
+            var strip = m_Strip;
+            strip.schedule.Execute(() => strip.AddToClassList("clash-result--in"));
         }
 
         /// <summary>One side's commitment: its runes, or the fact that there were none.</summary>

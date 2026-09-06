@@ -30,10 +30,11 @@
     /* The frame is let through a little; the text on it is not. Tinting the background rather than
        fading the whole panel is what keeps a name readable over a bright tile. */
     -unity-background-image-tint-color: rgba(255, 255, 255, 0.88);
-    -unity-slice-left: 16;
-    -unity-slice-right: 16;
-    -unity-slice-top: 16;
-    -unity-slice-bottom: 16;
+    -unity-slice-left: 32;
+    -unity-slice-right: 32;
+    -unity-slice-top: 32;
+    -unity-slice-bottom: 32;
+    -unity-slice-scale: 0.5;
 }
 
 .party-title {
@@ -63,10 +64,11 @@
     padding: 6px;
     margin-bottom: 5px;
     background-image: url("Generated/ui-card.png");
-    -unity-slice-left: 14;
-    -unity-slice-right: 14;
-    -unity-slice-top: 14;
-    -unity-slice-bottom: 14;
+    -unity-slice-left: 28;
+    -unity-slice-right: 28;
+    -unity-slice-top: 28;
+    -unity-slice-bottom: 28;
+    -unity-slice-scale: 0.5;
 
     /* The border is the ownership channel: it takes the controlling player's colour. */
     border-width: 2px;
@@ -85,10 +87,11 @@
     width: 42px;
     height: 42px;
     background-image: url("Generated/ui-well.png");
-    -unity-slice-left: 11;
-    -unity-slice-right: 11;
-    -unity-slice-top: 11;
-    -unity-slice-bottom: 11;
+    -unity-slice-left: 22;
+    -unity-slice-right: 22;
+    -unity-slice-top: 22;
+    -unity-slice-bottom: 22;
+    -unity-slice-scale: 0.5;
     -unity-background-scale-mode: scale-and-crop;
 }
 
@@ -135,10 +138,11 @@
     padding: 18px;
     background-image: url("Generated/ui-panel.png");
     -unity-background-image-tint-color: rgba(255, 255, 255, 0.88);
-    -unity-slice-left: 16;
-    -unity-slice-right: 16;
-    -unity-slice-top: 16;
-    -unity-slice-bottom: 16;
+    -unity-slice-left: 32;
+    -unity-slice-right: 32;
+    -unity-slice-top: 32;
+    -unity-slice-bottom: 32;
+    -unity-slice-scale: 0.5;
 }
 
 /* The side, first and in that side's colour. A card is read to answer "what is that thing" and
@@ -180,10 +184,11 @@
     border-width: 2px;
     background-color: rgb(18, 21, 28);
     background-image: url("Generated/ui-well.png");
-    -unity-slice-left: 11;
-    -unity-slice-right: 11;
-    -unity-slice-top: 11;
-    -unity-slice-bottom: 11;
+    -unity-slice-left: 22;
+    -unity-slice-right: 22;
+    -unity-slice-top: 22;
+    -unity-slice-bottom: 22;
+    -unity-slice-scale: 0.5;
     -unity-background-scale-mode: scale-and-crop;
     justify-content: center;
 }
@@ -228,10 +233,11 @@
     padding: 3px 8px;
     margin-bottom: 4px;
     background-image: url("Generated/ui-card.png");
-    -unity-slice-left: 14;
-    -unity-slice-right: 14;
-    -unity-slice-top: 14;
-    -unity-slice-bottom: 14;
+    -unity-slice-left: 28;
+    -unity-slice-right: 28;
+    -unity-slice-top: 28;
+    -unity-slice-bottom: 28;
+    -unity-slice-scale: 0.5;
 }
 
 .stat-row__label {
@@ -278,7 +284,7 @@
 /* Flavour, directly under the name it flavours. It used to sit at the bottom under the skill list,
    which put the one line telling you what a creature *is* furthest from its name. */
 .card__description {
-    font-size: 11px;
+    font-size: 12px;
     color: rgb(130, 138, 156);
     white-space: normal;
     margin-bottom: 12px;
@@ -326,7 +332,7 @@
 .turn-bar__active-name {
     min-height: 20px;
     margin-top: 8px;
-    font-size: 15px;
+    font-size: 17px;
     -unity-font-style: bold;
     letter-spacing: 2px;
     color: rgb(236, 231, 219);
@@ -383,7 +389,7 @@
 }
 
 .turn-portrait__ap-text {
-    font-size: 9px;
+    font-size: 10px;
     -unity-font-style: bold;
     letter-spacing: 1px;
     color: rgb(226, 191, 122);
@@ -440,10 +446,11 @@
     color: rgb(220, 224, 234);
     background-color: rgba(0, 0, 0, 0);
     background-image: url("Generated/ui-button.png");
-    -unity-slice-left: 11;
-    -unity-slice-right: 11;
-    -unity-slice-top: 11;
-    -unity-slice-bottom: 11;
+    -unity-slice-left: 22;
+    -unity-slice-right: 22;
+    -unity-slice-top: 22;
+    -unity-slice-bottom: 22;
+    -unity-slice-scale: 0.5;
     border-width: 0;
 }
 
@@ -472,10 +479,12 @@
    laid out. Bold, at a size that reads over a lit board without covering the creature. */
 .floating-note {
     position: absolute;
-    font-size: 16px;
+    font-size: 19px;
     -unity-font-style: bold;
     letter-spacing: 1px;
     color: rgb(226, 191, 122);
+    text-shadow: 0 2px 3px rgba(0, 0, 0, 0.9);
+    transform-origin: center;
 }
 
 /* Something taken rather than gained. The same red the health bar uses, so a number and a bar
@@ -601,7 +610,7 @@
 }
 
 .card-skill__name {
-    font-size: 12px;
+    font-size: 13px;
     color: rgb(214, 209, 197);
     overflow: hidden;
     text-overflow: ellipsis;
@@ -694,10 +703,11 @@
     align-items: center;
     padding: 10px 22px;
     background-image: url("Generated/ui-panel.png");
-    -unity-slice-left: 16;
-    -unity-slice-right: 16;
-    -unity-slice-top: 16;
-    -unity-slice-bottom: 16;
+    -unity-slice-left: 32;
+    -unity-slice-right: 32;
+    -unity-slice-top: 32;
+    -unity-slice-bottom: 32;
+    -unity-slice-scale: 0.5;
 }
 
 .clash-result__skill {
@@ -761,10 +771,11 @@
     min-width: 340px;
     padding: 18px 20px 16px 20px;
     background-image: url("Generated/ui-panel.png");
-    -unity-slice-left: 16;
-    -unity-slice-right: 16;
-    -unity-slice-top: 16;
-    -unity-slice-bottom: 16;
+    -unity-slice-left: 32;
+    -unity-slice-right: 32;
+    -unity-slice-top: 32;
+    -unity-slice-bottom: 32;
+    -unity-slice-scale: 0.5;
 }
 
 /* The offer of a swing, which is the clash panel asking the other way round. Marked in the colour
@@ -805,10 +816,11 @@
     justify-content: center;
     background-color: rgba(0, 0, 0, 0);
     background-image: url("Generated/ui-card.png");
-    -unity-slice-left: 14;
-    -unity-slice-right: 14;
-    -unity-slice-top: 14;
-    -unity-slice-bottom: 14;
+    -unity-slice-left: 28;
+    -unity-slice-right: 28;
+    -unity-slice-top: 28;
+    -unity-slice-bottom: 28;
+    -unity-slice-scale: 0.5;
     border-width: 0;
 }
 
@@ -896,10 +908,11 @@
     color: rgb(214, 218, 230);
     background-color: rgba(0, 0, 0, 0);
     background-image: url("Generated/ui-button.png");
-    -unity-slice-left: 11;
-    -unity-slice-right: 11;
-    -unity-slice-top: 11;
-    -unity-slice-bottom: 11;
+    -unity-slice-left: 22;
+    -unity-slice-right: 22;
+    -unity-slice-top: 22;
+    -unity-slice-bottom: 22;
+    -unity-slice-scale: 0.5;
     border-width: 0;
 }
 
@@ -950,10 +963,11 @@
     min-width: 190px;
     padding: 5px;
     background-image: url("Generated/ui-panel.png");
-    -unity-slice-left: 16;
-    -unity-slice-right: 16;
-    -unity-slice-top: 16;
-    -unity-slice-bottom: 16;
+    -unity-slice-left: 32;
+    -unity-slice-right: 32;
+    -unity-slice-top: 32;
+    -unity-slice-bottom: 32;
+    -unity-slice-scale: 0.5;
 }
 
 /* A row, not a box with a word in it. These are read down a list rather than picked out of a
@@ -1018,10 +1032,11 @@
     color: rgb(220, 224, 234);
     background-color: rgba(0, 0, 0, 0);
     background-image: url("Generated/ui-button.png");
-    -unity-slice-left: 11;
-    -unity-slice-right: 11;
-    -unity-slice-top: 11;
-    -unity-slice-bottom: 11;
+    -unity-slice-left: 22;
+    -unity-slice-right: 22;
+    -unity-slice-top: 22;
+    -unity-slice-bottom: 22;
+    -unity-slice-scale: 0.5;
     border-width: 0;
 }
 
@@ -1061,7 +1076,7 @@
 
 .own-hand__label {
     margin-right: 6px;
-    font-size: 9px;
+    font-size: 10px;
     -unity-font-style: bold;
     letter-spacing: 2px;
     color: rgb(139, 147, 165);
@@ -1107,10 +1122,11 @@
     padding: 7px 9px;
     background-color: rgba(0, 0, 0, 0);
     background-image: url("Generated/ui-button.png");
-    -unity-slice-left: 11;
-    -unity-slice-right: 11;
-    -unity-slice-top: 11;
-    -unity-slice-bottom: 11;
+    -unity-slice-left: 22;
+    -unity-slice-right: 22;
+    -unity-slice-top: 22;
+    -unity-slice-bottom: 22;
+    -unity-slice-scale: 0.5;
     border-width: 0;
     justify-content: space-between;
 }
@@ -1215,10 +1231,11 @@
     opacity: 0.67;
     padding: 8px 10px 6px 10px;
     background-image: url("Generated/ui-panel.png");
-    -unity-slice-left: 16;
-    -unity-slice-right: 16;
-    -unity-slice-top: 16;
-    -unity-slice-bottom: 16;
+    -unity-slice-left: 32;
+    -unity-slice-right: 32;
+    -unity-slice-top: 32;
+    -unity-slice-bottom: 32;
+    -unity-slice-scale: 0.5;
 }
 
 .combat-log:hover {
@@ -1252,7 +1269,7 @@
 
 .combat-log__line {
     white-space: normal;
-    font-size: 11px;
+    font-size: 12px;
     color: rgb(150, 157, 175);
     margin-bottom: 1px;
 }
@@ -1265,8 +1282,135 @@
 .combat-log__round {
     margin-top: 5px;
     margin-bottom: 2px;
-    font-size: 9px;
+    font-size: 10px;
     -unity-font-style: bold;
     letter-spacing: 3px;
     color: rgb(198, 158, 88);
+}
+
+/* ---------- motion ---------- */
+
+.button,
+.skill-button,
+.end-turn,
+.clash-option,
+.context-item,
+.portrait,
+.own-spent__mark {
+    transition-property: scale, color, opacity, -unity-background-image-tint-color;
+    transition-duration: 0.12s;
+    transition-timing-function: ease-out;
+}
+
+.button:active,
+.skill-button:active,
+.end-turn:active,
+.clash-option:active,
+.context-item:active {
+    scale: 0.97;
+}
+
+/* Portraits ease when one is resized or dimmed in place. The bar is rebuilt on most changes, so
+   this mostly covers hover and the acted-dimming; it is here so a future bar that keeps its
+   elements gets the growth for free. */
+.turn-portrait {
+    transition-property: width, height, opacity, border-color;
+    transition-duration: 0.28s;
+    transition-timing-function: ease-out;
+}
+
+/* Prompts and the exchange strip open like something being put in front of you: a touch small
+   and a touch faint for a sixth of a second, then there. Scale rather than a rise, because these
+   are centred with a translate of their own and a second one would fight it. */
+.clash-prompt,
+.clash-result {
+    opacity: 0;
+    scale: 0.96;
+    transition-property: opacity, scale;
+    transition-duration: 0.16s;
+    transition-timing-function: ease-out;
+}
+
+.clash-prompt--in,
+.clash-result--in {
+    opacity: 1;
+    scale: 1;
+}
+
+.context-menu {
+    opacity: 0;
+    scale: 0.94;
+    transition-property: opacity, scale;
+    transition-duration: 0.12s;
+    transition-timing-function: ease-out;
+}
+
+.context-menu--in {
+    opacity: 1;
+    scale: 1;
+}
+
+/* The hover marker on the board is a prefab; the card and the log are what change on screen when
+   somebody is inspected, and the card in particular used to blink into place. */
+.card {
+    transition-property: opacity, translate;
+    transition-duration: 0.18s;
+    transition-timing-function: ease-out;
+}
+
+.card.is-hidden {
+    display: flex;
+    opacity: 0;
+    translate: 0 -6px;
+}
+
+/* ---------- turn banner ---------- */
+
+/* Two words across the middle when the turn changes hands, and gone. It drops in from slightly
+   above and leaves slightly below, so it reads as passing through rather than switching on. */
+.turn-banner {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 24%;
+    align-items: center;
+    opacity: 0;
+    translate: 0 -14px;
+    transition-property: opacity, translate;
+    transition-duration: 0.2s;
+    transition-timing-function: ease-out;
+}
+
+.turn-banner--in {
+    opacity: 1;
+    translate: 0 0;
+}
+
+.turn-banner--out {
+    opacity: 0;
+    translate: 0 12px;
+    transition-duration: 0.35s;
+    transition-timing-function: ease-in;
+}
+
+.turn-banner__title {
+    font-size: 40px;
+    -unity-font-style: bold;
+    letter-spacing: 10px;
+    color: rgb(236, 231, 219);
+    text-shadow: 0 3px 8px rgba(0, 0, 0, 0.95);
+}
+
+/* Yours is gold, because everything that is yours to do in this game is gold. */
+.turn-banner--mine .turn-banner__title {
+    color: rgb(226, 191, 122);
+}
+
+.turn-banner__round {
+    margin-top: 6px;
+    font-size: 12px;
+    -unity-font-style: bold;
+    letter-spacing: 5px;
+    color: rgb(139, 147, 165);
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.95);
 }

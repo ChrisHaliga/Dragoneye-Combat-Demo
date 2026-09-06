@@ -176,10 +176,11 @@
     width: 300px;
     padding: 26px 24px;
     background-image: url("Generated/ui-panel.png");
-    -unity-slice-left: 16;
-    -unity-slice-right: 16;
-    -unity-slice-top: 16;
-    -unity-slice-bottom: 16;
+    -unity-slice-left: 32;
+    -unity-slice-right: 32;
+    -unity-slice-top: 32;
+    -unity-slice-bottom: 32;
+    -unity-slice-scale: 0.5;
 }
 
 .hero__name {
@@ -259,13 +260,12 @@
     color: rgb(220, 224, 234);
     background-color: rgba(0, 0, 0, 0);
     background-image: url("Generated/ui-button.png");
-    -unity-slice-left: 11;
-    -unity-slice-right: 11;
-    -unity-slice-top: 11;
-    -unity-slice-bottom: 11;
+    -unity-slice-left: 22;
+    -unity-slice-right: 22;
+    -unity-slice-top: 22;
+    -unity-slice-bottom: 22;
+    -unity-slice-scale: 0.5;
     border-width: 0;
-    transition-property: color;
-    transition-duration: 0.1s;
 }
 
 .btn:hover {
@@ -327,18 +327,20 @@
 
 .panel-skin {
     background-image: url("Generated/ui-panel.png");
-    -unity-slice-left: 16;
-    -unity-slice-right: 16;
-    -unity-slice-top: 16;
-    -unity-slice-bottom: 16;
+    -unity-slice-left: 32;
+    -unity-slice-right: 32;
+    -unity-slice-top: 32;
+    -unity-slice-bottom: 32;
+    -unity-slice-scale: 0.5;
 }
 
 .well {
     background-image: url("Generated/ui-well.png");
-    -unity-slice-left: 11;
-    -unity-slice-right: 11;
-    -unity-slice-top: 11;
-    -unity-slice-bottom: 11;
+    -unity-slice-left: 22;
+    -unity-slice-right: 22;
+    -unity-slice-top: 22;
+    -unity-slice-bottom: 22;
+    -unity-slice-scale: 0.5;
 }
 
 /* ---------- the character rail ---------- */
@@ -353,10 +355,11 @@
     flex-grow: 1;
     padding: 8px;
     background-image: url("Generated/ui-well.png");
-    -unity-slice-left: 11;
-    -unity-slice-right: 11;
-    -unity-slice-top: 11;
-    -unity-slice-bottom: 11;
+    -unity-slice-left: 22;
+    -unity-slice-right: 22;
+    -unity-slice-top: 22;
+    -unity-slice-bottom: 22;
+    -unity-slice-scale: 0.5;
 }
 
 .rail__new {
@@ -370,10 +373,11 @@
     padding: 12px;
     margin-bottom: 6px;
     background-image: url("Generated/ui-card.png");
-    -unity-slice-left: 14;
-    -unity-slice-right: 14;
-    -unity-slice-top: 14;
-    -unity-slice-bottom: 14;
+    -unity-slice-left: 28;
+    -unity-slice-right: 28;
+    -unity-slice-top: 28;
+    -unity-slice-bottom: 28;
+    -unity-slice-scale: 0.5;
 }
 
 .character-row:hover {
@@ -384,10 +388,11 @@
    the panel is describing, so it has to win. */
 .character-row--selected {
     background-image: url("Generated/ui-button-primary.png");
-    -unity-slice-left: 11;
-    -unity-slice-right: 11;
-    -unity-slice-top: 11;
-    -unity-slice-bottom: 11;
+    -unity-slice-left: 22;
+    -unity-slice-right: 22;
+    -unity-slice-top: 22;
+    -unity-slice-bottom: 22;
+    -unity-slice-scale: 0.5;
     -unity-background-image-tint-color: rgb(120, 92, 74);
 }
 
@@ -400,10 +405,11 @@
     height: 52px;
     margin-right: 14px;
     background-image: url("Generated/ui-well.png");
-    -unity-slice-left: 11;
-    -unity-slice-right: 11;
-    -unity-slice-top: 11;
-    -unity-slice-bottom: 11;
+    -unity-slice-left: 22;
+    -unity-slice-right: 22;
+    -unity-slice-top: 22;
+    -unity-slice-bottom: 22;
+    -unity-slice-scale: 0.5;
     -unity-background-scale-mode: scale-and-crop;
     justify-content: center;
 }
@@ -447,10 +453,11 @@
     flex-basis: 0;
     padding: 30px 34px;
     background-image: url("Generated/ui-panel.png");
-    -unity-slice-left: 16;
-    -unity-slice-right: 16;
-    -unity-slice-top: 16;
-    -unity-slice-bottom: 16;
+    -unity-slice-left: 32;
+    -unity-slice-right: 32;
+    -unity-slice-top: 32;
+    -unity-slice-bottom: 32;
+    -unity-slice-scale: 0.5;
 }
 
 .sheet__head {
@@ -516,10 +523,11 @@
 
 .portrait {
     background-image: url("Generated/ui-well.png");
-    -unity-slice-left: 11;
-    -unity-slice-right: 11;
-    -unity-slice-top: 11;
-    -unity-slice-bottom: 11;
+    -unity-slice-left: 22;
+    -unity-slice-right: 22;
+    -unity-slice-top: 22;
+    -unity-slice-bottom: 22;
+    -unity-slice-scale: 0.5;
     -unity-background-scale-mode: scale-and-crop;
     justify-content: center;
 }
@@ -640,10 +648,11 @@
     padding: 18px;
     margin-right: 0;
     background-image: url("Generated/ui-panel.png");
-    -unity-slice-left: 16;
-    -unity-slice-right: 16;
-    -unity-slice-top: 16;
-    -unity-slice-bottom: 16;
+    -unity-slice-left: 32;
+    -unity-slice-right: 32;
+    -unity-slice-top: 32;
+    -unity-slice-bottom: 32;
+    -unity-slice-scale: 0.5;
 }
 
 .col--settings {
@@ -652,10 +661,11 @@
     padding: 26px;
     margin: 0 13px;
     background-image: url("Generated/ui-panel.png");
-    -unity-slice-left: 16;
-    -unity-slice-right: 16;
-    -unity-slice-top: 16;
-    -unity-slice-bottom: 16;
+    -unity-slice-left: 32;
+    -unity-slice-right: 32;
+    -unity-slice-top: 32;
+    -unity-slice-bottom: 32;
+    -unity-slice-scale: 0.5;
 }
 
 .group {
@@ -731,10 +741,11 @@
     padding: 4px 10px;
     margin-bottom: 2px;
     background-image: url("Generated/ui-card.png");
-    -unity-slice-left: 14;
-    -unity-slice-right: 14;
-    -unity-slice-top: 14;
-    -unity-slice-bottom: 14;
+    -unity-slice-left: 28;
+    -unity-slice-right: 28;
+    -unity-slice-top: 28;
+    -unity-slice-bottom: 28;
+    -unity-slice-scale: 0.5;
 }
 
 .alloc-row__label {
@@ -763,10 +774,11 @@
     color: rgb(220, 224, 234);
     background-color: rgba(0, 0, 0, 0);
     background-image: url("Generated/ui-button.png");
-    -unity-slice-left: 11;
-    -unity-slice-right: 11;
-    -unity-slice-top: 11;
-    -unity-slice-bottom: 11;
+    -unity-slice-left: 22;
+    -unity-slice-right: 22;
+    -unity-slice-top: 22;
+    -unity-slice-bottom: 22;
+    -unity-slice-scale: 0.5;
     border-width: 0;
 }
 
@@ -805,10 +817,11 @@
     padding: 2px 8px;
     margin-bottom: 2px;
     background-image: url("Generated/ui-card.png");
-    -unity-slice-left: 14;
-    -unity-slice-right: 14;
-    -unity-slice-top: 14;
-    -unity-slice-bottom: 14;
+    -unity-slice-left: 28;
+    -unity-slice-right: 28;
+    -unity-slice-top: 28;
+    -unity-slice-bottom: 28;
+    -unity-slice-scale: 0.5;
 }
 
 .element-row__gem {
@@ -901,10 +914,11 @@
     padding: 6px 2px 7px 2px;
     align-items: center;
     background-image: url("Generated/ui-well.png");
-    -unity-slice-left: 11;
-    -unity-slice-right: 11;
-    -unity-slice-top: 11;
-    -unity-slice-bottom: 11;
+    -unity-slice-left: 22;
+    -unity-slice-right: 22;
+    -unity-slice-top: 22;
+    -unity-slice-bottom: 22;
+    -unity-slice-scale: 0.5;
 }
 
 .stat__label {
@@ -1024,10 +1038,11 @@
     padding: 3px 8px;
     margin-bottom: 1px;
     background-image: url("Generated/ui-card.png");
-    -unity-slice-left: 14;
-    -unity-slice-right: 14;
-    -unity-slice-top: 14;
-    -unity-slice-bottom: 14;
+    -unity-slice-left: 28;
+    -unity-slice-right: 28;
+    -unity-slice-top: 28;
+    -unity-slice-bottom: 28;
+    -unity-slice-scale: 0.5;
 }
 
 /* The name gives way and the cost does not: a skill with a long name is still identifiable from
@@ -1070,10 +1085,11 @@
     width: 460px;
     padding: 32px 34px 30px 34px;
     background-image: url("Generated/ui-panel.png");
-    -unity-slice-left: 16;
-    -unity-slice-right: 16;
-    -unity-slice-top: 16;
-    -unity-slice-bottom: 16;
+    -unity-slice-left: 32;
+    -unity-slice-right: 32;
+    -unity-slice-top: 32;
+    -unity-slice-bottom: 32;
+    -unity-slice-scale: 0.5;
 }
 
 .dialog__title {
@@ -1164,4 +1180,57 @@
     color: rgb(139, 147, 165);
     white-space: normal;
     -unity-text-align: middle-center;
+}
+
+/* ---------- motion ---------- */
+
+/* Every button eases, and every button gives under the pointer. The hover swaps a frame image,
+   which cannot ease and does not need to -- hover is expected to be immediate. The press is the
+   part that was missing: a control that does not move when it is clicked is a control the player
+   is not sure they clicked. */
+.btn,
+.step-button,
+.character-row,
+.portrait-choice {
+    transition-property: scale, color, opacity, -unity-background-image-tint-color;
+    transition-duration: 0.12s;
+    transition-timing-function: ease-out;
+}
+
+.btn:active,
+.step-button:active,
+.portrait-choice:active {
+    scale: 0.97;
+}
+
+.character-row:active {
+    scale: 0.99;
+}
+
+/* Screens arrive rather than appear. Opacity and a short rise, so a change of screen reads as a
+   change of place and not as a flicker. Nothing fades out: the next screen is what the player
+   asked for and it should not wait on the one they left. */
+.screen {
+    opacity: 0;
+    translate: 0 8px;
+    transition-property: opacity, translate;
+    transition-duration: 0.22s;
+    transition-timing-function: ease-out;
+}
+
+.screen--in {
+    opacity: 1;
+    translate: 0 0;
+}
+
+/* The title card breathes. A prompt that sits perfectly still on a title screen looks like a label;
+   one that slowly rises and falls looks like an invitation. */
+.start__prompt {
+    transition-property: opacity;
+    transition-duration: 1.1s;
+    transition-timing-function: ease-in-out;
+}
+
+.start__prompt--dim {
+    opacity: 0.35;
 }

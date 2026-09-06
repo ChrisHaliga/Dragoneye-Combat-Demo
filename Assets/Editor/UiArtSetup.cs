@@ -48,27 +48,34 @@ namespace Dragoneye.MultiplayerEditor
         {
             EnsureFolder();
 
-            Write("ui-backdrop", Backdrop(512, 512));
+            Write("ui-backdrop", Backdrop(1024, 1024));
 
-            // Frames. The slice border is the corner size; the chamfer and the baked shadow both
-            // have to fit inside it or stretching would smear them across the middle.
-            Write("ui-panel", Frame(48, 16, k_Panel, k_PanelLow, k_Edge, k_Bevel, chamfer: 13,
-                gilded: true, pad: 4));
-            Write("ui-well", Frame(32, 11, k_Well, k_Well, k_Edge, k_Shade, chamfer: 8,
+            // Frames, baked at twice the size they are drawn. The panel scales with the window --
+            // a 720p reference on a 1080p monitor is every pixel drawn one and a half times -- and
+            // a point-filtered one-pixel bevel drawn at one and a half pixels is a stair. Twice the
+            // texels and a bilinear filter is what stops the chamfers looking like they were drawn
+            // in a paint program.
+            //
+            // The stylesheets take these at half scale, so nothing in the layout changes: the slice
+            // border is doubled here and -unity-slice-scale halves it back on the way in.
+            Write("ui-panel", Frame(96, 32, k_Panel, k_PanelLow, k_Edge, k_Bevel, chamfer: 26,
+                gilded: true, pad: 8));
+            Write("ui-well", Frame(64, 22, k_Well, k_Well, k_Edge, k_Shade, chamfer: 16,
                 recessed: true));
-            Write("ui-card", Frame(40, 14, k_PanelLow, k_Ink, k_Edge, k_Bevel, chamfer: 9, pad: 2));
+            Write("ui-card", Frame(80, 28, k_PanelLow, k_Ink, k_Edge, k_Bevel, chamfer: 18,
+                pad: 4));
 
-            Write("ui-button", Frame(32, 11, new Color32(46, 52, 68, 255),
-                new Color32(28, 32, 43, 255), k_Edge, k_Bevel, chamfer: 8));
-            Write("ui-button-hot", Frame(32, 11, new Color32(64, 72, 94, 255),
+            Write("ui-button", Frame(64, 22, new Color32(46, 52, 68, 255),
+                new Color32(28, 32, 43, 255), k_Edge, k_Bevel, chamfer: 16));
+            Write("ui-button-hot", Frame(64, 22, new Color32(64, 72, 94, 255),
                 new Color32(40, 46, 61, 255), new Color32(118, 130, 158, 255),
-                new Color32(140, 154, 184, 255), chamfer: 8));
-            Write("ui-button-primary", Frame(32, 11, k_EmberHot, new Color32(168, 70, 28, 255),
-                new Color32(250, 168, 108, 255), new Color32(255, 208, 164, 255), chamfer: 8));
+                new Color32(140, 154, 184, 255), chamfer: 16));
+            Write("ui-button-primary", Frame(64, 22, k_EmberHot, new Color32(168, 70, 28, 255),
+                new Color32(250, 168, 108, 255), new Color32(255, 208, 164, 255), chamfer: 16));
 
-            WriteSized("ui-rule", Rule(64, 9), 64, 9);
-            Write("ui-gem", Gem(48));
-            Write("ui-glow", Glow(64));
+            WriteSized("ui-rule", Rule(128, 18), 128, 18);
+            Write("ui-gem", Gem(96));
+            Write("ui-glow", Glow(128));
 
             AssetDatabase.Refresh();
 
@@ -176,20 +183,24 @@ namespace Dragoneye.MultiplayerEditor
                         Mathf.Min(left + down, right + down),
                         Mathf.Min(left + up, right + up)) - chamfer;
 
-                    var depth = Mathf.Min(straight, diagonal) - pad;
+                    // Everything below is authored in one-pixel bands for a frame this size drawn
+                    // at one texel per pixel. The frames are twice that now, so the bands are two.
+                    var depth = (Mathf.Min(straight, diagonal) - pad) / 2;
                     var onCut = diagonal <= straight;
 
-                    if (depth < -pad)
+                    var raw = Mathf.Min(straight, diagonal) - pad;
+
+                    if (raw < -pad)
                     {
                         pixels[y * size + x] = new Color32(0, 0, 0, 0);
                         continue;
                     }
 
-                    if (depth < 0)
+                    if (raw < 0)
                     {
                         // The shadow the panel casts. Baked in because USS has no box-shadow, and
                         // without it every panel sits flush against the backdrop.
-                        var falloff = 1f + depth / (float)(pad + 1);
+                        var falloff = 1f + raw / (float)(pad + 1);
                         pixels[y * size + x] = new Color32(0, 0, 0, Byte(150f * falloff * falloff));
                         continue;
                     }
@@ -257,8 +268,8 @@ namespace Dragoneye.MultiplayerEditor
                     // Constant along its length. The line is stretched to the width of a panel, so
                     // any fade authored into the source becomes most of the rule: a version that
                     // faded towards the ends rendered as a short stub floating in the middle of the
-                    // screen.
-                    if (y == mid)
+                    // screen. Two texels tall, because the rule is drawn at half size.
+                    if (y == mid || y == mid - 1)
                     {
                         colour = Fade(k_Gold, 0.6f);
                     }
@@ -367,8 +378,8 @@ namespace Dragoneye.MultiplayerEditor
         /// <summary>
         /// Writes a PNG and forces the import settings the UI needs.
         ///
-        /// Point filtering and no compression: these are pixel-exact frames, and a bilinear mip of a
-        /// one-pixel bevel is a smear. No mips for the same reason.
+        /// No compression and no mips: these are frames drawn at close to their own size, and a
+        /// compressed or mipped bevel is a smear.
         /// </summary>
         static void Write(string name, Color32[] pixels)
         {
@@ -399,7 +410,11 @@ namespace Dragoneye.MultiplayerEditor
             importer.alphaIsTransparency = true;
             importer.mipmapEnabled = false;
             importer.wrapMode = TextureWrapMode.Clamp;
-            importer.filterMode = FilterMode.Point;
+
+            // Bilinear, now that there are twice the texels to filter. Point filtering was right
+            // when the frames were drawn one texel per pixel and wrong the moment the panel
+            // scaled, which on anything larger than the reference resolution is always.
+            importer.filterMode = FilterMode.Bilinear;
             importer.sRGBTexture = true;
             importer.npotScale = TextureImporterNPOTScale.None;
             importer.textureCompression = TextureImporterCompression.Uncompressed;

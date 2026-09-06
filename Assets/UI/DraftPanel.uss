@@ -84,10 +84,11 @@
     align-items: center;
     padding: 6px 14px;
     background-image: url("Generated/ui-well.png");
-    -unity-slice-left: 11;
-    -unity-slice-right: 11;
-    -unity-slice-top: 11;
-    -unity-slice-bottom: 11;
+    -unity-slice-left: 22;
+    -unity-slice-right: 22;
+    -unity-slice-top: 22;
+    -unity-slice-bottom: 22;
+    -unity-slice-scale: 0.5;
 }
 
 .code-card__code {
@@ -131,10 +132,11 @@
     margin-right: 12px;
     padding: 14px 12px 12px 12px;
     background-image: url("Generated/ui-panel.png");
-    -unity-slice-left: 16;
-    -unity-slice-right: 16;
-    -unity-slice-top: 16;
-    -unity-slice-bottom: 16;
+    -unity-slice-left: 32;
+    -unity-slice-right: 32;
+    -unity-slice-top: 32;
+    -unity-slice-bottom: 32;
+    -unity-slice-scale: 0.5;
 }
 
 /* The party the local player belongs to. Lit, because the whole screen is about picking a side and
@@ -226,10 +228,11 @@
     padding: 7px 9px 6px 9px;
     margin-bottom: 5px;
     background-image: url("Generated/ui-card.png");
-    -unity-slice-left: 14;
-    -unity-slice-right: 14;
-    -unity-slice-top: 14;
-    -unity-slice-bottom: 14;
+    -unity-slice-left: 28;
+    -unity-slice-right: 28;
+    -unity-slice-top: 28;
+    -unity-slice-bottom: 28;
+    -unity-slice-scale: 0.5;
 }
 
 /* Someone is running this one. Unclaimed cards stay dim, so "who is actually playing" is legible
@@ -407,10 +410,11 @@
     color: rgb(220, 224, 234);
     background-color: rgba(0, 0, 0, 0);
     background-image: url("Generated/ui-button.png");
-    -unity-slice-left: 11;
-    -unity-slice-right: 11;
-    -unity-slice-top: 11;
-    -unity-slice-bottom: 11;
+    -unity-slice-left: 22;
+    -unity-slice-right: 22;
+    -unity-slice-top: 22;
+    -unity-slice-bottom: 22;
+    -unity-slice-scale: 0.5;
     border-width: 0;
 }
 
@@ -439,10 +443,11 @@
     color: rgb(220, 224, 234);
     background-color: rgba(0, 0, 0, 0);
     background-image: url("Generated/ui-button.png");
-    -unity-slice-left: 11;
-    -unity-slice-right: 11;
-    -unity-slice-top: 11;
-    -unity-slice-bottom: 11;
+    -unity-slice-left: 22;
+    -unity-slice-right: 22;
+    -unity-slice-top: 22;
+    -unity-slice-bottom: 22;
+    -unity-slice-scale: 0.5;
     border-width: 0;
 }
 
@@ -519,4 +524,31 @@
 .party-chip--current {
     opacity: 1;
     border-color: rgb(232, 226, 212);
+}
+
+/* ---------- motion ---------- */
+
+.button,
+.fighter {
+    transition-property: scale, color, opacity, -unity-background-image-tint-color;
+    transition-duration: 0.12s;
+    transition-timing-function: ease-out;
+}
+
+.button:active {
+    scale: 0.97;
+}
+
+/* The board arrives the way the menu screens do. */
+.draft {
+    opacity: 0;
+    translate: 0 8px;
+    transition-property: opacity, translate;
+    transition-duration: 0.22s;
+    transition-timing-function: ease-out;
+}
+
+.draft--in {
+    opacity: 1;
+    translate: 0 0;
 }

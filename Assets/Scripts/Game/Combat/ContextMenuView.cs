@@ -360,6 +360,9 @@ namespace Dragoneye.Game
             m_Backdrop.Add(m_Menu);
             m_Root.Add(m_Backdrop);
 
+            var menu = m_Menu;
+            menu.schedule.Execute(() => menu.AddToClassList("context-menu--in"));
+
             Place(screenPosition);
         }
 

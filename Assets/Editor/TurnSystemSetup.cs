@@ -192,6 +192,13 @@ namespace Dragoneye.MultiplayerEditor
             // And the way it would get there, which is not the straight line between the two.
             var path = Ensure<PathPreview>(host);
 
+            // The room: light, air, table. Nothing else on the board reads right without it.
+            Ensure<ArenaAtmosphere>(host);
+
+            // The breathing ring under whoever is acting.
+            var marker = Ensure<ActiveCreatureMarker>(host);
+            Assign(marker, ("m_Creatures", creatures), ("m_Selection", selection));
+
             var director = Ensure<CombatDirector>(host);
             Assign(director, ("m_Creatures", creatures), ("m_Units", units), ("m_Map", map));
 
@@ -362,6 +369,10 @@ namespace Dragoneye.MultiplayerEditor
             // despawned, so it takes the registry directly rather than going through the input.
             var log = Ensure<CombatLogView>(hud);
             Assign(log, ("m_Creatures", creatures));
+
+            // Two words across the screen when the turn changes hands.
+            var banner = Ensure<TurnBannerView>(hud);
+            Assign(banner, ("m_Creatures", creatures));
         }
 
         /// <summary>

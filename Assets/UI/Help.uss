@@ -31,7 +31,7 @@
 
 .help__text {
     white-space: normal;
-    font-size: 13px;
+    font-size: 14px;
     color: rgb(196, 200, 212);
     margin-bottom: 6px;
 }
@@ -124,7 +124,7 @@
 
 .element-chart__row-label {
     height: 22px;
-    font-size: 9px;
+    font-size: 10px;
     -unity-font-style: bold;
     letter-spacing: 2px;
     -unity-text-align: middle-right;

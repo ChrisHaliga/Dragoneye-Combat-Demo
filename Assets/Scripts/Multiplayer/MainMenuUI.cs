@@ -66,6 +66,16 @@ namespace Dragoneye.Multiplayer
 
             m_Status = root.Q<Label>("status-label");
 
+            var prompt = root.Q<Label>("start-prompt");
+
+            if (prompt != null)
+            {
+                // Toggled rather than animated: USS has no keyframes, but it has transitions, and a
+                // class flipped every second with a one-second ease is a breath.
+                prompt.schedule.Execute(() => prompt.ToggleInClassList("start__prompt--dim"))
+                    .Every(1100);
+            }
+
             // Both of these are built rather than authored, because the pause menu shows the same
             // two panels in another scene. Built before the screen binds to them, since it finds
             // its controls by name and they do not exist until now.
@@ -396,7 +406,17 @@ namespace Dragoneye.Multiplayer
 
             foreach (var pair in m_Panels)
             {
-                pair.Value.EnableInClassList("is-hidden", pair.Key != screen);
+                var panel = pair.Value;
+                var showing = pair.Key == screen;
+
+                panel.EnableInClassList("is-hidden", !showing);
+                panel.RemoveFromClassList("screen--in");
+
+                // The frame after, once it is laid out: a transition needs somewhere to start.
+                if (showing)
+                {
+                    panel.schedule.Execute(() => panel.AddToClassList("screen--in"));
+                }
             }
 
             // The draft board sorts above this document and would cover the level-up screen, so it

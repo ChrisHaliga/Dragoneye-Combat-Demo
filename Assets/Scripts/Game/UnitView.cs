@@ -63,6 +63,13 @@ namespace Dragoneye.Game
         Vector3 m_Target;
         bool m_Placed;
 
+        // The last health this token drew, and how much of a hit-flash is left to play. A number
+        // rising off a creature says what happened; the creature itself going white for a tenth of
+        // a second says where, which is the half the eye actually uses.
+        int m_LastHp = -1;
+        float m_Flash;
+        Color m_BodyColour = Color.white;
+
         // Where the token still has to go, tile by tile, and which leg it is on. A move is one
         // instant to the rules and a walk to everybody watching.
         readonly System.Collections.Generic.List<Vector3> m_Route =
@@ -74,6 +81,10 @@ namespace Dragoneye.Game
         Transform m_Pointer;
 
         static Material s_FacingMaterial;
+        static Material s_ShadowMaterial;
+
+        /// <summary>How high the token sits above its tile. Anything drawn on the tile under it needs it.</summary>
+        public float GroundOffset => m_GroundOffset;
 
         /// <summary>
         /// Whether this unit is still walking to where it already is, as far as the rules go.
@@ -152,6 +163,57 @@ namespace Dragoneye.Game
 
             m_Portrait = BuildPortrait(baseY);
             m_Pointer = BuildPointer(baseY);
+            BuildShadow(baseY);
+        }
+
+        /// <summary>
+        /// The soft dark disc under the token that makes it a thing standing on a tile.
+        ///
+        /// The directional light casts a real shadow too, but from a low sun it falls sideways off
+        /// the tile and reads as belonging to somebody else. A contact shadow directly underneath
+        /// is what the eye uses to decide whether an object is resting on a surface or floating a
+        /// little above it, and every token was floating a little above it.
+        ///
+        /// Under the rings, above the tile: it is the lowest thing the token owns.
+        /// </summary>
+        void BuildShadow(float baseY)
+        {
+            var existing = transform.Find("Shadow");
+            var shadow = existing != null ? existing.gameObject : new GameObject("Shadow");
+
+            shadow.transform.SetParent(transform, worldPositionStays: false);
+            shadow.transform.localPosition = new Vector3(0f, baseY + 0.002f, 0f);
+            shadow.transform.localRotation = Quaternion.identity;
+
+            var size = CreatureToken.Radius * 2f * 1.7f;
+            shadow.transform.localScale = new Vector3(size, 1f, size);
+
+            Ensure<MeshFilter>(shadow).sharedMesh = CreatureToken.Disc;
+
+            var renderer = Ensure<MeshRenderer>(shadow);
+            renderer.sharedMaterial = ShadowMaterial;
+            renderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            renderer.receiveShadows = false;
+        }
+
+        /// <summary>One material for every contact shadow on the board.</summary>
+        static Material ShadowMaterial
+        {
+            get
+            {
+                if (s_ShadowMaterial != null)
+                {
+                    return s_ShadowMaterial;
+                }
+
+                s_ShadowMaterial = WorldArt.Unlit("Token Shadow", WorldArt.Shadow, transparent: true);
+
+                var tint = new Color(0f, 0f, 0f, 0.62f);
+                s_ShadowMaterial.color = tint;
+                s_ShadowMaterial.SetColor("_BaseColor", tint);
+
+                return s_ShadowMaterial;
+            }
         }
 
         /// <summary>
@@ -299,6 +361,31 @@ namespace Dragoneye.Game
 
             Walk(Time.deltaTime);
             PointTheWay();
+            Flash(Time.deltaTime);
+        }
+
+        /// <summary>
+        /// Plays out the hit-flash: white on the frame of the hit, back to the party colour over a
+        /// quarter of a second. Quick, because it is punctuation and not a state.
+        /// </summary>
+        void Flash(float deltaTime)
+        {
+            if (m_Flash <= 0f)
+            {
+                return;
+            }
+
+            m_Flash = Mathf.Max(0f, m_Flash - (deltaTime / 0.25f));
+            ApplyBodyColour(Color.Lerp(m_BodyColour, Color.white, m_Flash * m_Flash));
+        }
+
+        void ApplyBodyColour(Color colour)
+        {
+            // A property block rather than material.color, which would leak a material instance per
+            // unit and break instancing.
+            m_Body.GetPropertyBlock(m_PropertyBlock);
+            m_PropertyBlock.SetColor(m_ColorPropertyId, colour);
+            m_Body.SetPropertyBlock(m_PropertyBlock);
         }
 
         /// <summary>
@@ -440,13 +527,24 @@ namespace Dragoneye.Game
             // the largest surface; which specific player controls a creature is the ring's inner
             // accent. This used to colour by a UnitState.OwnerSlot that nothing ever wrote, so every
             // body rendered as slot -1 -- the first palette entry, for every unit on the board.
-            var color = m_Creature != null ? PartyPalette.ForParty(m_Creature.Party) : Color.white;
+            m_BodyColour = m_Creature != null ? PartyPalette.ForParty(m_Creature.Party) : Color.white;
 
-            // A property block rather than material.color, which would leak a material instance per
-            // unit and break instancing.
-            m_Body.GetPropertyBlock(m_PropertyBlock);
-            m_PropertyBlock.SetColor(m_ColorPropertyId, color);
-            m_Body.SetPropertyBlock(m_PropertyBlock);
+            // Health going down is a hit. Detected here rather than announced, because the number
+            // is replicated to everybody already and a second message saying the same thing would
+            // be a second thing to keep in step.
+            if (m_Creature != null)
+            {
+                var hp = m_Creature.CurrentHp;
+
+                if (m_LastHp >= 0 && hp < m_LastHp)
+                {
+                    m_Flash = 1f;
+                }
+
+                m_LastHp = hp;
+            }
+
+            ApplyBodyColour(m_Flash > 0f ? Color.white : m_BodyColour);
 
             RepaintPortrait();
         }

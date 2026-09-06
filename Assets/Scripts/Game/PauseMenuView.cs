@@ -101,12 +101,17 @@ namespace Dragoneye.Game
         {
             IsOpen = true;
             m_Root.EnableInClassList("is-hidden", false);
+
+            var root = m_Root;
+            root.schedule.Execute(() => root.AddToClassList("pause-root--in"));
+
             ShowMenu();
         }
 
         public void Close()
         {
             IsOpen = false;
+            m_Root.RemoveFromClassList("pause-root--in");
             m_Root.EnableInClassList("is-hidden", true);
 
             // Picking off as well as hidden. A hidden element is not picked, but this is the one
