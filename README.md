@@ -50,7 +50,7 @@ leaves you on Bootstrap when it finishes.
 
 ## The shape of it
 
-Nine assemblies. The boundaries are not documentation — they are separate DLLs, so a layering
+Ten assemblies. The boundaries are not documentation — they are separate DLLs, so a layering
 mistake is a compile error rather than something a review has to catch.
 
 ```
@@ -61,6 +61,8 @@ mistake is a compile error rather than something a review has to catch.
    Hex ─→ Hex.Systems ─→ Hex.Rendering
                       ↑
    Settings        Camera
+                      ↑
+                     UI           ← the widgets both halves draw: stat blocks, chips, the rules page
                       ↑
                  Multiplayer      ← sessions, menus, character creation
                       ↑
@@ -76,13 +78,21 @@ mistake is a compile error rather than something a review has to catch.
 | `Dragoneye.Hex.Systems` | `Scripts/Hex/Systems` | Hex |
 | `Dragoneye.Hex.Rendering` | `Scripts/Hex/Rendering` | Hex |
 | `Dragoneye.Camera` | `Scripts/Camera` | Settings, Input System, Cinemachine |
-| `Dragoneye.Multiplayer` | `Scripts/Multiplayer` | Combat, Data, Settings, Hex, Hex.Systems, Netcode, UGS |
+| `Dragoneye.UI` | `Scripts/UI` | Combat, Data, Input System |
+| `Dragoneye.Multiplayer` | `Scripts/Multiplayer` | Combat, Data, UI, Settings, Hex, Hex.Systems, Netcode, UGS |
 | `Dragoneye.Game` | `Scripts/Game` | all of the above |
 
 `Dragoneye.Game` references `Dragoneye.Multiplayer` and not the other way round. That is what lets
 the draft board host the session controls: the board is a Game thing, the session is a Multiplayer
 thing, and the arrow points the way it does deliberately. If you find yourself wanting Multiplayer
 to reach into Game, the design has gone wrong somewhere — put the shared thing lower instead.
+
+`Dragoneye.UI` exists because nothing about drawing a stat block is multiplayer, and nine arena
+views were reaching into `Dragoneye.Multiplayer` to get at one. Anything the menus and the arena
+both draw lives there.
+
+Namespaces follow folders inside `Game`: `Scripts/Game/Combat` is `Dragoneye.Game.Combat` and
+`Scripts/Game/Creatures` is `Dragoneye.Game.Creatures`. The root folder stays `Dragoneye.Game`.
 
 `Assets/Editor` has no asmdef. It is the predefined `Assembly-CSharp-Editor`, which automatically
 sees everything else.
