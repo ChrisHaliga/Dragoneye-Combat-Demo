@@ -1,6 +1,7 @@
 using Dragoneye.CameraControl;
 using Dragoneye.Hex.Systems;
 using UnityEngine;
+using UnityEngine.InputSystem;
 
 namespace Dragoneye.Game
 {
@@ -73,6 +74,9 @@ namespace Dragoneye.Game
 
             Current = this;
 
+            // The wheel over a panel is the panel's. The camera cannot hit-test the UI itself,
+            // so the arena, which can, tells it.
+            CameraRigInput.ZoomSuppressed = PointerIsOverUi;
         }
 
         void OnDisable()
@@ -80,7 +84,14 @@ namespace Dragoneye.Game
             if (Current == this)
             {
                 Current = null;
+                CameraRigInput.ZoomSuppressed = null;
             }
+        }
+
+        static bool PointerIsOverUi()
+        {
+            var mouse = Mouse.current;
+            return mouse != null && PointerOverUi.AtScreenPoint(mouse.position.ReadValue());
         }
 
         /// <summary>

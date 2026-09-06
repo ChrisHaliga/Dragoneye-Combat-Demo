@@ -62,6 +62,24 @@ namespace Dragoneye.Game
         /// face, which is the whole reason the pictures ship with the game rather than being loaded
         /// off the player who made the character.
         /// </summary>
+        /// <summary>
+        /// A face from a sprite, or a lettered tile from a name. For anywhere that knows the
+        /// sprite already -- a draft card reading a definition -- rather than a live creature.
+        /// </summary>
+        public static void DrawPortrait(VisualElement into, Sprite portrait, string name,
+            string initialClass = "portrait__initial")
+        {
+            if (portrait != null)
+            {
+                into.style.backgroundImage = new StyleBackground(portrait);
+                return;
+            }
+
+            var initial = new Label(Initial(name));
+            initial.AddToClassList(initialClass);
+            into.Add(initial);
+        }
+
         public static void DrawPortrait(VisualElement into, CreatureState creature,
             string initialClass = "portrait__initial")
         {

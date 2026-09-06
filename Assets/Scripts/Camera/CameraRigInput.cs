@@ -47,6 +47,13 @@ namespace Dragoneye.CameraControl
         /// </summary>
         public event Action LeaveRequested;
 
+        /// <summary>
+        /// Asked before the wheel zooms. Set by whoever knows where the UI is -- the arena, which
+        /// can hit-test its panels -- so a wheel over the combat log scrolls the log and does not
+        /// also pull the camera in. Null means the wheel always zooms.
+        /// </summary>
+        public static Func<bool> ZoomSuppressed { get; set; }
+
         void Awake()
         {
             m_Rig = GetComponent<CameraRig>();
@@ -124,7 +131,14 @@ namespace Dragoneye.CameraControl
             }
 
             m_Rig.Rotate(m_Rotate.ReadValue<float>(), deltaTime);
-            m_Rig.AddZoom(CameraRigMath.ZoomDelta(m_Zoom.ReadValue<float>(), m_Rig.ZoomSensitivity));
+            var wheel = m_Zoom.ReadValue<float>();
+
+            if (wheel != 0f && ZoomSuppressed != null && ZoomSuppressed())
+            {
+                wheel = 0f;
+            }
+
+            m_Rig.AddZoom(CameraRigMath.ZoomDelta(wheel, m_Rig.ZoomSensitivity));
 
             var pointerDelta = m_PointerDelta.ReadValue<Vector2>();
 

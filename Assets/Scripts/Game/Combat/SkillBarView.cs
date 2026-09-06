@@ -220,7 +220,7 @@ namespace Dragoneye.Game
 
             m_Choosing = NoSkill;
 
-            m_Bar.Add(BuildMoveButton());
+            m_Bar.Add(BuildMoveButton(actor.StepCost));
 
             var ledger = pool.Ledger;
             var worstReason = SkillRefusal.None;
@@ -482,7 +482,7 @@ namespace Dragoneye.Game
         /// this turn can do, and because "what does a click do right now" then has one answer they
         /// can see rather than a rule they have to remember.
         /// </summary>
-        VisualElement BuildMoveButton()
+        VisualElement BuildMoveButton(Ap stepCost)
         {
             var button = new Button();
             button.AddToClassList("skill-button");
@@ -497,13 +497,15 @@ namespace Dragoneye.Game
             var costs = new VisualElement();
             costs.AddToClassList("skill-button__cost");
 
-            var ap = new Label("½ AP / TILE");
+            // This creature's price, not a constant. The bar is rebuilt whenever the actor
+            // changes, so a knight in plate and a wolf read different numbers here.
+            var ap = new Label($"{stepCost} AP / TILE");
             ap.AddToClassList("skill-button__ap");
             costs.Add(ap);
             button.Add(costs);
 
-            button.tooltip = "Walk. Half an action point for every tile of the route. "
-                + "Click again to put it away.";
+            button.tooltip = $"Walk. {stepCost} action points for every tile of the route -- your "
+                + "speed decides. Click again to put it away.";
 
             button.clicked += () => m_Selected = m_Selected == MoveSkill ? NoSkill : MoveSkill;
 

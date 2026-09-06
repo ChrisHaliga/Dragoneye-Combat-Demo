@@ -267,6 +267,27 @@
     align-items: center;
 }
 
+/* The face, cropped square, on the name row. Small: the card has three rows and the face must
+   not make it four. */
+.fighter__portrait {
+    width: 30px;
+    height: 30px;
+    margin-right: 8px;
+    flex-shrink: 0;
+    border-radius: 3px;
+    background-color: rgb(28, 31, 40);
+    -unity-background-scale-mode: scale-and-crop;
+    justify-content: center;
+    align-items: center;
+    overflow: hidden;
+}
+
+.fighter__initial {
+    font-size: 13px;
+    -unity-font-style: bold;
+    color: rgb(139, 147, 165);
+}
+
 /* Taller than the two above it, because the buttons that live here are taller than text. */
 .fighter__row--foot {
     height: 22px;

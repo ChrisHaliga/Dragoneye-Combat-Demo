@@ -38,6 +38,7 @@ namespace Dragoneye.Multiplayer
                 scroll.verticalScrollerVisibility = ScrollerVisibility.Auto;
                 scroll.horizontalScrollerVisibility = ScrollerVisibility.Hidden;
                 scroll.mouseWheelScrollSize = 40;
+                ScrollWheelFallback.Attach(scroll);
             }
 
             into.Add(Section("THE FIGHT"));
@@ -71,10 +72,11 @@ namespace Dragoneye.Multiplayer
             into.Add(Section("ACTION POINTS"));
             into.Add(Text(
                 "Everything costs action points. A skill costs whatever it says on it. Walking "
-                + "costs by your Speed: a point of movement carries you Speed-over-four tiles, so "
-                + "at the base speed of eight a tile costs half a point, at four it costs a whole "
-                + "one, and in plate with nothing to make up for it you crawl. Half points are "
-                + "real -- a light attack can cost half a point where a heavy one costs two."));
+                + "costs by your Speed: half a point a tile at the base speed of eight, a whole "
+                + "point in light armour, one and a half in medium and two in heavy -- and every "
+                + "point of Endurance climbs back up that ladder. Nothing ever costs more than "
+                + "two a tile. Half points are real: a light attack can cost half a point where a "
+                + "heavy one costs two."));
             into.Add(Text(
                 "Moving to reach a target is part of using a skill, not a separate order. If you "
                 + "aim something at a creature out of reach, your creature walks the cheapest way "

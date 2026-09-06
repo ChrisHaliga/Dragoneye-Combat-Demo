@@ -40,8 +40,10 @@ namespace Dragoneye.MultiplayerEditor
             Step("Arena visuals", ArenaVisualsSetup.Run);
             Step("Turn system", TurnSystemSetup.Run);
             Step("Main menu", MainMenuSetup.Run);
-            Step("Character content", CharacterContentSetup.Run);
+            // Portraits before content: the premades are given faces by path, and a face is only
+            // a sprite once the importer has been told so.
             Step("Portraits", PortraitSetup.Run);
+            Step("Character content", CharacterContentSetup.Run);
             Step("Element icons", ElementIconSetup.Run);
             Step("Element matchups", ElementMatchupSetup.Run);
 

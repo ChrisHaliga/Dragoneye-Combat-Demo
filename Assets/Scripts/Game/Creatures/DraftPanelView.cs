@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using Dragoneye.Combat;
+using Dragoneye.Data;
 using Dragoneye.Multiplayer;
 using Unity.Netcode;
 using UnityEngine;
@@ -530,7 +531,8 @@ namespace Dragoneye.Game
                         loadout.Species != null ? loadout.Species.Name : "Unknown",
                         loadout.Class != null ? loadout.Class.Name : "Unknown", compact: true)
                     : string.Empty,
-                loadout?.Vitals, loadout != null ? loadout.ArmourPoints : 0);
+                loadout?.Vitals, loadout != null ? loadout.ArmourPoints : 0,
+                Portraits.Get(build.PortraitId));
 
             card.Root.AddToClassList("fighter--brought");
             card.Root.EnableInClassList("fighter--mine", mine);
@@ -563,7 +565,7 @@ namespace Dragoneye.Game
                         definition.ClassName, compact: true)
                     : string.Empty,
                 new Vitals(entry.Level, profile.MaxHealth, profile.MaxAp, profile.Initiative),
-                profile.Armour);
+                profile.Armour, definition != null ? definition.Portrait : null);
 
             card.Root.EnableInClassList("fighter--claimed", entry.IsClaimed);
             card.Root.EnableInClassList("fighter--mine", mine);
@@ -639,12 +641,20 @@ namespace Dragoneye.Game
         /// A premade fills the same three rows minus the two things it has not got: it does not
         /// level, so there is no bar, and nobody is running it unless somebody claimed it.
         /// </summary>
-        static CardParts Card(string name, string meta, Vitals? vitals, int armour = 0)
+        static CardParts Card(string name, string meta, Vitals? vitals, int armour = 0,
+            Sprite portrait = null)
         {
             var card = new VisualElement();
             card.AddToClassList("fighter");
 
+            // The face, down the left of the first two rows. A card is what a player picks a
+            // creature by, and a name in a list is not how anybody remembers an ogre.
+            var face = new VisualElement();
+            face.AddToClassList("fighter__portrait");
+            CreatureDisplay.DrawPortrait(face, portrait, name, "fighter__initial");
+
             var head = Row();
+            head.Add(face);
             head.Add(Text(name, "fighter__name"));
 
             if (vitals.HasValue)

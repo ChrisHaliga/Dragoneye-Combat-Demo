@@ -32,12 +32,12 @@ namespace Dragoneye.Hex.Tests
         [Test]
         public void SpeedPricesTheStep()
         {
-            // Two tiles: one point at the base speed, two at speed six, four at speed two. The
-            // same route, priced by how fast the walker is rather than by a constant.
+            // Two tiles: one point at the base speed, two at speed six, three at speed four,
+            // four at speed nought. The same route, priced by how fast the walker is.
             Assert.AreEqual(Ap.FromWhole(1), Move(6, 2).Cost);
             Assert.AreEqual(Ap.FromWhole(2), Move(6, 2, speed: 6).Cost);
-            Assert.AreEqual(Ap.FromWhole(3), Move(6, 2, speed: 3).Cost);
-            Assert.AreEqual(Ap.FromWhole(4), Move(6, 2, speed: 2).Cost);
+            Assert.AreEqual(Ap.FromWhole(3), Move(6, 2, speed: 4).Cost);
+            Assert.AreEqual(Ap.FromWhole(4), Move(6, 2, speed: 0).Cost);
 
             // And a walk the slow one cannot afford is one the quick one can.
             Assert.IsTrue(Move(2, 2, speed: 6).IsAllowed);

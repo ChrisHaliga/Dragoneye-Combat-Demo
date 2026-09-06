@@ -22,30 +22,39 @@ namespace Dragoneye.Combat
         /// <summary>What one tile costs at the base speed. Half a point, per DE-000.</summary>
         public static readonly Ap BaseStepCost = Ap.Step;
 
+        /// <summary>Half-units a tile costs at the base speed. Half a point.</summary>
+        const int BaseStepUnits = 1;
+
         /// <summary>
-        /// Tiles a whole action point buys at the base speed, which is what the speed is divided
-        /// by: a creature at speed 8 goes two tiles a point, at speed 4 one, at speed 2 half of one.
+        /// Half-units a tile costs at no speed at all. Two whole points: plate with nothing to
+        /// make up for it, and never dearer than that.
         /// </summary>
-        public const int TilesPerPointAtBase = 2;
+        const int SlowestStepUnits = 4;
 
         /// <summary>
         /// What one tile costs at this speed.
         ///
-        /// Tiles per point is speed over four; this is that turned over and rounded up to the
-        /// half, which is the smallest thing an action point splits into. Speed 8 is half a point
-        /// a tile, 6 is a whole one, 3 is one and a half, 2 is two. Speed never prices a step below
-        /// half a point, and a speed of nothing is treated as one -- four points a tile, which is a
-        /// creature that can still be dragged somewhere but not much further.
+        /// Half a point at the base speed of eight, and half a point more for roughly every two
+        /// and a half points of speed lost below that, rounded up to the half and capped at two:
+        /// speed eight is half a point, six is a whole one, four is one and a half, and nought is
+        /// two. That is the unarmoured / light / medium / heavy ladder with no Endurance bought,
+        /// and Endurance climbs back up it. Faster than eight never prices a step below the half.
         /// </summary>
         public static Ap StepCostFor(int speed)
         {
-            var effective = speed < 1 ? 1 : speed;
+            var slow = Vitals.BaseSpeed - speed;
 
-            // Half-units per tile = ceil(2 * 4 / speed) = ceil(8 / speed).
-            var perTile = 2 * 2 * TilesPerPointAtBase;
-            var units = (perTile + effective - 1) / effective;
+            if (slow <= 0)
+            {
+                return Ap.FromUnits(BaseStepUnits);
+            }
 
-            return Ap.FromUnits(units < 1 ? 1 : units);
+            // ceil(slow * 3 / 8): three extra half-units spread over the eight speed below base.
+            var span = SlowestStepUnits - BaseStepUnits;
+            var extra = (slow * span + Vitals.BaseSpeed - 1) / Vitals.BaseSpeed;
+            var units = BaseStepUnits + extra;
+
+            return Ap.FromUnits(units > SlowestStepUnits ? SlowestStepUnits : units);
         }
 
         /// <summary>

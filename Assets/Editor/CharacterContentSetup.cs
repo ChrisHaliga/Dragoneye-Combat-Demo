@@ -181,6 +181,29 @@ namespace Dragoneye.MultiplayerEditor
                 SkillTarget.Creature, SkillEffectKind.Damage, 12,
                 "Everything the Apostate learned, and everything they gave up.", level: 6);
 
+            // ---------- what the premades swing with ----------
+            //
+            // Built characters get their attack from a weapon; a premade has no weapon slot, so
+            // its attacks are authored here. Each one is a different element from the last, and
+            // every premade carries at least two, because a creature that asks one question is a
+            // creature with one answer to learn.
+            var club = Skill(200, "Club", Element.Geo, ap: 1, elementCost: 1, range: 1,
+                SkillTarget.Creature, SkillEffectKind.Damage, 4,
+                "Something heavy on the end of something long.", scaling: Attribute.Strength);
+            var bite = Skill(201, "Bite", Element.Aero, ap: 1, elementCost: 1, range: 1,
+                SkillTarget.Creature, SkillEffectKind.Damage, 3,
+                "Fast, and closer than anybody wanted.", scaling: Attribute.Dexterity);
+            var maul = Skill(202, "Maul", Element.Geo, ap: 2, elementCost: 1, range: 1,
+                SkillTarget.Creature, SkillEffectKind.Damage, 6,
+                "The whole weight behind it.", scaling: Attribute.Strength);
+            var sling = Skill(203, "Sling", Element.Geo, ap: 1, elementCost: 1, range: 3,
+                SkillTarget.Creature, SkillEffectKind.Damage, 2,
+                "A stone, from further than you would like.", scaling: Attribute.Dexterity,
+                accuracy: 85, falloff: 10);
+            var torch = Skill(204, "Torch", Element.Pyro, ap: 1, elementCost: 1, range: 1,
+                SkillTarget.Creature, SkillEffectKind.Damage, 3,
+                "A burning brand, swung. It asks in Pyro and it does not care who answers.");
+
             var fireball = Skill(140, "Fireball", Element.Pyro, ap: 2, elementCost: 2, range: 3,
                 SkillTarget.Creature, SkillEffectKind.Damage, 9,
                 "The reason the staff is held at arm's length. Two Pyro, thrown.", level: 2,
@@ -291,11 +314,12 @@ namespace Dragoneye.MultiplayerEditor
                 breath, strike, cleave, loose, jab, ember, smite, drain, recover, meditate, focus,
                 holdTheLine, shieldBash, rally, backstab, slipAway, assassinate,
                 heavyBlow, secondWind, whirlwind, snapShot, aimedShot, piercingShot,
-                sanctuary, judgement, hex, oblivion, fireball, storm
+                sanctuary, judgement, hex, oblivion, fireball, storm,
+                club, bite, maul, sling, torch
             };
 
             Creatures(new PremadeKit(strike, cleave, loose, jab, smite, recover, heavyBlow,
-                backstab, snapShot, holdTheLine));
+                backstab, snapShot, holdTheLine, club, bite, maul, sling, torch));
 
             return Catalog(species, classes, equipment, skills);
         }
@@ -304,11 +328,12 @@ namespace Dragoneye.MultiplayerEditor
         readonly struct PremadeKit
         {
             public readonly SkillAsset Strike, Cleave, Loose, Jab, Smite, Recover, HeavyBlow,
-                Backstab, SnapShot, HoldTheLine;
+                Backstab, SnapShot, HoldTheLine, Club, Bite, Maul, Sling, Torch;
 
             public PremadeKit(SkillAsset strike, SkillAsset cleave, SkillAsset loose, SkillAsset jab,
                 SkillAsset smite, SkillAsset recover, SkillAsset heavyBlow, SkillAsset backstab,
-                SkillAsset snapShot, SkillAsset holdTheLine)
+                SkillAsset snapShot, SkillAsset holdTheLine, SkillAsset club, SkillAsset bite,
+                SkillAsset maul, SkillAsset sling, SkillAsset torch)
             {
                 Strike = strike;
                 Cleave = cleave;
@@ -320,6 +345,11 @@ namespace Dragoneye.MultiplayerEditor
                 Backstab = backstab;
                 SnapShot = snapShot;
                 HoldTheLine = holdTheLine;
+                Club = club;
+                Bite = bite;
+                Maul = maul;
+                Sling = sling;
+                Torch = torch;
             }
         }
 
@@ -344,55 +374,60 @@ namespace Dragoneye.MultiplayerEditor
         /// </summary>
         static void Creatures(PremadeKit kit)
         {
-            // Rank and file. Padded, a little slow, one swing and an answer or two.
+            // Every premade below carries at least two attacks in two different elements, and
+            // holds those elements. Skills above the authored level are left off the list, since
+            // a premade only ever has what its level allows -- so a level-one recruit is authored
+            // with level-one things.
+
+            // Rank and file. Padded, a little slow, a sword and a club.
             Creature("guard-recruit", "Human/Finn", level: 1, hp: 14, ap: 4, speed: 6, armour: 4,
-                shielded: false, Pool(pyro: 2, geo: 1, hydro: 1), Element.Pyro,
-                kit.Strike, kit.HeavyBlow);
+                shielded: false, Pool(pyro: 2, geo: 2), Element.Pyro, kit.Strike, kit.Club);
 
-            // Small and quick: three answers in Aero and a shiv from the species.
+            // Small and quick: a jab up close and a stone from further off.
             Creature("monster-goblin", "Goblinoid/Brawler", level: 1, hp: 10, ap: 5, speed: 10,
-                armour: 0, shielded: false, Pool(aero: 2, geo: 1, pyro: 1), Element.Aero, kit.Jab);
+                armour: 0, shielded: false, Pool(aero: 2, geo: 2), Element.Aero, kit.Jab, kit.Sling);
 
-            // All teeth and nothing held back. The fastest thing on the board.
+            // All teeth and weight. The fastest thing on the board.
             Creature("monster-wolf", "Beast/Direwolf", level: 1, hp: 14, ap: 6, speed: 12,
-                armour: 0, shielded: false, Pool(aero: 3, pyro: 1), Element.Aero, kit.Jab);
+                armour: 0, shielded: false, Pool(aero: 2, geo: 2), Element.Aero, kit.Bite, kit.Maul);
 
-            // Skirmishers: reach, a snap shot for close work, and enough Aero to use both.
+            // Skirmishers: an arrow, a stone, and a snap shot for close work.
             Creature("bandit-scout", "Human/henry-jester", level: 2, hp: 15, ap: 5, speed: 9,
-                armour: 0, shielded: false, Pool(aero: 3, hydro: 1, geo: 1), Element.Aero,
-                kit.Loose, kit.SnapShot);
+                armour: 0, shielded: false, Pool(aero: 3, geo: 2), Element.Aero,
+                kit.Loose, kit.Sling, kit.SnapShot);
             Creature("guard-archer", "Human/Finn", level: 2, hp: 15, ap: 5, speed: 8,
-                armour: 0, shielded: false, Pool(aero: 3, pyro: 1, geo: 1), Element.Aero,
-                kit.Loose, kit.SnapShot);
+                armour: 0, shielded: false, Pool(aero: 3, pyro: 2), Element.Aero,
+                kit.Loose, kit.Strike, kit.SnapShot);
             Creature("hero-ranger", "Human/henry-jester", level: 3, hp: 18, ap: 5, speed: 9,
-                armour: 0, shielded: false, Pool(aero: 3, hydro: 2, geo: 1), Element.Aero,
-                kit.Loose, kit.Jab, kit.SnapShot);
+                armour: 0, shielded: false, Pool(aero: 3, geo: 2, hydro: 1), Element.Aero,
+                kit.Loose, kit.Club, kit.SnapShot, kit.Recover);
 
-            // Two points of the five go on one Nyx, which answers anything common and nothing else.
+            // Quick and underhanded: Aero to open, Nyx when the back is turned.
             Creature("bandit-cutpurse", "Human/Finn", level: 2, hp: 14, ap: 6, speed: 10,
-                armour: 0, shielded: false, Pool(aero: 3, nyx: 1), Element.Aero,
+                armour: 0, shielded: false, Pool(aero: 3, nyx: 2), Element.Aero,
                 kit.Jab, kit.Backstab);
 
             // The heavies. Cleave wants level three, so this is the first rank that has it.
             Creature("bandit-brute", "Giantkin/Barbarian", level: 3, hp: 26, ap: 4, speed: 6,
-                armour: 4, shielded: false, Pool(geo: 2, pyro: 2, hydro: 2), Element.Geo,
-                kit.Strike, kit.Cleave, kit.HeavyBlow);
+                armour: 4, shielded: false, Pool(geo: 3, pyro: 2, hydro: 1), Element.Geo,
+                kit.Club, kit.Strike, kit.Cleave, kit.HeavyBlow);
             Creature("guard-sergeant", "Giantkin/Crusader", level: 3, hp: 24, ap: 5, speed: 5,
                 armour: 8, shielded: false, Pool(pyro: 3, geo: 2, hydro: 1), Element.Pyro,
-                kit.Strike, kit.Cleave, kit.HoldTheLine);
+                kit.Strike, kit.Club, kit.Cleave, kit.HoldTheLine);
             Creature("monster-ogre", "Goblinoid/Ogre", level: 3, hp: 34, ap: 4, speed: 5,
                 armour: 6, shielded: false, Pool(geo: 3, pyro: 2, aero: 1), Element.Geo,
-                kit.Strike, kit.Cleave);
+                kit.Maul, kit.Torch, kit.Cleave);
 
             // Plate and a shield: sixteen and four, and a speed of four for it. Arrives last and
             // takes a while to put down.
             Creature("hero-knight", "Human/Knight", level: 3, hp: 24, ap: 4, speed: 4, armour: 20,
                 shielded: true, Pool(pyro: 2, geo: 2, hydro: 2), Element.Pyro,
-                kit.Strike, kit.HeavyBlow, kit.Recover);
+                kit.Strike, kit.Club, kit.HeavyBlow, kit.Recover);
 
-            // Two Lux is four of the six. Smite twice, and answer anything common with what is left.
+            // Two Lux is four of the six. Smite, a mace in Pyro, and something to stay up with.
             Creature("hero-cleric", "Human/Scholar", level: 3, hp: 20, ap: 5, speed: 6, armour: 4,
-                shielded: false, Pool(lux: 2, hydro: 2), Element.Lux, kit.Smite, kit.Recover);
+                shielded: false, Pool(lux: 2, pyro: 2, hydro: 2), Element.Lux,
+                kit.Smite, kit.Strike, kit.Recover);
 
             CreatureCatalogAll();
         }
@@ -412,11 +447,12 @@ namespace Dragoneye.MultiplayerEditor
 
             var serialized = new SerializedObject(asset);
 
-            var sprite = AssetDatabase.LoadAssetAtPath<Sprite>($"{k_PortraitFolder}/{portrait}.jpg");
+            var sprite = LoadPortrait($"{k_PortraitFolder}/{portrait}.jpg");
 
             if (sprite == null)
             {
-                Debug.LogWarning($"No portrait at {k_PortraitFolder}/{portrait}.jpg for {id}.");
+                Debug.LogWarning($"No portrait at {k_PortraitFolder}/{portrait}.jpg for {id}. "
+                    + "Is the file imported as a sprite? The portrait step does that.");
             }
 
             serialized.FindProperty("m_Portrait").objectReferenceValue = sprite;
@@ -444,6 +480,32 @@ namespace Dragoneye.MultiplayerEditor
 
             serialized.ApplyModifiedPropertiesWithoutUndo();
             EditorUtility.SetDirty(asset);
+        }
+
+        /// <summary>
+        /// The sprite for a portrait file, however the importer chose to expose it.
+        ///
+        /// A texture imported as a single sprite answers the typed load directly; one that was
+        /// re-imported this run may only answer through its sub-assets. Both are tried.
+        /// </summary>
+        static Sprite LoadPortrait(string path)
+        {
+            var direct = AssetDatabase.LoadAssetAtPath<Sprite>(path);
+
+            if (direct != null)
+            {
+                return direct;
+            }
+
+            foreach (var asset in AssetDatabase.LoadAllAssetRepresentationsAtPath(path))
+            {
+                if (asset is Sprite sprite)
+                {
+                    return sprite;
+                }
+            }
+
+            return null;
         }
 
         /// <summary>

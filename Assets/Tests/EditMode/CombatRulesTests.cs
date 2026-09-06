@@ -48,23 +48,26 @@ namespace Dragoneye.Hex.Tests
         [Test]
         public void SpeedSetsThePriceOfAStep()
         {
-            // Tiles per point is speed over four; the price is that turned over and rounded up
-            // to the half. Pinned so a retune of the base speed does not quietly drift the rest.
+            // The ladder with no Endurance bought: nothing, light, medium, heavy. Pinned so a
+            // retune of the base speed does not quietly drift the rest.
             Assert.AreEqual(Ap.Step, CombatRules.StepCostFor(Vitals.BaseSpeed));
             Assert.AreEqual(CombatRules.BaseStepCost, CombatRules.StepCostFor(Vitals.BaseSpeed));
-            Assert.AreEqual(Ap.FromWhole(1), CombatRules.StepCostFor(6), "light armour, no Endurance");
-            Assert.AreEqual(Ap.FromWhole(1), CombatRules.StepCostFor(4), "medium armour");
-            Assert.AreEqual(Ap.FromWhole(1) + Ap.Step, CombatRules.StepCostFor(3));
+            Assert.AreEqual(Ap.FromWhole(1), CombatRules.StepCostFor(6), "light armour");
+            Assert.AreEqual(Ap.FromWhole(1) + Ap.Step, CombatRules.StepCostFor(4), "medium armour");
+            Assert.AreEqual(Ap.FromWhole(2), CombatRules.StepCostFor(0), "heavy armour");
+
+            // Endurance climbs back up it, one rung at a time.
             Assert.AreEqual(Ap.FromWhole(2), CombatRules.StepCostFor(2));
-            Assert.AreEqual(Ap.FromWhole(4), CombatRules.StepCostFor(1));
+            Assert.AreEqual(Ap.FromWhole(1) + Ap.Step, CombatRules.StepCostFor(5));
+            Assert.AreEqual(Ap.FromWhole(1), CombatRules.StepCostFor(7));
 
-            // Faster than the base never goes below the half, and no speed at all is one.
+            // Faster than the base never goes below the half; slower than nothing never above two.
             Assert.AreEqual(Ap.Step, CombatRules.StepCostFor(16));
-            Assert.AreEqual(CombatRules.StepCostFor(1), CombatRules.StepCostFor(0));
+            Assert.AreEqual(Ap.FromWhole(2), CombatRules.StepCostFor(-5));
 
-            // Three points is six tiles at the base speed and one tile at speed two.
+            // Three points is six tiles at the base speed and one tile in plate.
             Assert.AreEqual(6, CombatRules.StepsAffordable(Ap.FromWhole(3), CombatRules.StepCostFor(8)));
-            Assert.AreEqual(1, CombatRules.StepsAffordable(Ap.FromWhole(3), CombatRules.StepCostFor(2)));
+            Assert.AreEqual(1, CombatRules.StepsAffordable(Ap.FromWhole(3), CombatRules.StepCostFor(0)));
         }
 
         [Test]
