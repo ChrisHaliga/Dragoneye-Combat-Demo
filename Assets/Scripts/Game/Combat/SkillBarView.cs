@@ -1,5 +1,6 @@
 using Dragoneye.Combat;
 using Dragoneye.Data;
+using Dragoneye.Multiplayer;
 using UnityEngine;
 using UnityEngine.UIElements;
 
@@ -24,6 +25,7 @@ namespace Dragoneye.Game
         BoardActionInput m_Input;
 
         VisualElement m_Bar;
+        VisualElement m_Hand;
         Label m_Reason;
 
         int m_Selected = NoSkill;
@@ -72,6 +74,7 @@ namespace Dragoneye.Game
             var root = GetComponent<UIDocument>().rootVisualElement;
 
             m_Bar = root.Q<VisualElement>("skill-bar");
+            m_Hand = root.Q<VisualElement>("own-hand");
             m_Reason = root.Q<Label>("skill-reason");
 
             if (m_Bar == null || m_Reason == null)
@@ -104,6 +107,7 @@ namespace Dragoneye.Game
                 if (m_DrawnFor != 0 || m_DrawnCount != 0)
                 {
                     m_Bar.Clear();
+                    m_Hand?.Clear();
                     m_Reason.text = string.Empty;
                     m_Selected = NoSkill;
                     m_DrawnFor = 0;
@@ -177,6 +181,8 @@ namespace Dragoneye.Game
                 return;
             }
 
+            DrawHand(pool);
+
             m_Bar.Add(BuildMoveButton());
 
             var ledger = pool.Ledger;
@@ -231,6 +237,45 @@ namespace Dragoneye.Game
             }
 
             m_Selected = NoSkill;
+        }
+
+        /// <summary>
+        /// What the creature you are playing is holding, above the things it could spend it on.
+        ///
+        /// The inspect card shows whatever was last clicked, which is usually somebody else -- so
+        /// the one hand a player needs constantly was the one hand they had to give up looking at
+        /// an enemy to see. This follows the player rather than the cursor.
+        ///
+        /// Only ever your own creature's, and only on your own turn, so there is no question about
+        /// whose elements these are.
+        /// </summary>
+        void DrawHand(CreaturePool pool)
+        {
+            if (m_Hand == null)
+            {
+                return;
+            }
+
+            m_Hand.Clear();
+
+            var held = pool.Pool;
+
+            foreach (var element in ElementInfo.All)
+            {
+                var count = held[element];
+
+                if (count > 0)
+                {
+                    m_Hand.Add(CharacterSheet.ElementChip(element, count));
+                }
+            }
+
+            if (held.Total == 0)
+            {
+                var empty = new Label("Nothing left to spend");
+                empty.AddToClassList("own-hand__empty");
+                m_Hand.Add(empty);
+            }
         }
 
         /// <summary>

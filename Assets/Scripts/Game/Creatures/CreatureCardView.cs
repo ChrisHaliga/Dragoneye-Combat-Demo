@@ -235,45 +235,114 @@ namespace Dragoneye.Game
             }
 
             var mine = m_ObservedPool.CanSee;
+            var spent = SpentCounts();
 
+            // Two rows, always: what can still be spent, and what has been. The second is the
+            // graveyard, and it is the half a player was having to reconstruct from memory --
+            // knowing an ogre has burned both its Pyro is most of knowing what to throw next.
+            //
+            // Both halves are public for an opponent. What is spent was spent in front of
+            // everybody; what is left is only ever counted, never named.
             if (mine)
             {
-                m_ElementsTitle.text = "POOL";
+                m_ElementsTitle.text = $"YOUR POOL  ·  {m_ObservedPool.Pool.Total} "
+                    + $"OF {m_ObservedPool.Total}";
 
                 foreach (var element in ElementInfo.All)
                 {
                     var held = m_ObservedPool.Pool[element];
-                    m_Elements.Add(CharacterSheet.ElementChip(element, held, held == 0));
+
+                    if (held > 0)
+                    {
+                        m_Elements.Add(CharacterSheet.ElementChip(element, held));
+                    }
                 }
 
+                if (m_ObservedPool.Pool.Total == 0)
+                {
+                    m_Elements.Add(Note("Nothing left to spend"));
+                }
+
+                AddSpentRow(spent);
                 return;
             }
 
-            // Somebody else's hand, so what is drawn is what has been worked out about it: how big
-            // it is, which of it has a name, and how much of it does not. The size is exact --
-            // everybody watched the spends -- and it is the number that decides whether attacking
-            // is worth it, so it goes in the heading rather than being left to be counted.
             var guess = PossibleElements.Seen(m_ObservedPool.Ledger);
 
-            m_ElementsTitle.text = $"HAND  ·  {m_ObservedPool.InHand} OF {m_ObservedPool.Total}";
+            m_ElementsTitle.text = $"THEIR HAND  ·  {m_ObservedPool.InHand} "
+                + $"OF {m_ObservedPool.Total}";
 
             foreach (var element in ElementInfo.All)
             {
                 var available = guess.Known[element];
-                var chip = CharacterSheet.ElementChip(element, available, available == 0);
 
-                // Proven to exist but currently spent is a different thing from never seen, and a
-                // player tracking a fight wants both.
-                var spent = m_ObservedPool.Identified[element] - available;
-
-                chip.tooltip = spent > 0
-                    ? $"{ElementInfo.NameOf(element)} · {available} in hand, {spent} spent"
-                    : $"{ElementInfo.NameOf(element)} · {available} in hand";
-
-                m_Elements.Add(chip);
+                if (available > 0)
+                {
+                    var chip = CharacterSheet.ElementChip(element, available);
+                    chip.tooltip = $"{ElementInfo.NameOf(element)} · seen, and back in hand";
+                    m_Elements.Add(chip);
+                }
             }
 
-            m_Elements.Add(CharacterSheet.UnknownChip(guess.Unknown));
+            var unknown = CharacterSheet.UnknownChip(guess.Unknown);
+            unknown.tooltip = guess.Unknown > 0
+                ? $"{guess.Unknown} element{(guess.Unknown == 1 ? string.Empty : "s")} in hand that "
+                    + "nobody has seen yet"
+                : "Everything in this hand has been seen";
+            m_Elements.Add(unknown);
+
+            AddSpentRow(spent);
+        }
+
+        /// <summary>
+        /// The graveyard: what has been spent and not taken back.
+        ///
+        /// Public for everybody, because every one of them was spent in the open. Drawn even when
+        /// it is empty, so the row does not appear and disappear as a fight goes on and move the
+        /// rest of the card around under the cursor.
+        /// </summary>
+        void AddSpentRow(ElementCounts spent)
+        {
+            var heading = new Label($"SPENT  ·  {spent.Total}");
+            heading.AddToClassList("card__spent-title");
+            m_Elements.Add(heading);
+
+            if (spent.Total == 0)
+            {
+                m_Elements.Add(Note("Nothing spent yet"));
+                return;
+            }
+
+            foreach (var element in ElementInfo.All)
+            {
+                if (spent[element] > 0)
+                {
+                    var chip = CharacterSheet.ElementChip(element, spent[element]);
+                    chip.AddToClassList("element-chip--spent");
+                    chip.tooltip = $"{ElementInfo.NameOf(element)} · spent, and not taken back";
+                    m_Elements.Add(chip);
+                }
+            }
+        }
+
+        /// <summary>What is currently spent, per element. Everybody watched all of it.</summary>
+        ElementCounts SpentCounts()
+        {
+            var spent = ElementCounts.Empty;
+
+            foreach (var element in m_ObservedPool.Outstanding)
+            {
+                spent = spent.Plus(element, 1);
+            }
+
+            return spent;
+        }
+
+        static Label Note(string text)
+        {
+            var note = new Label(text);
+            note.AddToClassList("card__elements-note");
+            return note;
         }
 
         /// <summary>

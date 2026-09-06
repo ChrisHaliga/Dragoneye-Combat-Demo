@@ -245,6 +245,10 @@ namespace Dragoneye.MultiplayerEditor
             // question about one attack has no business outliving the fight it was asked in.
             Ensure<ClashCommands>(host);
 
+            // Everything that happens which is not a clash. Beside the postbox because it has the
+            // same lifetime and the same job: telling the other machines what the server did.
+            Ensure<CombatAnnouncer>(host);
+
             EditorUtility.SetDirty(host);
         }
 
@@ -285,6 +289,11 @@ namespace Dragoneye.MultiplayerEditor
             // reading it, which is why it needs the registry.
             var result = Ensure<ClashResultView>(hud);
             Assign(result, ("m_Input", input));
+
+            // The running account of the fight. It names creatures that have already been
+            // despawned, so it takes the registry directly rather than going through the input.
+            var log = Ensure<CombatLogView>(hud);
+            Assign(log, ("m_Creatures", creatures));
         }
 
         /// <summary>

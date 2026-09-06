@@ -124,7 +124,7 @@ namespace Dragoneye.Game
             m_Reason.AddToClassList("clash-prompt__reason");
             m_Panel.Add(m_Reason);
 
-            var key = new Label("Stopped / halved / through");
+            var key = new Label(ClashLabels.OddsKey);
             key.AddToClassList("clash-prompt__key");
             m_Panel.Add(key);
 
@@ -215,8 +215,9 @@ namespace Dragoneye.Game
 
                 var chances = new Label(ClashLabels.Chances(odds));
                 chances.AddToClassList("clash-option__odds");
-                chances.tooltip = "Chance this answer stops the attack, halves it, or lets it "
-                    + "through -- worked out from what this attacker has been seen holding.";
+                chances.tooltip = "Win: no damage, and you keep the element. Tie: no damage, "
+                    + "and it is gone. Lose: you take the hit and it is gone. Worked out from what "
+                    + "this attacker is known to be holding.";
                 button.Add(chances);
             }
 

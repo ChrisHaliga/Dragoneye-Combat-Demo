@@ -525,6 +525,31 @@
     flex-wrap: wrap;
 }
 
+/* The graveyard heading, and the note that stands in for an empty row. Both take the full width of
+   the wrapping row so what follows starts on a fresh line. */
+.card__spent-title {
+    width: 100%;
+    margin-top: 8px;
+    margin-bottom: 4px;
+    font-size: 9px;
+    -unity-font-style: bold;
+    letter-spacing: 3px;
+    color: rgb(139, 147, 165);
+}
+
+.card__elements-note {
+    width: 100%;
+    font-size: 10px;
+    -unity-font-style: italic;
+    color: rgb(110, 118, 136);
+}
+
+/* Spent, not held. Dimmed, so the two rows read as different kinds of thing at a glance rather than
+   only by their heading. */
+.element-chip--spent {
+    opacity: 0.55;
+}
+
 /* One element and how much of it is held. The rune is set inline from the icon library; the gem
    below it is what shows through when a project has no art for that element yet. */
 .element-chip {
@@ -864,6 +889,21 @@
     white-space: normal;
 }
 
+/* What the creature you are playing is holding. Directly above the things it can be spent on,
+   because those are two halves of one decision and a player should never have to look away from one
+   to check the other. */
+.own-hand {
+    flex-direction: row;
+    align-items: center;
+    margin-bottom: 6px;
+}
+
+.own-hand__empty {
+    font-size: 11px;
+    -unity-font-style: italic;
+    color: rgb(139, 147, 165);
+}
+
 /* ---------- skill bar ---------- */
 
 /* Walking. In the bar with everything else, because that is where a player looks to see what this
@@ -944,4 +984,61 @@
     -unity-font-style: bold;
     letter-spacing: 1px;
     color: rgb(226, 122, 63);
+}
+
+/* ---------- combat log ---------- */
+
+/* Bottom left, under the party column and clear of the centred footer. A log belongs beside the
+   people it is about, and the left column is already where a player looks to find out who is in
+   the fight. */
+.combat-log {
+    position: absolute;
+    left: 16px;
+    bottom: 22px;
+    width: 360px;
+    padding: 10px 12px 6px 12px;
+    background-image: url("Generated/ui-panel.png");
+    -unity-slice-left: 16;
+    -unity-slice-right: 16;
+    -unity-slice-top: 16;
+    -unity-slice-bottom: 16;
+}
+
+.combat-log__title {
+    font-size: 10px;
+    -unity-font-style: bold;
+    letter-spacing: 3px;
+    color: rgb(198, 158, 88);
+    margin-bottom: 6px;
+}
+
+.combat-log-list {
+    max-height: 168px;
+}
+
+/* Lines wrap rather than being cut off: half a sentence about an element nobody can read is worse
+   than no line at all. And they never shrink, for the same reason the party column does not. */
+.combat-log-list > * {
+    flex-shrink: 0;
+}
+
+.combat-log__line {
+    white-space: normal;
+    font-size: 11px;
+    color: rgb(150, 157, 175);
+    margin-bottom: 3px;
+}
+
+/* A line the reader is part of, brighter than the traffic around it. */
+.combat-log__line--mine {
+    color: rgb(226, 222, 212);
+}
+
+.combat-log__round {
+    margin-top: 6px;
+    margin-bottom: 4px;
+    font-size: 9px;
+    -unity-font-style: bold;
+    letter-spacing: 3px;
+    color: rgb(198, 158, 88);
 }

@@ -11,6 +11,10 @@
 
         <ui:VisualElement name="turn-footer" class="turn-footer">
             <ui:Label name="ap-label" text="" class="turn-footer__ap" />
+
+            <!-- What the creature you are playing is holding. Above the skills rather than in the
+                 card, because the card follows what you clicked and this has to follow you. -->
+            <ui:VisualElement name="own-hand" class="own-hand" />
             <ui:VisualElement name="skill-bar" class="skill-bar" />
             <ui:Label name="skill-reason" text="" class="skill-reason" />
             <ui:Button name="end-turn-button" text="End Turn" class="button end-turn" />
@@ -30,6 +34,13 @@
         <ui:VisualElement name="party-column" class="party-column">
             <ui:Label name="party-title" text="Party" class="party-title" />
             <ui:ScrollView name="portrait-list" class="portrait-list" />
+        </ui:VisualElement>
+
+        <!-- What has happened, in order. Bottom left, out of the way of the board and beside the
+             party it is about. -->
+        <ui:VisualElement name="combat-log" class="combat-log">
+            <ui:Label text="Combat Log" class="combat-log__title" />
+            <ui:ScrollView name="combat-log-list" class="combat-log-list" />
         </ui:VisualElement>
 
         <ui:VisualElement name="summary-card" class="card">

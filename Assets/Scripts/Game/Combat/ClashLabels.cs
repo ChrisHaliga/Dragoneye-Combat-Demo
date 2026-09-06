@@ -87,6 +87,11 @@ namespace Dragoneye.Game
         /// <summary>The word shown where an action's cost would be, when position has changed it.</summary>
         public const string Advantage = "ADVANTAGE";
 
+        /// <summary>What the three numbers on a prompt are, in the order they are written.</summary>
+        public static string OddsKey =>
+            Tint(WinColour, "WIN") + " / " + Tint(TieColour, "TIE") + " / "
+            + Tint(LoseColour, "LOSE");
+
         /// <summary>
         /// How a clash is expected to go, in three coloured numbers.
         ///

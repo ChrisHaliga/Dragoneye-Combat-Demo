@@ -623,6 +623,18 @@ namespace Dragoneye.Game
             // Uncontested, so there is no window to keep empty: it was used in the open.
             actor.GetComponent<SkillCommands>()?.ServerRecordUse(skill.Id);
 
+            // Returning elements is settled first because the announcement has to name the ones
+            // that actually came back -- "regained PYR" is the whole content of the message, and
+            // the pool decides how many there were.
+            var returned = skill.Effect.Kind == SkillEffectKind.ReturnElement
+                ? ReturnElements(actor, skill.Effect.Amount)
+                : null;
+
+            // Announced before the effect lands, so a blow that kills reads in the order it
+            // happened: the swing, and then the body.
+            CombatAnnouncer.Current?.ServerActed(actor.TurnId, skill.Id,
+                target != null ? target.TurnId : 0u, target != null && target != actor, returned);
+
             switch (skill.Effect.Kind)
             {
                 case SkillEffectKind.Damage:
@@ -645,7 +657,7 @@ namespace Dragoneye.Game
                     break;
 
                 case SkillEffectKind.ReturnElement:
-                    ReturnElements(actor, skill.Effect.Amount);
+                    // Already done, above.
                     break;
             }
         }
@@ -656,18 +668,22 @@ namespace Dragoneye.Game
         /// Stops at the first refusal rather than running the loop out: a skill that returns three
         /// when two were spent returns two, and the creature has already paid its AP for the try.
         /// </summary>
-        static void ReturnElements(CreatureState actor, int count)
+        static List<Element> ReturnElements(CreatureState actor, int count)
         {
+            var returned = new List<Element>();
             var pool = actor.GetComponent<CreaturePool>();
 
             if (pool == null)
             {
-                return;
+                return returned;
             }
 
-            for (var i = 0; i < count && pool.ServerReturn(out _, out _); i++)
+            for (var i = 0; i < count && pool.ServerReturn(out var element, out _); i++)
             {
+                returned.Add(element);
             }
+
+            return returned;
         }
 
         CreatureState TargetAt(Hex hex) =>
@@ -915,6 +931,9 @@ namespace Dragoneye.Game
         void Kill(CreatureState creature, CreatureState killer)
         {
             AwardXp(killer, creature);
+
+            // Before the despawn, which takes the name with it.
+            CombatAnnouncer.Current?.ServerFell(creature.TurnId);
 
             TurnState.Current?.ServerRemove(creature.TurnId);
 
