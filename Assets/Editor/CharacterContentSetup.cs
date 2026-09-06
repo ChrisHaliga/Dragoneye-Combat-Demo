@@ -219,7 +219,7 @@ namespace Dragoneye.MultiplayerEditor
             var shield = Equipment(30, "Shield", EquipmentSlot.Offhand,
                 "Between you and anything that reaches you, and no speed for it. It costs you "
                 + "the other hand.",
-                new SkillAsset[0], ArmourClass.None, damageReduction: 4);
+                new SkillAsset[0], ArmourClass.None, armourPoints: 4);
 
             // The numbers are not in the words: the creator prints "+4 ARM  -2 SPD" beside the
             // name from the rules, so a retune does not leave a description telling a lie.
@@ -677,7 +677,7 @@ namespace Dragoneye.MultiplayerEditor
 
         static EquipmentAsset Equipment(int id, string name, EquipmentSlot slot,
             string description, IReadOnlyList<SkillAsset> skills,
-            ArmourClass armour = ArmourClass.None, int damageReduction = 0,
+            ArmourClass armour = ArmourClass.None, int armourPoints = 0,
             bool grantsAdvantage = false)
         {
             var asset = Upsert<EquipmentAsset>($"{k_Folder}/{Sanitise(name)}.asset");
@@ -689,7 +689,7 @@ namespace Dragoneye.MultiplayerEditor
             serialized.FindProperty("m_Slot").intValue = (int)slot;
             serialized.FindProperty("m_Armour").intValue = (int)armour;
 
-            serialized.FindProperty("m_DamageReduction").intValue = damageReduction;
+            serialized.FindProperty("m_ArmourPoints").intValue = armourPoints;
             serialized.FindProperty("m_GrantsAdvantage").boolValue = grantsAdvantage;
 
             WriteList(serialized.FindProperty("m_Skills"), skills);

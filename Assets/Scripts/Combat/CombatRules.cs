@@ -64,23 +64,6 @@ namespace Dragoneye.Combat
             stepCost.IsZero ? 0 : available.Units / stepCost.Units;
 
         /// <summary>
-        /// What a hit actually lands after the defender's protection is taken off it.
-        ///
-        /// Floored at zero, which is the whole reason this is a function: reduction that outweighs
-        /// the blow means the blow does nothing, not that the defender is healed by the difference.
-        /// </summary>
-        public static int DamageAfter(int damage, int reduction)
-        {
-            if (damage <= 0)
-            {
-                return 0;
-            }
-
-            var landed = damage - (reduction < 0 ? 0 : reduction);
-            return landed < 0 ? 0 : landed;
-        }
-
-        /// <summary>
         /// Armour takes the hit first, and what it cannot hold goes through.
         ///
         /// A pool rather than a subtraction. Flat reduction had a wall in it: any blow smaller than
@@ -105,10 +88,14 @@ namespace Dragoneye.Combat
         ///
         /// Returned rather than applied, so the rule can be checked without a creature to mutate.
         /// </summary>
-        public static int Damaged(int currentHp, int damage, int reduction = 0)
+        public static int Damaged(int currentHp, int damage)
         {
-            var landed = DamageAfter(damage, reduction);
-            return landed <= 0 ? currentHp : (currentHp - landed < 0 ? 0 : currentHp - landed);
+            if (damage <= 0)
+            {
+                return currentHp;
+            }
+
+            return currentHp - damage < 0 ? 0 : currentHp - damage;
         }
 
         /// <summary>Zero health is dead. The one place that comparison is written.</summary>

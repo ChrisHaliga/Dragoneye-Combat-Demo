@@ -176,7 +176,12 @@ namespace Dragoneye.Game
             // the whole difference between the two bars.
             if (active.Regen > 0)
             {
-                active.ServerHeal(active.Regen);
+                var healed = active.ServerHeal(active.Regen);
+
+                if (healed > 0)
+                {
+                    CombatAnnouncer.Current?.ServerRecovered(active.TurnId, healed);
+                }
             }
 
             if (active.IsComputerControlled)

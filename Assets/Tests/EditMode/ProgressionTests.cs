@@ -159,26 +159,18 @@ namespace Dragoneye.Hex.Tests
         }
 
         [Test]
-        public void ReductionThatOutweighsTheBlowStopsItRatherThanHealing()
+        public void ArmourTakesTheBlowFirstAndWhatItCannotHoldGoesThrough()
         {
-            // The whole reason this is a function. Nine off a five-damage hit is a hit that does
-            // nothing, not four health handed back to the defender.
-            Assert.AreEqual(0, CombatRules.DamageAfter(5, 9));
-            Assert.AreEqual(10, CombatRules.Damaged(10, 5, 9));
-        }
+            // The pool replaced a flat reduction that had a wall in it: any blow smaller than the
+            // reduction did nothing, forever. A pool is worn by anything.
+            Assert.AreEqual(3, CombatRules.Absorb(6, 3, out var left));
+            Assert.AreEqual(0, left);
 
-        [Test]
-        public void ReductionComesOffBeforeHealthDoes()
-        {
-            Assert.AreEqual(3, CombatRules.DamageAfter(5, 2));
-            Assert.AreEqual(7, CombatRules.Damaged(10, 5, 2));
-        }
+            Assert.AreEqual(0, CombatRules.Absorb(2, 5, out left));
+            Assert.AreEqual(3, left);
 
-        [Test]
-        public void AnUnprotectedCreatureTakesTheWholeBlow()
-        {
-            Assert.AreEqual(5, CombatRules.DamageAfter(5, 0));
             Assert.AreEqual(5, CombatRules.Damaged(10, 5));
+            Assert.AreEqual(10, CombatRules.Damaged(10, 0), "nothing through is nothing off");
         }
 
         // ---------- skills by level ----------

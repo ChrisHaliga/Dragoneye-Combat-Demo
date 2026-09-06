@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using Dragoneye.Combat;
 using UnityEngine;
+using UnityEngine.Serialization;
 
 namespace Dragoneye.Data
 {
@@ -132,10 +133,13 @@ namespace Dragoneye.Data
              + "Only armour should be anything but None.")]
         ArmourClass m_Armour = ArmourClass.None;
 
-        [SerializeField, Min(0), Tooltip("Armour this gives on top of its class: a pool above "
-             + "health, worn down by blows and never restored. For things that guard without "
-             + "being armour -- a shield. Leave armour itself at zero; its pool comes from its class.")]
-        int m_DamageReduction;
+        // Renamed from the flat reduction it used to be; the old name is kept on the wire so
+        // the shield already on disk keeps its number.
+        [SerializeField, FormerlySerializedAs("m_DamageReduction"), Min(0),
+         Tooltip("Armour this gives on top of its class: a pool above health, worn down by blows "
+             + "and never restored. For things that guard without being armour -- a shield. Leave "
+             + "armour itself at zero; its pool comes from its class.")]
+        int m_ArmourPoints;
 
         [SerializeField, Tooltip("Whether holding this answers a clash with the better of two "
              + "elements. It costs two rather than one, so it drains as fast as it protects.")]
@@ -151,7 +155,7 @@ namespace Dragoneye.Data
 
         public EquipmentSpec ToSpec() =>
             new EquipmentSpec(m_Id, m_DisplayName, m_Slot,
-                ContentIds.SkillIds(m_Skills), m_Armour, m_Description, m_DamageReduction,
+                ContentIds.SkillIds(m_Skills), m_Armour, m_Description, m_ArmourPoints,
                 m_GrantsAdvantage);
 
         void OnValidate()

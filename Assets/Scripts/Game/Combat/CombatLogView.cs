@@ -91,6 +91,7 @@ namespace Dragoneye.Game
             CombatAnnouncer.Fell += OnFell;
             CombatAnnouncer.HeldBack += OnHeldBack;
             CombatAnnouncer.Missed += OnMissed;
+            CombatAnnouncer.Recovered += OnRecovered;
         }
 
         void OnDestroy()
@@ -105,6 +106,7 @@ namespace Dragoneye.Game
             CombatAnnouncer.Fell -= OnFell;
             CombatAnnouncer.HeldBack -= OnHeldBack;
             CombatAnnouncer.Missed -= OnMissed;
+            CombatAnnouncer.Recovered -= OnRecovered;
         }
 
         /// <summary>
@@ -280,6 +282,10 @@ namespace Dragoneye.Game
                 + CombatLogLines.Tint("#8B93A5", $"({report.Chance}% to hit)"),
                 IsMine(report.AttackerId) || IsMine(report.TargetId));
         }
+
+        // Toughness, at the top of a turn. Without a line the bar moves and nothing says why.
+        void OnRecovered(uint creatureId, int amount) =>
+            Add($"{NameOf(creatureId)} recovers {amount} HP.", IsMine(creatureId));
 
         void OnHeldBack(uint watcherId, uint moverId) =>
             Add($"{NameOf(watcherId)} lets {NameOf(moverId)} go.",

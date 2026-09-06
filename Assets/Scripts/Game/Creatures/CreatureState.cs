@@ -350,14 +350,35 @@ namespace Dragoneye.Game
             }
         }
 
-        public void ServerHeal(int amount)
+        /// <summary>
+        /// Server only. Restores health, never past the maximum.
+        /// </summary>
+        /// <returns>What actually came back, which is less than asked for at full health.</returns>
+        public int ServerHeal(int amount)
         {
-            if (IsServer && IsAlive)
+            if (!IsServer || !IsAlive)
             {
-                m_CurrentHp.Value = SkillRules.Apply(
-                    new SkillEffect(SkillEffectKind.Heal, amount), m_CurrentHp.Value, MaxHp);
+                return 0;
             }
+
+            var before = m_CurrentHp.Value;
+
+            m_CurrentHp.Value = SkillRules.Apply(
+                new SkillEffect(SkillEffectKind.Heal, amount), before, MaxHp);
+
+            var healed = m_CurrentHp.Value - before;
+
+            if (healed > 0)
+            {
+                ShowHealRpc(healed);
+            }
+
+            return healed;
         }
+
+        [Rpc(SendTo.Everyone)]
+        void ShowHealRpc(int healed) =>
+            CombatNotices.Raise(TurnId, $"+{healed} HP", NoticeTone.Gain);
 
         /// <summary>Server only. Restores action points, never past the maximum.</summary>
         public void ServerRestoreAp(Ap amount)

@@ -86,6 +86,9 @@ namespace Dragoneye.Game
         /// <summary>A shot rolled and missed.</summary>
         public static event Action<MissReport> Missed;
 
+        /// <summary>Health came back at the start of a turn: (creature, amount).</summary>
+        public static event Action<uint, int> Recovered;
+
         public override void OnNetworkSpawn() => Current = this;
 
         public override void OnNetworkDespawn()
@@ -135,6 +138,18 @@ namespace Dragoneye.Game
                 MissedRpc(attackerId, skillId, targetId, chance);
             }
         }
+
+        /// <summary>Server only. Toughness put health back at the start of a turn.</summary>
+        public void ServerRecovered(uint creatureId, int amount)
+        {
+            if (IsServer)
+            {
+                RecoveredRpc(creatureId, amount);
+            }
+        }
+
+        [Rpc(SendTo.Everyone)]
+        void RecoveredRpc(uint creatureId, int amount) => Recovered?.Invoke(creatureId, amount);
 
         [Rpc(SendTo.Everyone)]
         void MissedRpc(uint attackerId, int skillId, uint targetId, int chance) =>
