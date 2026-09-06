@@ -1,6 +1,8 @@
 using UnityEngine;
+using Dragoneye.Game;
+using Dragoneye.Game.Combat;
 
-namespace Dragoneye.Game
+namespace Dragoneye.Game.Creatures
 {
     /// <summary>
     /// What a creature does. Deliberately a stub: when species or class should contribute to stats

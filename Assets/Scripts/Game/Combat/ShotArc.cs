@@ -1,6 +1,8 @@
 using UnityEngine;
+using Dragoneye.Game;
+using Dragoneye.Game.Creatures;
 
-namespace Dragoneye.Game
+namespace Dragoneye.Game.Combat
 {
     /// <summary>
     /// The curve a shot draws through the air, shared by the preview and the projectile so the

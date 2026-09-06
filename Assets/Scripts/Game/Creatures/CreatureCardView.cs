@@ -3,8 +3,11 @@ using Dragoneye.Data;
 using Dragoneye.Multiplayer;
 using UnityEngine;
 using UnityEngine.UIElements;
+using Dragoneye.UI;
+using Dragoneye.Game;
+using Dragoneye.Game.Combat;
 
-namespace Dragoneye.Game
+namespace Dragoneye.Game.Creatures
 {
     /// <summary>
     /// The summary card for whatever creature is selected.

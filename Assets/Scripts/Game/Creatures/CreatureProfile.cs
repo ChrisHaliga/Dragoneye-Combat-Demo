@@ -1,7 +1,9 @@
 using System.Collections.Generic;
 using Dragoneye.Combat;
+using Dragoneye.Game;
+using Dragoneye.Game.Combat;
 
-namespace Dragoneye.Game
+namespace Dragoneye.Game.Creatures
 {
     /// <summary>
     /// What a creature is, whichever source answered.

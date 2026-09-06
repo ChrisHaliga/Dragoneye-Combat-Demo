@@ -1,7 +1,9 @@
 using Dragoneye.Data;
 using UnityEngine;
+using Dragoneye.Game;
+using Dragoneye.Game.Creatures;
 
-namespace Dragoneye.Game
+namespace Dragoneye.Game.Combat
 {
     /// <summary>
     /// The arc a ranged skill would fly, drawn under the cursor while one is armed and aimed.

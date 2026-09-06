@@ -1,6 +1,6 @@
 using UnityEngine.UIElements;
 
-namespace Dragoneye.Multiplayer
+namespace Dragoneye.UI
 {
     /// <summary>
     /// The rules, in one place, built into whatever container is handed to it.

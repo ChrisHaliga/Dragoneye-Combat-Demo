@@ -3,8 +3,10 @@ using System.Collections.Generic;
 using Dragoneye.Combat;
 using Unity.Netcode;
 using UnityEngine;
+using Dragoneye.Game;
+using Dragoneye.Game.Combat;
 
-namespace Dragoneye.Game
+namespace Dragoneye.Game.Creatures
 {
     /// <summary>
     /// The party draft: which creatures are in play, on which side, claimed by whom.

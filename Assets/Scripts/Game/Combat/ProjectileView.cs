@@ -2,8 +2,10 @@ using System.Collections;
 using Dragoneye.Combat;
 using Dragoneye.Data;
 using UnityEngine;
+using Dragoneye.Game;
+using Dragoneye.Game.Creatures;
 
-namespace Dragoneye.Game
+namespace Dragoneye.Game.Combat
 {
     /// <summary>
     /// The thing that flies when a ranged skill is used.

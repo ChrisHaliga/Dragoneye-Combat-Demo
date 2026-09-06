@@ -8,6 +8,8 @@ using HexMap = Dragoneye.Hex.HexMap;
 using HexTile = Dragoneye.Hex.HexTile;
 using TerrainType = Dragoneye.Hex.TerrainType;
 using UnityEngine;
+using Dragoneye.Game.Combat;
+using Dragoneye.Game.Creatures;
 
 namespace Dragoneye.Hex.Tests
 {

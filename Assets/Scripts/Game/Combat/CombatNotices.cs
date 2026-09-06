@@ -1,6 +1,8 @@
 using System;
+using Dragoneye.Game;
+using Dragoneye.Game.Creatures;
 
-namespace Dragoneye.Game
+namespace Dragoneye.Game.Combat
 {
     /// <summary>How a floating number should read.</summary>
     public enum NoticeTone

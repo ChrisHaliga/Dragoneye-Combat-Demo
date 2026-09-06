@@ -1,7 +1,9 @@
 using Dragoneye.Data;
 using UnityEngine;
+using Dragoneye.Game;
+using Dragoneye.Game.Combat;
 
-namespace Dragoneye.Game
+namespace Dragoneye.Game.Creatures
 {
     /// <summary>
     /// Offers this player's chosen character to the host, once there is a host to offer it to.

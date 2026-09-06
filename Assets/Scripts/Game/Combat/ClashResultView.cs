@@ -4,8 +4,11 @@ using Dragoneye.Data;
 using Dragoneye.Multiplayer;
 using UnityEngine;
 using UnityEngine.UIElements;
+using Dragoneye.UI;
+using Dragoneye.Game;
+using Dragoneye.Game.Creatures;
 
-namespace Dragoneye.Game
+namespace Dragoneye.Game.Combat
 {
     /// <summary>What happened in a clash, once everybody is allowed to know.</summary>
     public readonly struct ClashReport

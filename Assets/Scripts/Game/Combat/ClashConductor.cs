@@ -2,8 +2,10 @@ using System.Collections.Generic;
 using Dragoneye.Combat;
 using Dragoneye.Data;
 using UnityEngine;
+using Dragoneye.Game;
+using Dragoneye.Game.Creatures;
 
-namespace Dragoneye.Game
+namespace Dragoneye.Game.Combat
 {
     /// <summary>
     /// Runs one clash from the swing to the reveal: asks the defender, takes the answer, spends

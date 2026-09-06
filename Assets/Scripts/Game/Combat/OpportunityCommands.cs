@@ -2,8 +2,10 @@ using System;
 using Dragoneye.Combat;
 using Unity.Netcode;
 using UnityEngine;
+using Dragoneye.Game;
+using Dragoneye.Game.Creatures;
 
-namespace Dragoneye.Game
+namespace Dragoneye.Game.Combat
 {
     /// <summary>The chance to swing at somebody walking past, as it reaches whoever gets it.</summary>
     public readonly struct OpportunityOffer

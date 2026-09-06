@@ -1,6 +1,8 @@
 using Dragoneye.CameraControl;
 using Dragoneye.Multiplayer;
 using UnityEngine;
+using Dragoneye.Game.Combat;
+using Dragoneye.Game.Creatures;
 
 namespace Dragoneye.Game
 {

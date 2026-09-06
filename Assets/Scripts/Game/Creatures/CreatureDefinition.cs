@@ -2,8 +2,10 @@ using System.Collections.Generic;
 using Dragoneye.Combat;
 using Dragoneye.Data;
 using UnityEngine;
+using Dragoneye.Game;
+using Dragoneye.Game.Combat;
 
-namespace Dragoneye.Game
+namespace Dragoneye.Game.Creatures
 {
     /// <summary>
     /// An authored creature: who it is and what it starts with.

@@ -1,8 +1,10 @@
 using Dragoneye.Multiplayer;
 using UnityEngine;
 using UnityEngine.UIElements;
+using Dragoneye.Game;
+using Dragoneye.Game.Creatures;
 
-namespace Dragoneye.Game
+namespace Dragoneye.Game.Combat
 {
     /// <summary>
     /// Two words across the middle of the screen when a turn changes hands, gone again in a moment.

@@ -2,6 +2,8 @@ using System;
 using Dragoneye.Hex;
 using UnityEngine;
 using UnityEngine.InputSystem;
+using Dragoneye.Game.Combat;
+using Dragoneye.Game.Creatures;
 
 namespace Dragoneye.Game
 {

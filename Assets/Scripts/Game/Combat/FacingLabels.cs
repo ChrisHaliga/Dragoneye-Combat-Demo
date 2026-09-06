@@ -1,7 +1,9 @@
 using Dragoneye.Combat;
 using Dragoneye.Hex;
+using Dragoneye.Game;
+using Dragoneye.Game.Creatures;
 
-namespace Dragoneye.Game
+namespace Dragoneye.Game.Combat
 {
     /// <summary>
     /// What a facing is called.

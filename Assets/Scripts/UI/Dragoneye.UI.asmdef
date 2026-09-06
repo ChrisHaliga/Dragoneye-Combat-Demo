@@ -1,18 +1,9 @@
 {
-    "name": "Dragoneye.Multiplayer",
-    "rootNamespace": "Dragoneye.Multiplayer",
+    "name": "Dragoneye.UI",
+    "rootNamespace": "Dragoneye.UI",
     "references": [
         "Dragoneye.Combat",
         "Dragoneye.Data",
-        "Dragoneye.UI",
-        "Dragoneye.Settings",
-        "Dragoneye.Hex",
-        "Dragoneye.Hex.Systems",
-        "Unity.Netcode.Runtime",
-        "Unity.Services.Multiplayer",
-        "Unity.Services.Authentication",
-        "Unity.Services.Core",
-        "Unity.Collections",
         "Unity.InputSystem"
     ],
     "includePlatforms": [],

@@ -1,7 +1,9 @@
 using System.Collections.Generic;
 using UnityEngine;
+using Dragoneye.Game;
+using Dragoneye.Game.Combat;
 
-namespace Dragoneye.Game
+namespace Dragoneye.Game.Creatures
 {
     /// <summary>
     /// Turns creature assets into something the wire can carry, and back again.

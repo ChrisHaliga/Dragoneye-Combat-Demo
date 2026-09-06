@@ -1,6 +1,8 @@
 using System.Collections.Generic;
 using Dragoneye.Hex;
 using UnityEngine;
+using Dragoneye.Game.Combat;
+using Dragoneye.Game.Creatures;
 
 namespace Dragoneye.Game
 {

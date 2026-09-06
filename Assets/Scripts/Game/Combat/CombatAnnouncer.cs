@@ -3,8 +3,10 @@ using System.Collections.Generic;
 using Dragoneye.Combat;
 using Unity.Netcode;
 using UnityEngine;
+using Dragoneye.Game;
+using Dragoneye.Game.Creatures;
 
-namespace Dragoneye.Game
+namespace Dragoneye.Game.Combat
 {
     /// <summary>One thing a creature did that nobody contested.</summary>
     public readonly struct ActionReport

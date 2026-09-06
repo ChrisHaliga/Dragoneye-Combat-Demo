@@ -1,7 +1,9 @@
 using Unity.Netcode;
 using UnityEngine;
+using Dragoneye.Game;
+using Dragoneye.Game.Combat;
 
-namespace Dragoneye.Game
+namespace Dragoneye.Game.Creatures
 {
     /// <summary>
     /// Spawns the draft once netcode starts, and only on the server.

@@ -1,5 +1,7 @@
 using Dragoneye.Game;
 using NUnit.Framework;
+using Dragoneye.Game.Combat;
+using Dragoneye.Game.Creatures;
 
 namespace Dragoneye.Hex.Tests
 {

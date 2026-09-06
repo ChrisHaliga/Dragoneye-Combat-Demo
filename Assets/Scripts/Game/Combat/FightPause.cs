@@ -1,4 +1,7 @@
-namespace Dragoneye.Game
+using Dragoneye.Game;
+using Dragoneye.Game.Creatures;
+
+namespace Dragoneye.Game.Combat
 {
     /// <summary>
     /// Whether the fight is stopped on somebody's question, as every client can see it.

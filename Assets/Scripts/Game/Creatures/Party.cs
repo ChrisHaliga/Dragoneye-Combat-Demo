@@ -1,4 +1,7 @@
-namespace Dragoneye.Game
+using Dragoneye.Game;
+using Dragoneye.Game.Combat;
+
+namespace Dragoneye.Game.Creatures
 {
     /// <summary>
     /// Which side a creature fights for.

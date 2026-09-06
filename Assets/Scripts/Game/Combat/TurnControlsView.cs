@@ -3,8 +3,10 @@ using Dragoneye.Combat;
 using Dragoneye.Hex.Systems;
 using UnityEngine;
 using UnityEngine.UIElements;
+using Dragoneye.Game;
+using Dragoneye.Game.Creatures;
 
-namespace Dragoneye.Game
+namespace Dragoneye.Game.Combat
 {
     /// <summary>
     /// The bottom-centre End Turn button, the AP readout above it, the action label that follows the

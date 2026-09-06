@@ -3,8 +3,10 @@ using Dragoneye.Combat;
 using Dragoneye.Data;
 using Unity.Netcode;
 using UnityEngine;
+using Dragoneye.Game;
+using Dragoneye.Game.Creatures;
 
-namespace Dragoneye.Game
+namespace Dragoneye.Game.Combat
 {
     // Declared inside the namespace, not at file scope: C# resolves names against enclosing
     // namespaces before file-level aliases.

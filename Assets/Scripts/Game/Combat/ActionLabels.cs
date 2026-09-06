@@ -1,6 +1,8 @@
 using Dragoneye.Combat;
+using Dragoneye.Game;
+using Dragoneye.Game.Creatures;
 
-namespace Dragoneye.Game
+namespace Dragoneye.Game.Combat
 {
     /// <summary>
     /// The words shown beside the cursor for a priced action.

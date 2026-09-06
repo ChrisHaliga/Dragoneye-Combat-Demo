@@ -1,6 +1,8 @@
 using UnityEngine;
+using Dragoneye.Game;
+using Dragoneye.Game.Creatures;
 
-namespace Dragoneye.Game
+namespace Dragoneye.Game.Combat
 {
     /// <summary>
     /// Two rings on the board: a slow-breathing one of party colour under whichever creature's turn

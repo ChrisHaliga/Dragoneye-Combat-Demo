@@ -6,6 +6,8 @@ using Dragoneye.Multiplayer;
 using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
+using Dragoneye.Game.Combat;
+using Dragoneye.Game.Creatures;
 
 namespace Dragoneye.MultiplayerEditor
 {
@@ -906,8 +908,8 @@ namespace Dragoneye.MultiplayerEditor
                 return;
             }
 
-            var characters = prefab.GetComponent<Dragoneye.Game.PlayerCharacters>()
-                ?? prefab.AddComponent<Dragoneye.Game.PlayerCharacters>();
+            var characters = prefab.GetComponent<Dragoneye.Game.Creatures.PlayerCharacters>()
+                ?? prefab.AddComponent<Dragoneye.Game.Creatures.PlayerCharacters>();
 
             if (!Assign(characters, "m_Content", catalog))
             {

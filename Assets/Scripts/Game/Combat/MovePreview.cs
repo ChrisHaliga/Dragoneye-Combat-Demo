@@ -1,7 +1,9 @@
 using Dragoneye.Combat;
 using UnityEngine;
+using Dragoneye.Game;
+using Dragoneye.Game.Creatures;
 
-namespace Dragoneye.Game
+namespace Dragoneye.Game.Combat
 {
     using Hex = Dragoneye.Hex.Hex;
 

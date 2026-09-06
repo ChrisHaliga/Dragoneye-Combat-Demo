@@ -3,8 +3,10 @@ using System.Collections.Generic;
 using Dragoneye.Combat;
 using Unity.Netcode;
 using UnityEngine;
+using Dragoneye.Game;
+using Dragoneye.Game.Combat;
 
-namespace Dragoneye.Game
+namespace Dragoneye.Game.Creatures
 {
     /// <summary>
     /// A unit's identity and vitals. <see cref="UnitState"/> keeps where it stands; this keeps what
@@ -363,7 +365,7 @@ namespace Dragoneye.Game
         /// the last thing the creature did, not of where anybody happens to be standing now. There
         /// is no turn action -- moving and attacking are the only two things that write it.
         /// </summary>
-        public Facing Facing => Combat.Facing.Of(m_Facing.Value);
+        public Facing Facing => Dragoneye.Combat.Facing.Of(m_Facing.Value);
 
         /// <summary>Server only. Turns the creature.</summary>
         public void ServerFace(Facing facing)

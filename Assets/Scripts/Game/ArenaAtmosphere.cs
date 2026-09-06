@@ -1,5 +1,7 @@
 using UnityEngine;
 using UnityEngine.Rendering;
+using Dragoneye.Game.Combat;
+using Dragoneye.Game.Creatures;
 
 namespace Dragoneye.Game
 {

@@ -2,7 +2,7 @@ using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.UIElements;
 
-namespace Dragoneye.Multiplayer
+namespace Dragoneye.UI
 {
     /// <summary>
     /// Scrolls a scroll view from the mouse wheel when nothing else is going to.

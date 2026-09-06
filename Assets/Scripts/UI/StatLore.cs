@@ -1,6 +1,6 @@
 using Dragoneye.Combat;
 
-namespace Dragoneye.Multiplayer
+namespace Dragoneye.UI
 {
     /// <summary>
     /// What each of the four stats is, for a hover: where the number came from, and what the game

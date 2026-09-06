@@ -1,7 +1,9 @@
 using UnityEngine;
 using UnityEngine.UIElements;
+using Dragoneye.Game;
+using Dragoneye.Game.Creatures;
 
-namespace Dragoneye.Game
+namespace Dragoneye.Game.Combat
 {
     /// <summary>
     /// Stops a prompt taking the click that opened it as its answer.

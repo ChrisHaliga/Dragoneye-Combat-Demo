@@ -1,7 +1,9 @@
 using System.Collections.Generic;
 using Dragoneye.Combat;
+using Dragoneye.Game;
+using Dragoneye.Game.Creatures;
 
-namespace Dragoneye.Game
+namespace Dragoneye.Game.Combat
 {
     /// <summary>
     /// The words a clash is announced in.

@@ -78,9 +78,9 @@ namespace Dragoneye.MultiplayerEditor
 
             // Offers the chosen character to the host once there is one. In the menu scene because
             // that is where a lobby is joined, and it stops when the scene does.
-            if (menu.GetComponent<Dragoneye.Game.CharacterSubmitter>() == null)
+            if (menu.GetComponent<Dragoneye.Game.Creatures.CharacterSubmitter>() == null)
             {
-                menu.gameObject.AddComponent<Dragoneye.Game.CharacterSubmitter>();
+                menu.gameObject.AddComponent<Dragoneye.Game.Creatures.CharacterSubmitter>();
             }
 
             EditorSceneManager.MarkSceneDirty(scene);

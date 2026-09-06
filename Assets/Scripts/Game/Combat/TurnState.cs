@@ -3,8 +3,10 @@ using System.Collections.Generic;
 using Dragoneye.Combat;
 using Unity.Netcode;
 using UnityEngine;
+using Dragoneye.Game;
+using Dragoneye.Game.Creatures;
 
-namespace Dragoneye.Game
+namespace Dragoneye.Game.Combat
 {
     /// <summary>
     /// Whose turn it is, what round it is, and who is left.

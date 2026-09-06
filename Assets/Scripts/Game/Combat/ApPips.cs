@@ -1,7 +1,9 @@
 using Dragoneye.Combat;
 using UnityEngine.UIElements;
+using Dragoneye.Game;
+using Dragoneye.Game.Creatures;
 
-namespace Dragoneye.Game
+namespace Dragoneye.Game.Combat
 {
     /// <summary>
     /// Action points as a row of pips, one per half-point, paired into whole points.

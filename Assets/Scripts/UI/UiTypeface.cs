@@ -1,7 +1,7 @@
 using UnityEngine;
 using UnityEngine.UIElements;
 
-namespace Dragoneye.Multiplayer
+namespace Dragoneye.UI
 {
     /// <summary>
     /// The face every screen is set in, taken from the machine rather than shipped.

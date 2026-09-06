@@ -1,6 +1,8 @@
 using System.Collections.Generic;
+using Dragoneye.Game;
+using Dragoneye.Game.Combat;
 
-namespace Dragoneye.Game
+namespace Dragoneye.Game.Creatures
 {
     /// <summary>
     /// Every question that can be asked of a draft, as pure functions over plain lists.

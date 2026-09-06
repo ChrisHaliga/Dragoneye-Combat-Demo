@@ -3,7 +3,7 @@ using Dragoneye.Data;
 using UnityEngine;
 using UnityEngine.UIElements;
 
-namespace Dragoneye.Multiplayer
+namespace Dragoneye.UI
 {
     /// <summary>
     /// How a resolved character is drawn: four stats, seven attributes, a pool of gems and a skill

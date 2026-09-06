@@ -3,7 +3,7 @@ using Dragoneye.Combat;
 using Dragoneye.Data;
 using UnityEngine.UIElements;
 
-namespace Dragoneye.Multiplayer
+namespace Dragoneye.UI
 {
     /// <summary>
     /// The whole matchup table, on one strip.

@@ -1,6 +1,8 @@
 using Dragoneye.Data;
+using Dragoneye.Game;
+using Dragoneye.Game.Combat;
 
-namespace Dragoneye.Game
+namespace Dragoneye.Game.Creatures
 {
     /// <summary>
     /// Writes experience earned in a match onto the character it was earned by.

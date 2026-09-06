@@ -1,8 +1,10 @@
 using System;
 using Dragoneye.Combat;
 using Unity.Netcode;
+using Dragoneye.Game;
+using Dragoneye.Game.Combat;
 
-namespace Dragoneye.Game
+namespace Dragoneye.Game.Creatures
 {
     /// <summary>One creature placed in a party, and who (if anyone) has claimed it.</summary>
     public struct RosterEntry : INetworkSerializable, IEquatable<RosterEntry>

@@ -2,8 +2,10 @@ using System.Collections.Generic;
 using Dragoneye.Combat;
 using UnityEngine;
 using UnityEngine.UIElements;
+using Dragoneye.Game;
+using Dragoneye.Game.Creatures;
 
-namespace Dragoneye.Game
+namespace Dragoneye.Game.Combat
 {
     using Hex = Dragoneye.Hex.Hex;
 

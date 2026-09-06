@@ -1,8 +1,10 @@
 using Dragoneye.Combat;
 using Dragoneye.Multiplayer;
 using UnityEngine;
+using Dragoneye.Game;
+using Dragoneye.Game.Creatures;
 
-namespace Dragoneye.Game
+namespace Dragoneye.Game.Combat
 {
     /// <summary>
     /// Closes the match once it has been won, after a pause long enough to read the result.

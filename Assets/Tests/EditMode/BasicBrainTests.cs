@@ -4,6 +4,8 @@ using Dragoneye.Combat;
 using Dragoneye.Game;
 using NUnit.Framework;
 using Hex = Dragoneye.Hex.Hex;
+using Dragoneye.Game.Combat;
+using Dragoneye.Game.Creatures;
 
 namespace Dragoneye.Hex.Tests
 {

@@ -6,6 +6,8 @@ using Dragoneye.Multiplayer;
 using Unity.Netcode;
 using UnityEngine;
 using UnityEngine.SceneManagement;
+using Dragoneye.Game.Combat;
+using Dragoneye.Game.Creatures;
 
 namespace Dragoneye.Game
 {

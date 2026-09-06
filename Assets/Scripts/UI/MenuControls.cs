@@ -1,7 +1,7 @@
 using System;
 using UnityEngine.UIElements;
 
-namespace Dragoneye.Multiplayer
+namespace Dragoneye.UI
 {
     /// <summary>
     /// The small pieces the menu screens build out of.

@@ -5,8 +5,11 @@ using Dragoneye.Multiplayer;
 using Unity.Netcode;
 using UnityEngine;
 using UnityEngine.UIElements;
+using Dragoneye.UI;
+using Dragoneye.Game;
+using Dragoneye.Game.Combat;
 
-namespace Dragoneye.Game
+namespace Dragoneye.Game.Creatures
 {
     /// <summary>
     /// The draft board: the host fills each party with creatures, and every player picks a side and

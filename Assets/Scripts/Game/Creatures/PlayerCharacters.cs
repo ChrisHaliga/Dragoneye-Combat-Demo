@@ -5,8 +5,10 @@ using Dragoneye.Data;
 using Unity.Collections;
 using Unity.Netcode;
 using UnityEngine;
+using Dragoneye.Game;
+using Dragoneye.Game.Combat;
 
-namespace Dragoneye.Game
+namespace Dragoneye.Game.Creatures
 {
     /// <summary>
     /// A character build in a form netcode can replicate.

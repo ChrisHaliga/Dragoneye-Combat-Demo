@@ -1,4 +1,6 @@
 using Unity.Netcode.Components;
+using Dragoneye.Game.Combat;
+using Dragoneye.Game.Creatures;
 
 namespace Dragoneye.Game
 {

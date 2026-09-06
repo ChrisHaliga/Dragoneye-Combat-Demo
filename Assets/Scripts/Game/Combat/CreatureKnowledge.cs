@@ -1,8 +1,10 @@
 using System.Collections.Generic;
 using Dragoneye.Combat;
 using Dragoneye.Data;
+using Dragoneye.Game;
+using Dragoneye.Game.Creatures;
 
-namespace Dragoneye.Game
+namespace Dragoneye.Game.Combat
 {
     /// <summary>
     /// What anybody watching can work out about a creature's hand.

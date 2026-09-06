@@ -2,8 +2,10 @@ using System.Collections.Generic;
 using Dragoneye.Combat;
 using Dragoneye.Data;
 using UnityEngine;
+using Dragoneye.Game;
+using Dragoneye.Game.Creatures;
 
-namespace Dragoneye.Game
+namespace Dragoneye.Game.Combat
 {
     /// <summary>
     /// Which side of a clash the person reading the log is on.

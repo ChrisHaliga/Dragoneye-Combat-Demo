@@ -4,6 +4,7 @@
     "references": [
         "Dragoneye.Combat",
         "Dragoneye.Data",
+        "Dragoneye.UI",
         "Dragoneye.Settings",
         "Dragoneye.Hex",
         "Dragoneye.Hex.Systems",

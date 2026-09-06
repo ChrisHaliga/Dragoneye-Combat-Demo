@@ -2,6 +2,8 @@ using Dragoneye.Game;
 using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
+using Dragoneye.Game.Combat;
+using Dragoneye.Game.Creatures;
 
 namespace Dragoneye.MultiplayerEditor
 {

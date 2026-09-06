@@ -1,6 +1,8 @@
 using System.Collections.Generic;
+using Dragoneye.Game;
+using Dragoneye.Game.Combat;
 
-namespace Dragoneye.Game
+namespace Dragoneye.Game.Creatures
 {
     /// <summary>
     /// How many creatures each player in a party may claim, and what to release when that changes.

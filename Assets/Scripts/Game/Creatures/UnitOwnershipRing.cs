@@ -1,6 +1,8 @@
 using UnityEngine;
+using Dragoneye.Game;
+using Dragoneye.Game.Combat;
 
-namespace Dragoneye.Game
+namespace Dragoneye.Game.Creatures
 {
     /// <summary>
     /// The ring under a unit, answering two questions at once: which side it fights for, and which
