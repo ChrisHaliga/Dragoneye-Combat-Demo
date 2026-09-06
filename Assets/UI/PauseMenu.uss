@@ -1,0 +1,76 @@
+/* The pause screen: a dimmed board with one plate on it.
+ *
+ * Deliberately thin. Everything that has a look already -- buttons, rules, columns, the settings
+ * rows -- comes from SessionMenu.uss, which this document also attaches, so pressing Escape lands
+ * you somewhere that is plainly the same game you started from. What is left here is the backdrop,
+ * the plate, and the three sizes it comes in. */
+
+.pause-root {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    align-items: center;
+    justify-content: center;
+
+    /* Dark enough to take the board out of play, light enough to still see the fight you are
+       standing over. It is not a loading screen; you are meant to know where you are. */
+    background-color: rgba(4, 5, 8, 0.72);
+}
+
+.pause-plate {
+    padding: 26px 30px 22px 30px;
+    background-image: url("Generated/ui-panel.png");
+    -unity-slice-left: 16;
+    -unity-slice-right: 16;
+    -unity-slice-top: 16;
+    -unity-slice-bottom: 16;
+}
+
+.pause-plate--menu {
+    width: 320px;
+}
+
+/* The rules and the settings are documents, not dialogs; they get most of the window and stop
+   short of the edges, which is where the main menu's own screens stop too. */
+.pause-plate--page {
+    width: 84%;
+    max-width: 900px;
+    height: 82%;
+}
+
+.pause__title {
+    font-size: 20px;
+    -unity-font-style: bold;
+    letter-spacing: 5px;
+    color: rgb(232, 226, 212);
+    margin-bottom: 10px;
+}
+
+.pause__stack {
+    margin-top: 14px;
+}
+
+.pause__body {
+    flex-grow: 1;
+    flex-direction: column;
+    margin-top: 12px;
+}
+
+/* The settings columns sit side by side; the rules run down the page. */
+.pause__body--row {
+    flex-direction: row;
+    justify-content: center;
+}
+
+.pause__foot {
+    flex-direction: row;
+    align-items: center;
+    margin-top: 14px;
+}
+
+/* The help page is a scroller here rather than a stage body, so it needs its own room to grow. */
+.pause-plate--page .help {
+    max-width: 100%;
+}

@@ -140,20 +140,11 @@ namespace Dragoneye.Game
         /// </summary>
         static Known Describe(CreatureState creature)
         {
-            var name = creature.DisplayName;
-
-            if (!creature.IsComputerControlled)
-            {
-                var player = CreatureDisplay.ControllerName(creature);
-
-                if (!string.IsNullOrEmpty(player))
-                {
-                    name = player + "'s " + name;
-                }
-            }
-
+            // The creature, and only the creature. Who is running it is on the turn bar and on
+            // the card; putting it in front of every line as well made each one longer than the
+            // thing it was reporting, and creatures are what a player points at.
             return new Known(
-                CombatLogLines.Tint(PartyPalette.ForParty(creature.Party), name),
+                CombatLogLines.Tint(PartyPalette.ForParty(creature.Party), creature.DisplayName),
                 LocalPlayer.Controls(creature));
         }
 
@@ -272,19 +263,22 @@ namespace Dragoneye.Game
             Append(label);
         }
 
+        /// <summary>
+        /// Puts a line at the top and drops the oldest off the bottom.
+        ///
+        /// A stack, not a transcript. The thing that just happened is the thing being read, and a
+        /// log that grows downwards makes the newest line the one that keeps moving -- so either it
+        /// scrolls itself and steals the line you were reading, or it does not and the newest line
+        /// is off screen. Newest at a fixed place solves both.
+        /// </summary>
         void Append(VisualElement line)
         {
-            m_List.Add(line);
+            m_List.Insert(0, line);
 
-            while (m_List.contentContainer.childCount > m_MaxLines)
+            while (m_List.childCount > m_MaxLines)
             {
-                m_List.contentContainer.RemoveAt(0);
+                m_List.RemoveAt(m_List.childCount - 1);
             }
-
-            // Newest at the bottom, so the log reads the way a conversation does and the thing that
-            // just happened is where the eye already is. Deferred a frame because a line that has
-            // not been laid out yet has no height to scroll to.
-            m_List.schedule.Execute(() => m_List.ScrollTo(line));
         }
     }
 }

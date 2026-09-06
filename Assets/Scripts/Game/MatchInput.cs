@@ -41,19 +41,43 @@ namespace Dragoneye.Game
             }
         }
 
+        /// <summary>
+        /// Escape, in order of least surprising.
+        ///
+        /// The menu first, because a key that will not close what is on screen is a key nobody
+        /// trusts. Then the summary card, which is the other thing Escape visibly opened. Only
+        /// then the pause menu.
+        ///
+        /// Leaving the match used to happen right here, on the keypress. A destructive action with
+        /// nothing between the press and the consequence is a bad bargain in a single-player game
+        /// and a worse one in a match somebody else is in; it lives behind a button on the menu
+        /// now, and this only opens the menu.
+        /// </summary>
         void OnLeaveRequested()
         {
-            // The summary card takes Escape first. Quitting a match by accident because a card was
-            // open is a bad surprise, so leaving only happens when nothing is selected.
+            var pause = PauseMenuView.Current;
+
+            if (pause != null && pause.IsOpen)
+            {
+                pause.Back();
+                return;
+            }
+
             if (m_Selection != null && m_Selection.HasSelection)
             {
                 m_Selection.Clear();
                 return;
             }
 
-            // MatchFlow, not SessionRunner: leaving is the same gesture whether a UGS session is
-            // involved or the match is a solo host, and the input layer should not have to know
-            // which kind it is in.
+            if (pause != null)
+            {
+                pause.Open();
+                return;
+            }
+
+            // No menu in the scene: the setup has not been run. Falling back to the old behaviour
+            // beats a key that does nothing at all, and MatchFlow rather than SessionRunner
+            // because leaving is the same gesture hosted or solo.
             var flow = MatchFlow.Instance;
             if (flow != null && flow.InMatch)
             {

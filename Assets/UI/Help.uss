@@ -1,0 +1,139 @@
+/* The rules page and the element chart on it.
+ *
+ * Its own stylesheet because two documents show the same two things: the main menu, which has a
+ * Help screen, and the arena's pause menu, which is in another scene entirely. HelpBook builds one
+ * page; this dresses it the same way wherever it lands. */
+
+/* ---------- the page ---------- */
+
+/* A column, against the stage body's row. The rules read top to bottom. */
+.help {
+    flex-direction: column;
+    max-width: 760px;
+}
+
+.help > * {
+    flex-shrink: 0;
+}
+
+.help .unity-scroll-view__content-container {
+    flex-direction: column;
+}
+
+.help__section {
+    margin-top: 18px;
+    margin-bottom: 6px;
+    font-size: 11px;
+    -unity-font-style: bold;
+    letter-spacing: 3px;
+    color: rgb(198, 158, 88);
+}
+
+.help__text {
+    white-space: normal;
+    font-size: 13px;
+    color: rgb(196, 200, 212);
+    margin-bottom: 6px;
+}
+
+.help__bullet {
+    flex-direction: row;
+    align-items: flex-start;
+    margin-bottom: 2px;
+}
+
+/* Fixed width so the text of every bullet starts on the same column. */
+.help__dot {
+    width: 14px;
+    flex-shrink: 0;
+    font-size: 13px;
+    -unity-font-style: bold;
+    color: rgb(198, 158, 88);
+}
+
+.help__bullet .help__text {
+    flex-grow: 1;
+    flex-shrink: 1;
+    margin-bottom: 0;
+}
+
+.help__chart {
+    margin-top: 8px;
+    margin-bottom: 8px;
+}
+
+/* ---------- element chart ---------- */
+
+/* The matchup table, laid out once rather than learned by losing. Row names down the left, one
+   column per element, so "what beats Pyro" is a glance down a column and not a paragraph.
+   Generated from the shipped table by ElementChart, so it cannot contradict the resolver. */
+.element-chart {
+    flex-direction: row;
+    align-items: flex-start;
+    flex-shrink: 0;
+}
+
+.element-chart__legend {
+    width: 76px;
+    margin-right: 8px;
+}
+
+.element-chart__column {
+    width: 76px;
+    align-items: center;
+}
+
+/* Fixed, so the runes in each row line up across the seven columns. */
+.element-chart__head {
+    height: 26px;
+    flex-direction: row;
+    align-items: center;
+}
+
+.element-chart__mark {
+    width: 18px;
+    height: 18px;
+    margin-right: 4px;
+    -unity-background-scale-mode: scale-to-fit;
+}
+
+.element-chart__name {
+    font-size: 10px;
+    -unity-font-style: bold;
+    letter-spacing: 1px;
+    color: rgb(214, 209, 197);
+}
+
+.element-chart__cell {
+    height: 22px;
+    flex-direction: row;
+    align-items: center;
+}
+
+.element-chart__rune {
+    width: 14px;
+    height: 14px;
+    margin-right: 3px;
+    -unity-background-scale-mode: scale-to-fit;
+}
+
+.element-chart__none {
+    font-size: 11px;
+    color: rgb(96, 103, 120);
+}
+
+.element-chart__row-label {
+    height: 22px;
+    font-size: 9px;
+    -unity-font-style: bold;
+    letter-spacing: 2px;
+    -unity-text-align: middle-right;
+}
+
+.element-chart__row-label--beats {
+    color: rgb(127, 191, 106);
+}
+
+.element-chart__row-label--loses {
+    color: rgb(217, 112, 94);
+}

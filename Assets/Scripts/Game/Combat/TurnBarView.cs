@@ -138,8 +138,27 @@ namespace Dragoneye.Game
 
             m_Round.text = $"ROUND {turns.Round}";
 
+            // Where the round has got to. Everything before the active creature has had its turn
+            // and everything after is still to come, and a bar that does not say which is which
+            // makes "how long until I act again" a thing you count rather than a thing you see.
+            var reached = 0;
+
+            for (var i = 0; i < turns.Order.Count; i++)
+            {
+                if (turns.Order[i] == turns.ActiveId)
+                {
+                    reached = i;
+                    break;
+                }
+            }
+
+            var position = 0;
+
             foreach (var id in turns.Order)
             {
+                var acted = position < reached;
+                position++;
+
                 var creature = m_Creatures.ByTurnId(id);
                 if (creature == null)
                 {
@@ -150,7 +169,7 @@ namespace Dragoneye.Game
                 m_Observed.Add(creature);
 
                 var active = id == turns.ActiveId;
-                m_Order.Add(BuildPortrait(creature, active));
+                m_Order.Add(BuildPortrait(creature, active, acted));
 
                 if (active)
                 {
@@ -170,12 +189,13 @@ namespace Dragoneye.Game
             }
         }
 
-        VisualElement BuildPortrait(CreatureState creature, bool active)
+        VisualElement BuildPortrait(CreatureState creature, bool active, bool acted)
         {
             var root = new VisualElement();
             root.AddToClassList("turn-portrait");
             root.EnableInClassList("turn-portrait--active", active);
             root.EnableInClassList("turn-portrait--dimmed", !active);
+            root.EnableInClassList("turn-portrait--acted", acted);
 
             // Party colour on the border, so which side a portrait belongs to survives the
             // greying-out that marks it as not the current turn.

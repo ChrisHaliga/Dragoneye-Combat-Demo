@@ -240,10 +240,15 @@ namespace Dragoneye.Game
             public readonly RosterEntry Entry;
             public readonly byte BuildSlot;
 
-            public Placement(RosterEntry entry, byte buildSlot = PartyInfo.Unclaimed)
+            /// <summary>Which of its kind, or zero. Always zero for a built character: it has a name.</summary>
+            public readonly int Ordinal;
+
+            public Placement(RosterEntry entry, byte buildSlot = PartyInfo.Unclaimed,
+                int ordinal = 0)
             {
                 Entry = entry;
                 BuildSlot = buildSlot;
+                Ordinal = ordinal;
             }
         }
 
@@ -253,7 +258,10 @@ namespace Dragoneye.Game
 
             foreach (var entry in roster)
             {
-                placements.Add(new Placement(entry));
+                // Numbered against the roster the draft ended with, so what a creature is called in
+                // the arena is what it was called on the screen where it was picked.
+                placements.Add(new Placement(entry,
+                    ordinal: DraftQueries.OrdinalOf(roster, entry.EntryId)));
             }
 
             var characters = PlayerCharacters.Current;
@@ -309,7 +317,7 @@ namespace Dragoneye.Game
             for (var i = 0; i < placements.Count; i++)
             {
                 SpawnUnit(placements[i].Entry, cells[i], placements[i].BuildSlot,
-                    Facing.Of((int)Hex.DirectionTo(cells[i], middle)));
+                    Facing.Of((int)Hex.DirectionTo(cells[i], middle)), placements[i].Ordinal);
             }
         }
 
@@ -417,7 +425,7 @@ namespace Dragoneye.Game
         /// means for now.
         /// </summary>
         void SpawnUnit(RosterEntry entry, Hex cell, byte buildSlot = PartyInfo.Unclaimed,
-            Facing facing = default)
+            Facing facing = default, int ordinal = 0)
         {
             if (m_UnitPrefab == null)
             {
@@ -445,7 +453,7 @@ namespace Dragoneye.Game
                 var creature = instance.GetComponent<CreatureState>();
 
                 creature.ServerConfigure(entry.CreatureId, entry.Party, entry.ClaimedBySlot,
-                    buildSlot, entry.Level);
+                    buildSlot, entry.Level, ordinal);
 
                 // The starting pool is authored on the premade definition. A built character will
                 // bring its own from the creator; both arrive here before the spawn so the owning

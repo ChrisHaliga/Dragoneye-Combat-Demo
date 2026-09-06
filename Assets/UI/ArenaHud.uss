@@ -141,9 +141,29 @@
     -unity-slice-bottom: 16;
 }
 
+/* The side, first and in that side's colour. A card is read to answer "what is that thing" and
+   the first half of that answer is which team it is on. */
+.card__party {
+    font-size: 10px;
+    -unity-font-style: bold;
+    letter-spacing: 4px;
+    margin-bottom: 10px;
+    padding-bottom: 8px;
+    border-bottom-width: 1px;
+    border-bottom-color: rgba(255, 255, 255, 0.08);
+}
+
 .card__head {
     flex-direction: row;
-    margin-bottom: 12px;
+    margin-bottom: 10px;
+}
+
+/* Blocks, rather than one column of everything. The card carries five different kinds of thing and
+   without a break between them they read as one list of facts. */
+.card__rule {
+    height: 1px;
+    margin: 10px 0 10px 0;
+    background-color: rgba(255, 255, 255, 0.08);
 }
 
 /* The face, cropped to a circle, the same shape the board token wears. */
@@ -154,6 +174,10 @@
     flex-shrink: 0;
     border-radius: 28px;
     overflow: hidden;
+
+    /* Ringed in the party colour, which the band above it is written in. The side is then legible
+       from the shape of the card without reading a word of it. */
+    border-width: 2px;
     background-color: rgb(18, 21, 28);
     background-image: url("Generated/ui-well.png");
     -unity-slice-left: 11;
@@ -251,10 +275,14 @@
     margin-right: 7px;
 }
 
+/* Flavour, directly under the name it flavours. It used to sit at the bottom under the skill list,
+   which put the one line telling you what a creature *is* furthest from its name. */
 .card__description {
     font-size: 11px;
     color: rgb(130, 138, 156);
     white-space: normal;
+    margin-bottom: 12px;
+    -unity-font-style: italic;
 }
 
 .is-hidden {
@@ -325,7 +353,13 @@
 }
 
 .turn-portrait--dimmed {
-    opacity: 0.4;
+    opacity: 0.72;
+}
+
+/* Already had its turn this round. Further back than the ones still to come, so the bar reads left
+   to right as "done, now, next" without anybody having to count. */
+.turn-portrait--acted {
+    opacity: 0.34;
 }
 
 .turn-portrait__initial {
@@ -455,6 +489,7 @@
 /* Two lines now: what the click does, and how it is likely to go. */
 .cursor-action {
     white-space: normal;
+    max-width: 280px;
     position: absolute;
     padding: 5px 10px;
     font-size: 11px;
@@ -1103,10 +1138,23 @@
     opacity: 1;
 }
 
-/* Fills the frame and scrolls inside it, so the newest line is always the one at the bottom and
-   the older ones are still there to be found. */
+/* Fills the frame and scrolls inside it.
+ *
+ * The min-height is the whole fix and it is not optional: a flex item defaults to a minimum size of
+ * its own content, so a scroller told to grow inside a fixed frame grows straight past it and takes
+ * the lines with it. That is why this looked like it was ignoring its height -- it was. */
 .combat-log-list {
     flex-grow: 1;
+    flex-basis: 0;
+    min-height: 0;
+}
+
+/* A line you are in gets a rail rather than just brighter text: colour alone is doing enough work
+   in here already, naming two creatures and an outcome. */
+.combat-log__line--mine {
+    padding-left: 6px;
+    border-left-width: 2px;
+    border-left-color: rgb(198, 158, 88);
 }
 
 /* Lines wrap rather than being cut off: half a sentence about an element nobody can read is worse

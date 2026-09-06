@@ -29,6 +29,7 @@ namespace Dragoneye.Game
         VisualElement m_Portrait;
         VisualElement m_Xp;
         Label m_Subtitle;
+        Label m_Party;
         Label m_Controller;
         Label m_Hp;
         Label m_Ap;
@@ -64,6 +65,7 @@ namespace Dragoneye.Game
             m_Portrait = root.Q<VisualElement>("card-portrait");
             m_Xp = root.Q<VisualElement>("card-xp");
             m_Subtitle = root.Q<Label>("card-subtitle");
+            m_Party = root.Q<Label>("card-party");
             m_Controller = root.Q<Label>("card-controller");
             m_Hp = root.Q<Label>("card-hp");
             m_Ap = root.Q<Label>("card-ap");
@@ -167,6 +169,11 @@ namespace Dragoneye.Game
                 m_Portrait.Clear();
                 m_Portrait.style.backgroundImage = new StyleBackground();
                 CreatureDisplay.DrawPortrait(m_Portrait, creature);
+
+                var tint = PartyPalette.ForParty(creature.Party);
+
+                m_Portrait.style.borderTopColor = m_Portrait.style.borderBottomColor =
+                    m_Portrait.style.borderLeftColor = m_Portrait.style.borderRightColor = tint;
             }
 
             m_Name.text = creature.DisplayName;
@@ -178,12 +185,20 @@ namespace Dragoneye.Game
                     definition.ClassName)
                 : string.Empty;
 
-            // The side always, the player only when there is one. Telling somebody that the
-            // goblin is run by the computer is telling them what a goblin is.
+            // The side is the band at the top now, in its own colour, so this line is left with
+            // the one thing it was always for: the person, when there is one. Telling somebody
+            // that the goblin is run by the computer is telling them what a goblin is.
+            if (m_Party != null)
+            {
+                m_Party.text = "TEAM " + PartyPalette.NameOf(creature.Party).ToUpperInvariant();
+                m_Party.style.color = PartyPalette.ForParty(creature.Party);
+            }
+
             m_Controller.text = creature.IsComputerControlled
-                ? PartyPalette.NameOf(creature.Party)
-                : $"{PartyPalette.NameOf(creature.Party)}  ·  "
-                    + CreatureDisplay.ControllerName(creature);
+                ? string.Empty
+                : CreatureDisplay.ControllerName(creature);
+
+            m_Controller.EnableInClassList("is-hidden", creature.IsComputerControlled);
             m_Hp.text = $"{creature.CurrentHp} / {creature.MaxHp}";
             m_Ap.text = $"{creature.CurrentAp} / {creature.MaxAp}";
             m_Speed.text = creature.Speed.ToString();

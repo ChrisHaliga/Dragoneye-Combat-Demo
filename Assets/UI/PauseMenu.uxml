@@ -1,0 +1,51 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements" editor-extension-mode="False">
+    <ui:VisualElement name="pause-root" class="pause-root is-hidden">
+
+        <!-- The menu's own stylesheet, attached to a second document rather than copied into one.
+             The pause screen is the main menu wearing a different frame, and it should not have to
+             be told twice what a button looks like. Help.uss carries the rules page and the element
+             chart, which the main menu also shows. PauseMenu.uss is last so it can override. -->
+        <Style src="SessionMenu.uss" />
+        <Style src="Help.uss" />
+        <Style src="PauseMenu.uss" />
+
+        <ui:VisualElement name="pause-menu" class="pause-plate pause-plate--menu">
+            <ui:Label text="PAUSED" class="pause__title" />
+            <ui:VisualElement class="rule" />
+
+            <ui:VisualElement class="pause__stack">
+                <ui:Button name="pause-resume-button" text="Resume" class="btn btn--menu btn--primary" />
+                <ui:Button name="pause-help-button" text="Help" class="btn btn--menu" />
+                <ui:Button name="pause-settings-button" text="Settings" class="btn btn--menu" />
+                <ui:Button name="pause-quit-button" text="Quit to menu" class="btn btn--menu btn--ghost" />
+            </ui:VisualElement>
+        </ui:VisualElement>
+
+        <ui:VisualElement name="pause-help" class="pause-plate pause-plate--page is-hidden">
+            <ui:Label text="HOW TO PLAY" class="pause__title" />
+            <ui:VisualElement class="rule" />
+
+            <ui:ScrollView name="help-body" class="pause__body help" />
+
+            <ui:VisualElement class="pause__foot">
+                <ui:VisualElement class="spacer" />
+                <ui:Button name="help-back-button" text="Back" class="btn btn--primary btn--wide" />
+            </ui:VisualElement>
+        </ui:VisualElement>
+
+        <ui:VisualElement name="pause-settings" class="pause-plate pause-plate--page is-hidden">
+            <ui:Label text="SETTINGS" class="pause__title" />
+            <ui:VisualElement class="rule" />
+
+            <!-- Filled by SettingsPanel and driven by SettingsScreen, both of which the main menu
+                 also uses. The names are the contract. -->
+            <ui:VisualElement name="settings-body" class="pause__body pause__body--row" />
+
+            <ui:VisualElement class="pause__foot">
+                <ui:Button name="settings-reset-button" text="Reset to defaults" class="btn btn--ghost" />
+                <ui:VisualElement class="spacer" />
+                <ui:Button name="settings-back-button" text="Back" class="btn btn--primary btn--wide" />
+            </ui:VisualElement>
+        </ui:VisualElement>
+    </ui:VisualElement>
+</ui:UXML>

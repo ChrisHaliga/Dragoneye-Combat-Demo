@@ -1,6 +1,7 @@
 <ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements" editor-extension-mode="False">
     <ui:VisualElement name="root" class="root">
         <Style src="SessionMenu.uss" />
+        <Style src="Help.uss" />
 
         <!-- Every screen fills the window and is stacked on the same spot. Two archetypes: a stage,
              which uses the whole frame, and a dialog, which centres a plate in it. Nothing is a
@@ -27,6 +28,7 @@
                         <ui:Button name="singleplayer-button" text="Singleplayer" class="btn btn--menu btn--primary" />
                         <ui:Button name="multiplayer-button" text="Multiplayer" class="btn btn--menu" />
                         <ui:Button name="test-mode-button" text="Test Mode" class="btn btn--menu" />
+                        <ui:Button name="help-button" text="Help" class="btn btn--menu" />
                         <ui:Button name="settings-button" text="Settings" class="btn btn--menu" />
                         <ui:Button name="quit-button" text="Quit" class="btn btn--menu btn--ghost" />
                     </ui:VisualElement>
@@ -179,60 +181,30 @@
             </ui:VisualElement>
             <ui:VisualElement class="rule rule--head" />
 
-            <ui:VisualElement class="stage__body stage__body--centred">
-                <ui:VisualElement class="col col--settings">
-                    <ui:Label text="DISPLAY" class="col__title" />
-
-                    <ui:VisualElement class="setting-row">
-                        <ui:Label text="Window mode" class="setting-row__label" />
-                        <ui:DropdownField name="mode-dropdown" class="setting-row__control dropdown" />
-                    </ui:VisualElement>
-
-                    <ui:VisualElement class="setting-row">
-                        <ui:Label text="Monitor" class="setting-row__label" />
-                        <ui:DropdownField name="monitor-dropdown" class="setting-row__control dropdown" />
-                    </ui:VisualElement>
-
-                    <ui:VisualElement class="setting-row">
-                        <ui:Label text="Resolution" class="setting-row__label" />
-                        <ui:DropdownField name="resolution-dropdown" class="setting-row__control dropdown" />
-                    </ui:VisualElement>
-
-                    <ui:Label name="display-note" text="" class="setting-note" />
-                </ui:VisualElement>
-
-                <ui:VisualElement class="col col--settings">
-                    <ui:Label text="CAMERA" class="col__title" />
-
-                    <ui:VisualElement class="setting-row">
-                        <ui:Label text="Pan speed" class="setting-row__label" />
-                        <ui:Slider name="pan-slider" low-value="0.25" high-value="3" class="setting-row__control slider" />
-                        <ui:Label name="pan-value" text="1.00x" class="setting-row__value" />
-                    </ui:VisualElement>
-
-                    <ui:VisualElement class="setting-row">
-                        <ui:Label text="Zoom speed" class="setting-row__label" />
-                        <ui:Slider name="zoom-slider" low-value="0.25" high-value="3" class="setting-row__control slider" />
-                        <ui:Label name="zoom-value" text="1.00x" class="setting-row__value" />
-                    </ui:VisualElement>
-
-                    <ui:VisualElement class="setting-row">
-                        <ui:Label text="Orbit speed" class="setting-row__label" />
-                        <ui:Slider name="orbit-slider" low-value="0.25" high-value="3" class="setting-row__control slider" />
-                        <ui:Label name="orbit-value" text="1.00x" class="setting-row__value" />
-                    </ui:VisualElement>
-
-                    <ui:VisualElement class="setting-row">
-                        <ui:Label text="Invert orbit drag" class="setting-row__label" />
-                        <ui:Toggle name="invert-toggle" class="setting-row__control" />
-                    </ui:VisualElement>
-                </ui:VisualElement>
-            </ui:VisualElement>
+            <!-- Built by SettingsPanel, because the pause menu shows the same controls in
+                 another scene and two copies of a settings screen is one too many. -->
+            <ui:VisualElement name="settings-body" class="stage__body stage__body--centred" />
 
             <ui:VisualElement class="stage__foot">
                 <ui:Button name="settings-reset-button" text="Reset to defaults" class="btn btn--ghost" />
                 <ui:VisualElement class="spacer" />
                 <ui:Button name="settings-back-button" text="Back" class="btn btn--primary btn--wide" />
+            </ui:VisualElement>
+        </ui:VisualElement>
+
+        <!-- HELP. The rules. Built by HelpBook, which the pause menu also builds into. -->
+
+        <ui:VisualElement name="help-panel" class="screen stage is-hidden">
+            <ui:VisualElement class="stage__head">
+                <ui:Label text="HOW TO PLAY" class="stage__title" />
+            </ui:VisualElement>
+            <ui:VisualElement class="rule rule--head" />
+
+            <ui:ScrollView name="help-body" class="stage__body help" />
+
+            <ui:VisualElement class="stage__foot">
+                <ui:VisualElement class="spacer" />
+                <ui:Button name="help-back-button" text="Back" class="btn btn--primary btn--wide" />
             </ui:VisualElement>
         </ui:VisualElement>
 

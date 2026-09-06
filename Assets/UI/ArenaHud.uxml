@@ -43,6 +43,11 @@
         </ui:VisualElement>
 
         <ui:VisualElement name="summary-card" class="card">
+
+            <!-- Which side, first and in that side's colour. It is the thing a player checks before
+                 anything else on the card, and it was buried three lines down. -->
+            <ui:Label name="card-party" text="" class="card__party" />
+
             <ui:VisualElement class="card__head">
                 <ui:VisualElement name="card-portrait" class="card__portrait" />
                 <ui:VisualElement class="card__titles">
@@ -51,6 +56,8 @@
                     <ui:Label name="card-controller" text="Controlled by" class="card__controller" />
                 </ui:VisualElement>
             </ui:VisualElement>
+
+            <ui:Label name="card-description" text="" class="card__description" />
 
             <ui:VisualElement class="card__stats">
                 <ui:VisualElement class="stat-row">
@@ -70,15 +77,17 @@
 
             <ui:VisualElement name="card-xp" class="xp" />
 
+            <ui:VisualElement class="card__rule" />
+
             <ui:Label name="card-elements-title" text="" class="card__elements-title" />
             <ui:VisualElement name="card-elements" class="card__elements" />
 
             <!-- What this creature has been watched doing. The log names skills; this is where you
                  look one up. -->
+            <ui:VisualElement class="card__rule" />
+
             <ui:Label name="card-skills-title" text="" class="card__elements-title" />
             <ui:VisualElement name="card-skills" class="card__skills" />
-
-            <ui:Label name="card-description" text="" class="card__description" />
         </ui:VisualElement>
     </ui:VisualElement>
 </ui:UXML>

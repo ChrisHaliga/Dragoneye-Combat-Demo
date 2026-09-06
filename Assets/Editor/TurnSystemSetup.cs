@@ -20,6 +20,8 @@ namespace Dragoneye.MultiplayerEditor
         const string k_MatchPrefab = "Assets/NGO_Minimal_Setup/DraftState.prefab";
         const string k_UnitPrefab = "Assets/NGO_Minimal_Setup/Unit.prefab";
         const string k_TurnObject = "Turn State";
+        const string k_PauseObject = "Pause Menu";
+        const string k_PauseDocument = "Assets/UI/PauseMenu.uxml";
 
         /// <summary>Runs the whole step. Called directly by the master setup.</summary>
         internal static void Run()
@@ -205,6 +207,7 @@ namespace Dragoneye.MultiplayerEditor
             }
 
             SetUpHud(creatures, units, map, input, selection);
+            SetUpPauseMenu();
 
             EditorSceneManager.MarkSceneDirty(scene);
             EditorSceneManager.SaveScene(scene);
@@ -250,6 +253,58 @@ namespace Dragoneye.MultiplayerEditor
             Ensure<CombatAnnouncer>(host);
 
             EditorUtility.SetDirty(host);
+        }
+
+        /// <summary>
+        /// The pause screen, as its own document above the HUD.
+        ///
+        /// Its own rather than another panel inside ArenaHud.uxml, because it has to cover the HUD
+        /// and everything on it -- a defence prompt included -- and sorting order across documents
+        /// is a property, where sorting order inside one is the order somebody typed the markup in.
+        ///
+        /// It borrows the HUD's panel settings rather than carrying its own, so both scale with the
+        /// window the same way. Two panel assets is two places to change a reference resolution.
+        /// </summary>
+        static void SetUpPauseMenu()
+        {
+            var hud = GameObject.Find("Arena HUD");
+            var hudDocument = hud != null ? hud.GetComponent<UIDocument>() : null;
+
+            if (hudDocument == null)
+            {
+                Debug.LogError("No 'Arena HUD' with a UIDocument; cannot place the pause menu.");
+                return;
+            }
+
+            var tree = AssetDatabase.LoadAssetAtPath<VisualTreeAsset>(k_PauseDocument);
+
+            if (tree == null)
+            {
+                Debug.LogError($"No document at {k_PauseDocument}; cannot place the pause menu.");
+                return;
+            }
+
+            var existing = Object.FindAnyObjectByType<PauseMenuView>();
+            var host = existing != null ? existing.gameObject : GameObject.Find(k_PauseObject);
+
+            if (host == null)
+            {
+                host = new GameObject(k_PauseObject);
+            }
+
+            var document = Ensure<UIDocument>(host);
+
+            document.panelSettings = hudDocument.panelSettings;
+            document.visualTreeAsset = tree;
+
+            // Above the HUD, and above the clash prompt with it: a menu that something else can
+            // draw over is a menu that can be clicked through.
+            document.sortingOrder = hudDocument.sortingOrder + 10f;
+
+            Ensure<PauseMenuView>(host);
+
+            EditorUtility.SetDirty(host);
+            EditorUtility.SetDirty(document);
         }
 
         static void SetUpHud(CreatureRegistry creatures, UnitIndex units,

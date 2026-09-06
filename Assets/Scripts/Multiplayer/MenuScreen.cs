@@ -28,6 +28,9 @@ namespace Dragoneye.Multiplayer
         Multiplayer,
         Host,
         Join,
-        Settings
+        Settings,
+
+        /// <summary>The rules. Reachable from here and from the pause menu in a match.</summary>
+        Help
     }
 }

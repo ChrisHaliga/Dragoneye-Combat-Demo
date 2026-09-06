@@ -18,6 +18,67 @@ namespace Dragoneye.Game
     public static class DraftQueries
     {
         /// <summary>
+        /// Which one of its kind this entry is, or zero when it is the only one.
+        ///
+        /// Three goblins on a board are three things a player has to be able to talk about, and a
+        /// log line saying "Goblin attacked Goblin" is not a log. Numbered in roster order, so the
+        /// first one drafted is the first one numbered.
+        ///
+        /// Zero for a creature with no twin, because "Ogre 1" beside no Ogre 2 is a number that
+        /// answers a question nobody asked. That does mean a name changes when a second one is
+        /// added -- which is right: it is the second one arriving that makes the first ambiguous.
+        /// </summary>
+        public static int OrdinalOf(IReadOnlyList<RosterEntry> roster, uint entryId)
+        {
+            if (roster == null)
+            {
+                return 0;
+            }
+
+            var kind = 0;
+            var found = false;
+
+            foreach (var entry in roster)
+            {
+                if (entry.EntryId == entryId)
+                {
+                    kind = entry.CreatureId;
+                    found = true;
+                    break;
+                }
+            }
+
+            if (!found)
+            {
+                return 0;
+            }
+
+            var ordinal = 0;
+            var seen = 0;
+
+            foreach (var entry in roster)
+            {
+                if (entry.CreatureId != kind)
+                {
+                    continue;
+                }
+
+                seen++;
+
+                if (entry.EntryId == entryId)
+                {
+                    ordinal = seen;
+                }
+            }
+
+            return seen > 1 ? ordinal : 0;
+        }
+
+        /// <summary>The name with its number on it, where it has one.</summary>
+        public static string NumberedName(string name, int ordinal) =>
+            ordinal > 0 ? name + " " + ordinal : name;
+
+        /// <summary>
         /// The party a player has chosen, if any. Returns false rather than defaulting: a silent
         /// default makes "has not picked" indistinguishable from "picked the first party".
         /// </summary>

@@ -74,10 +74,6 @@ namespace Dragoneye.Game
             m_PartyColumns = m_Root.Q<VisualElement>("party-columns");
             m_CapLabel = m_Root.Q<Label>("cap-label");
 
-            // Static for the life of the screen: the table is content, and it does not change
-            // while anybody is looking at it.
-            ElementChart.Build(m_Root.Q<VisualElement>("element-chart"));
-
             m_Setup = new MatchSetupBar(m_Root);
 
             if (m_Panel == null || m_TeamButtons == null || m_PartyColumns == null
@@ -545,7 +541,12 @@ namespace Dragoneye.Game
             var mine = hasSlot && entry.ClaimedBySlot == slot;
             var profile = CreatureProfile.FromDefinition(definition, entry.Level);
 
-            var card = Card(definition != null ? definition.DisplayName : "Unknown",
+            var named = definition != null
+                ? DraftQueries.NumberedName(definition.DisplayName,
+                    DraftQueries.OrdinalOf(m_Draft.Roster, entry.EntryId))
+                : "Unknown";
+
+            var card = Card(named,
                 definition != null
                     ? CharacterSheet.Describe(entry.Level, definition.SpeciesName,
                         definition.ClassName, compact: true)

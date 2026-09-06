@@ -41,12 +41,19 @@ namespace Dragoneye.Game
         // everybody else being able to see it and walk round the back.
         readonly NetworkVariable<byte> m_Facing = new NetworkVariable<byte>();
 
+        // Which of its kind this one is, or zero when it is the only one. Replicated rather than
+        // worked out per client: the draft roster it comes from does not survive into the arena in
+        // a form the HUD could count, and a creature that answered to two different names on two
+        // machines would make the log unreadable.
+        readonly NetworkVariable<byte> m_Ordinal = new NetworkVariable<byte>();
+
         // Identity handed over before the spawn, held until there are NetworkVariables to put it in.
         ushort m_StartCreatureId;
         byte m_StartBuildSlot = PartyInfo.Unclaimed;
         Party m_StartParty;
         byte m_StartControllerSlot = PartyInfo.Unclaimed;
         int m_StartLevel = Progression.FirstLevel;
+        byte m_StartOrdinal;
 
         CreatureDefinition m_Definition;
         CreatureRegistry m_Registry;
@@ -102,7 +109,15 @@ namespace Dragoneye.Game
         public CreatureProfile Profile =>
             ProfileFor(m_BuildSlot.Value, m_CreatureId.Value, m_PremadeLevel.Value);
 
-        public string DisplayName => Profile.Name;
+        /// <summary>
+        /// What to call this creature, numbered when it is one of several of its kind.
+        ///
+        /// Three goblins are three things a player has to be able to point at, and every readout in
+        /// the game -- the log, the turn bar, the card, the floating damage -- goes through here, so
+        /// naming them is one change rather than five.
+        /// </summary>
+        public string DisplayName =>
+            DraftQueries.NumberedName(Profile.Name, m_Ordinal.Value);
 
         public int MaxHp => Profile.MaxHealth;
 
@@ -161,6 +176,7 @@ namespace Dragoneye.Game
                 var profile = ProfileFor(m_StartBuildSlot, m_StartCreatureId, m_StartLevel);
 
                 m_PremadeLevel.Value = RosterEntry.Clamp(m_StartLevel);
+                m_Ordinal.Value = m_StartOrdinal;
                 m_BuildSlot.Value = m_StartBuildSlot;
                 m_CreatureId.Value = m_StartCreatureId;
                 m_PartyId.Value = (byte)m_StartParty;
@@ -177,6 +193,7 @@ namespace Dragoneye.Game
             m_BuildSlot.OnValueChanged += OnByteChanged;
             m_PremadeLevel.OnValueChanged += OnByteChanged;
             m_Facing.OnValueChanged += OnByteChanged;
+            m_Ordinal.OnValueChanged += OnByteChanged;
 
             var context = ArenaContext.Current;
             m_Registry = context != null ? context.Creatures : null;
@@ -203,6 +220,7 @@ namespace Dragoneye.Game
             m_BuildSlot.OnValueChanged -= OnByteChanged;
             m_PremadeLevel.OnValueChanged -= OnByteChanged;
             m_Facing.OnValueChanged -= OnByteChanged;
+            m_Ordinal.OnValueChanged -= OnByteChanged;
 
             if (m_Registry != null)
             {
@@ -220,13 +238,15 @@ namespace Dragoneye.Game
         /// disagrees with the id being replicated.
         /// </summary>
         public void ServerConfigure(ushort creatureId, Party party, byte controllerSlot,
-            byte buildSlot = PartyInfo.Unclaimed, int level = Progression.FirstLevel)
+            byte buildSlot = PartyInfo.Unclaimed, int level = Progression.FirstLevel,
+            int ordinal = 0)
         {
             m_StartCreatureId = creatureId;
             m_StartParty = party;
             m_StartControllerSlot = controllerSlot;
             m_StartBuildSlot = buildSlot;
             m_StartLevel = level;
+            m_StartOrdinal = (byte)(ordinal < 0 ? 0 : ordinal > byte.MaxValue ? 0 : ordinal);
         }
 
         /// <summary>

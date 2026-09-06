@@ -109,7 +109,16 @@ namespace Dragoneye.Game
             m_List.Clear();
 
             var party = LocalParty();
-            m_Title.text = party.HasValue ? PartyPalette.NameOf(party.Value) : "Spectating";
+
+            // Named and coloured, matching the band on the inspect card. Two panels talking about
+            // the same side should say so the same way.
+            m_Title.text = party.HasValue
+                ? "TEAM " + PartyPalette.NameOf(party.Value).ToUpperInvariant()
+                : "SPECTATING";
+
+            m_Title.style.color = party.HasValue
+                ? new StyleColor(PartyPalette.ForParty(party.Value))
+                : new StyleColor(StyleKeyword.Null);
 
             if (!party.HasValue)
             {

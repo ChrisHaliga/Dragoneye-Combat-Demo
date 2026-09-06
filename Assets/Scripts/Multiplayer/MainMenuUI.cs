@@ -66,6 +66,12 @@ namespace Dragoneye.Multiplayer
 
             m_Status = root.Q<Label>("status-label");
 
+            // Both of these are built rather than authored, because the pause menu shows the same
+            // two panels in another scene. Built before the screen binds to them, since it finds
+            // its controls by name and they do not exist until now.
+            SettingsPanel.Build(root.Q<VisualElement>("settings-body"));
+            HelpBook.Build(root.Q<ScrollView>("help-body"));
+
             m_Settings = new SettingsScreen(root, () => Show(MenuScreen.Home));
             if (!m_Settings.IsBound)
             {
@@ -293,6 +299,7 @@ namespace Dragoneye.Multiplayer
             m_Panels[MenuScreen.Host] = root.Q<VisualElement>("host-panel");
             m_Panels[MenuScreen.Join] = root.Q<VisualElement>("join-panel");
             m_Panels[MenuScreen.Settings] = root.Q<VisualElement>("settings-panel");
+            m_Panels[MenuScreen.Help] = root.Q<VisualElement>("help-panel");
 
             foreach (var pair in m_Panels)
             {
@@ -312,6 +319,8 @@ namespace Dragoneye.Multiplayer
             var multiplayer = root.Q<Button>("multiplayer-button");
             var testMode = root.Q<Button>("test-mode-button");
             var settings = root.Q<Button>("settings-button");
+            var help = root.Q<Button>("help-button");
+            var helpBack = root.Q<Button>("help-back-button");
             var quit = root.Q<Button>("quit-button");
 
             var hostMenu = root.Q<Button>("host-menu-button");
@@ -321,6 +330,7 @@ namespace Dragoneye.Multiplayer
             var joinBack = root.Q<Button>("join-back-button");
 
             if (singleplayer == null || multiplayer == null || testMode == null || settings == null
+                || help == null || helpBack == null
                 || quit == null || hostMenu == null || joinMenu == null || multiplayerBack == null
                 || hostBack == null || joinBack == null)
             {
@@ -334,6 +344,8 @@ namespace Dragoneye.Multiplayer
             singleplayer.clicked += OnSingleplayerClicked;
             multiplayer.clicked += () => Show(MenuScreen.Multiplayer);
             settings.clicked += () => Show(MenuScreen.Settings);
+            help.clicked += () => Show(MenuScreen.Help);
+            helpBack.clicked += () => Show(MenuScreen.Home);
             quit.clicked += Quit;
 
             hostMenu.clicked += () => Show(MenuScreen.Host);
