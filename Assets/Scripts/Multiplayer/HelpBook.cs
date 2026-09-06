@@ -44,6 +44,14 @@ namespace Dragoneye.Multiplayer
                 "The side left standing wins. There is no clock anywhere in this game: nothing you "
                 + "are asked is timed, and thinking for an hour costs you nothing."));
 
+            into.Add(Section("ARMOUR"));
+            into.Add(Text(
+                "Armour is a pool above health. Every blow wears it down first, and only what it "
+                + "cannot hold reaches the creature underneath -- and it is back in full at the "
+                + "start of that creature's next turn. So one poke a round does nothing to a "
+                + "creature in plate, and three in a row do everything. The silver bar over the "
+                + "health bar is the armour; the number on the card beside it is what is left."));
+
             into.Add(Section("ACTION POINTS"));
             into.Add(Text(
                 "Everything costs action points. Walking costs half a point per tile; a skill "

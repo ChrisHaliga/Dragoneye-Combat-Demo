@@ -47,6 +47,10 @@ namespace Dragoneye.Game
         [SerializeField, Min(0)]
         int m_Speed = 5;
 
+        [SerializeField, Min(0), Tooltip("Armour: a pool above health, worn down by every blow "
+             + "and restored at the start of each of this creature's turns. Zero for most.")]
+        int m_Armour;
+
         [SerializeField, Tooltip("Whether this creature answers a clash with the better of two "
              + "elements -- a shield, or whatever stands in for one. It costs two elements rather "
              + "than one, so it drains as fast as it protects.")]
@@ -117,6 +121,9 @@ namespace Dragoneye.Game
 
         /// <summary>Whether this creature answers a clash with the better of two elements.</summary>
         public bool Shielded => m_Shielded;
+
+        /// <summary>The armour pool this creature starts every turn with.</summary>
+        public int Armour => m_Armour;
 
         public int MaxAp => m_MaxAp;
 

@@ -32,6 +32,13 @@ namespace Dragoneye.Hex.Tests
             }
 
             public bool IsOccupied(Hex hex) => m_Occupied.Contains(hex);
+
+            // An open board has no walls, so there is never anywhere nearer than the route itself.
+            public bool TryClosest(Hex from, Hex target, int budget, out Hex tile)
+            {
+                tile = from;
+                return false;
+            }
         }
 
         /// <summary>

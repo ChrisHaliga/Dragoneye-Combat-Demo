@@ -67,6 +67,73 @@ namespace Dragoneye.Game
         public bool IsOccupied(Hex hex) => m_Units != null && m_Units.IsOccupied(hex);
 
         /// <summary>
+        /// The tile within this many steps that ends nearest the target.
+        ///
+        /// For a creature whose target is walled off -- by allies, by enemies, by the shape of the
+        /// map. The route search has no answer for that, and a brain that took its silence as an
+        /// instruction stood at its spawn point for the whole match. This walks outward from where
+        /// the creature is, as far as it can afford, and picks whichever reachable tile is closest
+        /// to where it wanted to be. Closest by distance first, then by steps, so it does not walk
+        /// the long way round to an equally near tile.
+        /// </summary>
+        public bool TryClosest(Hex from, Hex target, int budget, out Hex tile)
+        {
+            tile = from;
+
+            if (!IsReady || budget <= 0)
+            {
+                return false;
+            }
+
+            m_Blocked.Clear();
+            m_Units.CopyOccupiedTo(m_Blocked, from);
+
+            var steps = new Dictionary<Hex, int> { [from] = 0 };
+            var frontier = new Queue<Hex>();
+            frontier.Enqueue(from);
+
+            var bestDistance = Hex.Distance(from, target);
+            var bestSteps = 0;
+            var found = false;
+
+            while (frontier.Count > 0)
+            {
+                var here = frontier.Dequeue();
+                var walked = steps[here];
+
+                if (walked >= budget)
+                {
+                    continue;
+                }
+
+                foreach (var next in here.Neighbors())
+                {
+                    if (steps.ContainsKey(next) || m_Blocked.Contains(next)
+                        || !m_Map.Map.TryGetTile(next, out var ground) || !ground.IsWalkable)
+                    {
+                        continue;
+                    }
+
+                    steps[next] = walked + 1;
+                    frontier.Enqueue(next);
+
+                    var distance = Hex.Distance(next, target);
+
+                    if (distance < bestDistance
+                        || (distance == bestDistance && found && walked + 1 < bestSteps))
+                    {
+                        bestDistance = distance;
+                        bestSteps = walked + 1;
+                        tile = next;
+                        found = true;
+                    }
+                }
+            }
+
+            return found;
+        }
+
+        /// <summary>
         /// Whether at least one neighbouring hex could be stepped into.
         ///
         /// Asked rather than assumed from AP: a creature walled in by its own allies has points it

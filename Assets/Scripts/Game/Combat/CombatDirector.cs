@@ -985,7 +985,7 @@ namespace Dragoneye.Game
             }
 
             if (skill.Effect.Kind == SkillEffectKind.Damage
-                && target.ServerApplyDamage(effect.Amount, ReductionOf(target)))
+                && target.ServerApplyDamage(effect.Amount))
             {
                 Kill(target, actor);
             }
@@ -1064,11 +1064,11 @@ namespace Dragoneye.Game
         }
 
         /// <summary>
-        /// Applies a skill once it has been paid for.
+        /// Applies an uncontested skill once it has been paid for.
         ///
-        /// Creature-targeted skills are where a clash begins. Until DE-005 exists the effect lands
-        /// directly, which is the same outcome an uncontested clash would produce -- so replacing
-        /// this with a real contest is a change to one method rather than to every skill.
+        /// Anything aimed at an enemy went through <see cref="BeginClash"/> before it got here.
+        /// What arrives is the rest: a heal, a breath, a swing at a tile or an ally -- things with
+        /// nobody on the other side of them, which land as written.
         /// </summary>
         void Resolve(CreatureState actor, SkillSpec skill, CreatureState target)
         {
@@ -1092,8 +1092,7 @@ namespace Dragoneye.Game
                 case SkillEffectKind.Damage:
                     // The blow and the protection go in together, so what lands and what is
                     // announced over the defender's head are the same subtraction.
-                    if (target != null && target.ServerApplyDamage(
-                            skill.Effect.Amount, ReductionOf(target)))
+                    if (target != null && target.ServerApplyDamage(skill.Effect.Amount))
                     {
                         Kill(target, actor);
                     }
@@ -1196,6 +1195,7 @@ namespace Dragoneye.Game
             }
 
             active.ServerRefillAp();
+            active.ServerRefillArmour();
 
             if (active.IsComputerControlled)
             {
@@ -1394,27 +1394,6 @@ namespace Dragoneye.Game
         /// Removed from the order before despawning, because the despawn tears down the component
         /// the order would otherwise be asked about.
         /// </summary>
-        /// <summary>
-        /// What the defender takes off every blow: its armour, plus anything else it is wearing.
-        ///
-        /// Resolved from the build rather than replicated, because every peer already has what it
-        /// needs to work it out and only the server ever asks.
-        /// </summary>
-        static int ReductionOf(CreatureState creature)
-        {
-            var characters = PlayerCharacters.Current;
-
-            if (characters == null || !creature.IsPlayerCharacter)
-            {
-                // A premade has no equipment to resolve. Authored damage reduction for them is a
-                // decision nobody has taken yet, and pretending otherwise would be inventing one.
-                return 0;
-            }
-
-            var loadout = characters.LoadoutFor(creature.BuildSlot);
-            return loadout != null ? loadout.DamageReduction : 0;
-        }
-
         /// <summary>
         /// Takes a dead creature off the board, and pays whoever put it there.
         ///

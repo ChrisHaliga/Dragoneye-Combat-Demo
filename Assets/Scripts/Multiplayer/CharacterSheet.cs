@@ -328,11 +328,11 @@ namespace Dragoneye.Multiplayer
                 into.Add(line);
             }
 
-            // Armour reads here rather than in a passive line, because it is now a number rather
-            // than a flag: what a suit stops is the whole of what wearing it does in a fight.
-            if (loadout.DamageReduction > 0)
+            // Armour reads here rather than in a passive line, because it is a number: the pool a
+            // creature has above its health at the start of every turn.
+            if (loadout.ArmourPoints > 0)
             {
-                var armour = new Label($"Stops {loadout.DamageReduction} damage a blow");
+                var armour = new Label($"{loadout.ArmourPoints} armour, restored every turn");
                 armour.AddToClassList("passive-line");
                 into.Add(armour);
             }

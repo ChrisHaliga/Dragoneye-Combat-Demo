@@ -225,6 +225,11 @@ namespace Dragoneye.Game
                 root.Add(BuildActionPoints(creature));
             }
 
+            if (creature.MaxArmour > 0)
+            {
+                root.Add(BuildArmour(creature));
+            }
+
             root.Add(BuildHealth(creature));
 
             // Inspecting from the bar, the same gesture the party column already offers. Reading a
@@ -248,6 +253,20 @@ namespace Dragoneye.Game
             text.tooltip = "Action points left this turn.";
 
             strip.Add(text);
+            return strip;
+        }
+
+        /// <summary>A thin silver strip above the health, for creatures that have armour to lose.</summary>
+        static VisualElement BuildArmour(CreatureState creature)
+        {
+            var strip = new VisualElement();
+            strip.AddToClassList("turn-portrait__armour");
+
+            var fill = new VisualElement();
+            fill.AddToClassList("turn-portrait__armour-fill");
+            fill.style.width = Length.Percent(CreatureDisplay.ArmourFraction(creature) * 100f);
+
+            strip.Add(fill);
             return strip;
         }
 

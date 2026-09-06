@@ -44,9 +44,16 @@ namespace Dragoneye.Game
         /// working it out from a health bar. The reason is left off when there is none, because
         /// "5 - 0 armour" is noise.
         /// </summary>
-        public static string Damage(int landed, int raw, int reduction) =>
-            reduction > 0
-                ? $"-{landed} HP  ({raw} - {reduction} armour)"
-                : $"-{landed} HP";
+        public static string Damage(int landed, int absorbed)
+        {
+            if (absorbed <= 0)
+            {
+                return $"-{landed} HP";
+            }
+
+            return landed > 0
+                ? $"-{landed} HP  ({absorbed} on armour)"
+                : $"{absorbed} on armour";
+        }
     }
 }

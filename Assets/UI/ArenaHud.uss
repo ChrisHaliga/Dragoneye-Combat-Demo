@@ -646,10 +646,10 @@
 .card-skill__cost {
     flex-shrink: 0;
     margin-left: 10px;
-    font-size: 10px;
+    font-size: 11px;
     -unity-font-style: bold;
     letter-spacing: 1px;
-    color: rgb(198, 158, 88);
+    color: rgb(178, 184, 200);
 }
 
 .card__spent-title {
@@ -793,9 +793,9 @@
 .clash-prompt {
     position: absolute;
     left: 50%;
-    top: 30%;
+    top: 26%;
     translate: -50% 0;
-    min-width: 340px;
+    width: 476px;
     padding: 18px 20px 16px 20px;
     background-image: url("Generated/ui-panel.png");
     -unity-slice-left: 32;
@@ -1282,6 +1282,11 @@
     flex-grow: 1;
     flex-basis: 0;
     min-height: 0;
+    max-height: 100%;
+}
+
+.combat-log-list .unity-scroll-view__content-viewport {
+    overflow: hidden;
 }
 
 /* A line you are in gets a rail rather than just brighter text: colour alone is doing enough work
@@ -1490,10 +1495,16 @@
 
 /* Nothing: a circle with a bar through it, drawn rather than pictured, in the colour of a loss. */
 .clash-option__mark--none {
+    width: 44px;
+    height: 44px;
+    min-width: 44px;
+    max-width: 44px;
+    flex-shrink: 0;
+    align-self: center;
     background-image: none;
     border-width: 3px;
     border-color: rgb(217, 112, 94);
-    border-radius: 24px;
+    border-radius: 22px;
     align-items: center;
     justify-content: center;
 }
@@ -1515,4 +1526,39 @@
 
 .clash-prompt__intel--known {
     color: rgb(226, 191, 122);
+}
+
+/* ---------- armour ---------- */
+
+/* Silver, above the green. A pool that is back every turn, drawn as a thin bar so it reads as
+   something worn over the health rather than as a second health. */
+.armour-track {
+    height: 4px;
+    margin-top: 5px;
+    background-color: rgb(14, 16, 22);
+    border-width: 1px;
+    border-color: rgb(40, 46, 60);
+    overflow: hidden;
+}
+
+.armour-fill {
+    height: 100%;
+    background-color: rgb(198, 204, 216);
+}
+
+.turn-portrait__armour {
+    height: 5px;
+    background-color: rgba(5, 6, 9, 0.88);
+}
+
+.turn-portrait__armour-fill {
+    position: absolute;
+    top: 1px;
+    left: 0;
+    bottom: 1px;
+    background-color: rgb(198, 204, 216);
+}
+
+.stat-row__value--armour {
+    color: rgb(198, 204, 216);
 }

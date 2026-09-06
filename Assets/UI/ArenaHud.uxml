@@ -71,6 +71,10 @@
             <ui:Label name="card-description" text="" class="card__description" />
 
             <ui:VisualElement class="card__stats">
+                <ui:VisualElement name="card-armour-row" class="stat-row">
+                    <ui:Label text="ARM" class="stat-row__label" />
+                    <ui:Label name="card-armour" text="0 / 0" class="stat-row__value stat-row__value--armour" />
+                </ui:VisualElement>
                 <ui:VisualElement class="stat-row">
                     <ui:Label text="HP" class="stat-row__label" />
                     <ui:Label name="card-hp" text="0 / 0" class="stat-row__value" />

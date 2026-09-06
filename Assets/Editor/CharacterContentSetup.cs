@@ -117,7 +117,7 @@ namespace Dragoneye.MultiplayerEditor
             var mace = Equipment(15, "Mace", EquipmentSlot.Weapon, Attr(strength: 1, willpower: 1),
                 "Blunt and devout. The two go together more often than anyone admits.", smite);
 
-            // Three off every blow, in the offhand, so carrying one costs no speed.
+            // Three armour, in the offhand, so carrying one costs no speed.
             //
             // DE-006 names a shield as its example of something granting advantage, and it was
             // authored that way and then taken out again. Advantage costs two elements instead of
@@ -125,15 +125,15 @@ namespace Dragoneye.MultiplayerEditor
             // was equipped -- a drain the player never chose and cannot switch off mid-fight. An
             // item that quietly doubles your burn rate is not a defensive item.
             var shield = Equipment(30, "Shield", EquipmentSlot.Offhand, Attr(toughness: 1),
-                "Three damage off anything that reaches you, and it costs you no speed.",
+                "Three armour between you and anything that reaches you, and no speed for it.",
                 new SkillAsset[0], ArmourClass.None, damageReduction: 3);
 
             var light = Armour(20, "Light armour", Attr(toughness: 1), ArmourClass.Light,
-                "Padding and leather. One damage off every blow, and you will still be quick.");
+                "Padding and leather. Three armour, and you will still be quick.");
             var medium = Armour(21, "Medium armour", Attr(toughness: 2), ArmourClass.Medium,
-                "Mail. Two damage off every blow, at two speed. A fair trade, most days.");
+                "Mail. Five armour, at two speed. A fair trade, most days.");
             var heavy = Armour(22, "Heavy armour", Attr(toughness: 3), ArmourClass.Heavy,
-                "Plate. Four damage off every blow, and everyone else has already acted.");
+                "Plate. Eight armour, and everyone else has already acted.");
 
             // One per species, all four conditioned on having nothing in the weapon slot. The
             // numbers are deliberately identical: what differs today is the name and the flavour,

@@ -306,7 +306,16 @@ namespace Dragoneye.Game
 
             if (bestPath == null)
             {
-                return BrainDecision.Pass;
+                // Nowhere beside the enemy can be walked to. Walk towards them anyway, as far as
+                // the points allow, and wait: a creature that sits at its spawn because the way is
+                // blocked this turn is a creature that will never notice the way opening.
+                var budget = CombatRules.StepsAffordable(actor.CurrentAp);
+
+                return budget > 0
+                    && board.TryClosest(actor.Cell, enemy.Cell, budget, out var nearer)
+                    && Hex.Distance(nearer, enemy.Cell) < Hex.Distance(actor.Cell, enemy.Cell)
+                    ? BrainDecision.MoveTo(nearer)
+                    : BrainDecision.Pass;
             }
 
             // Affordable prefix of the route. Moving part of the way is the right answer for a

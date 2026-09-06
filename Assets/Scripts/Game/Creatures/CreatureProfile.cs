@@ -32,11 +32,15 @@ namespace Dragoneye.Game
         /// <summary>Whether this creature answers a clash with the better of two elements.</summary>
         public readonly bool Advantage;
 
+        /// <summary>The armour pool this creature starts each turn with. Zero for most premades.</summary>
+        public readonly int Armour;
+
         public CreatureProfile(string name, int maxHealth, Ap maxAp, int initiative,
             IReadOnlyList<int> skillIds, ElementCounts startingPool,
-            int level = Progression.FirstLevel, bool advantage = false)
+            int level = Progression.FirstLevel, bool advantage = false, int armour = 0)
         {
             Advantage = advantage;
+            Armour = armour < 0 ? 0 : armour;
             Name = string.IsNullOrEmpty(name) ? "Unknown" : name;
             MaxHealth = maxHealth < 1 ? 1 : maxHealth;
             MaxAp = maxAp;
@@ -61,7 +65,7 @@ namespace Dragoneye.Game
                 : new CreatureProfile(definition.DisplayName, definition.MaxHpAt(level),
                     Ap.FromWhole(definition.MaxAp), definition.Speed,
                     definition.SkillIdsAt(level), definition.PoolFor(level), level,
-                    definition.Shielded);
+                    definition.Shielded, definition.Armour);
 
         /// <summary>
         /// A character somebody built.
@@ -85,7 +89,7 @@ namespace Dragoneye.Game
 
             return new CreatureProfile(name, loadout.Vitals.MaxHealth, loadout.Vitals.MaxAp,
                 loadout.Vitals.Speed, skillIds, loadout.StartingPool, loadout.Vitals.Level,
-                loadout.Advantage);
+                loadout.Advantage, loadout.ArmourPoints);
         }
     }
 }

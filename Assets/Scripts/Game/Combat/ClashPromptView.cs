@@ -34,7 +34,6 @@ namespace Dragoneye.Game
         VisualElement m_Panel;
         VisualElement m_Options;
         Label m_Tally;
-        Button m_Answer;
 
         DefenceRequest m_Request;
         bool m_Open;
@@ -161,19 +160,13 @@ namespace Dragoneye.Game
             m_Options.AddToClassList("clash-prompt__options");
             m_Panel.Add(m_Options);
 
+            // Only a pair needs a second line: it has to say that one is chosen and one is
+            // still wanted. A single answer needs nothing under the row, because the click is it.
             m_Tally = new Label();
             m_Tally.AddToClassList("clash-prompt__tally");
+            m_Tally.EnableInClassList("is-hidden", m_Request.Required <= 1);
             m_Panel.Add(m_Tally);
 
-            var actions = new VisualElement();
-            actions.AddToClassList("clash-prompt__actions");
-
-            m_Answer = new Button(OnAnswerClicked) { text = "Answer" };
-            m_Answer.AddToClassList("button");
-            m_Answer.AddToClassList("button--primary");
-            actions.Add(m_Answer);
-
-            m_Panel.Add(actions);
             m_Root.Add(m_Panel);
 
             // The frame after it exists, so it can ease in from the state the stylesheet starts it in.
@@ -242,13 +235,10 @@ namespace Dragoneye.Game
 
             m_Options.Add(DeclineOption());
 
-            m_Tally.text = m_Declined
-                ? "Taking the hit"
-                : m_Request.Required > 1
-                    ? $"{m_Staged.Count} of {m_Request.Required} chosen"
-                    : m_Staged.Count > 0 ? "Ready to answer" : "Choose an answer";
-
-            m_Answer.SetEnabled(m_Declined || m_Staged.Count > 0);
+            m_Tally.text = m_Staged.Count == 0
+                ? $"Choose {m_Request.Required} elements. The first is kept until the second is picked."
+                : $"{m_Staged.Count} of {m_Request.Required} chosen. Pick the other, or click "
+                    + "the first again to put it back.";
         }
 
         /// <summary>How answering with this element is expected to go, against what is known.</summary>
@@ -302,8 +292,8 @@ namespace Dragoneye.Game
 
             var chances = new Label(ClashLabels.Chances(OddsFor(element)));
             chances.AddToClassList("clash-option__odds");
-            chances.tooltip = "Win: no damage, and you keep the element. Tie: no damage, and it "
-                + "is gone. Lose: you take the hit and it is gone.";
+            chances.tooltip = "Win: the attack misses and this element comes back. Tie: it "
+                + "misses, but the element is spent. Lose: you take the hit and it is spent.";
             button.Add(chances);
 
             // Only an element the defender holds none of is off the table.
@@ -352,42 +342,47 @@ namespace Dragoneye.Game
         }
 
         /// <summary>
-        /// Picks an element, or puts it back.
+        /// Picks an element. The click is the answer.
         ///
-        /// Room left: it is added. No room and it is already chosen: one of it is taken back. No
-        /// room and it is something else: when one element is asked for it simply replaces the
-        /// choice, because "pick another" should not need "unpick this" first; when two are, the
-        /// player is holding a pair and has to say which to give up.
+        /// One element asked for: it goes the moment it is clicked. A confirm button after a
+        /// single choice is a second click that decides nothing, and the panel is up in the
+        /// middle of somebody else's turn -- the less of it the better. Two asked for: the first
+        /// is staged and the second sends both; clicking the staged one again puts it back.
         /// </summary>
         void Toggle(Element element)
         {
             m_Declined = false;
 
-            var room = m_Staged.Count < m_Request.Required;
+            if (Held(element) <= 0 && !m_Staged.Contains(element))
+            {
+                return;
+            }
 
-            if (room && Held(element) > 0)
+            if (m_Staged.Contains(element) && m_Staged.Count < m_Request.Required)
             {
-                m_Staged.Add(element);
+                // A second click on a staged element takes it back, unless it is a second copy
+                // being staged of something held twice -- which is what the held count says.
+                if (Held(element) <= 0)
+                {
+                    m_Staged.Remove(element);
+                    Refresh();
+                    return;
+                }
             }
-            else if (m_Staged.Contains(element))
+
+            m_Staged.Add(element);
+
+            if (m_Staged.Count >= m_Request.Required)
             {
-                m_Staged.Remove(element);
-            }
-            else if (m_Request.Required == 1)
-            {
-                m_Staged.Clear();
-                m_Staged.Add(element);
+                Send(m_Staged);
+                return;
             }
 
             Refresh();
         }
 
-        void ToggleDecline()
-        {
-            m_Declined = !m_Declined;
-            m_Staged.Clear();
-            Refresh();
-        }
+        /// <summary>The eighth answer goes the moment it is clicked, like the other seven.</summary>
+        void ToggleDecline() => Send(System.Array.Empty<Element>());
 
         /// <summary>
         /// Sends the answer, and takes the prompt down without waiting to be told.
@@ -396,12 +391,9 @@ namespace Dragoneye.Game
         /// panel that lingers after a click reads as a click that did not land, and a second click
         /// on it would be a second answer.
         /// </summary>
-        void OnAnswerClicked()
+        void Send(IReadOnlyList<Element> answer)
         {
-            ClashCommands.Current?.Answer(m_Declined
-                ? System.Array.Empty<Element>()
-                : m_Staged);
-
+            ClashCommands.Current?.Answer(answer);
             Close();
         }
     }

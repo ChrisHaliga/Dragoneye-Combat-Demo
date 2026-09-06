@@ -543,11 +543,11 @@ namespace Dragoneye.Multiplayer
                 text += $"\n\n{modifiers}";
             }
 
-            var stops = ArmourRules.ReductionFor(spec.Armour) + spec.DamageReduction;
+            var guard = ArmourRules.PointsFor(spec.Armour) + spec.ArmourPoints;
 
-            if (stops > 0)
+            if (guard > 0)
             {
-                text += $"\nStops {stops} damage a blow";
+                text += $"\n{guard} armour, restored every turn";
             }
 
             var speed = ArmourRules.SpeedCostOf(spec.Armour);

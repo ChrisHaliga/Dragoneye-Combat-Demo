@@ -24,6 +24,11 @@ namespace Dragoneye.Game
             new NetworkVariable<byte>(PartyInfo.Unclaimed);
 
         readonly NetworkVariable<int> m_CurrentHp = new NetworkVariable<int>();
+
+        // The armour pool. Replicated because it is read on every card and every bar, and because
+        // a blow that the server absorbed and a client did not would put two different numbers on
+        // one creature.
+        readonly NetworkVariable<int> m_CurrentArmour = new NetworkVariable<int>();
         // Half-units, per DE-000. Replicated as the integer it is stored as, so no rounding happens
         // on the wire and a client cannot disagree with the host about whether a move is affordable.
         readonly NetworkVariable<int> m_CurrentApUnits = new NetworkVariable<int>();
@@ -121,6 +126,12 @@ namespace Dragoneye.Game
 
         public int MaxHp => Profile.MaxHealth;
 
+        /// <summary>What the armour pool refills to at the start of this creature's turn.</summary>
+        public int MaxArmour => Profile.Armour;
+
+        /// <summary>What is left of the armour pool right now.</summary>
+        public int CurrentArmour => m_CurrentArmour.Value;
+
         /// <summary>Authored in whole points; carried everywhere else in half-units.</summary>
         public Ap MaxAp => Profile.MaxAp;
 
@@ -182,6 +193,7 @@ namespace Dragoneye.Game
                 m_PartyId.Value = (byte)m_StartParty;
                 m_ControllerSlot.Value = m_StartControllerSlot;
                 m_CurrentHp.Value = profile.MaxHealth;
+                m_CurrentArmour.Value = profile.Armour;
                 m_CurrentApUnits.Value = profile.MaxAp.Units;
             }
 
@@ -189,6 +201,7 @@ namespace Dragoneye.Game
             m_PartyId.OnValueChanged += OnByteChanged;
             m_ControllerSlot.OnValueChanged += OnByteChanged;
             m_CurrentHp.OnValueChanged += OnIntChanged;
+            m_CurrentArmour.OnValueChanged += OnIntChanged;
             m_CurrentApUnits.OnValueChanged += OnIntChanged;
             m_BuildSlot.OnValueChanged += OnByteChanged;
             m_PremadeLevel.OnValueChanged += OnByteChanged;
@@ -216,6 +229,7 @@ namespace Dragoneye.Game
             m_PartyId.OnValueChanged -= OnByteChanged;
             m_ControllerSlot.OnValueChanged -= OnByteChanged;
             m_CurrentHp.OnValueChanged -= OnIntChanged;
+            m_CurrentArmour.OnValueChanged -= OnIntChanged;
             m_CurrentApUnits.OnValueChanged -= OnIntChanged;
             m_BuildSlot.OnValueChanged -= OnByteChanged;
             m_PremadeLevel.OnValueChanged -= OnByteChanged;
@@ -357,36 +371,53 @@ namespace Dragoneye.Game
         }
 
         /// <summary>
+        /// Server only. Restores the armour pool at the start of a turn.
+        ///
+        /// Every turn, in full. Armour is what a creature has between its own turns; a round spent
+        /// being hit by three enemies wears it down, and the next turn has it back. That is what
+        /// makes focus fire matter and a single poke not.
+        /// </summary>
+        public void ServerRefillArmour()
+        {
+            if (IsServer)
+            {
+                m_CurrentArmour.Value = MaxArmour;
+            }
+        }
+
+        /// <summary>
         /// Server only. Applies damage.
         /// </summary>
         /// <returns>True if this killed the creature, so the caller can clear it off the board.</returns>
-        public bool ServerApplyDamage(int damage, int reduction = 0)
+        public bool ServerApplyDamage(int damage)
         {
             if (!IsServer || !IsAlive)
             {
                 return false;
             }
 
-            // The reduction is applied here rather than by the caller so that what lands and what is
-            // announced cannot disagree: one subtraction, one number, told to everybody.
-            var landed = CombatRules.DamageAfter(damage, reduction);
+            // Armour first, health second, and both here rather than in the caller, so what lands
+            // and what is announced cannot disagree: one subtraction, one pair of numbers, told to
+            // everybody.
+            var through = CombatRules.Absorb(damage, m_CurrentArmour.Value, out var armourLeft);
+            var absorbed = m_CurrentArmour.Value - armourLeft;
 
-            m_CurrentHp.Value = CombatRules.Damaged(m_CurrentHp.Value, damage, reduction);
-            ShowDamageRpc(landed, damage, reduction);
+            m_CurrentArmour.Value = armourLeft;
+            m_CurrentHp.Value = CombatRules.Damaged(m_CurrentHp.Value, through);
+            ShowDamageRpc(through, absorbed);
 
             return !IsAlive;
         }
 
         /// <summary>
-        /// Tells every peer what this creature just took, and why it was not worse.
+        /// Tells every peer what this creature just took, and how much of it the armour held.
         ///
         /// The numbers cross the wire, not the sentence: each client words it for itself, so the
         /// rules never carry English and a translation later changes one file.
         /// </summary>
         [Rpc(SendTo.Everyone)]
-        void ShowDamageRpc(int landed, int raw, int reduction) =>
-            CombatNotices.Raise(TurnId, CombatNotices.Damage(landed, raw, reduction),
-                NoticeTone.Loss);
+        void ShowDamageRpc(int landed, int absorbed) =>
+            CombatNotices.Raise(TurnId, CombatNotices.Damage(landed, absorbed), NoticeTone.Loss);
 
         void OnIdChanged(ushort previous, ushort current)
         {

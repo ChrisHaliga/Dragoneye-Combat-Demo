@@ -213,6 +213,21 @@ namespace Dragoneye.Game
             track.Add(fill);
 
             body.Add(name);
+
+            // The silver bar, above the health it protects, and only where there is any.
+            if (creature.MaxArmour > 0)
+            {
+                var guard = new VisualElement();
+                guard.AddToClassList("armour-track");
+
+                var plate = new VisualElement();
+                plate.AddToClassList("armour-fill");
+                plate.style.width = Length.Percent(CreatureDisplay.ArmourFraction(creature) * 100f);
+                guard.Add(plate);
+
+                body.Add(guard);
+            }
+
             body.Add(track);
             return body;
         }

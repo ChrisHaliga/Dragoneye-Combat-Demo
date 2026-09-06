@@ -50,6 +50,27 @@ namespace Dragoneye.Combat
         }
 
         /// <summary>
+        /// Armour takes the hit first, and what it cannot hold goes through.
+        ///
+        /// A pool rather than a subtraction. Flat reduction had a wall in it: any blow smaller than
+        /// the reduction did nothing at all, forever, so a creature in plate could stand in front
+        /// of a dagger for the rest of the match. A pool is worn down by anything and back at the
+        /// start of the wearer's turn, which is the difference between being hard to hurt and
+        /// being impossible to.
+        /// </summary>
+        /// <returns>The damage that reached health.</returns>
+        public static int Absorb(int damage, int armour, out int armourAfter)
+        {
+            damage = damage < 0 ? 0 : damage;
+            armour = armour < 0 ? 0 : armour;
+
+            var held = damage < armour ? damage : armour;
+            armourAfter = armour - held;
+
+            return damage - held;
+        }
+
+        /// <summary>
         /// Health after taking a hit, floored at zero.
         ///
         /// Returned rather than applied, so the rule can be checked without a creature to mutate.

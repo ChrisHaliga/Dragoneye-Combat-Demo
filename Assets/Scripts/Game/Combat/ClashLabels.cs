@@ -75,20 +75,22 @@ namespace Dragoneye.Game
         /// <summary>Why a defender is being asked for two elements rather than one.</summary>
         public static string Describe(DefenceRequest request)
         {
-            const string stakes = "Win and you take nothing and keep it; tie and you take "
-                + "nothing and lose it; lose and you take the hit and lose it.";
+            const string stakes = "Win: the attack misses and your element comes back to you. "
+                + "Tie: it misses, but the element is spent. Lose: you take the hit and the "
+                + "element is spent.";
 
             if (request.Flanked && !request.Shielded)
             {
-                return "Struck from behind. Two elements, and the worse of them answers. " + stakes;
+                return "Struck from behind: you put up two elements and the worse one counts. "
+                    + stakes;
             }
 
             if (request.Shielded && !request.Flanked)
             {
-                return "Two elements, and the better of them answers. " + stakes;
+                return "You put up two elements and the better one counts. " + stakes;
             }
 
-            return "One element. " + stakes;
+            return "Pick the element you answer with. " + stakes;
         }
 
         /// <summary>The word shown where an action's cost would be, when position has changed it.</summary>

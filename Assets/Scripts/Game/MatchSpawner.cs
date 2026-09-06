@@ -37,8 +37,9 @@ namespace Dragoneye.Game
         [SerializeField, Tooltip("Unit spawned per roster entry. Must be in the NetworkPrefabsList.")]
         GameObject m_UnitPrefab;
 
-        [SerializeField, Min(0), Tooltip("Creatures dealt to each party when the draft is empty. "
-             + "A stand-in until the lobby draft UI exists; set to 0 to require a real draft.")]
+        [SerializeField, Min(0), Tooltip("Creatures dealt to each party that starts the match "
+             + "with nobody in it, so a host who skips the draft still gets a fight. Zero means an "
+             + "empty side stays empty.")]
         int m_SeedCreaturesPerParty = 3;
 
         NetworkSceneManager m_SceneManager;

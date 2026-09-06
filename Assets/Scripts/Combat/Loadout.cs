@@ -21,14 +21,17 @@ namespace Dragoneye.Combat
     /// </summary>
     public static class ArmourRules
     {
-        /// <summary>Damage a suit of this class takes off every blow that lands on its wearer.</summary>
-        public static int ReductionFor(ArmourClass armour)
+        /// <summary>
+        /// Armour a suit of this class gives its wearer: a pool above health, worn down by every
+        /// blow and back in full at the start of each of the wearer's turns.
+        /// </summary>
+        public static int PointsFor(ArmourClass armour)
         {
             switch (armour)
             {
-                case ArmourClass.Light: return 1;
-                case ArmourClass.Medium: return 2;
-                case ArmourClass.Heavy: return 4;
+                case ArmourClass.Light: return 3;
+                case ArmourClass.Medium: return 5;
+                case ArmourClass.Heavy: return 8;
                 default: return 0;
             }
         }
@@ -124,7 +127,7 @@ namespace Dragoneye.Combat
             Skills = skills ?? System.Array.Empty<SkillSpec>();
             Vitals = Vitals.From(attributes, level, armour,
                 species != null ? species.BaseAp : Vitals.DefaultBaseAp);
-            DamageReduction = ResolveReduction(armour, Items);
+            ArmourPoints = ResolveArmour(armour, Items);
             Advantage = ResolveAdvantage(Items);
         }
 
@@ -142,10 +145,10 @@ namespace Dragoneye.Combat
         }
 
         /// <summary>
-        /// Damage taken off every blow that lands: what the armour stops, plus anything else worn
-        /// that stops damage without being armour.
+        /// The armour pool: what the suit gives, plus anything else worn that guards without being
+        /// armour. Worn down by every blow that lands and restored at the start of each turn.
         /// </summary>
-        public int DamageReduction { get; }
+        public int ArmourPoints { get; }
 
         /// <summary>
         /// Whether anything worn gives this creature the better of two elements in a clash.
@@ -155,13 +158,13 @@ namespace Dragoneye.Combat
         /// </summary>
         public bool Advantage { get; }
 
-        static int ResolveReduction(ArmourClass armour, IReadOnlyList<EquipmentSpec> items)
+        static int ResolveArmour(ArmourClass armour, IReadOnlyList<EquipmentSpec> items)
         {
-            var total = ArmourRules.ReductionFor(armour);
+            var total = ArmourRules.PointsFor(armour);
 
             for (var i = 0; i < items.Count; i++)
             {
-                total += items[i].DamageReduction;
+                total += items[i].ArmourPoints;
             }
 
             return total;

@@ -59,6 +59,17 @@ namespace Dragoneye.Game
 
             m_List = document.Q<ScrollView>("combat-log-list");
             m_Panel = document.Q<VisualElement>("combat-log");
+
+            if (m_List != null)
+            {
+                // Said here rather than trusted to the markup. The list is a fixed-height frame
+                // with more in it than fits, and a scroller that only appears when the layout
+                // agrees it is needed has, in practice, not appeared.
+                m_List.mode = ScrollViewMode.Vertical;
+                m_List.verticalScrollerVisibility = ScrollerVisibility.AlwaysVisible;
+                m_List.horizontalScrollerVisibility = ScrollerVisibility.Hidden;
+                m_List.mouseWheelScrollSize = 28f;
+            }
             m_Panel?.AddToClassList("combat-log--empty");
 
             if (m_List == null)

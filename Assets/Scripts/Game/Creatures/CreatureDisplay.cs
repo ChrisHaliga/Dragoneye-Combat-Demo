@@ -46,6 +46,11 @@ namespace Dragoneye.Game
         public static float HealthFraction(CreatureState creature) =>
             creature.MaxHp <= 0 ? 0f : Mathf.Clamp01((float)creature.CurrentHp / creature.MaxHp);
 
+        public static float ArmourFraction(CreatureState creature) =>
+            creature.MaxArmour <= 0
+                ? 0f
+                : Mathf.Clamp01((float)creature.CurrentArmour / creature.MaxArmour);
+
         /// <summary>
         /// Draws a creature's face into an element, or its initial when there is no face to draw.
         ///

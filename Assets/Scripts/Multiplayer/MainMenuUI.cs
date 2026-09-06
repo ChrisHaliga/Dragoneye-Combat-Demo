@@ -365,8 +365,9 @@ namespace Dragoneye.Multiplayer
             hostBack.clicked += () => Show(MenuScreen.Multiplayer);
             joinBack.clicked += () => Show(MenuScreen.Multiplayer);
 
-            testMode.SetEnabled(false);
-            testMode.tooltip = "Not implemented yet.";
+            // Not yet a thing. Hidden rather than greyed: a disabled entry on a title screen
+            // is a feature being advertised as broken, and testers file it as one.
+            testMode.style.display = DisplayStyle.None;
 
             return true;
         }

@@ -122,5 +122,11 @@ namespace Dragoneye.Game
 
         /// <summary>Whether a creature stands on this hex.</summary>
         bool IsOccupied(Hex hex);
+
+        /// <summary>
+        /// The tile within this many steps that ends nearest the target, when the target itself
+        /// cannot be reached. False when nowhere is nearer than where the creature stands.
+        /// </summary>
+        bool TryClosest(Hex from, Hex target, int budget, out Hex tile);
     }
 }

@@ -119,7 +119,7 @@ namespace Dragoneye.Combat
     {
         public EquipmentSpec(int id, string name, EquipmentSlot slot, AttributeBlock modifiers,
             IReadOnlyList<int> skillIds = null, ArmourClass armour = ArmourClass.None,
-            string description = "", int damageReduction = 0, bool grantsAdvantage = false)
+            string description = "", int armourPoints = 0, bool grantsAdvantage = false)
         {
             Armour = armour;
             GrantsAdvantage = grantsAdvantage;
@@ -129,7 +129,7 @@ namespace Dragoneye.Combat
             Modifiers = modifiers;
             SkillIds = skillIds ?? System.Array.Empty<int>();
             Description = description ?? string.Empty;
-            DamageReduction = damageReduction < 0 ? 0 : damageReduction;
+            ArmourPoints = armourPoints < 0 ? 0 : armourPoints;
         }
 
         /// <summary>Stable, hand-assigned. Zero is reserved to mean "nothing equipped".</summary>
@@ -162,14 +162,10 @@ namespace Dragoneye.Combat
         public IReadOnlyList<int> SkillIds { get; }
 
         /// <summary>
-        /// Damage this item soaks on top of whatever its armour class soaks.
-        ///
-        /// For things that protect without being armour -- a shield, which is worn in the offhand so
-        /// that carrying one costs no speed. Armour itself leaves this at zero and takes its
-        /// reduction from its class, so the rule "medium armour stops two" lives in
-        /// <see cref="ArmourRules"/> and not in ten separate assets that could disagree.
+        /// Armour this gives on top of its class: a pool above health, for things that guard
+        /// without being armour. A shield.
         /// </summary>
-        public int DamageReduction { get; }
+        public int ArmourPoints { get; }
 
         public string Description { get; }
     }

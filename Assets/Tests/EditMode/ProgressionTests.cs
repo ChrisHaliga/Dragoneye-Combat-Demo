@@ -130,21 +130,21 @@ namespace Dragoneye.Hex.Tests
         // ---------- armour ----------
 
         [Test]
-        public void ArmourStopsDamageByItsClass()
+        public void ArmourIsAPoolByItsClass()
         {
-            Assert.AreEqual(0, ArmourRules.ReductionFor(ArmourClass.None));
-            Assert.AreEqual(1, ArmourRules.ReductionFor(ArmourClass.Light));
-            Assert.AreEqual(2, ArmourRules.ReductionFor(ArmourClass.Medium));
-            Assert.AreEqual(4, ArmourRules.ReductionFor(ArmourClass.Heavy));
+            Assert.AreEqual(0, ArmourRules.PointsFor(ArmourClass.None));
+            Assert.AreEqual(3, ArmourRules.PointsFor(ArmourClass.Light));
+            Assert.AreEqual(5, ArmourRules.PointsFor(ArmourClass.Medium));
+            Assert.AreEqual(8, ArmourRules.PointsFor(ArmourClass.Heavy));
         }
 
         [Test]
-        public void AShieldStopsThreeMoreAndCostsNoSpeed()
+        public void AShieldAddsThreeAndCostsNoSpeed()
         {
             var loadout = LoadoutResolver.Resolve(
                 new CharacterBuild { SpeciesId = 1, ClassId = 1, OffhandId = ShieldId }, Content());
 
-            Assert.AreEqual(3, loadout.DamageReduction);
+            Assert.AreEqual(3, loadout.ArmourPoints);
             Assert.AreEqual(ArmourClass.None, loadout.Armour, "an offhand is not armour");
         }
 
@@ -155,7 +155,7 @@ namespace Dragoneye.Hex.Tests
                 new CharacterBuild { SpeciesId = 1, ClassId = 1, ArmorId = PlateId, OffhandId = ShieldId },
                 Content());
 
-            Assert.AreEqual(4 + 3, loadout.DamageReduction);
+            Assert.AreEqual(8 + 3, loadout.ArmourPoints);
         }
 
         [Test]

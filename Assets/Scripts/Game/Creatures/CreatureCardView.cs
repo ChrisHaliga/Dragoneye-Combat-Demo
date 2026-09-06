@@ -32,6 +32,8 @@ namespace Dragoneye.Game
         Label m_Party;
         Label m_Controller;
         Label m_Hp;
+        Label m_Armour;
+        VisualElement m_ArmourRow;
         Label m_Ap;
         Label m_Speed;
         Label m_Description;
@@ -68,6 +70,8 @@ namespace Dragoneye.Game
             m_Party = root.Q<Label>("card-party");
             m_Controller = root.Q<Label>("card-controller");
             m_Hp = root.Q<Label>("card-hp");
+            m_Armour = root.Q<Label>("card-armour");
+            m_ArmourRow = root.Q<VisualElement>("card-armour-row");
             m_Ap = root.Q<Label>("card-ap");
             m_Speed = root.Q<Label>("card-speed");
             m_Description = root.Q<Label>("card-description");
@@ -200,6 +204,13 @@ namespace Dragoneye.Game
 
             m_Controller.EnableInClassList("is-hidden", creature.IsComputerControlled);
             m_Hp.text = $"{creature.CurrentHp} / {creature.MaxHp}";
+
+            // Only for creatures that have any. A row reading "0 / 0" is a row that says nothing.
+            if (m_Armour != null && m_ArmourRow != null)
+            {
+                m_Armour.text = $"{creature.CurrentArmour} / {creature.MaxArmour}";
+                m_ArmourRow.EnableInClassList("is-hidden", creature.MaxArmour <= 0);
+            }
             m_Ap.text = $"{creature.CurrentAp} / {creature.MaxAp}";
             m_Speed.text = creature.Speed.ToString();
             m_Description.text = definition != null ? definition.Description : string.Empty;
@@ -277,17 +288,13 @@ namespace Dragoneye.Game
             name.AddToClassList("card-skill__name");
             row.Add(name);
 
-            var cost = new Label(skill.ElementCost > 0
-                ? $"{skill.ElementCost} {ElementInfo.ShortNameOf(skill.Element)}  {skill.ApCost} AP"
-                : $"{skill.ApCost} AP");
+            // The element in its own colour and the points in a grey that no element uses, with a
+            // dot between them. Both halves used to be the element's colour, which for a Geo or an
+            // Aero skill put two gold-ish numbers side by side and nothing to tell them apart.
+            var cost = new Label(CombatLogLines.Cost(skill).Replace(", ",
+                CombatLogLines.Tint("#8B93A5", " \u00b7 ")));
 
             cost.AddToClassList("card-skill__cost");
-
-            if (skill.ElementCost > 0)
-            {
-                cost.style.color = ElementPalette.ForElement(skill.Element);
-            }
-
             row.Add(cost);
 
             row.tooltip = string.IsNullOrEmpty(skill.Description)
