@@ -393,6 +393,25 @@ namespace Dragoneye.Game
                 actor.ServerFace(ThreatGeometry.Bearing(actor.Cell, target));
             }
 
+            // A shot rolls before anybody answers it. The element is committed already -- the
+            // arrow has left the bow -- so a miss spends it and shows it, and the defender is
+            // never asked about an attack that did not arrive.
+            if (skill.RollsToHit && IsContested(skill, actor, occupant))
+            {
+                var distance = Hex.Distance(actor.Cell, target);
+                var cover = LineOfFire.CoverCount(actor.Cell, target, m_Units);
+                var chance = SkillRules.HitChance(skill, distance, cover);
+
+                if (!SkillRules.Hits(skill, distance, cover, Random.value))
+                {
+                    pool.ServerAnnounceCommitted();
+                    commands.ServerRecordUse(skill.Id);
+                    CombatAnnouncer.Current?.ServerMissed(actor.TurnId, skill.Id, occupant.TurnId,
+                        chance);
+                    return true;
+                }
+            }
+
             if (IsContested(skill, actor, occupant))
             {
                 m_Clashes.Begin(actor, skill, occupant);

@@ -43,6 +43,37 @@ namespace Dragoneye.Combat
     }
 
     /// <summary>An effect and how much of it.</summary>
+    /// <summary>
+    /// How a skill rolls to hit, where it rolls at all.
+    ///
+    /// Accuracy is the chance at one tile; every tile past that takes the falloff off it. A skill
+    /// with no accuracy authored does not roll -- it is a swing, and swings land -- which keeps
+    /// every melee skill exactly as it was. Skill, the attribute, is added at the edge when a
+    /// fighter picks the skill up, the same way Strength is added to a swing.
+    /// </summary>
+    public readonly struct Aim
+    {
+        /// <summary>Never rolls.</summary>
+        public static readonly Aim Sure = default;
+
+        /// <summary>Percent chance to hit at one tile. Zero means it does not roll.</summary>
+        public readonly int Accuracy;
+
+        /// <summary>Percent taken off for every tile past the first.</summary>
+        public readonly int Falloff;
+
+        public Aim(int accuracy, int falloff)
+        {
+            Accuracy = accuracy < 0 ? 0 : accuracy;
+            Falloff = falloff < 0 ? 0 : falloff;
+        }
+
+        public bool Rolls => Accuracy > 0;
+
+        /// <summary>The same aim with a bonus folded into the accuracy. Nothing, for a swing.</summary>
+        public Aim Plus(int bonus) => Rolls ? new Aim(Accuracy + bonus, Falloff) : this;
+    }
+
     public readonly struct SkillEffect
     {
         public readonly SkillEffectKind Kind;
@@ -123,8 +154,9 @@ namespace Dragoneye.Combat
             int range, SkillTarget target, SkillEffect effect, string description = "",
             int levelRequired = Progression.FirstLevel,
             IReadOnlyList<SkillCondition> conditions = null,
-            IReadOnlyList<Element> elementOptions = null)
+            IReadOnlyList<Element> elementOptions = null, Aim aim = default)
         {
+            Aim = aim;
             Conditions = conditions ?? System.Array.Empty<SkillCondition>();
             ElementOptions = ResolveOptions(element, elementOptions);
             LevelRequired = levelRequired < Progression.FirstLevel
@@ -186,6 +218,12 @@ namespace Dragoneye.Combat
 
         public SkillEffect Effect { get; }
 
+        /// <summary>How this rolls to hit. <see cref="Aim.Sure"/> for a swing.</summary>
+        public Aim Aim { get; }
+
+        /// <summary>Whether using this on somebody rolls before they get to answer.</summary>
+        public bool RollsToHit => Aim.Rolls;
+
         public string Description { get; }
 
         /// <summary>
@@ -228,7 +266,7 @@ namespace Dragoneye.Combat
             element == Element && !ChoosesElement
                 ? this
                 : new SkillSpec(Id, Name, element, ApCost, ElementCost, Range, Target, Effect,
-                    Description, LevelRequired, Conditions, new[] { element });
+                    Description, LevelRequired, Conditions, new[] { element }, Aim);
 
         /// <summary>
         /// The same skill with a fighter's attributes folded into its effect.
@@ -238,10 +276,10 @@ namespace Dragoneye.Combat
         /// the clash, the log -- sees the number and nothing else.
         /// </summary>
         public SkillSpec Scaled(AttributeBlock attributes) =>
-            Effect.Scales
+            Effect.Scales || Aim.Rolls
                 ? new SkillSpec(Id, Name, Element, ApCost, ElementCost, Range, Target,
                     Effect.Resolved(attributes), Description, LevelRequired, Conditions,
-                    ElementOptions)
+                    ElementOptions, Aim.Plus(attributes.Skill * SkillRules.AccuracyPerSkill))
                 : this;
 
         /// <summary>Whether this element is one the skill may be made of.</summary>

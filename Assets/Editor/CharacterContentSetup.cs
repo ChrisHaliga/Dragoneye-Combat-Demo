@@ -66,11 +66,12 @@ namespace Dragoneye.MultiplayerEditor
                 SkillTarget.Self, SkillEffectKind.ReturnElement, 1,
                 "Recover the element you spent longest ago. A point for a breath.");
 
-            // The self-directed ones are the point of the rest of the set. Without something worth
-            // spending a turn on that is not an attack, every turn is the same turn.
-            // Weapon skills scale: the number here is the base, and the fighter's Strength or
-            // Dexterity is added on top. Heavy things scale with Strength, quick ones with
-            // Dexterity, so a bow in a strongman's hands is still a bow.
+            // ---------- weapon skills ----------
+            //
+            // These scale: the number is the base, and the fighter's Strength or Dexterity is
+            // added on top. Heavy things scale with Strength, quick ones with Dexterity, so a bow
+            // in a strongman's hands is still a bow. Anything with reach past a tile rolls to hit,
+            // with a chance that falls with distance -- see the accuracy and falloff on each.
             var strike = Skill(100, "Strike", Element.Pyro, ap: 1, elementCost: 1, range: 1,
                 SkillTarget.Creature, SkillEffectKind.Damage, 4,
                 "A committed swing. Cheap, and it asks its question in Pyro.",
@@ -81,15 +82,16 @@ namespace Dragoneye.MultiplayerEditor
                 scaling: Attribute.Strength);
             var loose = Skill(102, "Loose", Element.Aero, ap: 1, elementCost: 1, range: 4,
                 SkillTarget.Creature, SkillEffectKind.Damage, 3,
-                "From wherever you are standing, which is the whole idea.",
-                scaling: Attribute.Dexterity);
+                "An arrow, from wherever you are standing. Surer the closer they are.",
+                scaling: Attribute.Dexterity, accuracy: 90, falloff: 8);
             var jab = Skill(103, "Jab", Element.Aero, ap: 1, elementCost: 1, range: 1,
                 SkillTarget.Creature, SkillEffectKind.Damage, 2,
                 "Quick, and it asks its question in Aero. What you throw when Aero is what you "
                 + "are holding.", scaling: Attribute.Dexterity);
-            var ember = Skill(104, "Ember", Element.Pyro, ap: 2, elementCost: 2, range: 3,
-                SkillTarget.Creature, SkillEffectKind.Damage, 9,
-                "Reaches, and it is expensive in exactly the element it is made of.", level: 2);
+            var ember = Skill(104, "Ember", Element.Pyro, ap: 1, elementCost: 1, range: 2,
+                SkillTarget.Creature, SkillEffectKind.Damage, 4,
+                "A coal flicked off the end of the staff. Reaches, a little.",
+                accuracy: 95, falloff: 10);
             var smite = Skill(105, "Smite", Element.Lux, ap: 2, elementCost: 1, range: 2,
                 SkillTarget.Creature, SkillEffectKind.Damage, 8,
                 "Light, at a distance, for a price only the devout tend to be holding.", level: 2);
@@ -97,6 +99,7 @@ namespace Dragoneye.MultiplayerEditor
                 SkillTarget.Creature, SkillEffectKind.Damage, 7,
                 "Nyx answers questions nobody wanted asked.", level: 2);
 
+            // ---------- what everybody can learn ----------
             var recover = Skill(110, "Recover", Element.Hydro, ap: 1, elementCost: 1, range: 0,
                 SkillTarget.Self, SkillEffectKind.Heal, 6,
                 "Spend a turn staying alive. Hydro, so it competes with nothing you attack with.");
@@ -105,10 +108,91 @@ namespace Dragoneye.MultiplayerEditor
                 "Trade a point now for two later. Only worth it if you have somewhere to spend them.");
             var focus = Skill(112, "Focus", Element.Arcana, ap: 2, elementCost: 0, range: 0,
                 SkillTarget.Self, SkillEffectKind.ReturnElement, 2,
-                "A longer breath. Two elements back, at twice the price of one.", level: 3);
+                "A longer breath. Two elements back, at twice the price of one.", level: 4);
+
+            // ---------- class skills, one at each of levels two, four and six ----------
+            //
+            // The weapon is what a character does at level one. The class is what it grows into,
+            // and each of the seven grows in its own direction: the Guardian towards staying up,
+            // the Rogue towards the one big hit, the Hunter towards the long shot.
+            var holdTheLine = Skill(150, "Hold the Line", Element.Hydro, ap: 1, elementCost: 1,
+                range: 0, SkillTarget.Self, SkillEffectKind.Heal, 3,
+                "Set your feet and take a breath. Heals with your Toughness.", level: 2,
+                scaling: Attribute.Toughness);
+            var shieldBash = Skill(151, "Shield Bash", Element.Geo, ap: 2, elementCost: 1, range: 1,
+                SkillTarget.Creature, SkillEffectKind.Damage, 5,
+                "The rim, not the face. Geo, because it is mostly weight.", level: 4,
+                scaling: Attribute.Strength);
+            var rally = Skill(152, "Rally", Element.Lux, ap: 2, elementCost: 1, range: 0,
+                SkillTarget.Self, SkillEffectKind.RestoreAp, 4,
+                "Two points spent, four back. A second wind that costs Lux to catch.", level: 6);
+
+            var backstab = Skill(160, "Backstab", Element.Nyx, ap: 1, elementCost: 1, range: 1,
+                SkillTarget.Creature, SkillEffectKind.Damage, 5,
+                "Somewhere they were not covering. Nyx, and quick.", level: 2,
+                scaling: Attribute.Dexterity);
+            var slipAway = Skill(161, "Slip Away", Element.Aero, ap: 1, elementCost: 1, range: 0,
+                SkillTarget.Self, SkillEffectKind.ReturnElement, 2,
+                "Gone for a moment, and back with two of what you spent.", level: 4);
+            var assassinate = Skill(162, "Assassinate", Element.Nyx, ap: 2, elementCost: 2, range: 1,
+                SkillTarget.Creature, SkillEffectKind.Damage, 9,
+                "The one that was planned. Two Nyx, and it is usually over.", level: 6,
+                scaling: Attribute.Dexterity);
+
+            var heavyBlow = Skill(170, "Heavy Blow", Element.Geo, ap: 2, elementCost: 1, range: 1,
+                SkillTarget.Creature, SkillEffectKind.Damage, 6,
+                "Both hands, all the way through.", level: 2, scaling: Attribute.Strength);
+            var secondWind = Skill(171, "Second Wind", Element.Hydro, ap: 1, elementCost: 1,
+                range: 0, SkillTarget.Self, SkillEffectKind.Heal, 4,
+                "Shake it off. Heals with your Toughness.", level: 4,
+                scaling: Attribute.Toughness);
+            var whirlwind = Skill(172, "Whirlwind", Element.Pyro, ap: 2, elementCost: 2, range: 1,
+                SkillTarget.Creature, SkillEffectKind.Damage, 8,
+                "Everything you have, in one turn of the body.", level: 6,
+                scaling: Attribute.Strength);
+
+            var snapShot = Skill(130, "Snap Shot", Element.Aero, ap: 1, elementCost: 1, range: 3,
+                SkillTarget.Creature, SkillEffectKind.Damage, 2,
+                "Loosed before it was aimed. Cheap, and sure up close.", level: 2,
+                scaling: Attribute.Dexterity, accuracy: 95, falloff: 6);
+            var aimedShot = Skill(131, "Aimed Shot", Element.Aero, ap: 2, elementCost: 1, range: 5,
+                SkillTarget.Creature, SkillEffectKind.Damage, 5,
+                "A breath held, and the arrow goes where it was looked at.", level: 4,
+                scaling: Attribute.Dexterity, accuracy: 100, falloff: 4);
+            var piercingShot = Skill(132, "Piercing Shot", Element.Geo, ap: 2, elementCost: 2,
+                range: 4, SkillTarget.Creature, SkillEffectKind.Damage, 8,
+                "A heavy shaft. Geo, because it arrives like a thrown stone.", level: 6,
+                scaling: Attribute.Dexterity, accuracy: 90, falloff: 8);
+
+            var sanctuary = Skill(180, "Sanctuary", Element.Lux, ap: 2, elementCost: 1, range: 0,
+                SkillTarget.Self, SkillEffectKind.Heal, 6,
+                "A moment nothing reaches into. Heals with your Willpower.", level: 4,
+                scaling: Attribute.Willpower);
+            var judgement = Skill(181, "Judgement", Element.Lux, ap: 2, elementCost: 2, range: 3,
+                SkillTarget.Creature, SkillEffectKind.Damage, 10,
+                "Light, from further than they expected. Two Lux.", level: 6,
+                accuracy: 90, falloff: 6);
+
+            var hex = Skill(190, "Hex", Element.Nyx, ap: 2, elementCost: 1, range: 3,
+                SkillTarget.Creature, SkillEffectKind.Damage, 6,
+                "A word, and it reaches them. Nyx, at range.", level: 4,
+                accuracy: 90, falloff: 10);
+            var oblivion = Skill(191, "Oblivion", Element.Nyx, ap: 3, elementCost: 2, range: 2,
+                SkillTarget.Creature, SkillEffectKind.Damage, 12,
+                "Everything the Apostate learned, and everything they gave up.", level: 6);
+
+            var fireball = Skill(140, "Fireball", Element.Pyro, ap: 2, elementCost: 2, range: 3,
+                SkillTarget.Creature, SkillEffectKind.Damage, 9,
+                "The reason the staff is held at arm's length. Two Pyro, thrown.", level: 2,
+                accuracy: 85, falloff: 10);
+            var storm = Skill(141, "Storm", Element.Aero, ap: 3, elementCost: 2, range: 3,
+                SkillTarget.Creature, SkillEffectKind.Damage, 11,
+                "The air itself, and all of it at once.", level: 6,
+                accuracy: 85, falloff: 8);
 
             // Ids are hand-assigned and permanent: they are written into saved characters and cross
             // the network. Grouped by kind so a new weapon is obviously an 1x.
+            //
             // A weapon is its skills and nothing else. It used to nudge an attribute as well,
             // and every weapon in the list was two things to compare instead of one.
             var sword = Equipment(10, "Sword", EquipmentSlot.Weapon,
@@ -160,8 +244,9 @@ namespace Dragoneye.MultiplayerEditor
 
             var species = new List<SpeciesDefinition>
             {
-                // Four action points each. The field exists so that something quick or something
-                // ponderous does not need a rule of its own; nothing authored today differs yet.
+                // Each baseline is a nudge, not a build: one attribute up and one down, so a
+                // species reads as a leaning rather than a decision the player did not make.
+                // Humans lean nowhere, which is their whole thing.
                 Species(1, "Human", Attr(),
                     "Adaptable, and the only species with nothing to apologise for.", 4,
                     breath, fists),
@@ -175,24 +260,25 @@ namespace Dragoneye.MultiplayerEditor
 
             // The seven. Baselines are deliberately flat: a class is what it may carry and what it
             // knows, and giving each one a stat bonus as well would decide the point buy for the
-            // player before they had spent anything.
+            // player before they had spent anything. Each knows one thing at level one and grows
+            // one skill at each of levels two, four and six.
             var classes = new List<ClassAsset>
             {
                 Class(1, "Guardian", "Stands where the line would otherwise break.",
-                    new[] { sword, mace }, new[] { recover }),
+                    new[] { sword, mace }, new[] { recover, holdTheLine, shieldBash, rally }),
                 Class(2, "Rogue", "Picks the moment, and is elsewhere by the time it lands.",
-                    new[] { dagger, bow }, new[] { meditate }),
+                    new[] { dagger, bow }, new[] { meditate, backstab, slipAway, assassinate }),
                 Class(3, "Fighter", "No tricks. Enough of that becomes its own trick.",
-                    new[] { sword, greataxe }, new[] { meditate }),
+                    new[] { sword, greataxe }, new[] { meditate, heavyBlow, secondWind, whirlwind }),
                 Class(4, "Hunter", "Decides the range the fight happens at.",
-                    new[] { bow, dagger }, new[] { meditate }),
+                    new[] { bow, dagger }, new[] { meditate, snapShot, aimedShot, piercingShot }),
                 Class(5, "Priest", "Keeps others standing, and answers in Lux when it must.",
-                    new[] { mace, staff }, new[] { recover, smite }),
+                    new[] { mace, staff }, new[] { recover, smite, sanctuary, judgement }),
                 Class(6, "Apostate", "Trained devout, and no longer.",
-                    new[] { staff, dagger }, new[] { drain, recover }),
+                    new[] { staff, dagger }, new[] { recover, drain, hex, oblivion }),
                 Class(7, "Elementalist",
                     "Deepest reserves on the field. What it does with them is up to the pool.",
-                    new[] { staff }, new[] { focus, ember })
+                    new[] { staff }, new[] { fireball, focus, storm })
             };
 
             var equipment = new List<EquipmentAsset>
@@ -202,85 +288,144 @@ namespace Dragoneye.MultiplayerEditor
 
             var skills = new List<SkillAsset>
             {
-                breath, strike, cleave, loose, jab, ember, smite, drain, recover, meditate, focus
+                breath, strike, cleave, loose, jab, ember, smite, drain, recover, meditate, focus,
+                holdTheLine, shieldBash, rally, backstab, slipAway, assassinate,
+                heavyBlow, secondWind, whirlwind, snapShot, aimedShot, piercingShot,
+                sanctuary, judgement, hex, oblivion, fireball, storm
             };
 
-            // The premades were authored before skills existed, back when every creature had a
-            // generic attack. They have carried empty skill lists and empty pools ever since, which
-            // is why they walked up to a hero and stood there: the only thing they knew was Take a
-            // Breath, and with nothing spent there was nothing to take back.
-            Creatures(strike, cleave, loose, jab, smite, recover, breath);
+            Creatures(new PremadeKit(strike, cleave, loose, jab, smite, recover, heavyBlow,
+                backstab, snapShot, holdTheLine));
 
             return Catalog(species, classes, equipment, skills);
         }
 
-        /// <summary>
-        /// Gives the premade creatures something to do, and a pool to do it with.
-        ///
-        /// Only the four fields that make a creature act are written -- level, pool, skills and what
-        /// it buys as it levels. Health, speed, species and class stay as they were authored, so
-        /// re-running this does not quietly undo somebody's tuning.
-        ///
-        /// Pools cost exactly the creature's budget, the same one a player spends -- three, plus a
-        /// point a level. Levels are what the creature reads as: a recruit is a level one, a
-        /// sergeant is a level three, and the host can move either on the board.
-        ///
-        /// Every one of them is authored as a spread rather than a stack of one element, because a
-        /// pool is now what a creature answers an attack with as well as what it attacks from. A
-        /// creature holding only Aero has exactly one answer to everything, which is not a decision.
-        /// </summary>
-        static void Creatures(SkillAsset strike, SkillAsset cleave, SkillAsset loose, SkillAsset jab,
-            SkillAsset smite, SkillAsset recover, SkillAsset breath)
+        /// <summary>The skills the premades are authored from, by name, so a line reads.</summary>
+        readonly struct PremadeKit
         {
-            // Rank and file: two of what they attack with, and a couple of answers.
-            Creature("guard-recruit", 1, Pool(pyro: 2, geo: 1, hydro: 1), Element.Pyro,
-                strike, cleave);
-            Creature("monster-goblin", 1, Pool(aero: 2, geo: 1, pyro: 1), Element.Aero, jab, cleave);
+            public readonly SkillAsset Strike, Cleave, Loose, Jab, Smite, Recover, HeavyBlow,
+                Backstab, SnapShot, HoldTheLine;
 
-            // All teeth and nothing held back: three jabs and one answer.
-            Creature("monster-wolf", 1, Pool(aero: 3, pyro: 1), Element.Aero, jab);
-
-            // Skirmishers: reach, and enough pool to use it three times.
-            Creature("bandit-scout", 2, Pool(aero: 3, hydro: 1, geo: 1), Element.Aero, loose);
-            Creature("guard-archer", 2, Pool(aero: 3, pyro: 1, geo: 1), Element.Aero, loose);
-            Creature("hero-ranger", 2, Pool(aero: 3, hydro: 1, geo: 1), Element.Aero, loose, jab);
-
-            // Two points of the five go on one Nyx, which answers anything common and nothing else.
-            Creature("bandit-cutpurse", 2, Pool(aero: 3, nyx: 1), Element.Aero, jab, loose);
-
-            // The heavies. Cleave wants level three, so this is the first rank that has it.
-            Creature("bandit-brute", 3, Pool(geo: 2, pyro: 2, hydro: 2), Element.Geo, strike, cleave);
-            Creature("guard-sergeant", 3, Pool(pyro: 3, geo: 2, hydro: 1), Element.Pyro,
-                strike, cleave);
-            Creature("monster-ogre", 3, Pool(geo: 3, pyro: 2, aero: 1), Element.Geo, strike, cleave);
-            Creature("hero-knight", 3, Pool(pyro: 2, geo: 2, hydro: 2), Element.Pyro,
-                strike, cleave, recover);
-
-            // Two Lux is four of the six. Smite twice, and answer anything common with what is left.
-            Creature("hero-cleric", 3, Pool(lux: 2, hydro: 2), Element.Lux, smite, recover);
+            public PremadeKit(SkillAsset strike, SkillAsset cleave, SkillAsset loose, SkillAsset jab,
+                SkillAsset smite, SkillAsset recover, SkillAsset heavyBlow, SkillAsset backstab,
+                SkillAsset snapShot, SkillAsset holdTheLine)
+            {
+                Strike = strike;
+                Cleave = cleave;
+                Loose = loose;
+                Jab = jab;
+                Smite = smite;
+                Recover = recover;
+                HeavyBlow = heavyBlow;
+                Backstab = backstab;
+                SnapShot = snapShot;
+                HoldTheLine = holdTheLine;
+            }
         }
 
+        const string k_PortraitFolder = "Assets/Art/Portraits";
+
         /// <summary>
-        /// Writes the four fields that decide what a creature does.
+        /// Authors the twelve premade creatures in full: portrait, level, the four stats, the pool
+        /// and the skills.
         ///
-        /// Take a Breath is not in these lists: every species already grants it, and authoring it
-        /// again here would be the same skill from two sources pretending to be two skills.
+        /// Stats follow the same shape a built character's would -- a base speed of eight, less
+        /// what the armour costs, and a pool that costs exactly the creature's budget -- so a
+        /// premade and a character of the same level stand on the same footing. Speeds are on the
+        /// new scale, where a tile costs by speed: eight is half a point a tile, five is a whole
+        /// one, and the ogre at five is a creature that arrives late and stays.
+        ///
+        /// Every pool is a spread rather than a stack of one element, because a pool is what a
+        /// creature answers an attack with as well as what it attacks from. A creature holding
+        /// only Aero has exactly one answer to everything, which is not a decision.
+        ///
+        /// Portraits come from the art already in the project. There are four human faces for
+        /// eight human premades, so some share one; the alternative was a lettered tile.
         /// </summary>
-        static void Creature(string id, int level, ElementValues pool, Element buys,
-            params SkillAsset[] skills)
+        static void Creatures(PremadeKit kit)
+        {
+            // Rank and file. Padded, a little slow, one swing and an answer or two.
+            Creature("guard-recruit", "Human/Finn", level: 1, hp: 14, ap: 4, speed: 6, armour: 4,
+                shielded: false, Pool(pyro: 2, geo: 1, hydro: 1), Element.Pyro,
+                kit.Strike, kit.HeavyBlow);
+
+            // Small and quick: three answers in Aero and a shiv from the species.
+            Creature("monster-goblin", "Goblinoid/Brawler", level: 1, hp: 10, ap: 5, speed: 10,
+                armour: 0, shielded: false, Pool(aero: 2, geo: 1, pyro: 1), Element.Aero, kit.Jab);
+
+            // All teeth and nothing held back. The fastest thing on the board.
+            Creature("monster-wolf", "Beast/Direwolf", level: 1, hp: 14, ap: 6, speed: 12,
+                armour: 0, shielded: false, Pool(aero: 3, pyro: 1), Element.Aero, kit.Jab);
+
+            // Skirmishers: reach, a snap shot for close work, and enough Aero to use both.
+            Creature("bandit-scout", "Human/henry-jester", level: 2, hp: 15, ap: 5, speed: 9,
+                armour: 0, shielded: false, Pool(aero: 3, hydro: 1, geo: 1), Element.Aero,
+                kit.Loose, kit.SnapShot);
+            Creature("guard-archer", "Human/Finn", level: 2, hp: 15, ap: 5, speed: 8,
+                armour: 0, shielded: false, Pool(aero: 3, pyro: 1, geo: 1), Element.Aero,
+                kit.Loose, kit.SnapShot);
+            Creature("hero-ranger", "Human/henry-jester", level: 3, hp: 18, ap: 5, speed: 9,
+                armour: 0, shielded: false, Pool(aero: 3, hydro: 2, geo: 1), Element.Aero,
+                kit.Loose, kit.Jab, kit.SnapShot);
+
+            // Two points of the five go on one Nyx, which answers anything common and nothing else.
+            Creature("bandit-cutpurse", "Human/Finn", level: 2, hp: 14, ap: 6, speed: 10,
+                armour: 0, shielded: false, Pool(aero: 3, nyx: 1), Element.Aero,
+                kit.Jab, kit.Backstab);
+
+            // The heavies. Cleave wants level three, so this is the first rank that has it.
+            Creature("bandit-brute", "Giantkin/Barbarian", level: 3, hp: 26, ap: 4, speed: 6,
+                armour: 4, shielded: false, Pool(geo: 2, pyro: 2, hydro: 2), Element.Geo,
+                kit.Strike, kit.Cleave, kit.HeavyBlow);
+            Creature("guard-sergeant", "Giantkin/Crusader", level: 3, hp: 24, ap: 5, speed: 5,
+                armour: 8, shielded: false, Pool(pyro: 3, geo: 2, hydro: 1), Element.Pyro,
+                kit.Strike, kit.Cleave, kit.HoldTheLine);
+            Creature("monster-ogre", "Goblinoid/Ogre", level: 3, hp: 34, ap: 4, speed: 5,
+                armour: 6, shielded: false, Pool(geo: 3, pyro: 2, aero: 1), Element.Geo,
+                kit.Strike, kit.Cleave);
+
+            // Plate and a shield: sixteen and four, and a speed of four for it. Arrives last and
+            // takes a while to put down.
+            Creature("hero-knight", "Human/Knight", level: 3, hp: 24, ap: 4, speed: 4, armour: 20,
+                shielded: true, Pool(pyro: 2, geo: 2, hydro: 2), Element.Pyro,
+                kit.Strike, kit.HeavyBlow, kit.Recover);
+
+            // Two Lux is four of the six. Smite twice, and answer anything common with what is left.
+            Creature("hero-cleric", "Human/Scholar", level: 3, hp: 20, ap: 5, speed: 6, armour: 4,
+                shielded: false, Pool(lux: 2, hydro: 2), Element.Lux, kit.Smite, kit.Recover);
+
+            CreatureCatalogAll();
+        }
+
+        /// <summary>Writes a premade in full. Species and class references stay as authored.</summary>
+        static void Creature(string id, string portrait, int level, int hp, int ap, int speed,
+            int armour, bool shielded, ElementValues pool, Element buys, params SkillAsset[] skills)
         {
             var path = $"{k_SpeciesFolder}/{id}.asset";
             var asset = AssetDatabase.LoadAssetAtPath<CreatureDefinition>(path);
 
             if (asset == null)
             {
-                Debug.LogWarning($"No creature at {path}; it was not given skills.");
+                Debug.LogWarning($"No creature at {path}; it was not authored.");
                 return;
             }
 
             var serialized = new SerializedObject(asset);
 
+            var sprite = AssetDatabase.LoadAssetAtPath<Sprite>($"{k_PortraitFolder}/{portrait}.jpg");
+
+            if (sprite == null)
+            {
+                Debug.LogWarning($"No portrait at {k_PortraitFolder}/{portrait}.jpg for {id}.");
+            }
+
+            serialized.FindProperty("m_Portrait").objectReferenceValue = sprite;
             serialized.FindProperty("m_Level").intValue = level;
+            serialized.FindProperty("m_MaxHp").intValue = hp;
+            serialized.FindProperty("m_MaxAp").intValue = ap;
+            serialized.FindProperty("m_Speed").intValue = speed;
+            serialized.FindProperty("m_Armour").intValue = armour;
+            serialized.FindProperty("m_Shielded").boolValue = shielded;
             WriteElements(serialized.FindProperty("m_StartingPool"), pool);
             WriteList(serialized.FindProperty("m_Skills"), skills);
 
@@ -299,6 +444,45 @@ namespace Dragoneye.MultiplayerEditor
 
             serialized.ApplyModifiedPropertiesWithoutUndo();
             EditorUtility.SetDirty(asset);
+        }
+
+        /// <summary>
+        /// Every premade in the catalog, so the roster offers all twelve.
+        ///
+        /// The catalog on disk listed nine. Three were authored after it and never added, which is
+        /// the kind of thing that happens when a list is maintained by hand; it is written from
+        /// the folder now.
+        /// </summary>
+        static void CreatureCatalogAll()
+        {
+            var catalog = AssetDatabase.LoadAssetAtPath<CreatureCatalog>(
+                $"{k_SpeciesFolder}/CreatureCatalog.asset");
+
+            if (catalog == null)
+            {
+                return;
+            }
+
+            var creatures = new List<CreatureDefinition>();
+
+            foreach (var guid in AssetDatabase.FindAssets("t:CreatureDefinition",
+                         new[] { k_SpeciesFolder }))
+            {
+                var definition = AssetDatabase.LoadAssetAtPath<CreatureDefinition>(
+                    AssetDatabase.GUIDToAssetPath(guid));
+
+                if (definition != null)
+                {
+                    creatures.Add(definition);
+                }
+            }
+
+            creatures.Sort((a, b) => string.CompareOrdinal(a.Id, b.Id));
+
+            var serialized = new SerializedObject(catalog);
+            WriteList(serialized.FindProperty("m_Creatures"), creatures);
+            serialized.ApplyModifiedPropertiesWithoutUndo();
+            EditorUtility.SetDirty(catalog);
         }
 
         /// <summary>An element spread by name, for the same reason <see cref="Attr"/> exists.</summary>
@@ -412,7 +596,8 @@ namespace Dragoneye.MultiplayerEditor
         static SkillAsset Skill(int id, string name, Element element, int ap, int elementCost,
             int range, SkillTarget target, SkillEffectKind effect, int amount, string description,
             int level = 1, IReadOnlyList<SkillCondition> conditions = null,
-            IReadOnlyList<Element> options = null, Attribute? scaling = null)
+            IReadOnlyList<Element> options = null, Attribute? scaling = null,
+            int accuracy = 0, int falloff = 0)
         {
             var asset = Upsert<SkillAsset>($"{k_Folder}/Skill{Sanitise(name)}.asset");
             var serialized = new SerializedObject(asset);
@@ -430,6 +615,8 @@ namespace Dragoneye.MultiplayerEditor
             serialized.FindProperty("m_Scales").boolValue = scaling.HasValue;
             serialized.FindProperty("m_ScalesWith").intValue =
                 (int)(scaling ?? Attribute.Strength);
+            serialized.FindProperty("m_Accuracy").intValue = accuracy;
+            serialized.FindProperty("m_Falloff").intValue = falloff;
             serialized.FindProperty("m_LevelRequired").intValue = level;
 
             WriteConditions(serialized.FindProperty("m_Conditions"), conditions);

@@ -90,6 +90,7 @@ namespace Dragoneye.Game
             CombatAnnouncer.Acted += OnActed;
             CombatAnnouncer.Fell += OnFell;
             CombatAnnouncer.HeldBack += OnHeldBack;
+            CombatAnnouncer.Missed += OnMissed;
         }
 
         void OnDestroy()
@@ -103,6 +104,7 @@ namespace Dragoneye.Game
             CombatAnnouncer.Acted -= OnActed;
             CombatAnnouncer.Fell -= OnFell;
             CombatAnnouncer.HeldBack -= OnHeldBack;
+            CombatAnnouncer.Missed -= OnMissed;
         }
 
         /// <summary>
@@ -264,6 +266,21 @@ namespace Dragoneye.Game
 
         // The swing that was warned about and did not come. Without this line the warning on the
         // cursor reads as wrong, when what happened is that somebody chose not to.
+        void OnMissed(MissReport report)
+        {
+            var skill = SkillOf(report.SkillId);
+
+            if (skill == null)
+            {
+                return;
+            }
+
+            Add($"{NameOf(report.AttackerId)} loosed <b>{skill.Name}</b> "
+                + $"({CombatLogLines.Cost(skill)}) at {NameOf(report.TargetId)} and missed "
+                + CombatLogLines.Tint("#8B93A5", $"({report.Chance}% to hit)"),
+                IsMine(report.AttackerId) || IsMine(report.TargetId));
+        }
+
         void OnHeldBack(uint watcherId, uint moverId) =>
             Add($"{NameOf(watcherId)} lets {NameOf(moverId)} go.",
                 IsMine(watcherId) || IsMine(moverId));

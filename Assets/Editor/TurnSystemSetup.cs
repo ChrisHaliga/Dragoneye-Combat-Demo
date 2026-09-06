@@ -210,6 +210,11 @@ namespace Dragoneye.MultiplayerEditor
             Assign(preview, ("m_Input", input));
             Assign(path, ("m_Input", input));
 
+            // The arc a shot would fly, and the bead that flies it.
+            var shot = Ensure<ShotPreview>(host);
+            Assign(shot, ("m_Input", input));
+            Ensure<ProjectileView>(host);
+
             // Closing the match is lifecycle, not presentation, so it is its own component rather
             // than a few lines inside the HUD.
             if (host.GetComponent<MatchConclusion>() == null)

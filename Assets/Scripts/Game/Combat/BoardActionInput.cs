@@ -131,6 +131,12 @@ namespace Dragoneye.Game
         /// </summary>
         public bool HoveredProvokes { get; private set; }
 
+        /// <summary>
+        /// The shot the armed skill would take at the hovered creature, priced: where it flies
+        /// from, the chance it lands, and who is standing under it. Null when nothing armed rolls.
+        /// </summary>
+        public ShotPlan? HoveredShot { get; private set; }
+
         /// <summary>Which way the pending move would arrive facing.</summary>
         public Facing PendingFacing { get; private set; }
 
@@ -206,6 +212,7 @@ namespace Dragoneye.Game
 
             HoveredPath = RouteTo(hovered, plan);
             HoveredProvokes = hovered.HasValue && ProvokesAt(hovered.Value, plan);
+            HoveredShot = hovered.HasValue ? ShotAt(hovered.Value, plan) : null;
 
             if (plan.Action == m_Hovered.Action && plan.Cost == m_Hovered.Cost
                 && plan.Refusal == m_Hovered.Refusal)
@@ -214,6 +221,43 @@ namespace Dragoneye.Game
             }
 
             m_Hovered = plan;
+        }
+
+        /// <summary>
+        /// The shot an armed ranged skill would take at whoever is on this tile.
+        ///
+        /// From the tile the server will shoot from -- where the actor stands, or the nearest
+        /// tile in reach if the skill has to walk first -- because cover is a fact about the
+        /// line, and the line starts where the shooter ends up.
+        /// </summary>
+        ShotPlan? ShotAt(Hex hovered, ActionPlan plan)
+        {
+            var actor = Actor;
+
+            if (actor == null || plan.Action != BoardAction.UseSkill || plan.Skill == null
+                || !plan.Skill.RollsToHit || !m_Units.TryGet(hovered, out var occupant)
+                || occupant.GetComponent<CreatureState>() == actor)
+            {
+                return null;
+            }
+
+            var from = actor.Cell;
+
+            if (!CombatRules.InRange(Hex.Distance(from, hovered), plan.Skill.Range))
+            {
+                if (!m_Board.TryTileInReach(actor.Cell, hovered, plan.Skill.Range, out var tile,
+                        out _))
+                {
+                    return null;
+                }
+
+                from = tile;
+            }
+
+            var cover = LineOfFire.Cover(from, hovered, m_Units);
+            var chance = SkillRules.HitChance(plan.Skill, Hex.Distance(from, hovered), cover.Count);
+
+            return new ShotPlan(from, hovered, chance, cover);
         }
 
         /// <summary>

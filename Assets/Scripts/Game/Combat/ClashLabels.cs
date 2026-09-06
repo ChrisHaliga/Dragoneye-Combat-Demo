@@ -116,6 +116,13 @@ namespace Dragoneye.Game
         /// spend a turn getting round somebody the long way, or to want a skill that does not
         /// provoke.
         /// </summary>
+        /// <summary>"72% to hit", for a shot.</summary>
+        public static string Chance(int percent) => $"{percent}% to hit";
+
+        /// <summary>Who the shot flies over, and what that costs. In the danger colour.</summary>
+        public static string Cover(string names, int penalty) =>
+            Tint(DangerColour, $"! Firing past {names}: -{penalty} to hit");
+
         public static string Provokes =>
             Tint(DangerColour, "! Moving draws an opportunity attack");
 

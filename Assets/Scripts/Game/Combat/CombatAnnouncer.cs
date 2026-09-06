@@ -31,6 +31,25 @@ namespace Dragoneye.Game
         }
     }
 
+    /// <summary>A shot that rolled and did not land.</summary>
+    public readonly struct MissReport
+    {
+        public readonly uint AttackerId;
+        public readonly int SkillId;
+        public readonly uint TargetId;
+
+        /// <summary>What the chance was, so the log can say how unlucky it was.</summary>
+        public readonly int Chance;
+
+        public MissReport(uint attackerId, int skillId, uint targetId, int chance)
+        {
+            AttackerId = attackerId;
+            SkillId = skillId;
+            TargetId = targetId;
+            Chance = chance;
+        }
+    }
+
     /// <summary>
     /// Says out loud the things a fight does that are not clashes.
     ///
@@ -63,6 +82,9 @@ namespace Dragoneye.Game
 
         /// <summary>A watcher let a mover go: (watcher, mover).</summary>
         public static event Action<uint, uint> HeldBack;
+
+        /// <summary>A shot rolled and missed.</summary>
+        public static event Action<MissReport> Missed;
 
         public override void OnNetworkSpawn() => Current = this;
 
@@ -104,6 +126,19 @@ namespace Dragoneye.Game
 
         [Rpc(SendTo.Everyone)]
         void HeldBackRpc(uint watcherId, uint moverId) => HeldBack?.Invoke(watcherId, moverId);
+
+        /// <summary>Server only. A shot rolled and did not land.</summary>
+        public void ServerMissed(uint attackerId, int skillId, uint targetId, int chance)
+        {
+            if (IsServer)
+            {
+                MissedRpc(attackerId, skillId, targetId, chance);
+            }
+        }
+
+        [Rpc(SendTo.Everyone)]
+        void MissedRpc(uint attackerId, int skillId, uint targetId, int chance) =>
+            Missed?.Invoke(new MissReport(attackerId, skillId, targetId, chance));
 
         [Rpc(SendTo.Everyone)]
         void ActedRpc(uint actorId, int skillId, uint targetId, bool hasTarget, byte[] returned) =>

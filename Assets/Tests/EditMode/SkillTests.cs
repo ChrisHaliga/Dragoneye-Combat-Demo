@@ -15,6 +15,36 @@ namespace Dragoneye.Hex.Tests
     public class SkillTests
     {
         [Test]
+        public void AShotFallsOffWithDistanceAndCover()
+        {
+            var loose = new SkillSpec(1, "Loose", Element.Aero, Ap.FromWhole(1), 1, 4,
+                SkillTarget.Creature, new SkillEffect(SkillEffectKind.Damage, 3, Attribute.Dexterity),
+                aim: new Aim(90, 8));
+            var strike = new SkillSpec(2, "Strike", Element.Pyro, Ap.FromWhole(1), 1, 1,
+                SkillTarget.Creature, new SkillEffect(SkillEffectKind.Damage, 4));
+
+            Assert.IsTrue(loose.RollsToHit);
+            Assert.IsFalse(strike.RollsToHit);
+            Assert.AreEqual(100, SkillRules.HitChance(strike, 1), "a swing lands");
+
+            Assert.AreEqual(90, SkillRules.HitChance(loose, 1));
+            Assert.AreEqual(82, SkillRules.HitChance(loose, 2));
+            Assert.AreEqual(66, SkillRules.HitChance(loose, 4));
+            Assert.AreEqual(46, SkillRules.HitChance(loose, 4, cover: 1), "one body in the way");
+            Assert.AreEqual(SkillRules.HitFloor, SkillRules.HitChance(loose, 4, cover: 9),
+                "never hopeless");
+
+            // Skill is folded in where the fighter picks the bow up, five a point.
+            var archer = loose.Scaled(AttributeBlock.Zero.With(Attribute.Skill, 2));
+            Assert.AreEqual(100, SkillRules.HitChance(archer, 1), "capped at sure");
+            Assert.AreEqual(76, SkillRules.HitChance(archer, 4));
+
+            Assert.IsTrue(SkillRules.Hits(loose, 4, 0, 0.65f));
+            Assert.IsFalse(SkillRules.Hits(loose, 4, 0, 0.66f));
+            Assert.IsTrue(SkillRules.Hits(strike, 1, 0, 0.999f), "a swing always lands");
+        }
+
+        [Test]
         public void AScalingSkillBecomesANumberInAFighterHands()
         {
             // "4 + STR" is what the sword says; 6 is what this fighter does with it. Everything

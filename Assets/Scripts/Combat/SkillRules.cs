@@ -78,6 +78,40 @@ namespace Dragoneye.Combat
     /// </summary>
     public static class SkillRules
     {
+        /// <summary>Percent each point of Skill adds to a shot's chance to hit.</summary>
+        public const int AccuracyPerSkill = 5;
+
+        /// <summary>Percent each creature the shot passes over takes off its chance.</summary>
+        public const int CoverPenalty = 20;
+
+        /// <summary>A shot is never entirely hopeless: the chance never drops below this.</summary>
+        public const int HitFloor = 5;
+
+        /// <summary>
+        /// Percent chance a shot lands at this distance, past this much cover.
+        ///
+        /// Accuracy at one tile, less the falloff for every tile past it, less the cover, floored
+        /// so a long shot is still a shot and capped so nothing is surer than sure. A skill that
+        /// does not roll is a hundred: swings land.
+        /// </summary>
+        public static int HitChance(SkillSpec skill, int distance, int cover = 0)
+        {
+            if (skill == null || !skill.RollsToHit)
+            {
+                return 100;
+            }
+
+            var beyond = distance - 1 < 0 ? 0 : distance - 1;
+            var blocked = cover < 0 ? 0 : cover;
+            var chance = skill.Aim.Accuracy - skill.Aim.Falloff * beyond - CoverPenalty * blocked;
+
+            return chance < HitFloor ? HitFloor : chance > 100 ? 100 : chance;
+        }
+
+        /// <summary>Whether a roll in [0, 1) lands. Pure, so the roll can be handed in by a test.</summary>
+        public static bool Hits(SkillSpec skill, int distance, int cover, float roll) =>
+            roll * 100f < HitChance(skill, distance, cover);
+
         /// <summary>
         /// Whether the creature could use this skill at all this turn, ignoring any target.
         ///

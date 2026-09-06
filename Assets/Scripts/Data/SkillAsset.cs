@@ -80,6 +80,14 @@ namespace Dragoneye.Data
              + "Dexterity for quick ones.")]
         Attribute m_ScalesWith = Attribute.Strength;
 
+        [SerializeField, Range(0, 100), Tooltip("Percent chance to hit at one tile. Zero means "
+             + "it does not roll at all -- a swing. Ranged skills roll.")]
+        int m_Accuracy;
+
+        [SerializeField, Min(0), Tooltip("Percent taken off the chance for every tile past the "
+             + "first. Only read when the accuracy above is set.")]
+        int m_Falloff;
+
         [SerializeField, Min(1), Tooltip("The level a creature reaches before this is theirs. A "
              + "skill above a creature's level is left out of its list entirely, not greyed out.")]
         int m_LevelRequired = 1;
@@ -96,7 +104,7 @@ namespace Dragoneye.Data
                 m_Range, m_Target,
                 new SkillEffect(m_Effect, m_Amount, m_Scales ? m_ScalesWith : (Attribute?)null),
                 m_Description,
-                m_LevelRequired, Conditions(), Options());
+                m_LevelRequired, Conditions(), Options(), new Aim(m_Accuracy, m_Falloff));
 
         /// <summary>
         /// The authored conditions, as the rules see them.

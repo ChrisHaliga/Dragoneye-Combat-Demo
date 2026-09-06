@@ -112,6 +112,19 @@ namespace Dragoneye.Multiplayer
                 "The cursor warns you before you commit, and you carry on moving afterwards whether "
                 + "the swing landed or not."));
 
+            into.Add(Section("SHOOTING"));
+            into.Add(Text(
+                "A ranged skill rolls to hit before anybody answers it. Its chance starts at what "
+                + "the skill says and falls with every tile past the first; each point of Skill "
+                + "adds five. Anybody standing on a tile the shot passes over -- yours or theirs "
+                + "-- is cover, and each of them takes twenty off. The cursor shows the chance "
+                + "and names the cover before you commit, and the arc it draws is the line the "
+                + "shot will fly."));
+            into.Add(Text(
+                "A miss still costs the element and the action points: the arrow left the bow. "
+                + "The element you spent is shown, because it was seen leaving. A shot that lands "
+                + "is answered like any other attack."));
+
             into.Add(Section("GETTING PAST PEOPLE"));
             into.Add(Text(
                 "Nobody walks through anybody. A route goes around whoever is standing in it, "

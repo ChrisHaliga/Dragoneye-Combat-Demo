@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using Dragoneye.Combat;
 using Dragoneye.Hex.Systems;
 using UnityEngine;
@@ -175,6 +176,18 @@ namespace Dragoneye.Game
             return false;
         }
 
+        static string Names(IReadOnlyList<CreatureState> creatures)
+        {
+            var text = string.Empty;
+
+            for (var i = 0; i < creatures.Count; i++)
+            {
+                text += (i > 0 ? ", " : string.Empty) + creatures[i].DisplayName;
+            }
+
+            return text;
+        }
+
         void RefreshCursor()
         {
             // A move waiting on a bearing has already chosen its tile, so pricing the one under the
@@ -205,6 +218,21 @@ namespace Dragoneye.Game
             {
                 text += "\n" + ClashLabels.Forecast(m_Input.HoveredOdds.Value)
                     + "\n" + ClashLabels.AttackerStakes;
+            }
+
+            // A shot says its chance, and names whoever it would fly over. Both before the
+            // click, because both are decided by where the shooter stands, and standing
+            // somewhere else first is the whole decision.
+            if (m_Input.HoveredShot.HasValue && !string.IsNullOrEmpty(text))
+            {
+                var shot = m_Input.HoveredShot.Value;
+                text += "\n" + ClashLabels.Chance(shot.Chance);
+
+                if (shot.IsCovered)
+                {
+                    text += "\n" + ClashLabels.Cover(Names(shot.Cover),
+                        SkillRules.CoverPenalty * shot.Cover.Count);
+                }
             }
 
             // Only where there is already something to say. It is a price on leaving, so it

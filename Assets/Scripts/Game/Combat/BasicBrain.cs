@@ -168,9 +168,12 @@ namespace Dragoneye.Game
                     continue;
                 }
 
+                // What it is worth from here: the damage times the chance it lands. A bow at
+                // four tiles is not worth what it says on it, and a brain that thought so would
+                // keep loosing into the floor.
                 if (best == null
-                    || skill.Effect.Amount > best.Effect.Amount
-                    || (skill.Effect.Amount == best.Effect.Amount && skill.Id < best.Id))
+                    || Worth(skill, distance) > Worth(best, distance)
+                    || (Worth(skill, distance) == Worth(best, distance) && skill.Id < best.Id))
                 {
                     best = skill;
                 }
@@ -206,6 +209,10 @@ namespace Dragoneye.Game
 
             return null;
         }
+
+        /// <summary>Expected damage, in hundredths: the amount times the percent chance it lands.</summary>
+        static int Worth(SkillSpec skill, int distance) =>
+            skill.Effect.Amount * (distance >= 0 ? SkillRules.HitChance(skill, distance) : 100);
 
         static bool IsOffensive(SkillSpec skill) =>
             skill != null
