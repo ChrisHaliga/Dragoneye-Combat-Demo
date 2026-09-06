@@ -767,6 +767,13 @@
     -unity-slice-bottom: 16;
 }
 
+/* The offer of a swing, which is the clash panel asking the other way round. Marked in the colour
+   of a thing you are being given rather than a thing being done to you. */
+.clash-prompt--opportunity {
+    border-left-width: 3px;
+    border-left-color: rgb(198, 158, 88);
+}
+
 .clash-prompt__title {
     font-size: 17px;
     -unity-font-style: bold;

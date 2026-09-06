@@ -63,6 +63,14 @@ namespace Dragoneye.Game
         Vector3 m_Target;
         bool m_Placed;
 
+        // Where the token still has to go, tile by tile, and which leg it is on. A move is one
+        // instant to the rules and a walk to everybody watching.
+        readonly System.Collections.Generic.List<Vector3> m_Route =
+            new System.Collections.Generic.List<Vector3>();
+
+        int m_Leg;
+        Hex m_Cell;
+
         Transform m_Pointer;
 
         static Material s_FacingMaterial;
@@ -289,7 +297,7 @@ namespace Dragoneye.Game
                 return;
             }
 
-            transform.position = Step(transform.position, m_Target, m_Speed, Time.deltaTime);
+            Walk(Time.deltaTime);
             PointTheWay();
         }
 
@@ -329,6 +337,34 @@ namespace Dragoneye.Game
         }
 
         /// <summary>
+        /// One frame of walking, along the route rather than through it.
+        ///
+        /// A creature used to slide from where it was to where it ended up in a straight line,
+        /// which took it clean through anybody standing between the two -- and the route the rules
+        /// costed had already gone round them. The pathfinder was right all along; the token was
+        /// drawing a different move from the one that happened.
+        /// </summary>
+        void Walk(float deltaTime)
+        {
+            while (m_Leg < m_Route.Count)
+            {
+                var leg = m_Route[m_Leg];
+                transform.position = Step(transform.position, leg, m_Speed, deltaTime);
+
+                if ((transform.position - leg).sqrMagnitude > 0.0004f)
+                {
+                    return;
+                }
+
+                // Arrived at this corner with time left in the frame; spend the rest on the next
+                // one, so a fast token is not held to one tile per frame.
+                m_Leg++;
+            }
+
+            transform.position = Step(transform.position, m_Target, m_Speed, deltaTime);
+        }
+
+        /// <summary>
         /// One frame of movement. Extracted as a pure function so the animation contract -- constant
         /// speed, never overshoot, always arrive -- can be asserted without a scene.
         ///
@@ -349,13 +385,52 @@ namespace Dragoneye.Game
                 return;
             }
 
+            var previous = m_Cell;
+            m_Cell = cell;
+
             m_Target = context.Map.ToWorld(cell) + Vector3.up * m_GroundOffset;
+            m_Route.Clear();
+            m_Leg = 0;
 
             if (!m_Placed)
             {
                 // First placement is a teleport; only later changes animate.
                 transform.position = m_Target;
                 m_Placed = true;
+                return;
+            }
+
+            BuildRoute(context, previous, cell);
+        }
+
+        /// <summary>
+        /// The corners the token turns on its way, from the same search that priced the move.
+        ///
+        /// Worked out here rather than sent from the server: every peer has the map and the
+        /// occupancy, so the route is derivable, and a move that already fits in one small message
+        /// should not grow a list of hexes.
+        ///
+        /// Both ends are excluded from what blocks it -- the tile behind, because it is being left,
+        /// and the tile ahead, because this creature is already standing on it as far as the index
+        /// is concerned. Anything left in between is somebody else, and the walk goes round.
+        ///
+        /// An empty route means there is no walkable way there, which is what a spawn or a despawn
+        /// looks like. The straight line stands in for it; there is nothing better to draw.
+        /// </summary>
+        void BuildRoute(ArenaContext context, Hex from, Hex to)
+        {
+            if (context.Units == null || from == to)
+            {
+                return;
+            }
+
+            var board = new ArenaBoard(context.Map, context.Units);
+            var path = board.PathTo(from, to, to);
+
+            // One step is a straight line already, and anything longer only needs its corners.
+            for (var i = 0; i + 1 < path.Count; i++)
+            {
+                m_Route.Add(context.Map.ToWorld(path[i]) + Vector3.up * m_GroundOffset);
             }
         }
 

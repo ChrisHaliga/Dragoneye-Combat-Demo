@@ -195,6 +195,14 @@ namespace Dragoneye.Game
                     + "\n" + ClashLabels.AttackerStakes;
             }
 
+            // Only on a move, and only where there is already something to say. It is a price
+            // on leaving, so it belongs beside what leaving costs.
+            if (m_Input.MoveProvokes && !string.IsNullOrEmpty(text)
+                && m_Input.Hovered.Action == BoardAction.Move)
+            {
+                text += "\n" + ClashLabels.Provokes;
+            }
+
             m_Cursor.text = text;
             m_Cursor.EnableInClassList("is-flank", m_Input.HoveredIsFlank);
             m_Cursor.EnableInClassList("is-hidden", string.IsNullOrEmpty(text));

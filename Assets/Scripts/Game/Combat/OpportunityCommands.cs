@@ -1,0 +1,168 @@
+using System;
+using System.Collections.Generic;
+using Dragoneye.Combat;
+using Unity.Netcode;
+using UnityEngine;
+
+namespace Dragoneye.Game
+{
+    /// <summary>The chance to swing at somebody walking past, as it reaches whoever gets it.</summary>
+    public readonly struct OpportunityOffer
+    {
+        /// <summary>The creature being offered the swing.</summary>
+        public readonly uint WatcherId;
+
+        /// <summary>Who is trying to move.</summary>
+        public readonly uint MoverId;
+
+        /// <summary>What the swing could be made of: one of each element still held.</summary>
+        public readonly IReadOnlyList<Element> Options;
+
+        public OpportunityOffer(uint watcherId, uint moverId, IReadOnlyList<Element> options)
+        {
+            WatcherId = watcherId;
+            MoverId = moverId;
+            Options = options ?? Array.Empty<Element>();
+        }
+    }
+
+    /// <summary>
+    /// Carries the offer of an opportunity attack out, and the answer back.
+    ///
+    /// A postbox, exactly like <see cref="ClashCommands"/> and for the same reasons. Whether a
+    /// swing is allowed, what it costs and what it comes to are decided by
+    /// <see cref="CombatDirector"/> and the rules underneath it; this only asks the question on the
+    /// right machine.
+    ///
+    /// Separate from the clash postbox because the two ask opposite people. A clash asks a defender
+    /// what they will put up against something already committed; this asks an attacker whether to
+    /// commit at all. Folding them together would mean one message meaning two things depending on
+    /// a flag, and one prompt deciding which of two panels to be.
+    ///
+    /// What goes out is nothing the receiver did not already know: their own hand, and the fact
+    /// that somebody adjacent is moving. The mover has said nothing about what they hold.
+    /// </summary>
+    [RequireComponent(typeof(NetworkObject))]
+    [DisallowMultipleComponent]
+    public sealed class OpportunityCommands : NetworkBehaviour
+    {
+        /// <summary>The one in the arena. Null outside a match.</summary>
+        public static OpportunityCommands Current { get; private set; }
+
+        /// <summary>Raised on the machine that gets the swing.</summary>
+        public static event Action<OpportunityOffer> Offered;
+
+        /// <summary>Raised when the offer is no longer open, answered or otherwise.</summary>
+        public static event Action Closed;
+
+        // Server-side: who was asked, so an answer from anybody else is ignored.
+        CreatureState m_Asked;
+
+        public override void OnNetworkSpawn() => Current = this;
+
+        public override void OnNetworkDespawn()
+        {
+            if (Current == this)
+            {
+                Current = null;
+            }
+
+            // A match ending under an open offer must not leave one on screen.
+            Closed?.Invoke();
+        }
+
+        /// <summary>Server only. Offers the swing to whoever runs the watching creature.</summary>
+        public void ServerOffer(CreatureState watcher, CreatureState mover,
+            IReadOnlyList<Element> options)
+        {
+            if (!IsServer || watcher == null || mover == null)
+            {
+                return;
+            }
+
+            m_Asked = watcher;
+
+            var packed = new byte[options?.Count ?? 0];
+
+            for (var i = 0; i < packed.Length; i++)
+            {
+                packed[i] = (byte)options[i];
+            }
+
+            OfferRpc(watcher.TurnId, mover.TurnId, packed,
+                RpcTarget.Single(watcher.OwnerClientId, RpcTargetUse.Temp));
+        }
+
+        /// <summary>Server only. Takes the offer down once it has been answered or lapsed.</summary>
+        public void ServerClearOffer()
+        {
+            if (!IsServer)
+            {
+                return;
+            }
+
+            var asked = m_Asked;
+            m_Asked = null;
+
+            if (asked != null)
+            {
+                ClosedRpc(RpcTarget.Single(asked.OwnerClientId, RpcTargetUse.Temp));
+            }
+        }
+
+        [Rpc(SendTo.SpecifiedInParams)]
+        void OfferRpc(uint watcherId, uint moverId, byte[] options, RpcParams rpc = default)
+        {
+            var elements = new List<Element>(options.Length);
+
+            foreach (var option in options)
+            {
+                var element = (Element)option;
+
+                // An element arrives as a byte, and casting to an enum is not a checked conversion.
+                if (ElementInfo.IsDefined(element))
+                {
+                    elements.Add(element);
+                }
+            }
+
+            Offered?.Invoke(new OpportunityOffer(watcherId, moverId, elements));
+        }
+
+        [Rpc(SendTo.SpecifiedInParams)]
+        void ClosedRpc(RpcParams rpc = default) => Closed?.Invoke();
+
+        /// <summary>Client-side entry point. An element swings; nothing declines.</summary>
+        public void Answer(Element? element) =>
+            AnswerRpc(element.HasValue ? (byte)element.Value : (byte)0, element.HasValue);
+
+        /// <summary>
+        /// The answer, from the client that was asked.
+        ///
+        /// Which creature is swinging is resolved from who sent this, not from the payload, and the
+        /// director refuses anything the watcher cannot actually pay.
+        /// </summary>
+        [Rpc(SendTo.Server, InvokePermission = RpcInvokePermission.Everyone)]
+        void AnswerRpc(byte element, bool swings, RpcParams rpc = default)
+        {
+            var director = CombatDirector.Current;
+
+            if (director == null || m_Asked == null)
+            {
+                return;
+            }
+
+            if (m_Asked.OwnerClientId != rpc.Receive.SenderClientId)
+            {
+                Debug.LogWarning($"Client {rpc.Receive.SenderClientId} answered an opportunity it "
+                    + "is not part of; ignoring it.", this);
+                return;
+            }
+
+            var chosen = (Element)element;
+            var answer = swings && ElementInfo.IsDefined(chosen) ? chosen : (Element?)null;
+
+            director.ServerAnswerOpportunity(m_Asked, answer);
+        }
+    }
+}

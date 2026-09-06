@@ -53,6 +53,17 @@ namespace Dragoneye.Game
         public IReadOnlyList<Hex> PathTo(Hex from, Hex to) =>
             TryPath(from, to) ? new List<Hex>(m_Path) : System.Array.Empty<Hex>();
 
+        /// <summary>
+        /// The same route, with one more hex treated as empty.
+        ///
+        /// For drawing a move that has already happened. The rules move a creature the instant the
+        /// server says so, so by the time anything wants to walk the token along the route, the
+        /// creature is standing on the destination and blocking its own way to it. The tile it came
+        /// from is already excluded; this excludes the one it is going to.
+        /// </summary>
+        public IReadOnlyList<Hex> PathTo(Hex from, Hex to, Hex ignore) =>
+            TryPath(from, to, ignore) ? new List<Hex>(m_Path) : System.Array.Empty<Hex>();
+
         public bool IsOccupied(Hex hex) => m_Units != null && m_Units.IsOccupied(hex);
 
         /// <summary>
@@ -159,7 +170,9 @@ namespace Dragoneye.Game
             return false;
         }
 
-        bool TryPath(Hex from, Hex to)
+        bool TryPath(Hex from, Hex to) => TryPath(from, to, from);
+
+        bool TryPath(Hex from, Hex to, Hex ignore)
         {
             m_Path.Clear();
 
@@ -170,6 +183,7 @@ namespace Dragoneye.Game
 
             m_Blocked.Clear();
             m_Units.CopyOccupiedTo(m_Blocked, from);
+            m_Blocked.Remove(ignore);
 
             return HexPathfinder.TryFindPath(m_Map.Map, from, to, m_Blocked, m_Path);
         }

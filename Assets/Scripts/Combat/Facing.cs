@@ -67,6 +67,26 @@ namespace Dragoneye.Combat
         public const int FrontSectors = 5;
 
         /// <summary>
+        /// Sectors a creature is actually watching: the one it faces and the two beside it.
+        ///
+        /// Narrower than what it can defend against, and deliberately so. Covering an arrival is
+        /// passive -- you get your guard up -- where threatening one means you were looking at it
+        /// and can do something about it. Three of six makes going round somebody a real detour
+        /// without making the whole board dangerous to stand in.
+        /// </summary>
+        public const int ThreatSectors = 3;
+
+        /// <summary>
+        /// Whether a creature at this bearing is somewhere this facing is watching.
+        ///
+        /// The three tiles in front. What that is worth is <see cref="Opportunity"/>: crossing
+        /// them is a decision with a price, which is what stops the whole board rotating through
+        /// each other's backs every turn for the cost of the walk.
+        /// </summary>
+        public static bool Threatens(Facing facing, Facing bearing) =>
+            Separation(facing, bearing) <= ThreatSectors / 2;
+
+        /// <summary>
         /// How many sectors apart two facings are, the short way round.
         ///
         /// Zero when they are the same, three when they are opposed, and never more -- going the

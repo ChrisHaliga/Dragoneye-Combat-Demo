@@ -65,7 +65,27 @@ namespace Dragoneye.Multiplayer
                 + "did not."));
             into.Add(Text(
                 "A creature struck from the tile directly behind it is flanked. Only directly "
-                + "behind: the two tiles either side of that are still the front."));
+                + "behind: the two tiles either side of that are still the front. A creature that "
+                + "is flanked turns to face whoever did it once the blow has landed, so the "
+                + "position is worth one attack and has to be earned again."));
+
+            into.Add(Section("OPPORTUNITY ATTACKS"));
+            into.Add(Text(
+                "The three tiles a creature is looking at are the ones it is watching. Move while "
+                + "you are standing in an enemy front three and they get a swing at you: one "
+                + "element of their choosing, no action points, and you answer it exactly as you "
+                + "would answer an attack on their own turn."));
+            into.Add(Text(
+                "It is optional, and taking one costs them an element they will not get back, so "
+                + "it is not free for either of you. The cursor warns you before you commit, and "
+                + "you carry on moving afterwards whether the swing landed or not."));
+
+            into.Add(Section("GETTING PAST PEOPLE"));
+            into.Add(Text(
+                "Nobody walks through anybody. A route goes around whoever is standing in it, "
+                + "friend or enemy, and the extra tiles are extra action points -- so a line of "
+                + "allies is a wall, and one creature in a corridor is a toll. Hovering a tile "
+                + "draws the exact route the walk would take."));
 
             into.Add(Section("ELEMENTS"));
             into.Add(Text(

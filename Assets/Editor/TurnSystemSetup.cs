@@ -189,6 +189,9 @@ namespace Dragoneye.MultiplayerEditor
             // presentation; what is pending belongs to the board input.
             var preview = Ensure<MovePreview>(host);
 
+            // And the way it would get there, which is not the straight line between the two.
+            var path = Ensure<PathPreview>(host);
+
             var director = Ensure<CombatDirector>(host);
             Assign(director, ("m_Creatures", creatures), ("m_Units", units), ("m_Map", map));
 
@@ -198,6 +201,7 @@ namespace Dragoneye.MultiplayerEditor
                 ("m_Map", map), ("m_Creatures", creatures));
 
             Assign(preview, ("m_Input", input));
+            Assign(path, ("m_Input", input));
 
             // Closing the match is lifecycle, not presentation, so it is its own component rather
             // than a few lines inside the HUD.
@@ -251,6 +255,10 @@ namespace Dragoneye.MultiplayerEditor
             // Everything that happens which is not a clash. Beside the postbox because it has the
             // same lifetime and the same job: telling the other machines what the server did.
             Ensure<CombatAnnouncer>(host);
+
+            // The other question a fight asks a player out of turn: whether to swing at somebody
+            // walking past. Its own postbox, because it asks the opposite end of an exchange.
+            Ensure<OpportunityCommands>(host);
 
             EditorUtility.SetDirty(host);
         }
@@ -344,6 +352,11 @@ namespace Dragoneye.MultiplayerEditor
             // reading it, which is why it needs the registry.
             var result = Ensure<ClashResultView>(hud);
             Assign(result, ("m_Input", input));
+
+            // The offer of a swing at somebody walking past. Beside the defence prompt, and built
+            // to look like it: the same panel asking the opposite question.
+            var opportunity = Ensure<OpportunityPromptView>(hud);
+            Assign(opportunity, ("m_Input", input));
 
             // The running account of the fight. It names creatures that have already been
             // despawned, so it takes the registry directly rather than going through the input.

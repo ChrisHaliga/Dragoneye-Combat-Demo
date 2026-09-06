@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using Dragoneye.Combat;
 using Dragoneye.Hex.Systems;
 using UnityEngine;
@@ -106,6 +107,26 @@ namespace Dragoneye.Game
         /// </summary>
         public Hex? PendingMove { get; private set; }
 
+        /// <summary>
+        /// The tiles a move to the hovered hex would cross, destination last. Empty when the hover
+        /// is not somewhere this creature could walk.
+        ///
+        /// The route the rules would price, not the line between the two hexes: a creature goes
+        /// round anybody standing in the way, and how far round decides both what it costs and
+        /// whose front it walks across.
+        /// </summary>
+        public IReadOnlyList<Hex> HoveredPath { get; private set; } =
+            System.Array.Empty<Hex>();
+
+        /// <summary>
+        /// Whether walking anywhere from here would give somebody a swing.
+        ///
+        /// A property of the tile being left rather than the one being hovered, so it does not
+        /// change as the cursor moves -- which is the point: the price is for going at all, and a
+        /// player should be able to see it before they start looking for somewhere to go.
+        /// </summary>
+        public bool MoveProvokes { get; private set; }
+
         /// <summary>Which way the pending move would arrive facing.</summary>
         public Facing PendingFacing { get; private set; }
 
@@ -179,6 +200,9 @@ namespace Dragoneye.Game
 
             var plan = hovered.HasValue ? Price(hovered.Value) : ActionPlan.Nothing;
 
+            HoveredPath = RouteTo(hovered, plan);
+            MoveProvokes = AnybodyWatching();
+
             if (plan.Action == m_Hovered.Action && plan.Cost == m_Hovered.Cost
                 && plan.Refusal == m_Hovered.Refusal)
             {
@@ -186,6 +210,51 @@ namespace Dragoneye.Game
             }
 
             m_Hovered = plan;
+        }
+
+        /// <summary>
+        /// Whether any enemy is next to the acting creature and looking at it.
+        ///
+        /// Position and facing only, both of which are drawn on the board. Whether they can afford
+        /// the swing is theirs to know.
+        /// </summary>
+        bool AnybodyWatching()
+        {
+            var actor = Actor;
+
+            if (actor == null || m_Creatures == null)
+            {
+                return false;
+            }
+
+            foreach (var creature in m_Creatures.All)
+            {
+                if (CombatDirector.Watches(creature, actor))
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        /// <summary>
+        /// The route the hovered move would take, or nothing when the click is not a move.
+        ///
+        /// Only for a move that would actually be allowed. Drawing the way to somewhere the
+        /// creature cannot afford would be a route it is not going to walk.
+        /// </summary>
+        IReadOnlyList<Hex> RouteTo(Hex? hovered, ActionPlan plan)
+        {
+            var actor = Actor;
+
+            if (!hovered.HasValue || actor == null || m_Board == null
+                || plan.Action != BoardAction.Move || !plan.IsAllowed)
+            {
+                return System.Array.Empty<Hex>();
+            }
+
+            return m_Board.PathTo(actor.Cell, hovered.Value);
         }
 
         /// <summary>

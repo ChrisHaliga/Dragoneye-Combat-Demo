@@ -224,8 +224,15 @@ namespace Dragoneye.Game
                     ? LogSide.Defender
                     : LogSide.Neither;
 
-            var name = skill != null ? skill.Name : "an attack";
-            var cost = skill != null ? $" ({CombatLogLines.Cost(skill)})" : string.Empty;
+            // A swing belongs to nobody catalogue, so it is assembled from whichever element
+            // was put up -- which the report carries, because by now both sides are revealed.
+            var opportunity = report.SkillId == Opportunity.SkillId;
+
+            var name = opportunity ? Opportunity.Name : skill != null ? skill.Name : "an attack";
+
+            var cost = opportunity
+                ? $" ({CombatLogLines.Runes(report.Attacker)})"
+                : skill != null ? $" ({CombatLogLines.Cost(skill)})" : string.Empty;
 
             var answer = report.Defender.Count > 0
                 ? $"answered {CombatLogLines.Runes(report.Defender)}"

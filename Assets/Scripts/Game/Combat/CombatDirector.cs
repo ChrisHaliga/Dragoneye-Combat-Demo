@@ -63,9 +63,46 @@ namespace Dragoneye.Game
         CreatureState m_ClashAttacker;
         CreatureState m_ClashDefender;
         SkillSpec m_ClashSkill;
+        bool m_ClashFlanked;
+
+        // The action somebody is halfway through, and who still gets a swing at them for it.
+        // Server only, and at most one: nothing else can act while a move is being interrupted.
+        PendingAction m_Pending;
+        readonly List<CreatureState> m_Watchers = new List<CreatureState>();
+        CreatureState m_Offered;
 
         // Creatures already complained about, so a toothless one does not warn every round.
         readonly HashSet<uint> m_Warned = new HashSet<uint>();
+
+        /// <summary>
+        /// A move or a skill use that has been asked for and has not happened yet.
+        ///
+        /// It waits because leaving a tile somebody is watching gives them a swing at you, and the
+        /// swing has to land before the walk does. Both kinds are held here rather than only moves,
+        /// because a skill that walks into range is a walk -- and one that provoked nothing while an
+        /// ordinary move did would be a way to leave for free.
+        /// </summary>
+        readonly struct PendingAction
+        {
+            public const int NoSkill = int.MinValue;
+
+            public readonly CreatureState Actor;
+            public readonly Hex Where;
+            public readonly Facing? Facing;
+            public readonly int SkillId;
+
+            public PendingAction(CreatureState actor, Hex where, Facing? facing, int skillId)
+            {
+                Actor = actor;
+                Where = where;
+                Facing = facing;
+                SkillId = skillId;
+            }
+
+            public bool Exists => Actor != null;
+
+            public bool IsMove => SkillId == NoSkill;
+        }
 
         /// <summary>The director for the match in progress, or null outside one.</summary>
         public static CombatDirector Current { get; private set; }
@@ -126,7 +163,7 @@ namespace Dragoneye.Game
             // Not while somebody is being asked to answer an attack. The turn does not belong
             // entirely to the active player any more, and ending it out from under a defender
             // mid-decision would resolve their clash into a turn that had already moved on.
-            if (IsClashPending)
+            if (IsBusy)
             {
                 return;
             }
@@ -160,6 +197,48 @@ namespace Dragoneye.Game
         public bool ServerMove(CreatureState actor, Hex destination, Facing? facing = null)
         {
             if (!CanAct(actor))
+            {
+                return false;
+            }
+
+            // Priced before anybody is asked anything. An action that was going to be refused
+            // must not cost its owner a round of swings on the way to being refused -- that would
+            // make an unaffordable move into a way of draining the elements of everybody adjacent.
+            if (!CanAffordMove(actor, destination))
+            {
+                return false;
+            }
+
+            // Anybody watching this tile gets their swing first. The move is put away and taken out
+            // again once they have all had their answer, whether it landed or not.
+            if (!m_Pending.Exists && Interrupt(actor,
+                    new PendingAction(actor, destination, facing, PendingAction.NoSkill)))
+            {
+                return true;
+            }
+
+            return PerformMove(actor, destination, facing);
+        }
+
+        /// <summary>
+        /// Whether this creature could walk there right now, without walking there.
+        ///
+        /// The same arithmetic <see cref="PerformMove"/> does, asked before the move is suspended.
+        /// </summary>
+        bool CanAffordMove(CreatureState actor, Hex destination)
+        {
+            var cost = m_Board.CostTo(actor.Cell, destination);
+
+            var plan = ActionResolver.Resolve(true, true, actor.CurrentAp,
+                targetOccupied: false, moveSteps: cost);
+
+            return plan.IsAllowed && plan.Action == BoardAction.Move;
+        }
+
+        /// <summary>The move itself, once nobody is owed a swing at it.</summary>
+        bool PerformMove(CreatureState actor, Hex destination, Facing? facing)
+        {
+            if (actor == null || !actor.IsAlive)
             {
                 return false;
             }
@@ -216,6 +295,18 @@ namespace Dragoneye.Game
 
             var occupant = TargetAt(target);
 
+            // A skill that has to walk into range is a walk, and it provokes like one. Checked
+            // before anything is spent, so an interrupted skill can be replayed from the top.
+            if (!m_Pending.Exists
+                && skill.Target != SkillTarget.Self
+                && !CombatRules.InRange(Hex.Distance(actor.Cell, target), skill.Range)
+                && CanAffordApproach(actor, skill, target, pool)
+                && Interrupt(actor, new PendingAction(actor, target, null, skillId)))
+            {
+                refusal = SkillRefusal.None;
+                return true;
+            }
+
             // Walking into range is part of using a skill, not a separate order the client sends
             // first. Doing it here is what keeps the promise the cursor made -- "Strike, 1.5 + 1
             // AP" is one decision, and a client that could send the two halves separately could be
@@ -270,8 +361,272 @@ namespace Dragoneye.Game
             return true;
         }
 
+        /// <summary>
+        /// Whether the walk and the skill together are affordable, before either happens.
+        ///
+        /// Only asked to decide whether the approach is worth interrupting. The real checks still
+        /// run afterwards, on the replay; this exists so an unaffordable order cannot be used to
+        /// bait swings out of everybody standing next to you.
+        /// </summary>
+        bool CanAffordApproach(CreatureState actor, SkillSpec skill, Hex target, CreaturePool pool)
+        {
+            var steps = m_Board.StepsToReach(actor.Cell, target, skill.Range);
+
+            if (steps < 0 || actor.CurrentAp < CombatRules.MoveCost(steps) + skill.ApCost)
+            {
+                return false;
+            }
+
+            return pool == null
+                || SkillRules.CheckAffordable(skill, true, actor.CurrentAp, pool.ServerLedger)
+                    == SkillRefusal.None;
+        }
+
         /// <summary>Which way one hex lies from another, as a facing.</summary>
         static Facing Bearing(Hex from, Hex to) => Facing.Of((int)Hex.DirectionTo(from, to));
+
+        /// <summary>
+        /// Holds an action back while everybody watching this creature decides whether to swing.
+        /// </summary>
+        /// <returns>True when the action was suspended and will be run later.</returns>
+        bool Interrupt(CreatureState actor, PendingAction action)
+        {
+            CollectWatchers(actor);
+
+            if (m_Watchers.Count == 0)
+            {
+                return false;
+            }
+
+            m_Pending = action;
+            AskNextOpportunity();
+            return true;
+        }
+
+        /// <summary>
+        /// Everybody who is next to this creature and looking at it.
+        ///
+        /// Enemies only, alive, adjacent, with the mover inside the three tiles they are watching
+        /// and something left to spend on a swing. Read once, before anything moves, so the list
+        /// cannot grow halfway through the queue as creatures turn to face each other.
+        /// </summary>
+        void CollectWatchers(CreatureState actor)
+        {
+            m_Watchers.Clear();
+
+            if (m_Creatures == null || actor == null)
+            {
+                return;
+            }
+
+            foreach (var creature in m_Creatures.All)
+            {
+                if (CanTakeOpportunity(creature, actor))
+                {
+                    m_Watchers.Add(creature);
+                }
+            }
+        }
+
+        /// <summary>
+        /// Whether this creature could swing at that one right now.
+        ///
+        /// Asked again when each offer goes out as well as when the queue is built: an earlier
+        /// swing may have killed the mover, and a creature may have spent its last element
+        /// answering one.
+        /// </summary>
+        static bool CanTakeOpportunity(CreatureState watcher, CreatureState mover)
+        {
+            if (!Watches(watcher, mover))
+            {
+                return false;
+            }
+
+            var pool = watcher.GetComponent<CreaturePool>();
+            return pool != null && pool.ServerLedger.Pool.Total >= Opportunity.ElementCost;
+        }
+
+        /// <summary>
+        /// Whether this creature is stood next to that one and looking at it.
+        ///
+        /// Public and without the element check on purpose. The HUD warns a player before they
+        /// move, and it cannot see how much an enemy is holding -- that is the whole of DE-005 --
+        /// so the warning is about position and facing, which are on the board for anybody to
+        /// read. It can therefore warn about a swing that turns out to be unaffordable, which is
+        /// the right way round: the alternative is a warning that quietly tells you what is in
+        /// somebody hand.
+        /// </summary>
+        public static bool Watches(CreatureState watcher, CreatureState mover) =>
+            watcher != null && mover != null && watcher != mover
+            && watcher.IsAlive && mover.IsAlive
+            && watcher.Party != mover.Party
+            && Hex.Distance(watcher.Cell, mover.Cell) == Opportunity.Range
+            && FacingRules.Threatens(watcher.Facing, Bearing(watcher.Cell, mover.Cell));
+
+        /// <summary>
+        /// Puts the offer to the next watcher, or runs the held action when there are none left.
+        /// </summary>
+        void AskNextOpportunity()
+        {
+            m_Offered = null;
+
+            while (m_Watchers.Count > 0)
+            {
+                var watcher = m_Watchers[0];
+                m_Watchers.RemoveAt(0);
+
+                if (!m_Pending.Exists || !CanTakeOpportunity(watcher, m_Pending.Actor))
+                {
+                    continue;
+                }
+
+                m_Offered = watcher;
+
+                if (watcher.IsComputerControlled)
+                {
+                    ServerAnswerOpportunity(watcher, ChooseOpportunity(watcher, m_Pending.Actor));
+                    return;
+                }
+
+                if (OpportunityCommands.Current != null)
+                {
+                    OpportunityCommands.Current.ServerOffer(watcher, m_Pending.Actor,
+                        OptionsFor(watcher));
+                    return;
+                }
+
+                // No postbox in the arena, so nobody can be asked and nobody swings. Better than
+                // hanging a move on a question that will never be answered.
+                Debug.LogWarning("No opportunity commands in the arena; the swing is skipped.", this);
+                m_Offered = null;
+            }
+
+            RunPendingAction();
+        }
+
+        /// <summary>What this creature could swing with: one of each element it still holds.</summary>
+        static List<Element> OptionsFor(CreatureState watcher)
+        {
+            var options = new List<Element>();
+            var pool = watcher != null ? watcher.GetComponent<CreaturePool>() : null;
+
+            if (pool == null)
+            {
+                return options;
+            }
+
+            var held = pool.ServerLedger.Pool;
+
+            foreach (var element in ElementInfo.All)
+            {
+                if (held[element] >= Opportunity.ElementCost)
+                {
+                    options.Add(element);
+                }
+            }
+
+            return options;
+        }
+
+        /// <summary>
+        /// Server only. Whether to swing, and with what. A null element declines.
+        /// </summary>
+        public bool ServerAnswerOpportunity(CreatureState watcher, Element? element)
+        {
+            if (!IsServer || m_Offered == null || watcher != m_Offered || !m_Pending.Exists)
+            {
+                return false;
+            }
+
+            var mover = m_Pending.Actor;
+            m_Offered = null;
+
+            OpportunityCommands.Current?.ServerClearOffer();
+
+            if (!element.HasValue || !CanTakeOpportunity(watcher, mover))
+            {
+                AskNextOpportunity();
+                return true;
+            }
+
+            var pool = watcher.GetComponent<CreaturePool>();
+            var skill = Opportunity.For(element.Value);
+
+            // Committed, not spent: a swing hides what it is made of until the answer is in, the
+            // same as any other attack.
+            if (pool == null || !pool.ServerCommit(element.Value, skill.ElementCost, out _))
+            {
+                AskNextOpportunity();
+                return true;
+            }
+
+            // Turning to swing, like any other attack, which opens the swinger own back in turn.
+            watcher.ServerFace(Bearing(watcher.Cell, mover.Cell));
+
+            BeginClash(watcher, skill, mover);
+            return true;
+        }
+
+        /// <summary>
+        /// What a computer creature does with a swing.
+        ///
+        /// It takes the element with the best odds against what the mover is known to be holding,
+        /// and only when those odds are worth spending on: a swing more likely to lose than win
+        /// pays a resource to give the mover a free look at the hand. Rolled rather than decided,
+        /// for the same reason the defence is -- an opponent whose answer never changes has one
+        /// turn in them.
+        /// </summary>
+        static Element? ChooseOpportunity(CreatureState watcher, CreatureState mover)
+        {
+            var options = OptionsFor(watcher);
+
+            if (options.Count == 0)
+            {
+                return null;
+            }
+
+            var best = options[0];
+            var bestScore = float.MinValue;
+
+            foreach (var option in options)
+            {
+                var odds = CreatureKnowledge.Forecast(option, mover);
+                var score = odds.Win - odds.Loss + (UnityEngine.Random.value * 0.25f);
+
+                if (score > bestScore)
+                {
+                    bestScore = score;
+                    best = option;
+                }
+            }
+
+            // Roughly even is not worth an element on somebody else turn.
+            return bestScore > 0.1f ? best : (Element?)null;
+        }
+
+        /// <summary>Runs the action everybody has now had their swing at.</summary>
+        void RunPendingAction()
+        {
+            var pending = m_Pending;
+            m_Pending = default;
+            m_Watchers.Clear();
+
+            if (!pending.Exists || !pending.Actor.IsAlive)
+            {
+                return;
+            }
+
+            if (pending.IsMove)
+            {
+                PerformMove(pending.Actor, pending.Where, pending.Facing);
+                return;
+            }
+
+            // Replayed from the top. Everything it checks may have changed while the swings landed
+            // -- health, action points, who is standing where -- and the check that suspended it
+            // will not fire twice, because the action is no longer pending.
+            ServerUseSkill(pending.Actor, pending.SkillId, pending.Where, out _);
+        }
 
         /// <summary>
         /// Whether using this opens a clash.
@@ -327,6 +682,7 @@ namespace Dragoneye.Game
             m_ClashAttacker = actor;
             m_ClashDefender = target;
             m_ClashSkill = skill;
+            m_ClashFlanked = flanked;
 
             Ask(m_Clash.Request, target);
         }
@@ -478,6 +834,7 @@ namespace Dragoneye.Game
             var attacker = m_ClashAttacker;
             var defender = m_ClashDefender;
             var skill = m_ClashSkill;
+            var flanked = m_ClashFlanked;
 
             // Cleared before anything else can run: applying the effect can kill a creature, which
             // ends the match, and a clash still standing at that point would suspend the next one.
@@ -485,6 +842,7 @@ namespace Dragoneye.Game
             m_ClashAttacker = null;
             m_ClashDefender = null;
             m_ClashSkill = null;
+            m_ClashFlanked = false;
 
             if (clash == null || attacker == null || defender == null || skill == null)
             {
@@ -514,8 +872,31 @@ namespace Dragoneye.Game
                 reveal.Attacker, reveal.Defender, reveal.Outcome);
             ResolveContested(attacker, skill, defender, clash.Scale(skill.Effect));
 
+            // Caught from behind, a creature turns to face whoever did it.
+            //
+            // Flanking was worth too much without this. One creature walking round the back could
+            // stand there and swing from the same tile every turn, doubling the defence cost for
+            // free, and the only counter was to move -- which cost the defender their own turn. A
+            // creature that has just been hit knows where it was hit from; it turning round is not
+            // a favour, it is the least it would do. The flanker keeps the hit they earned and has
+            // to earn the next one.
+            //
+            // After the effect, so the blow that landed is the one the position bought, and only if
+            // there is still somebody to turn.
+            if (flanked && defender.IsAlive && attacker.IsAlive)
+            {
+                defender.ServerFace(Bearing(defender.Cell, attacker.Cell));
+            }
+
             // The attack is over, so whatever the pause was holding up can go on.
             ClashCommands.Current?.ServerClearPrompt();
+
+            // A swing taken at somebody mid-move: the next watcher is asked, and when none are
+            // left the move they were all reacting to finally happens.
+            if (m_Pending.Exists)
+            {
+                AskNextOpportunity();
+            }
         }
 
         /// <summary>
@@ -712,7 +1093,7 @@ namespace Dragoneye.Game
             IsServer
             && actor != null
             && actor.IsAlive
-            && !IsClashPending
+            && !IsBusy
             && TurnState.Current != null
             && TurnState.Current.IsActive(actor);
 
@@ -725,6 +1106,15 @@ namespace Dragoneye.Game
         /// the defender being asked.
         /// </summary>
         public bool IsClashPending => m_Clash != null;
+
+        /// <summary>
+        /// Whether the fight is stopped on anybody question at all.
+        ///
+        /// Wider than <see cref="IsClashPending"/>: between one swing settling and the next being
+        /// offered there is no clash open, and a creature that read only the clash would take that
+        /// gap as its turn resuming -- and act in the middle of its own interrupted move.
+        /// </summary>
+        public bool IsBusy => IsClashPending || m_Pending.Exists;
 
         void BeginTurn()
         {
@@ -764,7 +1154,7 @@ namespace Dragoneye.Game
                 // stopped turn as a finished one. Breaking here would end its turn in the middle of
                 // an attack it had already paid for, while the defender was still being asked.
                 // Bounded in practice by the clash watchdog, which settles an unanswered one.
-                yield return new WaitWhile(() => IsClashPending);
+                yield return new WaitWhile(() => IsBusy);
 
                 if (!CanAct(actor))
                 {
@@ -868,22 +1258,54 @@ namespace Dragoneye.Game
         /// </summary>
         void Update()
         {
-            if (!IsServer || m_Clash == null || m_ClashDefender == null
-                || m_ClashDefender.IsComputerControlled)
+            if (!IsServer)
             {
                 return;
             }
 
-            var manager = NetworkManager.Singleton;
+            WatchForAbsentDefender();
+            WatchForAbsentSwinger();
+        }
 
-            if (manager != null
-                && manager.ConnectedClients.ContainsKey(m_ClashDefender.OwnerClientId))
+        void WatchForAbsentDefender()
+        {
+            if (m_Clash == null || m_ClashDefender == null
+                || m_ClashDefender.IsComputerControlled
+                || IsStillConnected(m_ClashDefender))
             {
                 return;
             }
 
             Debug.Log("The defender left mid-clash; the attack resolves unopposed.", this);
             SettleClash(null, declined: true);
+        }
+
+        /// <summary>
+        /// Notices somebody who was offered a swing and is no longer there.
+        ///
+        /// The same reasoning as the clash watchdog, and the same absence of a timer: a player
+        /// weighing an element against a walk is thinking, and this game does not price thinking.
+        /// A closed socket is not thinking, and the creature waiting to move cannot be left
+        /// standing there forever because of it.
+        /// </summary>
+        void WatchForAbsentSwinger()
+        {
+            if (m_Offered == null || m_Offered.IsComputerControlled
+                || IsStillConnected(m_Offered))
+            {
+                return;
+            }
+
+            Debug.Log("A creature left while being offered a swing; it declines.", this);
+            ServerAnswerOpportunity(m_Offered, null);
+        }
+
+        static bool IsStillConnected(CreatureState creature)
+        {
+            var manager = NetworkManager.Singleton;
+
+            return manager != null
+                && manager.ConnectedClients.ContainsKey(creature.OwnerClientId);
         }
 
         void StopBrainTurn()

@@ -99,6 +99,16 @@ namespace Dragoneye.Game
         public const string AttackerStakes =
             "Only a win lands it; your element is spent either way.";
 
+        /// <summary>
+        /// Said before a move that somebody is watching.
+        ///
+        /// The warning is the feature. An opportunity attack that arrived unannounced would be a
+        /// punishment for not having memorised six facing arcs; announced, it is the reason to
+        /// spend a turn getting round somebody the long way, or to want a skill that does not
+        /// provoke.
+        /// </summary>
+        public const string Provokes = "Moving draws an opportunity attack.";
+
         /// <summary>What the three numbers on a prompt are, in the order they are written.</summary>
         public static string OddsKey =>
             Tint(WinColour, "WIN") + " / " + Tint(TieColour, "TIE") + " / "
