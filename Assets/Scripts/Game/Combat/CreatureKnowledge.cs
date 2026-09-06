@@ -97,5 +97,15 @@ namespace Dragoneye.Game
         /// <summary>How answering with this element is expected to go against this attacker.</summary>
         public static ClashOdds ForecastDefence(Element answering, CreatureState attacker) =>
             ClashForecast.Defending(answering, PossibleAttacks(attacker), ElementMatchups.Table);
+
+        /// <summary>
+        /// How answering with this element goes against an attack whose element is already known.
+        ///
+        /// A certainty rather than a distribution: one element, held once, nothing unidentified.
+        /// </summary>
+        public static ClashOdds ForecastDefenceAgainst(Element answering, Element attacking) =>
+            ClashForecast.Defending(answering,
+                new PossibleElements(ElementCounts.Empty.With(attacking, 1), unknown: 0),
+                ElementMatchups.Table);
     }
 }

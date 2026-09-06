@@ -50,6 +50,7 @@ namespace Dragoneye.Game
         void Start()
         {
             var document = GetComponent<UIDocument>().rootVisualElement;
+            UiTypeface.Apply(document);
 
             m_Root = document.Q<VisualElement>("pause-root");
             m_Menu = document.Q<VisualElement>("pause-menu");

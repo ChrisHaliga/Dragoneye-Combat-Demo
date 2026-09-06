@@ -132,6 +132,12 @@ namespace Dragoneye.Combat
     /// <summary>How a clash is expected to go, as three shares that sum to one.</summary>
     public readonly struct ClashOdds
     {
+        /// <summary>A third each. What a forecast is before anything is known.</summary>
+        public static ClashOdds Even => new ClashOdds(1f / 3f, 1f / 3f, 1f / 3f);
+
+        /// <summary>What putting nothing up comes to: the hit lands.</summary>
+        public static ClashOdds CertainLoss => new ClashOdds(0f, 0f, 1f);
+
         /// <summary>Everything lands, from the asking side's point of view.</summary>
         public readonly float Win;
 

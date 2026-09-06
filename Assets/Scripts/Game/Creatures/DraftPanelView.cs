@@ -62,6 +62,7 @@ namespace Dragoneye.Game
         void Start()
         {
             m_Root = GetComponent<UIDocument>().rootVisualElement;
+            UiTypeface.Apply(m_Root);
 
             // Both this document and the session menu share one panel, and this one sorts above it.
             // A full-screen element with the default picking mode therefore eats every click meant

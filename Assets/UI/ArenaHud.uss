@@ -23,8 +23,8 @@
 /* ---------- party column ---------- */
 
 .party-column {
-    width: 250px;
-    padding: 12px 12px 8px 12px;
+    width: 224px;
+    padding: 10px 10px 6px 10px;
     background-image: url("Generated/ui-panel.png");
 
     /* The frame is let through a little; the text on it is not. Tinting the background rather than
@@ -302,14 +302,25 @@
 
 /* ---------- turn order bar ---------- */
 
+/* The bar sits on a shade of fixed height rather than wearing one: the band is what stops the
+   round label being drawn over a token, and it should be exactly as tall as that needs and not a
+   pixel more. Everything above the board is space the player cannot use. */
 .turn-bar {
     position: absolute;
     top: 0;
     left: 0;
     right: 0;
-    padding-top: 14px;
-    padding-bottom: 28px;
+    padding-top: 8px;
+    padding-bottom: 6px;
     align-items: center;
+}
+
+.turn-bar__shade {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 96px;
     background-image: url("Generated/ui-shade.png");
     -unity-background-scale-mode: stretch-to-fill;
 }
@@ -319,7 +330,7 @@
     -unity-font-style: bold;
     letter-spacing: 4px;
     color: rgb(198, 158, 88);
-    margin-bottom: 8px;
+    margin-bottom: 4px;
 }
 
 .turn-bar__order {
@@ -340,16 +351,16 @@
 /* Reserved whether or not there is a name, so portraits do not shift as turns pass. */
 .turn-bar__active-name {
     min-height: 20px;
-    margin-top: 8px;
-    font-size: 17px;
+    margin-top: 4px;
+    font-size: 16px;
     -unity-font-style: bold;
     letter-spacing: 2px;
     color: rgb(236, 231, 219);
 }
 
 .turn-portrait {
-    width: 62px;
-    height: 62px;
+    width: 54px;
+    height: 54px;
     margin: 0 3px;
     overflow: hidden;
     justify-content: flex-end;
@@ -361,8 +372,8 @@
 
 /* The active creature reads first: larger, lifted, and the only one ringed in gold. */
 .turn-portrait--active {
-    width: 80px;
-    height: 80px;
+    width: 66px;
+    height: 66px;
     margin-bottom: 0;
     border-color: rgb(226, 191, 122);
 }
@@ -431,15 +442,22 @@
 
 .turn-footer {
     position: absolute;
-    bottom: 22px;
+    bottom: 14px;
     left: 0;
     right: 0;
     align-items: center;
 }
 
+/* Points and the button on one line, so the footer is two rows tall and not four. */
+.turn-footer__line {
+    flex-direction: row;
+    align-items: center;
+    margin-top: 6px;
+}
+
 .end-turn {
-    height: 42px;
-    padding: 0 34px;
+    height: 36px;
+    padding: 0 26px;
     border-width: 2px;
     border-color: rgba(0, 0, 0, 0);
     font-size: 13px;
@@ -1134,8 +1152,8 @@
 /* Wide enough for "1 AP  1 ARC" on one line and tall enough for two lines of text, because both
    were previously drawn outside a box sized for neither. */
 .skill-button {
-    width: 108px;
-    min-height: 56px;
+    width: 104px;
+    min-height: 50px;
     margin: 0 4px;
     padding: 7px 9px;
     background-color: rgba(0, 0, 0, 0);
@@ -1237,7 +1255,7 @@
 
     /* Fixed, and clipped. Without a height of its own the panel grew with its contents and the
        oldest lines climbed off the top of the screen -- which is not scrolling, it is leaking. */
-    height: 168px;
+    height: 132px;
     overflow: hidden;
     opacity: 0.72;
     padding: 8px 10px 6px 10px;
@@ -1436,7 +1454,7 @@
     flex-direction: row;
     align-items: center;
     min-height: 22px;
-    margin-bottom: 10px;
+    margin-right: 22px;
 }
 
 .ap-row__text {
@@ -1461,4 +1479,40 @@
 
 .pips--footer .pip--whole {
     margin-right: 9px;
+}
+
+/* ---------- the eighth answer ---------- */
+
+/* Held nothing of: dim, and dead. Still drawn, because the seven are a set. */
+.clash-option--empty {
+    opacity: 0.3;
+}
+
+/* Nothing: a circle with a bar through it, drawn rather than pictured, in the colour of a loss. */
+.clash-option__mark--none {
+    background-image: none;
+    border-width: 3px;
+    border-color: rgb(217, 112, 94);
+    border-radius: 24px;
+    align-items: center;
+    justify-content: center;
+}
+
+.clash-option__mark-bar {
+    width: 30px;
+    height: 3px;
+    background-color: rgb(217, 112, 94);
+    rotate: -45deg;
+}
+
+/* What is known about the attack, between the stakes and the row. */
+.clash-prompt__intel {
+    margin-top: 8px;
+    font-size: 12px;
+    color: rgb(168, 175, 192);
+    white-space: normal;
+}
+
+.clash-prompt__intel--known {
+    color: rgb(226, 191, 122);
 }

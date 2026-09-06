@@ -491,8 +491,13 @@ namespace Dragoneye.Game
         /// authored holding. Both are the same question -- what is in its hand -- asked of the two
         /// places that answer it.
         /// </summary>
-        static SkillSpec SwingOf(CreatureState watcher)
+        static SkillSpec SwingOf(CreatureState watcher) => SwingOf(watcher, out _);
+
+        /// <summary>The swing, and the authored skill it was made from -- which is what "seen" is about.</summary>
+        static SkillSpec SwingOf(CreatureState watcher, out SkillSpec source)
         {
+            source = null;
+
             if (watcher == null)
             {
                 return null;
@@ -508,14 +513,38 @@ namespace Dragoneye.Game
             // about, so the first attack it was authored holding stands in for one.
             if (loadout != null)
             {
-                return Opportunity.From(Opportunity.PrimaryOf(loadout));
+                source = Opportunity.PrimaryOf(loadout);
+                return Opportunity.From(source);
             }
 
             var commands = watcher.GetComponent<SkillCommands>();
 
-            return commands != null
-                ? Opportunity.From(Opportunity.PrimaryOf(commands.Skills))
-                : null;
+            source = commands != null ? Opportunity.PrimaryOf(commands.Skills) : null;
+            return Opportunity.From(source);
+        }
+
+        /// <summary>
+        /// Whether this creature has been watched using its weapon, so the swing it is about to
+        /// take is one whose element everybody already knows.
+        /// </summary>
+        static bool HasShownWeapon(CreatureState watcher, SkillSpec source)
+        {
+            var commands = watcher != null ? watcher.GetComponent<SkillCommands>() : null;
+
+            if (commands == null || source == null)
+            {
+                return false;
+            }
+
+            foreach (var id in commands.SeenSkillIds)
+            {
+                if (id == source.Id)
+                {
+                    return true;
+                }
+            }
+
+            return false;
         }
 
         /// <summary>
@@ -598,11 +627,17 @@ namespace Dragoneye.Game
             }
 
             var pool = watcher.GetComponent<CreaturePool>();
-            var skill = SwingOf(watcher);
+            var skill = SwingOf(watcher, out var weapon);
 
             // A fist has a choice of elements and nobody to ask, so it takes the first it can pay
             // for -- the same one the prompt showed, because the prompt asked the same question.
             skill = pool != null ? Settle(skill, null, pool.ServerLedger) : null;
+
+            // A seen weapon is a known element. The defender is told, and the odds they are shown
+            // are worked out against that one element rather than the whole hand.
+            var telegraphed = skill != null && HasShownWeapon(watcher, weapon)
+                ? skill.Element
+                : (Element?)null;
 
             // Committed, not spent: a swing hides what it is made of until the answer is in, the
             // same as any other attack.
@@ -616,7 +651,7 @@ namespace Dragoneye.Game
             // Turning to swing, like any other attack, which opens the swinger own back in turn.
             watcher.ServerFace(Bearing(watcher.Cell, mover.Cell));
 
-            BeginClash(watcher, skill, mover);
+            BeginClash(watcher, skill, mover, telegraphed);
             return true;
         }
 
@@ -688,7 +723,8 @@ namespace Dragoneye.Game
         /// What this holds is a <see cref="ClashSequence"/>, which is where every decision about
         /// the clash is made. This only carries messages to it and applies what it says.
         /// </summary>
-        void BeginClash(CreatureState actor, SkillSpec skill, CreatureState target)
+        void BeginClash(CreatureState actor, SkillSpec skill, CreatureState target,
+            Element? telegraphed = null)
         {
             var pool = target.GetComponent<CreaturePool>();
 
@@ -712,7 +748,7 @@ namespace Dragoneye.Game
                 new ClashSide((int)actor.TurnId, advantage: actor.HasAdvantage),
                 new ClashSide((int)target.TurnId, advantage: target.HasAdvantage,
                     disadvantage: flanked),
-                pool.ServerLedger, ElementMatchups.Table);
+                pool.ServerLedger, ElementMatchups.Table, telegraphed);
 
             m_ClashAttacker = actor;
             m_ClashDefender = target;

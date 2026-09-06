@@ -60,8 +60,22 @@ namespace Dragoneye.Combat
         /// <summary>Whether something they carry gives them the better of two.</summary>
         public readonly bool Shielded;
 
+        /// <summary>
+        /// Whether the attack's element is public before it lands, and which it is.
+        ///
+        /// Almost never. DE-005's whole point is that the defender is not told what is coming.
+        /// The exception is a swing at somebody walking past: that is always the swinger's weapon,
+        /// and a weapon that has been seen used is a weapon whose element everybody already knows.
+        /// Telling the defender what they could work out for themselves is not a leak; making them
+        /// work it out is a chore.
+        /// </summary>
+        public readonly bool HasTelegraph;
+
+        public readonly Element Telegraphed;
+
         public DefenceRequest(int defenderId, int attackerId, int required,
-            IReadOnlyList<Element> options, bool flanked, bool shielded)
+            IReadOnlyList<Element> options, bool flanked, bool shielded,
+            Element? telegraphed = null)
         {
             DefenderId = defenderId;
             AttackerId = attackerId;
@@ -69,6 +83,8 @@ namespace Dragoneye.Combat
             Options = options ?? System.Array.Empty<Element>();
             Flanked = flanked;
             Shielded = shielded;
+            HasTelegraph = telegraphed.HasValue;
+            Telegraphed = telegraphed ?? default;
         }
 
         /// <summary>Whether there is a decision to make at all.</summary>
@@ -140,14 +156,15 @@ namespace Dragoneye.Combat
         ClashOutcome m_Outcome = ClashOutcome.AttackerWins;
 
         ClashSequence(ClashCommitment attacker, ClashSide attack, ClashSide defence,
-            IReadOnlyList<Element> options, IElementMatchup matchup)
+            IReadOnlyList<Element> options, IElementMatchup matchup, Element? telegraphed)
         {
             m_Attacker = attacker;
             m_Defence = defence;
             m_Matchup = matchup;
 
             Request = new DefenceRequest(defence.CreatureId, attack.CreatureId,
-                defence.Commitment, options, defence.Disadvantage, defence.Advantage);
+                defence.Commitment, options, defence.Disadvantage, defence.Advantage,
+                telegraphed);
         }
 
         /// <summary>
@@ -158,10 +175,14 @@ namespace Dragoneye.Combat
         /// be taken back once the defender has been made to think about it.
         /// </summary>
         /// <param name="element">What the skill commits, one entry per unit of its cost.</param>
+        /// <param name="telegraphed">
+        /// The attack's element, when it is public before it lands. Null for any ordinary attack.
+        /// </param>
         public static ClashSequence Begin(IReadOnlyList<Element> element, ClashSide attack,
-            ClashSide defence, ElementLedger defenderPool, IElementMatchup matchup) =>
+            ClashSide defence, ElementLedger defenderPool, IElementMatchup matchup,
+            Element? telegraphed = null) =>
             new ClashSequence(new ClashCommitment(element, attack.Bias), attack, defence,
-                ClashRules.AnswersFor(defenderPool), matchup);
+                ClashRules.AnswersFor(defenderPool), matchup, telegraphed);
 
         public ClashPhase Phase { get; private set; } = ClashPhase.AwaitingDefence;
 

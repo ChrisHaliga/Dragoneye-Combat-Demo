@@ -90,7 +90,8 @@ namespace Dragoneye.Game
             }
 
             AskRpc(request.DefenderId, request.AttackerId, request.Required, options,
-                request.Flanked, request.Shielded,
+                request.Flanked, request.Shielded, request.HasTelegraph,
+                (byte)request.Telegraphed,
                 RpcTarget.Single(defender.OwnerClientId, RpcTargetUse.Temp));
         }
 
@@ -113,7 +114,7 @@ namespace Dragoneye.Game
 
         [Rpc(SendTo.SpecifiedInParams)]
         void AskRpc(int defenderId, int attackerId, int required, byte[] options, bool flanked,
-            bool shielded, RpcParams rpc = default)
+            bool shielded, bool telegraphs, byte telegraphed, RpcParams rpc = default)
         {
             var elements = new List<Element>(options.Length);
 
@@ -128,8 +129,11 @@ namespace Dragoneye.Game
                 }
             }
 
+            var known = (Element)telegraphed;
+
             Asked?.Invoke(new DefenceRequest(defenderId, attackerId, required, elements,
-                flanked, shielded));
+                flanked, shielded,
+                telegraphs && ElementInfo.IsDefined(known) ? known : (Element?)null));
         }
 
         [Rpc(SendTo.SpecifiedInParams)]

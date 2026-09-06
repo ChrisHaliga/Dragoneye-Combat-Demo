@@ -961,7 +961,8 @@
     flex-grow: 1;
     flex-basis: 0;
     margin-right: 6px;
-    padding: 6px 2px 7px 2px;
+    padding: 4px 2px 5px 2px;
+    max-height: 54px;
     align-items: center;
     background-image: url("Generated/ui-well.png");
     -unity-slice-left: 22;
@@ -979,8 +980,8 @@
 }
 
 .stat__value {
-    margin-top: 1px;
-    font-size: 18px;
+    margin-top: 0;
+    font-size: 20px;
     -unity-font-style: bold;
     color: rgb(236, 231, 219);
 }

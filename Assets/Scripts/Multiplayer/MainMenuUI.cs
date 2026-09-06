@@ -57,6 +57,7 @@ namespace Dragoneye.Multiplayer
             }
 
             var root = GetComponent<UIDocument>().rootVisualElement;
+            UiTypeface.Apply(root);
 
             if (!BindPanels(root) || !BindHome(root))
             {

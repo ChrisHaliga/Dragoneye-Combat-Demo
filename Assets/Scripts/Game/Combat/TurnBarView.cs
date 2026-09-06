@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using Dragoneye.Combat;
+using Dragoneye.Multiplayer;
 using UnityEngine;
 using UnityEngine.UIElements;
 
@@ -45,6 +46,7 @@ namespace Dragoneye.Game
             }
 
             var root = GetComponent<UIDocument>().rootVisualElement;
+            UiTypeface.Apply(root);
             CreatureDisplay.MakeClickThrough(root);
 
             m_Order = root.Q<VisualElement>("turn-order");
@@ -177,14 +179,19 @@ namespace Dragoneye.Game
                     // names a person, and only when there is one -- "the computer's turn" is a
                     // sentence nobody needed, occupying the most-read strip of the screen to say
                     // that the thing without a player attached has no player attached.
-                    m_ActiveName.text = $"{creature.DisplayName}'s turn";
-
+                    // One line. The name and, where there is one, the person -- side by side
+                    // rather than stacked, because every line the bar takes is a row of tiles the
+                    // player cannot see.
                     var player = creature.IsComputerControlled
                         ? string.Empty
-                        : CreatureDisplay.ControllerName(creature).ToUpperInvariant();
+                        : CreatureDisplay.ControllerName(creature);
 
-                    m_ActiveOwner.text = player;
-                    m_ActiveOwner.EnableInClassList("is-hidden", player.Length == 0);
+                    m_ActiveName.text = player.Length == 0
+                        ? $"{creature.DisplayName}'s turn"
+                        : $"{creature.DisplayName}'s turn  <color=#8B93A5>\u00b7  {player}</color>";
+
+                    m_ActiveOwner.text = string.Empty;
+                    m_ActiveOwner.EnableInClassList("is-hidden", true);
                 }
             }
         }

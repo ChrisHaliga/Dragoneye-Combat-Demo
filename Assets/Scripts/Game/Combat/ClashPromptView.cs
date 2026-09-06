@@ -10,14 +10,18 @@ namespace Dragoneye.Game
     /// <summary>
     /// The question put to a defender, and the only place they can answer it.
     ///
-    /// It shows what they hold and nothing about what is coming, because that is all it is given:
-    /// a <see cref="DefenceRequest"/> has no room for the attacker's skill or element, so there is
-    /// nothing here to be careful about withholding.
+    /// Eight things to choose between: the seven elements, held or not, and taking the blow. All
+    /// seven are always shown, because a hand is a fixed set and a row that changed length as it
+    /// drained would teach the player nothing about either the set or the hand. What they do not
+    /// hold is dim and dead. Taking the blow is the eighth option rather than a button off to the
+    /// side, because it is an answer -- it costs nothing and it is sometimes the right one -- and
+    /// it should sit beside the others with its odds under it like theirs.
     ///
-    /// The counts beside each rune come from the defender's own pool, which they are entitled to
-    /// see and nobody else is. That is what lets them spend the same element twice when they hold
-    /// two of it -- the request lists what they may answer with, once each, and how much of it
-    /// there is is their own business.
+    /// It shows what they hold and, of what is coming, only what is public: which skills the
+    /// attacker has been watched using, and -- for a swing at somebody walking past, which is
+    /// always their weapon -- which element that is, once the weapon has been seen. A
+    /// <see cref="DefenceRequest"/> has no room for the attacker's actual commitment, so there is
+    /// nothing here to be careful about withholding.
     /// </summary>
     [RequireComponent(typeof(UIDocument))]
     [DisallowMultipleComponent]
@@ -28,15 +32,13 @@ namespace Dragoneye.Game
 
         VisualElement m_Root;
         VisualElement m_Panel;
-        Label m_Title;
-        Label m_Reason;
         VisualElement m_Options;
         Label m_Tally;
         Button m_Answer;
-        Button m_Decline;
 
         DefenceRequest m_Request;
         bool m_Open;
+        bool m_Declined;
 
         readonly List<Element> m_Staged = new List<Element>();
 
@@ -65,10 +67,14 @@ namespace Dragoneye.Game
             ClashCommands.Closed -= Close;
         }
 
+        /// <summary>Whether a decision is on screen. The board stands aside while it is.</summary>
+        public bool IsOpen => m_Open;
+
         void OnAsked(DefenceRequest request)
         {
             m_Request = request;
             m_Staged.Clear();
+            m_Declined = false;
 
             Close();
             Build();
@@ -82,28 +88,35 @@ namespace Dragoneye.Game
             m_Open = false;
         }
 
+        CreatureState Defender => Creature((uint)m_Request.DefenderId);
+
+        CreatureState Attacker => Creature((uint)m_Request.AttackerId);
+
+        CreatureState Creature(uint turnId) =>
+            m_Input.Creatures != null ? m_Input.Creatures.ByTurnId(turnId) : null;
+
         /// <summary>
-        /// How much of an element this creature still has to put up.
+        /// How much of an element this creature still has to put up, less what is already staged.
         ///
         /// Read from the defender's own pool rather than carried on the request, because the count
-        /// is theirs and the request goes over a wire. Falls back to one apiece if the creature
-        /// cannot be found, so a prompt is never dead -- the sequence refuses anything unpayable
-        /// anyway, which is the check that counts.
+        /// is theirs and the request goes over a wire. Falls back to the request's option list if
+        /// the creature cannot be found, so a prompt is never dead -- the sequence refuses anything
+        /// unpayable anyway, which is the check that counts.
         /// </summary>
         int Held(Element element)
         {
-            var creature = m_Input.Creatures != null
-                ? m_Input.Creatures.ByTurnId((uint)m_Request.DefenderId)
-                : null;
+            var defender = Defender;
+            var pool = defender != null ? defender.GetComponent<CreaturePool>() : null;
 
-            var pool = creature != null ? creature.GetComponent<CreaturePool>() : null;
-            var held = pool != null && pool.CanSee ? pool.Pool[element] : 1;
+            var held = pool != null && pool.CanSee
+                ? pool.Pool[element]
+                : Contains(m_Request.Options, element) ? 1 : 0;
 
             var staged = 0;
 
-            foreach (var element_ in m_Staged)
+            foreach (var chosen in m_Staged)
             {
-                if (element_ == element)
+                if (chosen == element)
                 {
                     staged++;
                 }
@@ -112,18 +125,33 @@ namespace Dragoneye.Game
             return held - staged;
         }
 
+        static bool Contains(IReadOnlyList<Element> elements, Element element)
+        {
+            foreach (var candidate in elements)
+            {
+                if (candidate == element)
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
         void Build()
         {
             m_Panel = new VisualElement();
             m_Panel.AddToClassList("clash-prompt");
 
-            m_Title = new Label("Answer the attack");
-            m_Title.AddToClassList("clash-prompt__title");
-            m_Panel.Add(m_Title);
+            var title = new Label("Answer the attack");
+            title.AddToClassList("clash-prompt__title");
+            m_Panel.Add(title);
 
-            m_Reason = new Label(ClashLabels.Describe(m_Request));
-            m_Reason.AddToClassList("clash-prompt__reason");
-            m_Panel.Add(m_Reason);
+            var reason = new Label(ClashLabels.Describe(m_Request));
+            reason.AddToClassList("clash-prompt__reason");
+            m_Panel.Add(reason);
+
+            m_Panel.Add(Intelligence());
 
             var key = new Label(ClashLabels.OddsKey);
             key.AddToClassList("clash-prompt__key");
@@ -145,11 +173,6 @@ namespace Dragoneye.Game
             m_Answer.AddToClassList("button--primary");
             actions.Add(m_Answer);
 
-            m_Decline = new Button(OnDeclineClicked) { text = "Take it" };
-            m_Decline.AddToClassList("button");
-            m_Decline.tooltip = "Spend nothing, and let the attack land as it is.";
-            actions.Add(m_Decline);
-
             m_Panel.Add(actions);
             m_Root.Add(m_Panel);
 
@@ -160,23 +183,89 @@ namespace Dragoneye.Game
             Refresh();
         }
 
+        /// <summary>
+        /// What is known about the attack, in one line.
+        ///
+        /// A swing at somebody walking past is always the swinger's weapon, and once the weapon
+        /// has been seen its element is known -- so the line says so, and the odds below are
+        /// worked out against that one element rather than the whole hand. Otherwise it lists
+        /// the skills this creature has been watched using, which is what a player would be
+        /// counting on their fingers anyway.
+        /// </summary>
+        VisualElement Intelligence()
+        {
+            var line = new Label();
+            line.AddToClassList("clash-prompt__intel");
+
+            var attacker = Attacker;
+
+            if (m_Request.HasTelegraph)
+            {
+                var rune = CombatLogLines.Rune(m_Request.Telegraphed);
+                line.text = $"They are swinging with their weapon, which you have seen: it "
+                    + $"arrives as {rune}.";
+                line.AddToClassList("clash-prompt__intel--known");
+                return line;
+            }
+
+            var seen = new List<string>();
+            var commands = attacker != null ? attacker.GetComponent<SkillCommands>() : null;
+            var catalog = SkillCatalog.Current;
+
+            if (commands != null && catalog != null)
+            {
+                foreach (var id in commands.SeenSkillIds)
+                {
+                    if (catalog.TryGetSkill(id, out var skill) && skill.IsContested
+                        && skill.ElementCost > 0)
+                    {
+                        seen.Add($"{skill.Name} ({CombatLogLines.Rune(skill.Element)})");
+                    }
+                }
+            }
+
+            line.text = seen.Count > 0
+                ? "Seen attacking with: " + string.Join(", ", seen) + "."
+                : "You have not seen this creature attack yet.";
+
+            return line;
+        }
+
         void Refresh()
         {
             m_Options.Clear();
 
-            foreach (var element in m_Request.Options)
+            foreach (var element in ElementInfo.All)
             {
-                m_Options.Add(BuildOption(element));
+                m_Options.Add(ElementOption(element));
             }
 
-            m_Tally.text = m_Request.Required > 1
-                ? $"{m_Staged.Count} of {m_Request.Required} chosen"
-                : m_Staged.Count > 0 ? "Ready to answer" : "Choose an element";
+            m_Options.Add(DeclineOption());
 
-            m_Answer.SetEnabled(m_Staged.Count > 0);
+            m_Tally.text = m_Declined
+                ? "Taking the hit"
+                : m_Request.Required > 1
+                    ? $"{m_Staged.Count} of {m_Request.Required} chosen"
+                    : m_Staged.Count > 0 ? "Ready to answer" : "Choose an answer";
+
+            m_Answer.SetEnabled(m_Declined || m_Staged.Count > 0);
         }
 
-        VisualElement BuildOption(Element element)
+        /// <summary>How answering with this element is expected to go, against what is known.</summary>
+        ClashOdds OddsFor(Element element)
+        {
+            if (m_Request.HasTelegraph)
+            {
+                return CreatureKnowledge.ForecastDefenceAgainst(element, m_Request.Telegraphed);
+            }
+
+            var attacker = Attacker;
+            return attacker != null
+                ? CreatureKnowledge.ForecastDefence(element, attacker)
+                : ClashOdds.Even;
+        }
+
+        VisualElement ElementOption(Element element)
         {
             var left = Held(element);
             var staged = 0;
@@ -189,10 +278,12 @@ namespace Dragoneye.Game
                 }
             }
 
-            var button = new Button();
+            var button = new Button(() => Toggle(element));
             button.AddToClassList("clash-option");
             button.EnableInClassList("clash-option--staged", staged > 0);
+            button.EnableInClassList("clash-option--empty", left + staged <= 0);
             button.text = string.Empty;
+            button.tooltip = ElementLore.Describe(element);
 
             var mark = new VisualElement();
             mark.AddToClassList("clash-option__mark");
@@ -203,40 +294,59 @@ namespace Dragoneye.Game
             name.AddToClassList("clash-option__name");
             button.Add(name);
 
-            // The reasoning behind the numbers below, for anybody who wants to check it rather
-            // than take it on trust.
-            button.tooltip = ElementLore.Describe(element);
-
             var count = new Label(staged > 0
                 ? $"{staged} of {left + staged} chosen"
-                : $"{left} held");
+                : left > 0 ? $"{left} held" : "none held");
             count.AddToClassList("clash-option__count");
             button.Add(count);
 
-            // What this answer is worth, so nobody has to hold the matchup table in their head to
-            // play well. Built from what the attacker has been proven to hold and which elements
-            // their seen skills could arrive as -- all of it public, none of it their commitment.
-            var attacker = m_Input.Creatures != null
-                ? m_Input.Creatures.ByTurnId((uint)m_Request.AttackerId)
-                : null;
+            var chances = new Label(ClashLabels.Chances(OddsFor(element)));
+            chances.AddToClassList("clash-option__odds");
+            chances.tooltip = "Win: no damage, and you keep the element. Tie: no damage, and it "
+                + "is gone. Lose: you take the hit and it is gone.";
+            button.Add(chances);
 
-            if (attacker != null)
-            {
-                var odds = CreatureKnowledge.ForecastDefence(element, attacker);
-
-                var chances = new Label(ClashLabels.Chances(odds));
-                chances.AddToClassList("clash-option__odds");
-                chances.tooltip = "Win: no damage, and you keep the element. Tie: no damage, "
-                    + "and it is gone. Lose: you take the hit and it is gone. Worked out from what "
-                    + "this attacker is known to be holding.";
-                button.Add(chances);
-            }
-
-            // Only an element the defender holds none of is off the table. Everything else stays
-            // live so a choice can be changed: the first cut disabled every option the moment one
-            // was picked, which read as the panel breaking rather than as a decision being made.
+            // Only an element the defender holds none of is off the table.
             button.SetEnabled(left + staged > 0);
-            button.clicked += () => Toggle(element);
+
+            return button;
+        }
+
+        /// <summary>
+        /// The eighth answer: nothing. It always loses, and it costs nothing, and those two facts
+        /// are on it in the same place the other seven carry theirs.
+        /// </summary>
+        VisualElement DeclineOption()
+        {
+            var button = new Button(ToggleDecline);
+            button.AddToClassList("clash-option");
+            button.AddToClassList("clash-option--decline");
+            button.EnableInClassList("clash-option--staged", m_Declined);
+            button.text = string.Empty;
+            button.tooltip = "Put nothing up. The attack lands as it is, and you spend nothing.";
+
+            var mark = new VisualElement();
+            mark.AddToClassList("clash-option__mark");
+            mark.AddToClassList("clash-option__mark--none");
+
+            var bar = new VisualElement();
+            bar.AddToClassList("clash-option__mark-bar");
+            mark.Add(bar);
+
+            button.Add(mark);
+
+            var name = new Label("NONE");
+            name.AddToClassList("clash-option__name");
+            button.Add(name);
+
+            var count = new Label("costs nothing");
+            count.AddToClassList("clash-option__count");
+            button.Add(count);
+
+            var chances = new Label(ClashLabels.Chances(ClashOdds.CertainLoss));
+            chances.AddToClassList("clash-option__odds");
+            chances.tooltip = "You take the hit. Nothing is spent.";
+            button.Add(chances);
 
             return button;
         }
@@ -251,6 +361,8 @@ namespace Dragoneye.Game
         /// </summary>
         void Toggle(Element element)
         {
+            m_Declined = false;
+
             var room = m_Staged.Count < m_Request.Required;
 
             if (room && Held(element) > 0)
@@ -270,6 +382,13 @@ namespace Dragoneye.Game
             Refresh();
         }
 
+        void ToggleDecline()
+        {
+            m_Declined = !m_Declined;
+            m_Staged.Clear();
+            Refresh();
+        }
+
         /// <summary>
         /// Sends the answer, and takes the prompt down without waiting to be told.
         ///
@@ -279,17 +398,11 @@ namespace Dragoneye.Game
         /// </summary>
         void OnAnswerClicked()
         {
-            ClashCommands.Current?.Answer(m_Staged);
+            ClashCommands.Current?.Answer(m_Declined
+                ? System.Array.Empty<Element>()
+                : m_Staged);
+
             Close();
         }
-
-        void OnDeclineClicked()
-        {
-            ClashCommands.Current?.Answer(System.Array.Empty<Element>());
-            Close();
-        }
-
-        /// <summary>Whether a decision is on screen. The board stands aside while it is.</summary>
-        public bool IsOpen => m_Open;
     }
 }
