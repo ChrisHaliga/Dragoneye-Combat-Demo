@@ -43,6 +43,13 @@ namespace Dragoneye.Game
         public const string LoseColour = "#D9705E";
 
         /// <summary>
+        /// A hotter red than an outcome, for something about to go wrong rather than something
+        /// that already has. Warnings have to out-shout a cursor label that is already three lines
+        /// long, and the muted red of a lost clash reads as one more fact on it.
+        /// </summary>
+        public const string DangerColour = "#F05A3C";
+
+        /// <summary>
         /// How it came out, for whoever is reading it.
         ///
         /// Win, tie and lose, and always from the reader's own side -- an attacker reading "LOSE"
@@ -107,7 +114,8 @@ namespace Dragoneye.Game
         /// spend a turn getting round somebody the long way, or to want a skill that does not
         /// provoke.
         /// </summary>
-        public const string Provokes = "Moving draws an opportunity attack.";
+        public static string Provokes =>
+            Tint(DangerColour, "! Moving draws an opportunity attack");
 
         /// <summary>What the three numbers on a prompt are, in the order they are written.</summary>
         public static string OddsKey =>

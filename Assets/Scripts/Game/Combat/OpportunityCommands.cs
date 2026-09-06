@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Generic;
 using Dragoneye.Combat;
 using Unity.Netcode;
 using UnityEngine;
@@ -15,14 +14,14 @@ namespace Dragoneye.Game
         /// <summary>Who is trying to move.</summary>
         public readonly uint MoverId;
 
-        /// <summary>What the swing could be made of: one of each element still held.</summary>
-        public readonly IReadOnlyList<Element> Options;
+        /// <summary>The attack it would swing with, or null if it somehow has none.</summary>
+        public readonly SkillSpec Swing;
 
-        public OpportunityOffer(uint watcherId, uint moverId, IReadOnlyList<Element> options)
+        public OpportunityOffer(uint watcherId, uint moverId, SkillSpec swing)
         {
             WatcherId = watcherId;
             MoverId = moverId;
-            Options = options ?? Array.Empty<Element>();
+            Swing = swing;
         }
     }
 
@@ -39,8 +38,9 @@ namespace Dragoneye.Game
     /// commit at all. Folding them together would mean one message meaning two things depending on
     /// a flag, and one prompt deciding which of two panels to be.
     ///
-    /// What goes out is nothing the receiver did not already know: their own hand, and the fact
-    /// that somebody adjacent is moving. The mover has said nothing about what they hold.
+    /// What crosses the wire is the element and what it costs -- three numbers -- rather than a
+    /// skill. The receiver already knows what its own weapon is; sending the attack whole would be
+    /// sending them their own inventory back.
     /// </summary>
     [RequireComponent(typeof(NetworkObject))]
     [DisallowMultipleComponent]
@@ -72,24 +72,17 @@ namespace Dragoneye.Game
         }
 
         /// <summary>Server only. Offers the swing to whoever runs the watching creature.</summary>
-        public void ServerOffer(CreatureState watcher, CreatureState mover,
-            IReadOnlyList<Element> options)
+        public void ServerOffer(CreatureState watcher, CreatureState mover, SkillSpec swing)
         {
-            if (!IsServer || watcher == null || mover == null)
+            if (!IsServer || watcher == null || mover == null || swing == null)
             {
                 return;
             }
 
             m_Asked = watcher;
 
-            var packed = new byte[options?.Count ?? 0];
-
-            for (var i = 0; i < packed.Length; i++)
-            {
-                packed[i] = (byte)options[i];
-            }
-
-            OfferRpc(watcher.TurnId, mover.TurnId, packed,
+            OfferRpc(watcher.TurnId, mover.TurnId, (byte)swing.Element, swing.ElementCost,
+                swing.Effect.Amount,
                 RpcTarget.Single(watcher.OwnerClientId, RpcTargetUse.Temp));
         }
 
@@ -111,30 +104,31 @@ namespace Dragoneye.Game
         }
 
         [Rpc(SendTo.SpecifiedInParams)]
-        void OfferRpc(uint watcherId, uint moverId, byte[] options, RpcParams rpc = default)
+        void OfferRpc(uint watcherId, uint moverId, byte element, int elementCost, int damage,
+            RpcParams rpc = default)
         {
-            var elements = new List<Element>(options.Length);
+            var chosen = (Element)element;
 
-            foreach (var option in options)
+            // An element arrives as a byte, and casting to an enum is not a checked conversion.
+            if (!ElementInfo.IsDefined(chosen))
             {
-                var element = (Element)option;
-
-                // An element arrives as a byte, and casting to an enum is not a checked conversion.
-                if (ElementInfo.IsDefined(element))
-                {
-                    elements.Add(element);
-                }
+                return;
             }
 
-            Offered?.Invoke(new OpportunityOffer(watcherId, moverId, elements));
+            // Rebuilt rather than sent: what a swing is made of is three numbers, and reassembling
+            // it here keeps the message small and the shape of the thing in one place.
+            var swing = Opportunity.From(new SkillSpec(Opportunity.SkillId, Opportunity.Name,
+                chosen, Ap.Zero, elementCost, Opportunity.Range, SkillTarget.Creature,
+                new SkillEffect(SkillEffectKind.Damage, damage)));
+
+            Offered?.Invoke(new OpportunityOffer(watcherId, moverId, swing));
         }
 
         [Rpc(SendTo.SpecifiedInParams)]
         void ClosedRpc(RpcParams rpc = default) => Closed?.Invoke();
 
-        /// <summary>Client-side entry point. An element swings; nothing declines.</summary>
-        public void Answer(Element? element) =>
-            AnswerRpc(element.HasValue ? (byte)element.Value : (byte)0, element.HasValue);
+        /// <summary>Client-side entry point. Take the swing, or let them go.</summary>
+        public void Answer(bool swings) => AnswerRpc(swings);
 
         /// <summary>
         /// The answer, from the client that was asked.
@@ -143,7 +137,7 @@ namespace Dragoneye.Game
         /// director refuses anything the watcher cannot actually pay.
         /// </summary>
         [Rpc(SendTo.Server, InvokePermission = RpcInvokePermission.Everyone)]
-        void AnswerRpc(byte element, bool swings, RpcParams rpc = default)
+        void AnswerRpc(bool swings, RpcParams rpc = default)
         {
             var director = CombatDirector.Current;
 
@@ -159,10 +153,7 @@ namespace Dragoneye.Game
                 return;
             }
 
-            var chosen = (Element)element;
-            var answer = swings && ElementInfo.IsDefined(chosen) ? chosen : (Element?)null;
-
-            director.ServerAnswerOpportunity(m_Asked, answer);
+            director.ServerAnswerOpportunity(m_Asked, swings);
         }
     }
 }

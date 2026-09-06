@@ -9,15 +9,13 @@ namespace Dragoneye.Game
     /// <summary>
     /// The offer of a swing at somebody walking out from under your nose.
     ///
-    /// The mirror of <see cref="ClashPromptView"/> and deliberately built to look like it: the same
-    /// panel, the same row of runes, the same three numbers under each. What differs is which end
-    /// of the exchange you are on. A defence prompt asks what you will put up against something
-    /// already committed; this asks whether to commit at all, and every option costs an element you
-    /// will not get back.
+    /// One attack and two answers. The swing is whatever the creature is already carrying, so there
+    /// is nothing to choose and nothing to weigh but the odds -- which are shown, because the whole
+    /// decision is whether an element is worth a chance at that.
     ///
-    /// So declining is a first-class answer and not a way out of the dialog. It is spelled out on
-    /// its own button, because a swing that is worse than even hands the mover a free look at your
-    /// hand -- and a prompt that only offered ways to say yes would be selling one.
+    /// It interrupts somebody else's turn, which is the reason it says so much in so few words: a
+    /// panel that appears when a player is not expecting one has to answer "why am I looking at
+    /// this" before it asks anything.
     /// </summary>
     [RequireComponent(typeof(UIDocument))]
     [DisallowMultipleComponent]
@@ -73,6 +71,13 @@ namespace Dragoneye.Game
 
         void Build()
         {
+            var swing = m_Offer.Swing;
+
+            if (swing == null)
+            {
+                return;
+            }
+
             var watcher = CreatureFor(m_Offer.WatcherId);
             var mover = CreatureFor(m_Offer.MoverId);
 
@@ -80,29 +85,24 @@ namespace Dragoneye.Game
             m_Panel.AddToClassList("clash-prompt");
             m_Panel.AddToClassList("clash-prompt--opportunity");
 
-            var title = new Label(watcher != null
-                ? $"{watcher.DisplayName} can swing"
+            var title = new Label(mover != null
+                ? $"{mover.DisplayName} is getting past you"
                 : "Opportunity attack");
 
             title.AddToClassList("clash-prompt__title");
             m_Panel.Add(title);
 
-            var reason = new Label(mover != null
-                ? $"{mover.DisplayName} is moving out from under your nose. Spend an element to "
-                    + $"swing for {Opportunity.Damage}, or let them go."
-                : "Spend an element to swing, or let them go.");
+            var reason = new Label(watcher != null
+                ? $"{watcher.DisplayName} can swing for free as they go. It costs the element and "
+                    + "nothing else, and they answer it as they would any attack."
+                : "A free swing as they go. It costs the element and nothing else.");
 
             reason.AddToClassList("clash-prompt__reason");
             m_Panel.Add(reason);
 
             var options = new VisualElement();
             options.AddToClassList("clash-prompt__options");
-
-            foreach (var element in m_Offer.Options)
-            {
-                options.Add(Option(element, mover));
-            }
-
+            options.Add(Attack(swing, mover));
             m_Panel.Add(options);
 
             var key = new Label(ClashLabels.OddsKey);
@@ -112,56 +112,66 @@ namespace Dragoneye.Game
             var actions = new VisualElement();
             actions.AddToClassList("clash-prompt__actions");
 
-            var decline = new Button(() => Answer(null)) { text = "Let them go" };
+            var take = new Button(() => Answer(true)) { text = "Swing" };
+            take.AddToClassList("button");
+            take.AddToClassList("button--primary");
+            actions.Add(take);
+
+            var decline = new Button(() => Answer(false)) { text = "Let them go" };
             decline.AddToClassList("button");
             actions.Add(decline);
 
             m_Panel.Add(actions);
-
             m_Root.Add(m_Panel);
         }
 
         /// <summary>
-        /// One element, with what swinging with it is expected to come to.
+        /// The one attack on offer: what it is made of, what it costs, and how it is likely to go.
         ///
-        /// The odds are the attacker's this time, not the defender's, and they are worked out from
-        /// exactly what a player could count for themselves: what the mover has been proven to hold
-        /// and how much of it is spent.
+        /// Drawn as an option rather than a sentence so it reads like the defence prompt beside it,
+        /// but it is not a button -- there is nothing here to pick. The two answers are below.
         /// </summary>
-        VisualElement Option(Element element, CreatureState mover)
+        VisualElement Attack(SkillSpec swing, CreatureState mover)
         {
-            var button = new Button(() => Answer(element));
-            button.AddToClassList("clash-option");
-            button.text = string.Empty;
-            button.tooltip = ElementLore.Describe(element);
+            var row = new VisualElement();
+            row.AddToClassList("clash-option");
+            row.AddToClassList("clash-option--fixed");
+            row.tooltip = ElementLore.Describe(swing.Element);
 
             var mark = new VisualElement();
             mark.AddToClassList("clash-option__mark");
-            CharacterSheet.PaintElement(mark, element);
-            button.Add(mark);
+            CharacterSheet.PaintElement(mark, swing.Element);
+            row.Add(mark);
 
-            var name = new Label(ElementInfo.ShortNameOf(element));
+            var name = new Label(ElementInfo.ShortNameOf(swing.Element));
             name.AddToClassList("clash-option__name");
-            button.Add(name);
+            row.Add(name);
+
+            var cost = new Label($"{swing.ElementCost} for {swing.Effect.Amount}");
+            cost.AddToClassList("clash-option__count");
+            cost.tooltip = $"Costs {swing.ElementCost} of this element. Does "
+                + $"{swing.Effect.Amount} damage if it gets through.";
+
+            row.Add(cost);
 
             if (mover != null)
             {
                 var chances = new Label(ClashLabels.Chances(
-                    CreatureKnowledge.Forecast(element, mover)));
+                    CreatureKnowledge.Forecast(swing.Element, mover)));
 
                 chances.AddToClassList("clash-option__odds");
                 chances.tooltip = "Win: the swing lands. Tie or lose: it does not, and the element "
                     + "is spent either way.";
 
-                button.Add(chances);
+                row.Add(chances);
             }
 
-            return button;
+            return row;
         }
 
-        void Answer(Element? element)
+        void Answer(bool swings)
         {
-            OpportunityCommands.Current?.Answer(element);
+            OpportunityCommands.Current?.Answer(swings);
             Close();
         }
     }

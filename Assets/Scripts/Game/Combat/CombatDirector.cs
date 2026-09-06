@@ -442,8 +442,45 @@ namespace Dragoneye.Game
                 return false;
             }
 
+            var swing = SwingOf(watcher);
             var pool = watcher.GetComponent<CreaturePool>();
-            return pool != null && pool.ServerLedger.Pool.Total >= Opportunity.ElementCost;
+
+            return swing != null && pool != null
+                && pool.ServerLedger.CanSpend(swing.Element, swing.ElementCost);
+        }
+
+        /// <summary>
+        /// The attack this creature would swing with, or null when it has none.
+        ///
+        /// A built character swings with its weapon; a premade with the first attack it was
+        /// authored holding. Both are the same question -- what is in its hand -- asked of the two
+        /// places that answer it.
+        /// </summary>
+        static SkillSpec SwingOf(CreatureState watcher)
+        {
+            if (watcher == null)
+            {
+                return null;
+            }
+
+            var characters = PlayerCharacters.Current;
+            var loadout = watcher.IsPlayerCharacter && characters != null
+                ? characters.LoadoutFor(watcher.BuildSlot)
+                : null;
+
+            // A built character swings with its weapon and with nothing else -- no weapon is no
+            // reaction, which is the rule and not an oversight. A premade has no equipment to ask
+            // about, so the first attack it was authored holding stands in for one.
+            if (loadout != null)
+            {
+                return Opportunity.From(Opportunity.PrimaryOf(loadout));
+            }
+
+            var commands = watcher.GetComponent<SkillCommands>();
+
+            return commands != null
+                ? Opportunity.From(Opportunity.PrimaryOf(commands.Skills))
+                : null;
         }
 
         /// <summary>
@@ -484,14 +521,14 @@ namespace Dragoneye.Game
 
                 if (watcher.IsComputerControlled)
                 {
-                    ServerAnswerOpportunity(watcher, ChooseOpportunity(watcher, m_Pending.Actor));
+                    ServerAnswerOpportunity(watcher, TakesOpportunity());
                     return;
                 }
 
                 if (OpportunityCommands.Current != null)
                 {
                     OpportunityCommands.Current.ServerOffer(watcher, m_Pending.Actor,
-                        OptionsFor(watcher));
+                        SwingOf(watcher));
                     return;
                 }
 
@@ -504,34 +541,10 @@ namespace Dragoneye.Game
             RunPendingAction();
         }
 
-        /// <summary>What this creature could swing with: one of each element it still holds.</summary>
-        static List<Element> OptionsFor(CreatureState watcher)
-        {
-            var options = new List<Element>();
-            var pool = watcher != null ? watcher.GetComponent<CreaturePool>() : null;
-
-            if (pool == null)
-            {
-                return options;
-            }
-
-            var held = pool.ServerLedger.Pool;
-
-            foreach (var element in ElementInfo.All)
-            {
-                if (held[element] >= Opportunity.ElementCost)
-                {
-                    options.Add(element);
-                }
-            }
-
-            return options;
-        }
-
         /// <summary>
         /// Server only. Whether to swing, and with what. A null element declines.
         /// </summary>
-        public bool ServerAnswerOpportunity(CreatureState watcher, Element? element)
+        public bool ServerAnswerOpportunity(CreatureState watcher, bool swings)
         {
             if (!IsServer || m_Offered == null || watcher != m_Offered || !m_Pending.Exists)
             {
@@ -543,18 +556,19 @@ namespace Dragoneye.Game
 
             OpportunityCommands.Current?.ServerClearOffer();
 
-            if (!element.HasValue || !CanTakeOpportunity(watcher, mover))
+            if (!swings || !CanTakeOpportunity(watcher, mover))
             {
                 AskNextOpportunity();
                 return true;
             }
 
             var pool = watcher.GetComponent<CreaturePool>();
-            var skill = Opportunity.For(element.Value);
+            var skill = SwingOf(watcher);
 
             // Committed, not spent: a swing hides what it is made of until the answer is in, the
             // same as any other attack.
-            if (pool == null || !pool.ServerCommit(element.Value, skill.ElementCost, out _))
+            if (pool == null || skill == null
+                || !pool.ServerCommit(skill.Element, skill.ElementCost, out _))
             {
                 AskNextOpportunity();
                 return true;
@@ -568,41 +582,23 @@ namespace Dragoneye.Game
         }
 
         /// <summary>
-        /// What a computer creature does with a swing.
+        /// Whether a computer creature takes its swing. Nearly always.
         ///
-        /// It takes the element with the best odds against what the mover is known to be holding,
-        /// and only when those odds are worth spending on: a swing more likely to lose than win
-        /// pays a resource to give the mover a free look at the hand. Rolled rather than decided,
-        /// for the same reason the defence is -- an opponent whose answer never changes has one
-        /// turn in them.
+        /// It used to weigh the matchup and decline whenever the odds came out near even -- which,
+        /// against a hand nobody has seen, is almost always. The result was a rule that never fired:
+        /// the warning appeared, the player braced, and nothing happened, which is worse than not
+        /// having the rule at all.
+        ///
+        /// A free attack is worth taking. The element is the only cost and it buys a chance at
+        /// damage plus a forced answer out of the mover, so declining is the unusual choice, not the
+        /// careful one. What is left is a small hold-back so that a creature down to its last few
+        /// elements is not guaranteed to spend them the moment anybody walks past -- and so that a
+        /// player cannot count on the reaction any more than they can count on it not coming.
         /// </summary>
-        static Element? ChooseOpportunity(CreatureState watcher, CreatureState mover)
-        {
-            var options = OptionsFor(watcher);
+        static bool TakesOpportunity() => UnityEngine.Random.value > HoldsBack;
 
-            if (options.Count == 0)
-            {
-                return null;
-            }
-
-            var best = options[0];
-            var bestScore = float.MinValue;
-
-            foreach (var option in options)
-            {
-                var odds = CreatureKnowledge.Forecast(option, mover);
-                var score = odds.Win - odds.Loss + (UnityEngine.Random.value * 0.25f);
-
-                if (score > bestScore)
-                {
-                    bestScore = score;
-                    best = option;
-                }
-            }
-
-            // Roughly even is not worth an element on somebody else turn.
-            return bestScore > 0.1f ? best : (Element?)null;
-        }
+        /// <summary>How often a computer creature keeps its element instead of swinging.</summary>
+        const float HoldsBack = 0.15f;
 
         /// <summary>Runs the action everybody has now had their swing at.</summary>
         void RunPendingAction()
@@ -1297,7 +1293,7 @@ namespace Dragoneye.Game
             }
 
             Debug.Log("A creature left while being offered a swing; it declines.", this);
-            ServerAnswerOpportunity(m_Offered, null);
+            ServerAnswerOpportunity(m_Offered, false);
         }
 
         static bool IsStillConnected(CreatureState creature)

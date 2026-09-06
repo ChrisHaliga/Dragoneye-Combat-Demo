@@ -133,6 +133,7 @@ GameObject:
   - component: {fileID: 82840559}
   - component: {fileID: 82840561}
   - component: {fileID: 82840562}
+  - component: {fileID: 82840563}
   m_Layer: 0
   m_Name: Turn State
   m_TagString: Untagged
@@ -234,6 +235,19 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Dragoneye.Game::Dragoneye.Game.CombatAnnouncer
   ShowTopMostFoldoutHeaderGroup: 1
+--- !u!114 &82840563
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 82840556}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2fc230363f4db814494259766e4f3e6f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Dragoneye.Game::Dragoneye.Game.OpportunityCommands
+  ShowTopMostFoldoutHeaderGroup: 1
 --- !u!1 &261654050
 GameObject:
   m_ObjectHideFlags: 0
@@ -254,6 +268,7 @@ GameObject:
   - component: {fileID: 261654062}
   - component: {fileID: 261654064}
   - component: {fileID: 261654065}
+  - component: {fileID: 261654066}
   m_Layer: 0
   m_Name: Arena Context
   m_TagString: Untagged
@@ -438,6 +453,21 @@ MonoBehaviour:
   m_EditorClassIdentifier: Dragoneye.Game::Dragoneye.Game.MovePreview
   m_Input: {fileID: 261654062}
   m_Opacity: 0.4
+--- !u!114 &261654066
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 261654050}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 89f3dcd7a7fafa44881b8a34e0f0665f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Dragoneye.Game::Dragoneye.Game.PathPreview
+  m_Input: {fileID: 261654062}
+  m_Opacity: 0.55
+  m_Scale: 0.34
 --- !u!1 &454632036
 GameObject:
   m_ObjectHideFlags: 0
@@ -526,6 +556,7 @@ GameObject:
   - component: {fileID: 648006345}
   - component: {fileID: 648006346}
   - component: {fileID: 648006347}
+  - component: {fileID: 648006348}
   m_Layer: 0
   m_Name: Arena HUD
   m_TagString: Untagged
@@ -711,6 +742,19 @@ MonoBehaviour:
   m_EditorClassIdentifier: Dragoneye.Game::Dragoneye.Game.CombatLogView
   m_Creatures: {fileID: 261654061}
   m_MaxLines: 60
+--- !u!114 &648006348
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 648006334}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7936990bc9cfc87478cff3ac03e9a53a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Dragoneye.Game::Dragoneye.Game.OpportunityPromptView
+  m_Input: {fileID: 261654062}
 --- !u!1 &723212526
 GameObject:
   m_ObjectHideFlags: 0

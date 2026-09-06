@@ -72,13 +72,17 @@ namespace Dragoneye.Multiplayer
             into.Add(Section("OPPORTUNITY ATTACKS"));
             into.Add(Text(
                 "The three tiles a creature is looking at are the ones it is watching. Move while "
-                + "you are standing in an enemy front three and they get a swing at you: one "
-                + "element of their choosing, no action points, and you answer it exactly as you "
-                + "would answer an attack on their own turn."));
+                + "you are standing in an enemy front three and they get a swing at you: their own "
+                + "weapon attack, for no action points, and you answer it exactly as you would "
+                + "answer an attack on their own turn."));
             into.Add(Text(
-                "It is optional, and taking one costs them an element they will not get back, so "
-                + "it is not free for either of you. The cursor warns you before you commit, and "
-                + "you carry on moving afterwards whether the swing landed or not."));
+                "The swing is whatever they are carrying -- there is no choosing an element for it, "
+                + "so what a creature threatens you with is something you can read off their card "
+                + "before you decide to walk. It is optional and it costs them the element, so it "
+                + "is not free for either of you."));
+            into.Add(Text(
+                "The cursor warns you before you commit, and you carry on moving afterwards whether "
+                + "the swing landed or not."));
 
             into.Add(Section("GETTING PAST PEOPLE"));
             into.Add(Text(

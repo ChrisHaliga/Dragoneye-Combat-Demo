@@ -103,10 +103,13 @@ namespace Dragoneye.Game
             m_Strip.AddToClassList("clash-result");
             m_Strip.pickingMode = PickingMode.Ignore;
 
-            var skill = SkillCatalog.Current != null
-                && SkillCatalog.Current.TryGetSkill(report.SkillId, out var spec)
-                ? spec.Name
-                : "Attack";
+            // A swing belongs to no catalogue, so it names itself.
+            var skill = report.SkillId == Opportunity.SkillId
+                ? Opportunity.Name
+                : SkillCatalog.Current != null
+                    && SkillCatalog.Current.TryGetSkill(report.SkillId, out var spec)
+                    ? spec.Name
+                    : "Attack";
 
             var title = new Label(skill.ToUpperInvariant());
             title.AddToClassList("clash-result__skill");

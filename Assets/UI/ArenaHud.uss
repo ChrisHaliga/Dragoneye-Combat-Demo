@@ -881,6 +881,57 @@
     color: rgb(232, 197, 128);
 }
 
+/* ---------- panel buttons ---------- */
+
+/* The arena grew two panels with buttons on them -- the defence prompt and the offer of a swing --
+   and neither had a button style, because the only button the HUD used to have was End Turn. The
+   same frame as that one, at the size a dialog wants. */
+.button {
+    height: 32px;
+    padding: 0 18px;
+    margin-left: 8px;
+    font-size: 12px;
+    -unity-font-style: bold;
+    letter-spacing: 2px;
+    color: rgb(214, 218, 230);
+    background-color: rgba(0, 0, 0, 0);
+    background-image: url("Generated/ui-button.png");
+    -unity-slice-left: 11;
+    -unity-slice-right: 11;
+    -unity-slice-top: 11;
+    -unity-slice-bottom: 11;
+    border-width: 0;
+}
+
+.button:hover {
+    -unity-background-image-tint-color: rgb(196, 206, 228);
+}
+
+.button:disabled {
+    opacity: 0.4;
+}
+
+/* The answer the panel expects. Gold, like everything else in this game that is the thing to do. */
+.button--primary {
+    color: rgb(28, 22, 14);
+    -unity-background-image-tint-color: rgb(214, 176, 104);
+}
+
+.button--primary:hover {
+    -unity-background-image-tint-color: rgb(234, 198, 128);
+}
+
+/* An option with nothing to choose: the one attack a swing is made of. It reads like the defence
+   options beside it and does not pretend to be clickable. */
+.clash-option--fixed {
+    flex-direction: row;
+    align-items: center;
+}
+
+.clash-option--fixed:hover {
+    -unity-background-image-tint-color: rgb(255, 255, 255);
+}
+
 /* ---------- context menu ---------- */
 
 /* The sheet behind the menu. Invisible, and pickable on purpose: it is what makes a click anywhere
