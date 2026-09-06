@@ -481,7 +481,7 @@ namespace Dragoneye.Game
                 return null;
             }
 
-            var skills = actor.GetComponent<SkillCommands>();
+            var skills = actor.SkillCommands;
 
             return skills != null && skills.TryGetSkill(m_SkillBar.SelectedSkill, out var spec)
                 ? spec
@@ -549,7 +549,7 @@ namespace Dragoneye.Game
 
                 PendingMove = null;
 
-                mover?.GetComponent<UnitCommands>()?.RequestMove(destination, facing);
+                mover?.UnitCommands?.RequestMove(destination, facing);
                 return;
             }
 
@@ -588,7 +588,7 @@ namespace Dragoneye.Game
                     return;
                 }
 
-                var skills = actor.GetComponent<SkillCommands>();
+                var skills = actor.SkillCommands;
 
                 if (skills != null)
                 {
@@ -604,7 +604,7 @@ namespace Dragoneye.Game
                 return;
             }
 
-            var commands = actor.GetComponent<UnitCommands>();
+            var commands = actor.UnitCommands;
             if (commands == null)
             {
                 return;

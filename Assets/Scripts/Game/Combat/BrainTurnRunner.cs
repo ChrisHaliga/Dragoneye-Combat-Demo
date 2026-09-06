@@ -13,6 +13,11 @@ namespace Dragoneye.Game
     ///
     /// It decides nothing itself: what to do is the brain's, whether it may be done is the host's,
     /// and this only sequences the two with the pauses between.
+    ///
+    /// The pauses are the rules' own. An earlier version waited on the token to finish walking,
+    /// which put a system downstream of a view: a headless server had no token to wait for, and a
+    /// stuck one needed a clock to escape. Now the walk is priced in seconds per tile from the
+    /// route the rules costed, and the view is left to draw it in its own time.
     /// </summary>
     public sealed class BrainTurnRunner
     {
@@ -23,13 +28,13 @@ namespace Dragoneye.Game
 
         readonly float m_ActionDelay;
         readonly float m_SkillDwell;
-        readonly float m_MoveWaitLimit;
+        readonly float m_SecondsPerTile;
 
         // Creatures already complained about, so a toothless one does not warn every round.
         readonly HashSet<uint> m_Warned = new HashSet<uint>();
 
         public BrainTurnRunner(IBrainHost host, ICreatureBrain brain, CreatureRegistry creatures,
-            ArenaBoard board, float actionDelay, float skillDwell, float moveWaitLimit)
+            ArenaBoard board, float actionDelay, float skillDwell, float secondsPerTile)
         {
             m_Host = host;
             m_Brain = brain;
@@ -37,7 +42,7 @@ namespace Dragoneye.Game
             m_Board = board;
             m_ActionDelay = actionDelay;
             m_SkillDwell = skillDwell;
-            m_MoveWaitLimit = moveWaitLimit;
+            m_SecondsPerTile = secondsPerTile;
         }
 
         public IEnumerator Run(CreatureState actor)
@@ -65,6 +70,10 @@ namespace Dragoneye.Game
                 var decision = m_Brain.Decide(ViewOf(actor, includeHand: true),
                     OtherViews(actor), m_Board);
 
+                // How far this is going to walk, read from the rules before it does. This is the
+                // whole of what the pacing knows about movement.
+                var tiles = TilesWalked(actor, decision);
+
                 var acted = decision.Action == BrainAction.UseSkill
                     ? m_Host.UseSkillOn(actor, decision.SkillId, CreatureFor(decision.TargetId))
                     : decision.Action == BrainAction.Move
@@ -75,14 +84,10 @@ namespace Dragoneye.Game
                     break;
                 }
 
-                // The rules resolved the instant the decision was made; the board has not caught up
-                // yet. Waiting for it is the difference between a turn a player can follow and four
-                // creatures teleporting at once.
-                yield return WalkedIt(actor);
-
-                yield return new WaitForSeconds(decision.Action == BrainAction.UseSkill
-                    ? m_SkillDwell
-                    : m_ActionDelay);
+                // The rules resolved the instant the decision was made. The pause is what lets a
+                // person follow it: a beat per action, and a beat per tile walked.
+                yield return new WaitForSeconds(tiles * m_SecondsPerTile
+                    + (decision.Action == BrainAction.UseSkill ? m_SkillDwell : m_ActionDelay));
             }
 
             if (budget <= 0)
@@ -107,7 +112,7 @@ namespace Dragoneye.Game
                 return;
             }
 
-            var skills = actor.GetComponent<SkillCommands>();
+            var skills = actor.SkillCommands;
 
             if (skills != null && skills.Skills.Count > 0)
             {
@@ -119,28 +124,36 @@ namespace Dragoneye.Game
         }
 
         /// <summary>
-        /// Waits until this creature has finished walking to where the rules already put it.
+        /// Tiles a decision is about to walk, from the same search that will price it.
         ///
-        /// Capped, and tolerant of there being no view at all. A headless server draws nothing and
-        /// must not sit here forever waiting for an animation that will never play; a client whose
-        /// unit is stuck should lose a second, not the match.
+        /// A move walks its route; a skill walks to the nearest tile its target is in reach from,
+        /// which may be none. Read before the action so it is the walk that is about to happen,
+        /// not the one that already did.
         /// </summary>
-        IEnumerator WalkedIt(CreatureState actor)
+        int TilesWalked(CreatureState actor, BrainDecision decision)
         {
-            var view = actor != null ? actor.GetComponent<UnitView>() : null;
-
-            if (view == null)
+            if (decision.Action == BrainAction.Move)
             {
-                yield break;
+                var steps = m_Board.CostTo(actor.Cell, decision.Destination);
+                return steps < 0 ? 0 : steps;
             }
 
-            var waited = 0f;
-
-            while (view != null && view.IsMoving && waited < m_MoveWaitLimit)
+            if (decision.Action != BrainAction.UseSkill)
             {
-                waited += Time.deltaTime;
-                yield return null;
+                return 0;
             }
+
+            var target = CreatureFor(decision.TargetId);
+            var commands = actor.SkillCommands;
+
+            if (target == null || commands == null
+                || !commands.TryGetSkill(decision.SkillId, out var skill))
+            {
+                return 0;
+            }
+
+            var toReach = m_Board.StepsToReach(actor.Cell, target.Cell, skill.Range);
+            return toReach < 0 ? 0 : toReach;
         }
 
         CreatureState CreatureFor(uint turnId) =>
@@ -161,8 +174,8 @@ namespace Dragoneye.Game
                     creature.CurrentAp, creature.CurrentHp, stepCost: creature.StepCost);
             }
 
-            var skills = creature.GetComponent<SkillCommands>();
-            var pool = creature.GetComponent<CreaturePool>();
+            var skills = creature.SkillCommands;
+            var pool = creature.Pool;
 
             return new BrainView(creature.TurnId, creature.Cell, creature.Party,
                 creature.CurrentAp, creature.CurrentHp,

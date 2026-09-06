@@ -109,7 +109,7 @@ namespace Dragoneye.Game
         int Held(Element element)
         {
             var defender = Defender;
-            var pool = defender != null ? defender.GetComponent<CreaturePool>() : null;
+            var pool = defender != null ? defender.Pool : null;
 
             var held = pool != null && pool.CanSee
                 ? pool.Pool[element]
@@ -206,7 +206,7 @@ namespace Dragoneye.Game
             }
 
             var seen = new List<string>();
-            var commands = attacker != null ? attacker.GetComponent<SkillCommands>() : null;
+            var commands = attacker != null ? attacker.SkillCommands : null;
             var catalog = SkillCatalog.Current;
 
             if (commands != null && catalog != null)

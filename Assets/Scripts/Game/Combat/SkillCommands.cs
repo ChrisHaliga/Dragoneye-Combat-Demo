@@ -241,6 +241,6 @@ namespace Dragoneye.Game
     public static class SkillCatalog
     {
         /// <summary>Set by <see cref="PlayerCharacters"/>, which lives the whole match. Null outside one.</summary>
-        public static ISkillIndex Current { get; set; }
+        public static ISkillIndex Current { get; internal set; }
     }
 }

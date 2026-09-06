@@ -150,7 +150,7 @@ namespace Dragoneye.Game
                 m_Selected = MoveSkill;
             }
 
-            var pool = actor.GetComponent<CreaturePool>();
+            var pool = actor.Pool;
             var poolHash = pool != null ? Hash(pool.Ledger.Pool) : 0;
             var count = SkillCount(actor);
 
@@ -173,7 +173,7 @@ namespace Dragoneye.Game
 
         static int SkillCount(CreatureState actor)
         {
-            var commands = actor.GetComponent<SkillCommands>();
+            var commands = actor.SkillCommands;
             return commands != null ? commands.Skills.Count : 0;
         }
 
@@ -197,8 +197,8 @@ namespace Dragoneye.Game
 
         void Rebuild(CreatureState actor)
         {
-            var commands = actor.GetComponent<SkillCommands>();
-            var pool = actor.GetComponent<CreaturePool>();
+            var commands = actor.SkillCommands;
+            var pool = actor.Pool;
 
             m_Bar.Clear();
 
@@ -297,7 +297,7 @@ namespace Dragoneye.Game
             }
 
             var actor = m_Input.Actor;
-            var commands = actor != null ? actor.GetComponent<SkillCommands>() : null;
+            var commands = actor != null ? actor.SkillCommands : null;
 
             if (commands != null)
             {

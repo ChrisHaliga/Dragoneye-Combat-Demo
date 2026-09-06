@@ -27,7 +27,8 @@ namespace Dragoneye.Game
     [DisallowMultipleComponent]
     public sealed class DraftState : NetworkBehaviour
     {
-        [SerializeField, Tooltip("Fallback catalog. ArenaContext owns the live one once an arena loads.")]
+        [SerializeField, Tooltip("The catalog of premade creatures. The one owner: the draft "
+             + "outlives the lobby, so the arena resolves what a creature is through it too.")]
         CreatureCatalog m_Catalog;
 
         readonly NetworkList<RosterEntry> m_Roster = new NetworkList<RosterEntry>();

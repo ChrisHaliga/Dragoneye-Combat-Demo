@@ -304,6 +304,30 @@ namespace Dragoneye.Game
             }
         }
 
+        // The rest of what a creature is made of, resolved once each. Every caller used to ask
+        // the engine for these by type, ninety-odd times across the arena, and quietly do
+        // something else when the answer was null. They are asked for here, once, and a prefab
+        // that lacks one is a prefab that fails at the first question rather than behaving
+        // differently for the rest of the match.
+        CreaturePool m_Pool;
+        SkillCommands m_SkillCommands;
+        UnitCommands m_UnitCommands;
+        UnitView m_View;
+
+        /// <summary>What this creature holds.</summary>
+        public CreaturePool Pool => m_Pool != null ? m_Pool : m_Pool = GetComponent<CreaturePool>();
+
+        /// <summary>What this creature can do, and the door its orders come in by.</summary>
+        public SkillCommands SkillCommands =>
+            m_SkillCommands != null ? m_SkillCommands : m_SkillCommands = GetComponent<SkillCommands>();
+
+        /// <summary>Where this creature is asked to go.</summary>
+        public UnitCommands UnitCommands =>
+            m_UnitCommands != null ? m_UnitCommands : m_UnitCommands = GetComponent<UnitCommands>();
+
+        /// <summary>The token that draws it. Null on a headless server, and nothing here needs it.</summary>
+        public UnitView View => m_View != null ? m_View : m_View = GetComponent<UnitView>();
+
         /// <summary>Alive until its health reaches zero.</summary>
         public bool IsAlive => CombatRules.IsAlive(m_CurrentHp.Value);
 

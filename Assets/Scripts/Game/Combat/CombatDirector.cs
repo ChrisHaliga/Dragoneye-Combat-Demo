@@ -47,11 +47,17 @@ namespace Dragoneye.Game
              + "what it did can be read before the next thing happens.")]
         float m_BrainSkillDwell = 1.6f;
 
-        [SerializeField, Min(0f), Tooltip("Longest a turn will wait for a unit to finish walking "
-             + "before carrying on regardless.")]
-        float m_MoveWaitLimit = 4f;
+        [SerializeField, Min(0f), Tooltip("Seconds a computer creature's turn allows per tile it "
+             + "walks, so the walk can be watched. A pacing choice made by the rules; the fight "
+             + "never waits on a view.")]
+        float m_BrainSecondsPerTile = 0.3f;
+
+        [SerializeField, Tooltip("Seed for every roll this fight makes. Zero picks one and logs "
+             + "it, so any fight can be rolled again.")]
+        int m_Seed;
 
         ArenaBoard m_Board;
+        Dice m_Dice;
         ClashConductor m_Clashes;
         OpportunityConductor m_Opportunities;
         BrainTurnRunner m_BrainRunner;
@@ -60,18 +66,27 @@ namespace Dragoneye.Game
         /// <summary>The director for the match in progress, or null outside one.</summary>
         public static CombatDirector Current { get; private set; }
 
+        /// <summary>What this fight rolls from.</summary>
+        public Dice Dice => m_Dice;
+
         void Awake()
         {
             Current = this;
             m_Board = new ArenaBoard(m_Map, m_Units);
-            m_Clashes = new ClashConductor(this);
-            m_Opportunities = new OpportunityConductor(this, m_Creatures);
+
+            // Every roll the fight makes comes from here. Logged, so a fight that went wrong can be
+            // rolled again with the same seed.
+            m_Dice = new Dice(m_Seed != 0 ? m_Seed : unchecked((int)System.DateTime.UtcNow.Ticks));
+            Debug.Log($"[CombatDirector] Fight seed {m_Dice.Seed}.", this);
+
+            m_Clashes = new ClashConductor(this, m_Dice);
+            m_Opportunities = new OpportunityConductor(this, m_Creatures, m_Dice);
 
             // Swapped wholesale to change the opponent. Not serialised: brains are code, not
             // assets, and a ScriptableObject wrapper would be indirection for a choice nobody is
             // authoring yet.
             m_BrainRunner = new BrainTurnRunner(this, new BasicBrain(), m_Creatures, m_Board,
-                m_BrainActionDelay, m_BrainSkillDwell, m_MoveWaitLimit);
+                m_BrainActionDelay, m_BrainSkillDwell, m_BrainSecondsPerTile);
         }
 
         void OnDestroy()
@@ -171,6 +186,7 @@ namespace Dragoneye.Game
             }
 
             active.ServerRefillAp();
+            CombatAnnouncer.Current?.ServerTurnBegan(active.TurnId);
 
             // Toughness. Health comes back a little every turn and armour never does, which is
             // the whole difference between the two bars.
@@ -281,9 +297,11 @@ namespace Dragoneye.Game
             // Read before the move, because afterwards the two hexes are the same one and the
             // bearing between them is meaningless.
             var travelled = ThreatGeometry.Bearing(actor.Cell, destination);
+            var from = actor.Cell;
 
             actor.Unit.ServerSetCell(destination);
             actor.ServerFace(facing ?? travelled);
+            CombatAnnouncer.Current?.ServerMoved(actor.TurnId, from, destination);
             return true;
         }
 
@@ -322,8 +340,8 @@ namespace Dragoneye.Game
                 return false;
             }
 
-            var commands = actor.GetComponent<SkillCommands>();
-            var pool = actor.GetComponent<CreaturePool>();
+            var commands = actor.SkillCommands;
+            var pool = actor.Pool;
 
             if (commands == null || pool == null || !commands.TryGetSkill(skillId, out var skill))
             {
@@ -407,7 +425,7 @@ namespace Dragoneye.Game
                 var cover = LineOfFire.CoverCount(actor.Cell, target, m_Units);
                 var chance = SkillRules.HitChance(skill, distance, cover);
 
-                if (!SkillRules.Hits(skill, distance, cover, Random.value))
+                if (!SkillRules.Hits(skill, distance, cover, m_Dice.Roll()))
                 {
                     pool.ServerAnnounceCommitted();
                     commands.ServerRecordUse(skill.Id);
@@ -571,7 +589,7 @@ namespace Dragoneye.Game
         public void LandUncontested(CreatureState actor, SkillSpec skill, CreatureState target)
         {
             // Uncontested, so there is no window to keep empty: it was used in the open.
-            actor.GetComponent<SkillCommands>()?.ServerRecordUse(skill.Id);
+            actor.SkillCommands?.ServerRecordUse(skill.Id);
 
             // Returning elements is settled first because the announcement has to name the ones
             // that actually came back -- "regained PYR" is the whole content of the message, and
@@ -696,7 +714,7 @@ namespace Dragoneye.Game
         static List<Element> ReturnElements(CreatureState actor, int count)
         {
             var returned = new List<Element>();
-            var pool = actor.GetComponent<CreaturePool>();
+            var pool = actor.Pool;
 
             if (pool == null)
             {

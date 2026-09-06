@@ -121,7 +121,7 @@ namespace Dragoneye.Data
     /// </summary>
     public static class Portraits
     {
-        public static PortraitLibrary Current { get; set; }
+        public static PortraitLibrary Current { get; internal set; }
 
         public static Sprite Get(int id) => Current != null ? Current.Get(id) : null;
     }

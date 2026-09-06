@@ -105,22 +105,25 @@ namespace Dragoneye.Data
     /// is resolved from a component on a spawned prefab, which cannot carry a serialised pointer to
     /// a content asset.
     ///
-    /// Filled by <see cref="ContentCatalog"/> when it builds. A clash with nothing here treats
-    /// every pair as even, which is wrong but is at least wrong the same way for everybody.
+    /// Filled by <see cref="ContentCatalog"/> when it builds. There is no stand-in for a missing
+    /// table any more: there used to be one that called every pair even, and a project without the
+    /// table wired ran a whole match in which every clash tied and nothing said so. A match now
+    /// refuses to start without one, and a resolver that asks anyway is told loudly.
     /// </summary>
     public static class ElementMatchups
     {
-        public static ElementMatchupTable Current { get; set; }
+        /// <summary>Set once, by the catalog that owns the asset.</summary>
+        public static ElementMatchupTable Current { get; internal set; }
 
-        /// <summary>Never null, so a resolver does not have to decide what to do without one.</summary>
-        public static IElementMatchup Table => Current != null ? Current : EvenTable.Instance;
+        /// <summary>Whether a match can be resolved at all.</summary>
+        public static bool IsReady => Current != null;
 
-        /// <summary>Every pair even. What a project with no table authored yet behaves as.</summary>
-        sealed class EvenTable : IElementMatchup
-        {
-            public static readonly EvenTable Instance = new EvenTable();
-
-            public ClashOutcome Compare(Element attacker, Element defender) => ClashOutcome.Tie;
-        }
+        /// <summary>The table. Throws rather than pretends when there is none.</summary>
+        public static IElementMatchup Table =>
+            Current != null
+                ? Current
+                : throw new System.InvalidOperationException(
+                    "No element matchup table is wired. Build the content catalog before a "
+                    + "clash is resolved -- ClaudeCode > Set Up Everything authors one.");
     }
 }

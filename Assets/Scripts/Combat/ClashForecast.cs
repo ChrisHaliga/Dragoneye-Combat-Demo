@@ -327,7 +327,7 @@ namespace Dragoneye.Combat
         /// Sharper than that and the randomness stops mattering; flatter and the creature stops
         /// looking like it is trying.
         /// </summary>
-        public const float Decisiveness = 3f;
+        public const int Decisiveness = 3;
 
         /// <summary>
         /// The weight a hopeless answer still carries.
@@ -342,7 +342,18 @@ namespace Dragoneye.Combat
             IElementMatchup matchup)
         {
             var odds = ClashForecast.Defending(answering, attack, matchup);
-            var scaled = (float)Math.Pow(1f + odds.Edge, Decisiveness);
+
+            // Multiplied out rather than Math.Pow. A power function is not guaranteed to agree to
+            // the last bit across runtimes, and this weight is computed on the server for the
+            // computer's choice and on every client for the odds it shows -- two machines that
+            // disagree about it disagree about the game. Multiplication is exact IEEE and is not.
+            var grown = 1f + odds.Edge;
+            var scaled = 1f;
+
+            for (var i = 0; i < Decisiveness; i++)
+            {
+                scaled *= grown;
+            }
 
             return scaled < Floor ? Floor : scaled;
         }

@@ -1,5 +1,6 @@
 using System.Collections;
 using System.Net;
+using Dragoneye.Data;
 using System.Net.Sockets;
 using Unity.Netcode;
 using Unity.Netcode.Transports.UTP;
@@ -130,6 +131,15 @@ namespace Dragoneye.Multiplayer
 
             if (InMatch)
             {
+                return false;
+            }
+
+            // Without the table every clash would tie. Refused here, where the player can be told,
+            // rather than discovered mid-fight.
+            if (!ElementMatchups.IsReady)
+            {
+                Debug.LogError("No element matchup table; a match cannot start. Run ClaudeCode > "
+                    + "Set Up Everything and make sure the content catalog is wired.", this);
                 return false;
             }
 

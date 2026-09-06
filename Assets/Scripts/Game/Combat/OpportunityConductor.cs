@@ -70,6 +70,7 @@ namespace Dragoneye.Game
     {
         readonly IOpportunityHost m_Host;
         readonly CreatureRegistry m_Creatures;
+        readonly Dice m_Dice;
 
         PendingAction m_Pending;
         readonly List<CreatureState> m_Watchers = new List<CreatureState>();
@@ -85,10 +86,11 @@ namespace Dragoneye.Game
         /// </summary>
         const float HoldsBack = 0.15f;
 
-        public OpportunityConductor(IOpportunityHost host, CreatureRegistry creatures)
+        public OpportunityConductor(IOpportunityHost host, CreatureRegistry creatures, Dice dice)
         {
             m_Host = host;
             m_Creatures = creatures;
+            m_Dice = dice;
         }
 
         /// <summary>Whether an action is being held while somebody decides.</summary>
@@ -165,7 +167,7 @@ namespace Dragoneye.Game
             }
 
             var swing = SwingOf(watcher, out _);
-            var pool = watcher.GetComponent<CreaturePool>();
+            var pool = watcher.Pool;
 
             return swing != null && pool != null
                 && SkillRules.TryChooseElement(swing, pool.ServerLedger, out _);
@@ -198,7 +200,7 @@ namespace Dragoneye.Game
                 return Opportunity.From(source);
             }
 
-            var commands = watcher.GetComponent<SkillCommands>();
+            var commands = watcher.SkillCommands;
 
             source = commands != null ? Opportunity.PrimaryOf(commands.Skills) : null;
             return Opportunity.From(source);
@@ -210,7 +212,7 @@ namespace Dragoneye.Game
         /// </summary>
         static bool HasShownWeapon(CreatureState watcher, SkillSpec source)
         {
-            var commands = watcher != null ? watcher.GetComponent<SkillCommands>() : null;
+            var commands = watcher != null ? watcher.SkillCommands : null;
 
             if (commands == null || source == null)
             {
@@ -289,7 +291,7 @@ namespace Dragoneye.Game
                 return true;
             }
 
-            var pool = watcher.GetComponent<CreaturePool>();
+            var pool = watcher.Pool;
             var skill = SwingOf(watcher, out var weapon);
 
             // A fist has a choice of elements and nobody to ask, so it takes the first it can pay
@@ -343,10 +345,10 @@ namespace Dragoneye.Game
         /// it is coming. The roll that remains is there so the reaction is not a certainty a
         /// player can bank on -- and when it comes up, the log says so.
         /// </summary>
-        static bool Takes(CreatureState watcher, CreatureState mover)
+        bool Takes(CreatureState watcher, CreatureState mover)
         {
             var swing = SwingOf(watcher, out _);
-            var pool = watcher.GetComponent<CreaturePool>();
+            var pool = watcher.Pool;
 
             if (swing == null || pool == null
                 || !SkillRules.TryChooseElement(swing, pool.ServerLedger, out _))
@@ -354,7 +356,7 @@ namespace Dragoneye.Game
                 return false;
             }
 
-            return Random.value > HoldsBack;
+            return m_Dice.Roll() > HoldsBack;
         }
 
         /// <summary>Runs the action everybody has now had their swing at.</summary>

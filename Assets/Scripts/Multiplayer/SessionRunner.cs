@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
+using Dragoneye.Data;
 using Unity.Services.Authentication;
 using Unity.Services.Core;
 using Unity.Services.Multiplayer;
@@ -447,6 +448,13 @@ namespace Dragoneye.Multiplayer
         {
             if (Session == null || !Session.IsHost || m_MatchStarted || IsBusy)
             {
+                return;
+            }
+
+            if (!ElementMatchups.IsReady)
+            {
+                Debug.LogError("No element matchup table; the match cannot start. Run ClaudeCode > "
+                    + "Set Up Everything and make sure the content catalog is wired.", this);
                 return;
             }
 

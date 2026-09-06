@@ -32,7 +32,7 @@ namespace Dragoneye.Game
         /// </summary>
         public static PossibleElements PossibleAnswers(CreatureState creature)
         {
-            var pool = creature != null ? creature.GetComponent<CreaturePool>() : null;
+            var pool = creature != null ? creature.Pool : null;
 
             return pool != null ? PossibleElements.Seen(pool.Ledger) : PossibleElements.None;
         }
@@ -53,7 +53,7 @@ namespace Dragoneye.Game
         /// </summary>
         public static PossibleElements PossibleAttacks(CreatureState creature)
         {
-            var pool = creature != null ? creature.GetComponent<CreaturePool>() : null;
+            var pool = creature != null ? creature.Pool : null;
 
             return pool != null ? PossibleElements.Seen(pool.Ledger) : PossibleElements.None;
         }
@@ -68,7 +68,7 @@ namespace Dragoneye.Game
         public static List<Element> RevealedAttackElements(CreatureState creature)
         {
             var elements = new List<Element>();
-            var commands = creature != null ? creature.GetComponent<SkillCommands>() : null;
+            var commands = creature != null ? creature.SkillCommands : null;
             var catalog = SkillCatalog.Current;
 
             if (commands == null || catalog == null)

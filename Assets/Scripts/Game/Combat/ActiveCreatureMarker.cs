@@ -88,7 +88,7 @@ namespace Dragoneye.Game
         /// </summary>
         static float GroundOf(CreatureState creature)
         {
-            var view = creature.GetComponent<UnitView>();
+            var view = creature.View;
             return view != null ? view.GroundOffset : 0.5f;
         }
 

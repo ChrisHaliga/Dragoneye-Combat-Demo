@@ -89,6 +89,12 @@ namespace Dragoneye.Game
         /// <summary>Health came back at the start of a turn: (creature, amount).</summary>
         public static event Action<uint, int> Recovered;
 
+        /// <summary>A creature walked: (creature, from, to). The rules put it there instantly.</summary>
+        public static event Action<uint, Dragoneye.Hex.Hex, Dragoneye.Hex.Hex> Moved;
+
+        /// <summary>A creature's turn began.</summary>
+        public static event Action<uint> TurnBegan;
+
         public override void OnNetworkSpawn() => Current = this;
 
         public override void OnNetworkDespawn()
@@ -138,6 +144,32 @@ namespace Dragoneye.Game
                 MissedRpc(attackerId, skillId, targetId, chance);
             }
         }
+
+        /// <summary>Server only. A creature moved, as far as the rules are concerned.</summary>
+        public void ServerMoved(uint creatureId, Dragoneye.Hex.Hex from, Dragoneye.Hex.Hex to)
+        {
+            if (IsServer)
+            {
+                MovedRpc(creatureId, from.Q, from.R, to.Q, to.R);
+            }
+        }
+
+        [Rpc(SendTo.Everyone)]
+        void MovedRpc(uint creatureId, int fromQ, int fromR, int toQ, int toR) =>
+            Moved?.Invoke(creatureId, new Dragoneye.Hex.Hex(fromQ, fromR),
+                new Dragoneye.Hex.Hex(toQ, toR));
+
+        /// <summary>Server only. A creature's turn began.</summary>
+        public void ServerTurnBegan(uint creatureId)
+        {
+            if (IsServer)
+            {
+                TurnBeganRpc(creatureId);
+            }
+        }
+
+        [Rpc(SendTo.Everyone)]
+        void TurnBeganRpc(uint creatureId) => TurnBegan?.Invoke(creatureId);
 
         /// <summary>Server only. Toughness put health back at the start of a turn.</summary>
         public void ServerRecovered(uint creatureId, int amount)

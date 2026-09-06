@@ -134,8 +134,8 @@ namespace Dragoneye.Game
             }
 
             m_Observed = creature;
-            m_ObservedPool = creature != null ? creature.GetComponent<CreaturePool>() : null;
-            m_ObservedSkills = creature != null ? creature.GetComponent<SkillCommands>() : null;
+            m_ObservedPool = creature != null ? creature.Pool : null;
+            m_ObservedSkills = creature != null ? creature.SkillCommands : null;
 
             if (m_Observed != null)
             {

@@ -19,6 +19,7 @@ namespace Dragoneye.Game
     public sealed class ClashConductor
     {
         readonly IClashHost m_Host;
+        readonly Dice m_Dice;
 
         // The attack that is waiting on an answer, and everything needed to finish it.
         ClashSequence m_Clash;
@@ -27,9 +28,10 @@ namespace Dragoneye.Game
         SkillSpec m_Skill;
         bool m_Flanked;
 
-        public ClashConductor(IClashHost host)
+        public ClashConductor(IClashHost host, Dice dice)
         {
             m_Host = host;
+            m_Dice = dice;
         }
 
         /// <summary>Whether an attack is waiting on somebody's answer.</summary>
@@ -48,7 +50,7 @@ namespace Dragoneye.Game
         public void Begin(CreatureState actor, SkillSpec skill, CreatureState target,
             Element? telegraphed = null)
         {
-            var pool = target.GetComponent<CreaturePool>();
+            var pool = target.Pool;
 
             if (pool == null)
             {
@@ -140,7 +142,7 @@ namespace Dragoneye.Game
                 return true;
             }
 
-            var pool = defender.GetComponent<CreaturePool>();
+            var pool = defender.Pool;
 
             // Committed before anything is spent, so an answer the sequence refuses costs nothing
             // and the clash stays open for a better one.
@@ -174,20 +176,20 @@ namespace Dragoneye.Game
         /// The randomness lives here rather than in the rules, because the rules have to be able to
         /// give the same answer twice and this deliberately does not.
         /// </summary>
-        static IReadOnlyList<Element> ChooseDefence(CreatureState defender, CreatureState attacker,
+        IReadOnlyList<Element> ChooseDefence(CreatureState defender, CreatureState attacker,
             DefenceRequest request)
         {
             var answer = new List<Element>();
             var options = new List<Element>(request.Options);
             var attack = CreatureKnowledge.PossibleAttacks(attacker);
 
-            var pool = defender.GetComponent<CreaturePool>();
+            var pool = defender.Pool;
             var held = pool != null ? pool.ServerLedger.Pool : ElementCounts.Empty;
 
             while (answer.Count < request.Required && options.Count > 0)
             {
                 if (!ClashDefenceOdds.TryChoose(options, attack, ElementMatchups.Table,
-                        Random.value, out var pick))
+                        m_Dice.Roll(), out var pick))
                 {
                     break;
                 }
@@ -256,11 +258,11 @@ namespace Dragoneye.Game
             // In order, and only now. DE-005 asks for each side's expenditure after that side's own
             // reveal, which is what these two calls are -- until this point neither pool has said a
             // word about what left it.
-            attacker.GetComponent<CreaturePool>()?.ServerAnnounceCommitted();
-            defender.GetComponent<CreaturePool>()?
+            attacker.Pool?.ServerAnnounceCommitted();
+            defender.Pool?
                 .ServerAnnounceCommitted(keep: ClashRules.Refunds(reveal.Outcome));
 
-            attacker.GetComponent<SkillCommands>()?.ServerRecordUse(skill.Id);
+            attacker.SkillCommands?.ServerRecordUse(skill.Id);
 
             ClashCommands.Current?.ServerAnnounce(attacker.TurnId, defender.TurnId, skill.Id,
                 reveal.Attacker, reveal.Defender, reveal.Outcome);

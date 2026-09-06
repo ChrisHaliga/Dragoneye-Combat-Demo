@@ -168,7 +168,7 @@ namespace Dragoneye.Game
 
             entries.Add(new Entry("Move here", $"{plan.Cost} AP",
                 plan.IsAllowed ? null : ActionLabels.DescribeRefusal(plan.Refusal),
-                () => actor.GetComponent<UnitCommands>()?.RequestMove(hex)));
+                () => actor.UnitCommands?.RequestMove(hex)));
 
             if (plan.IsAllowed)
             {
@@ -222,7 +222,7 @@ namespace Dragoneye.Game
 
             button.clicked += () =>
             {
-                actor.GetComponent<UnitCommands>()?.RequestMove(hex, facing);
+                actor.UnitCommands?.RequestMove(hex, facing);
                 Close();
             };
 
@@ -251,7 +251,7 @@ namespace Dragoneye.Game
 
             entries.Add(new Entry("Move next to", $"{plan.Cost} AP",
                 plan.IsAllowed ? null : ActionLabels.DescribeRefusal(plan.Refusal),
-                () => actor.GetComponent<UnitCommands>()?.RequestMove(tile)));
+                () => actor.UnitCommands?.RequestMove(tile)));
         }
 
         /// <summary>
@@ -263,7 +263,7 @@ namespace Dragoneye.Game
         /// </summary>
         void AddSkills(List<Entry> entries, CreatureState actor, CreatureState target, Hex hex)
         {
-            var commands = actor != null ? actor.GetComponent<SkillCommands>() : null;
+            var commands = actor != null ? actor.SkillCommands : null;
 
             if (commands == null)
             {

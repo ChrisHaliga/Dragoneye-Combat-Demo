@@ -150,8 +150,8 @@ namespace Dragoneye.Game
         /// </summary>
         bool AnySkillUsable(CreatureState actor)
         {
-            var skills = actor.GetComponent<SkillCommands>();
-            var pool = actor.GetComponent<CreaturePool>();
+            var skills = actor.SkillCommands;
+            var pool = actor.Pool;
 
             if (skills == null || pool == null)
             {

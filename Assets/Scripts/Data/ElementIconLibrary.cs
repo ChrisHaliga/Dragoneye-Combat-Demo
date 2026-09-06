@@ -59,7 +59,7 @@ namespace Dragoneye.Data
     /// </summary>
     public static class ElementIcons
     {
-        public static ElementIconLibrary Current { get; set; }
+        public static ElementIconLibrary Current { get; internal set; }
 
         public static Sprite Get(Element element) => Current != null ? Current.Get(element) : null;
     }
