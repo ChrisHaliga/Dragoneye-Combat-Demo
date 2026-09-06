@@ -340,6 +340,22 @@
     -unity-text-align: middle-center;
 }
 
+/* Action points, over the portrait and above the health, and only on the creature whose turn it
+   is. Everybody else is about to refill. */
+.turn-portrait__ap {
+    min-height: 13px;
+    background-color: rgba(5, 6, 9, 0.88);
+    justify-content: center;
+}
+
+.turn-portrait__ap-text {
+    font-size: 9px;
+    -unity-font-style: bold;
+    letter-spacing: 1px;
+    color: rgb(226, 191, 122);
+    -unity-text-align: middle-center;
+}
+
 /* Health sits over the portrait rather than beside it, so a row of them stays scannable. */
 .turn-portrait__hp {
     min-height: 15px;

@@ -87,6 +87,18 @@ namespace Dragoneye.Game
         /// <summary>The word shown where an action's cost would be, when position has changed it.</summary>
         public const string Advantage = "ADVANTAGE";
 
+        /// <summary>
+        /// What an attacker is playing for, under the odds.
+        ///
+        /// The defender's prompt spells its stakes out and the attacker's cursor never did, which
+        /// left one side of every clash reading three percentages with nothing attached to them.
+        /// Both halves matter and neither is obvious: a tie stops the attack as thoroughly as a
+        /// loss does, and the element is gone whichever of the three comes up -- an attack is not
+        /// refunded for having been answered well.
+        /// </summary>
+        public const string AttackerStakes =
+            "Only a win lands it; your element is spent either way.";
+
         /// <summary>What the three numbers on a prompt are, in the order they are written.</summary>
         public static string OddsKey =>
             Tint(WinColour, "WIN") + " / " + Tint(TieColour, "TIE") + " / "

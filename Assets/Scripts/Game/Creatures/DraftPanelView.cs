@@ -74,6 +74,10 @@ namespace Dragoneye.Game
             m_PartyColumns = m_Root.Q<VisualElement>("party-columns");
             m_CapLabel = m_Root.Q<Label>("cap-label");
 
+            // Static for the life of the screen: the table is content, and it does not change
+            // while anybody is looking at it.
+            ElementChart.Build(m_Root.Q<VisualElement>("element-chart"));
+
             m_Setup = new MatchSetupBar(m_Root);
 
             if (m_Panel == null || m_TeamButtons == null || m_PartyColumns == null

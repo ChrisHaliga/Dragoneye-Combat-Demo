@@ -186,6 +186,18 @@ namespace Dragoneye.Game
 
             CreatureDisplay.DrawPortrait(root, creature, "turn-portrait__initial");
 
+            // Only the creature actually acting. Everybody else refills the moment their turn
+            // starts, so what they are holding now says nothing about what they will have when it
+            // matters -- and a number that is about to change is worse than no number.
+            //
+            // The footer already answers this for your own turn and goes away for anybody else's,
+            // which left the most useful question in the game -- how much has this ogre got left
+            // to hit me with -- with nowhere to look.
+            if (active)
+            {
+                root.Add(BuildActionPoints(creature));
+            }
+
             root.Add(BuildHealth(creature));
 
             // Inspecting from the bar, the same gesture the party column already offers. Reading a
@@ -197,6 +209,19 @@ namespace Dragoneye.Game
             }
 
             return root;
+        }
+
+        static VisualElement BuildActionPoints(CreatureState creature)
+        {
+            var strip = new VisualElement();
+            strip.AddToClassList("turn-portrait__ap");
+
+            var text = new Label($"{creature.CurrentAp}/{creature.MaxAp}");
+            text.AddToClassList("turn-portrait__ap-text");
+            text.tooltip = "Action points left this turn.";
+
+            strip.Add(text);
+            return strip;
         }
 
         static VisualElement BuildHealth(CreatureState creature)

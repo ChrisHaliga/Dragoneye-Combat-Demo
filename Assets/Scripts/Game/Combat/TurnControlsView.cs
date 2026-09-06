@@ -191,7 +191,8 @@ namespace Dragoneye.Game
             // either would be alone.
             if (m_Input.HoveredOdds.HasValue && !string.IsNullOrEmpty(text))
             {
-                text += "\n" + ClashLabels.Forecast(m_Input.HoveredOdds.Value);
+                text += "\n" + ClashLabels.Forecast(m_Input.HoveredOdds.Value)
+                    + "\n" + ClashLabels.AttackerStakes;
             }
 
             m_Cursor.text = text;

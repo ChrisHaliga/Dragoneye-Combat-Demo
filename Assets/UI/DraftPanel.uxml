@@ -32,6 +32,11 @@
 
             <ui:VisualElement name="party-columns" class="parties" />
 
+            <!-- The whole matchup table, once, where it is actually useful: before the fight, while
+                 people are still deciding what to bring. -->
+            <ui:Label text="ELEMENTS" class="draft__eyebrow" />
+            <ui:VisualElement name="element-chart" class="element-chart" />
+
             <ui:VisualElement class="draft__foot">
                 <ui:Button name="setup-leave-button" text="Leave" class="button" />
                 <ui:Label name="setup-players" text="" class="setup__players" />
