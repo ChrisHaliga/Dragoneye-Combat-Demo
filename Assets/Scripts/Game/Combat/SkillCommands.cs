@@ -49,6 +49,9 @@ namespace Dragoneye.Game
         /// </summary>
         public IReadOnlyList<int> SeenSkillIds => m_SeenView;
 
+        /// <summary>Raised on every peer when this creature is watched using something new.</summary>
+        public event System.Action SeenChanged;
+
         public override void OnNetworkSpawn()
         {
             m_Seen.OnListChanged += OnSeenChanged;
@@ -67,6 +70,8 @@ namespace Dragoneye.Game
             {
                 m_SeenView.Add(m_Seen[i]);
             }
+
+            SeenChanged?.Invoke();
         }
 
         /// <summary>

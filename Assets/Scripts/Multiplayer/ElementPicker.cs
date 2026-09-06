@@ -54,7 +54,7 @@ namespace Dragoneye.Multiplayer
             // What it costs is a tooltip rather than a column, because the price never changes and
             // seven fixed numbers down the middle of the column would read as part of the pool.
             var cost = ElementPricing.CostOf(element);
-            row.tooltip = $"{ElementInfo.NameOf(element)} costs {cost} "
+            row.tooltip = ElementLore.Describe(element) + $"\n\nCosts {cost} "
                 + (cost == 1 ? "point" : "points") + " of the pool budget";
 
             var gem = new VisualElement();

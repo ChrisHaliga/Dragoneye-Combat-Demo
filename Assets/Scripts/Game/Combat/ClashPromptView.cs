@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using Dragoneye.Combat;
+using Dragoneye.Data;
 using Dragoneye.Multiplayer;
 using UnityEngine;
 using UnityEngine.UIElements;
@@ -197,6 +198,10 @@ namespace Dragoneye.Game
             var name = new Label(ElementInfo.ShortNameOf(element));
             name.AddToClassList("clash-option__name");
             button.Add(name);
+
+            // The reasoning behind the numbers below, for anybody who wants to check it rather
+            // than take it on trust.
+            button.tooltip = ElementLore.Describe(element);
 
             var count = new Label(staged > 0 ? $"{staged} of {left + staged}" : $"{left} held");
             count.AddToClassList("clash-option__count");

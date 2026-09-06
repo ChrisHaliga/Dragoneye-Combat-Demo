@@ -1,4 +1,5 @@
 using Dragoneye.Combat;
+using Dragoneye.Data;
 using Dragoneye.Multiplayer;
 using UnityEngine;
 using UnityEngine.UIElements;
@@ -35,9 +36,15 @@ namespace Dragoneye.Game
         Label m_Description;
         Label m_ElementsTitle;
         VisualElement m_Elements;
+        Label m_SkillsTitle;
+        VisualElement m_Skills;
+
+        /// <summary>The interpunct the rest of the HUD separates fields with.</summary>
+        const string Bullet = "\u00b7";
 
         CreatureState m_Observed;
         CreaturePool m_ObservedPool;
+        SkillCommands m_ObservedSkills;
 
         void Start()
         {
@@ -64,6 +71,8 @@ namespace Dragoneye.Game
             m_Description = root.Q<Label>("card-description");
             m_ElementsTitle = root.Q<Label>("card-elements-title");
             m_Elements = root.Q<VisualElement>("card-elements");
+            m_SkillsTitle = root.Q<Label>("card-skills-title");
+            m_Skills = root.Q<VisualElement>("card-skills");
 
             if (m_Card == null || m_ApPips == null || m_Name == null)
             {
@@ -113,8 +122,14 @@ namespace Dragoneye.Game
                 m_ObservedPool.Changed -= Redraw;
             }
 
+            if (m_ObservedSkills != null)
+            {
+                m_ObservedSkills.SeenChanged -= Redraw;
+            }
+
             m_Observed = creature;
             m_ObservedPool = creature != null ? creature.GetComponent<CreaturePool>() : null;
+            m_ObservedSkills = creature != null ? creature.GetComponent<SkillCommands>() : null;
 
             if (m_Observed != null)
             {
@@ -124,6 +139,11 @@ namespace Dragoneye.Game
             if (m_ObservedPool != null)
             {
                 m_ObservedPool.Changed += Redraw;
+            }
+
+            if (m_ObservedSkills != null)
+            {
+                m_ObservedSkills.SeenChanged += Redraw;
             }
         }
 
@@ -172,6 +192,94 @@ namespace Dragoneye.Game
             BuildPips(creature.CurrentAp, creature.MaxAp);
             BuildExperience(creature);
             BuildElements();
+            BuildSkills();
+        }
+
+        /// <summary>
+        /// What this creature can do, or -- for anybody else's -- what it has been caught doing.
+        ///
+        /// Your own creature lists everything, because you are entitled to it and the bar only
+        /// shows what is affordable this instant. Anybody else lists only the skills they have used
+        /// in front of you, which is public by the same reasoning that makes a spent element
+        /// public: it happened where everyone could see.
+        ///
+        /// It earns its place now that the log names skills. "Ogre used Cleave" is only useful to
+        /// somebody who can find out what Cleave is.
+        /// </summary>
+        void BuildSkills()
+        {
+            if (m_Skills == null || m_SkillsTitle == null)
+            {
+                return;
+            }
+
+            m_Skills.Clear();
+
+            if (m_ObservedSkills == null || m_ObservedPool == null)
+            {
+                m_SkillsTitle.text = string.Empty;
+                return;
+            }
+
+            var mine = m_ObservedPool.CanSee;
+
+            if (mine)
+            {
+                m_SkillsTitle.text = "SKILLS";
+
+                foreach (var skill in m_ObservedSkills.Skills)
+                {
+                    m_Skills.Add(SkillRow(skill));
+                }
+
+                return;
+            }
+
+            var seen = m_ObservedSkills.SeenSkillIds;
+            m_SkillsTitle.text = "SEEN USING " + Bullet + " " + seen.Count;
+
+            foreach (var id in seen)
+            {
+                if (SkillCatalog.Current != null && SkillCatalog.Current.TryGetSkill(id, out var spec))
+                {
+                    m_Skills.Add(SkillRow(spec));
+                }
+            }
+
+            if (m_Skills.childCount == 0)
+            {
+                m_Skills.Add(Note("Nothing yet."));
+            }
+        }
+
+        /// <summary>One skill: what it is called, and what it costs to throw.</summary>
+        static VisualElement SkillRow(SkillSpec skill)
+        {
+            var row = new VisualElement();
+            row.AddToClassList("card-skill");
+
+            var name = new Label(skill.Name);
+            name.AddToClassList("card-skill__name");
+            row.Add(name);
+
+            var cost = new Label(skill.ElementCost > 0
+                ? $"{skill.ElementCost} {ElementInfo.ShortNameOf(skill.Element)}  {skill.ApCost} AP"
+                : $"{skill.ApCost} AP");
+
+            cost.AddToClassList("card-skill__cost");
+
+            if (skill.ElementCost > 0)
+            {
+                cost.style.color = ElementPalette.ForElement(skill.Element);
+            }
+
+            row.Add(cost);
+
+            row.tooltip = string.IsNullOrEmpty(skill.Description)
+                ? ElementLore.Describe(skill.Element)
+                : skill.Description + "\n\n" + ElementLore.Describe(skill.Element);
+
+            return row;
         }
 
         /// <summary>
@@ -279,7 +387,8 @@ namespace Dragoneye.Game
                 if (available > 0)
                 {
                     var chip = CharacterSheet.ElementChip(element, available);
-                    chip.tooltip = $"{ElementInfo.NameOf(element)} · seen, and back in hand";
+                    chip.tooltip = "Seen, and back in hand.\n\n"
+                        + ElementLore.Describe(element);
                     m_Elements.Add(chip);
                 }
             }
@@ -319,7 +428,8 @@ namespace Dragoneye.Game
                 {
                     var chip = CharacterSheet.ElementChip(element, spent[element]);
                     chip.AddToClassList("element-chip--spent");
-                    chip.tooltip = $"{ElementInfo.NameOf(element)} · spent, and not taken back";
+                    chip.tooltip = "Spent, and not taken back.\n\n"
+                        + ElementLore.Describe(element);
                     m_Elements.Add(chip);
                 }
             }

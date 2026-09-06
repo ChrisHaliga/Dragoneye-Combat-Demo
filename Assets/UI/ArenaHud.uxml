@@ -39,7 +39,6 @@
         <!-- What has happened, in order. Bottom left, out of the way of the board and beside the
              party it is about. -->
         <ui:VisualElement name="combat-log" class="combat-log">
-            <ui:Label text="Combat Log" class="combat-log__title" />
             <ui:ScrollView name="combat-log-list" class="combat-log-list" />
         </ui:VisualElement>
 
@@ -73,6 +72,11 @@
 
             <ui:Label name="card-elements-title" text="" class="card__elements-title" />
             <ui:VisualElement name="card-elements" class="card__elements" />
+
+            <!-- What this creature has been watched doing. The log names skills; this is where you
+                 look one up. -->
+            <ui:Label name="card-skills-title" text="" class="card__elements-title" />
+            <ui:VisualElement name="card-skills" class="card__skills" />
 
             <ui:Label name="card-description" text="" class="card__description" />
         </ui:VisualElement>

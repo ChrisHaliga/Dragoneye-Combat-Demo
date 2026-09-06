@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using Dragoneye.Combat;
+using Dragoneye.Data;
 using Dragoneye.Multiplayer;
 using UnityEngine;
 using UnityEngine.UIElements;
@@ -163,7 +164,7 @@ namespace Dragoneye.Game
                 var mark = new VisualElement();
                 mark.AddToClassList("clash-result__mark");
                 CharacterSheet.PaintElement(mark, element);
-                mark.tooltip = ElementInfo.NameOf(element);
+                mark.tooltip = ElementLore.Describe(element);
                 side.Add(mark);
             }
 

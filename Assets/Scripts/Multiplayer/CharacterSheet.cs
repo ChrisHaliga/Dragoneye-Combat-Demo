@@ -201,7 +201,7 @@ namespace Dragoneye.Multiplayer
             var chip = new VisualElement();
             chip.AddToClassList("element-chip");
             chip.EnableInClassList("element-chip--none", dim);
-            chip.tooltip = ElementInfo.NameOf(element);
+            chip.tooltip = ElementLore.Describe(element);
 
             var mark = new VisualElement();
             mark.AddToClassList("element-chip__mark");
@@ -268,9 +268,9 @@ namespace Dragoneye.Multiplayer
                 }
 
                 var chip = ElementChip(element, held);
-                chip.tooltip = $"{ElementInfo.NameOf(element)} " + DotSeparator
-                    + $" {ElementPricing.CostOf(element)} point"
-                    + (ElementPricing.CostOf(element) == 1 ? string.Empty : "s") + " each";
+                chip.tooltip = $"{ElementPricing.CostOf(element)} point"
+                    + (ElementPricing.CostOf(element) == 1 ? string.Empty : "s") + " each"
+                    + "\n\n" + ElementLore.Describe(element);
 
                 into.Add(chip);
             }

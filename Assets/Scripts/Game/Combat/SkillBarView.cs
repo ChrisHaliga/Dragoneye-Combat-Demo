@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using Dragoneye.Combat;
 using Dragoneye.Data;
 using Dragoneye.Multiplayer;
@@ -258,7 +259,25 @@ namespace Dragoneye.Game
 
             m_Hand.Clear();
 
-            var held = pool.Pool;
+            var ledger = pool.Ledger;
+
+            m_Hand.Add(BuildHeld(ledger.Pool));
+
+            if (ledger.Outstanding.Count > 0)
+            {
+                m_Hand.Add(BuildSpent(ledger.Outstanding));
+            }
+        }
+
+        /// <summary>What is still in the hand, counted under its rune.</summary>
+        static VisualElement BuildHeld(ElementCounts held)
+        {
+            var group = new VisualElement();
+            group.AddToClassList("own-hand__group");
+
+            var title = new Label("HAND");
+            title.AddToClassList("own-hand__label");
+            group.Add(title);
 
             foreach (var element in ElementInfo.All)
             {
@@ -266,15 +285,64 @@ namespace Dragoneye.Game
 
                 if (count > 0)
                 {
-                    m_Hand.Add(CharacterSheet.ElementChip(element, count));
+                    group.Add(CharacterSheet.ElementChip(element, count));
                 }
             }
 
             if (held.Total == 0)
             {
-                var empty = new Label("Nothing left to spend");
+                var empty = new Label("nothing left to spend");
                 empty.AddToClassList("own-hand__empty");
-                m_Hand.Add(empty);
+                group.Add(empty);
+            }
+
+            return group;
+        }
+
+        /// <summary>
+        /// What has been spent, in the order it went -- oldest on the left.
+        ///
+        /// The order is the point, and it is not decoration: elements come back oldest first, so
+        /// the leftmost rune here is precisely the one the next Take a Breath returns. Counting
+        /// them into a total the way the card does would throw away the one fact a player needs to
+        /// decide whether catching their breath is worth an action point this turn.
+        /// </summary>
+        static VisualElement BuildSpent(IReadOnlyList<Element> outstanding)
+        {
+            var group = new VisualElement();
+            group.AddToClassList("own-hand__group");
+            group.AddToClassList("own-spent");
+
+            var title = new Label("SPENT");
+            title.AddToClassList("own-hand__label");
+            title.tooltip = "In the order they were spent. They come back oldest first.";
+            group.Add(title);
+
+            for (var i = 0; i < outstanding.Count; i++)
+            {
+                var mark = new VisualElement();
+                mark.AddToClassList("own-spent__mark");
+                mark.EnableInClassList("own-spent__mark--next", i == 0);
+                CharacterSheet.PaintElement(mark, outstanding[i]);
+
+                mark.tooltip = (i == 0 ? "Next one back." : $"{Ordinal(i + 1)} one back.")
+                    + "\n\n" + ElementLore.Describe(outstanding[i]);
+
+                group.Add(mark);
+            }
+
+            return group;
+        }
+
+        /// <summary>Small ordinals, spelled out. Nothing here ever reaches a number worth a rule.</summary>
+        static string Ordinal(int position)
+        {
+            switch (position)
+            {
+                case 1: return "1st";
+                case 2: return "2nd";
+                case 3: return "3rd";
+                default: return position + "th";
             }
         }
 
@@ -343,6 +411,10 @@ namespace Dragoneye.Game
                     $"{skill.ElementCost} {ElementInfo.ShortNameOf(skill.Element)}");
                 element.AddToClassList("skill-button__element");
                 element.style.color = ElementPalette.ForElement(skill.Element);
+
+                // What this skill is made of, and what that answers. The matchup is the whole of
+                // the decision and it was, until now, learnable only by losing to it.
+                element.tooltip = ElementLore.Describe(skill.Element);
                 costs.Add(element);
             }
 
