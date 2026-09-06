@@ -2,6 +2,7 @@
     <ui:VisualElement name="root" class="root">
         <Style src="SessionMenu.uss" />
         <Style src="Help.uss" />
+        <Style src="Chrome.uss" />
 
         <!-- Every screen fills the window and is stacked on the same spot. Two archetypes: a stage,
              which uses the whole frame, and a dialog, which centres a plate in it. Nothing is a
@@ -23,6 +24,7 @@
                 <ui:VisualElement class="home__left">
                     <ui:Label text="DRAGONEYE" class="home__mark" />
                     <ui:VisualElement class="rule" />
+                    <ui:Label text="C O M B A T" class="home__sub" />
 
                     <ui:VisualElement class="menu-stack">
                         <ui:Button name="singleplayer-button" text="Singleplayer" class="btn btn--menu btn--primary" />

@@ -1,0 +1,110 @@
+/* The furniture UI Toolkit draws on its own -- scrollbars, dropdown text -- restyled once and
+ * attached to every document.
+ *
+ * Left alone, a ScrollView draws a Windows-98 scrollbar: a pale grey track with arrow buttons at
+ * both ends, twelve pixels wide, in the middle of a dark ember panel. It is the single loudest
+ * tell that a screen was assembled rather than designed, and it appeared on the character sheet,
+ * the rules, the party lists and the combat log. Every document attaches this after its own sheet,
+ * so these rules win ties. */
+
+/* ---------- scrollbars ---------- */
+
+/* Thin, dark, and without ends. The track is nearly the panel colour; the thumb is the edge colour
+   and goes gold under the pointer, which is the only time anybody looks at it. */
+.unity-scroller--vertical {
+    width: 8px;
+    min-width: 8px;
+    margin-left: 6px;
+    background-color: rgba(0, 0, 0, 0);
+    border-width: 0;
+}
+
+.unity-scroller--horizontal {
+    height: 8px;
+    min-height: 8px;
+    margin-top: 6px;
+    background-color: rgba(0, 0, 0, 0);
+    border-width: 0;
+}
+
+/* The arrow buttons at either end are hidden rather than shrunk: nobody scrolls with them, and a
+   scrollbar with knobs on both ends is the web-page silhouette this whole sheet exists to remove. */
+.unity-scroller .unity-scroller__low-button,
+.unity-scroller .unity-scroller__high-button {
+    display: none;
+}
+
+.unity-scroller .unity-base-slider {
+    margin: 0;
+}
+
+.unity-scroller--vertical .unity-base-slider {
+    width: 8px;
+}
+
+.unity-scroller--horizontal .unity-base-slider {
+    height: 8px;
+}
+
+.unity-scroller .unity-base-slider__tracker {
+    background-color: rgba(0, 0, 0, 0.35);
+    border-width: 0;
+    border-radius: 4px;
+}
+
+.unity-scroller .unity-base-slider__dragger {
+    width: 8px;
+    min-height: 28px;
+    left: 0;
+    background-color: rgb(58, 66, 84);
+    border-width: 0;
+    border-radius: 4px;
+    transition-property: background-color;
+    transition-duration: 0.12s;
+}
+
+.unity-scroller--horizontal .unity-base-slider__dragger {
+    width: auto;
+    height: 8px;
+    min-width: 28px;
+    top: 0;
+}
+
+.unity-scroller .unity-base-slider__dragger:hover,
+.unity-scroller .unity-base-slider__dragger:active {
+    background-color: rgb(198, 158, 88);
+}
+
+/* Room for it. The content container would otherwise sit under the thumb. */
+.unity-scroll-view__content-viewport {
+    margin-right: 0;
+}
+
+/* ---------- dropdowns ---------- */
+
+/* The field is tall enough for its text and the text is allowed to hang below its line. A 13px
+   face in a 32px box was cutting the tails off g and y -- "Touahness", "Strenath" -- because the
+   inner label sizes itself to the font and then centres in whatever is left. */
+.dropdown .unity-base-popup-field__input {
+    height: 36px;
+    min-height: 36px;
+    padding: 0 12px;
+    align-items: center;
+}
+
+.dropdown .unity-base-popup-field__text {
+    flex-grow: 1;
+    margin: 0;
+    padding: 0;
+    overflow: visible;
+    -unity-text-align: middle-left;
+}
+
+.dropdown .unity-base-popup-field__arrow {
+    -unity-background-image-tint-color: rgb(139, 147, 165);
+}
+
+/* Text fields hang their descenders too. */
+.unity-base-text-field__input {
+    overflow: visible;
+}

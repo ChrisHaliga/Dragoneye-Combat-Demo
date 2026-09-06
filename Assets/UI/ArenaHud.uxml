@@ -1,6 +1,7 @@
 <ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements" editor-extension-mode="False">
     <ui:VisualElement name="root" class="hud-root">
         <Style src="ArenaHud.uss" />
+        <Style src="Chrome.uss" />
 
         <ui:VisualElement name="turn-bar" class="turn-bar">
             <ui:Label name="round-label" text="Round 1" class="turn-bar__round" />

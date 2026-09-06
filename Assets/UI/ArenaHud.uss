@@ -70,9 +70,11 @@
     -unity-slice-bottom: 28;
     -unity-slice-scale: 0.5;
 
-    /* The border is the ownership channel: it takes the controlling player's colour. */
+    /* The left edge is the ownership channel: it takes the controlling player's colour. The rest
+       of the border belongs to selection, so the two facts cannot fight over one box. */
     border-width: 2px;
-    border-color: rgb(90, 96, 112);
+    border-left-width: 4px;
+    border-color: rgba(0, 0, 0, 0);
 }
 
 .portrait:hover {
@@ -80,7 +82,10 @@
 }
 
 .portrait--selected {
-    -unity-background-image-tint-color: rgb(200, 210, 235);
+    border-top-color: rgb(226, 191, 122);
+    border-right-color: rgb(226, 191, 122);
+    border-bottom-color: rgb(226, 191, 122);
+    -unity-background-image-tint-color: rgb(214, 204, 186);
 }
 
 .portrait__image {
@@ -120,15 +125,15 @@
 .hp-track {
     height: 6px;
     margin-top: 5px;
-    background-color: rgb(30, 14, 18);
+    background-color: rgb(14, 16, 22);
     border-width: 1px;
-    border-color: rgb(58, 30, 34);
+    border-color: rgb(40, 46, 60);
     overflow: hidden;
 }
 
 .hp-fill {
     height: 100%;
-    background-color: rgb(196, 62, 58);
+    background-color: rgb(112, 196, 140);
 }
 
 /* ---------- summary card ---------- */
@@ -299,10 +304,14 @@
 
 .turn-bar {
     position: absolute;
-    top: 14px;
+    top: 0;
     left: 0;
     right: 0;
+    padding-top: 14px;
+    padding-bottom: 28px;
     align-items: center;
+    background-image: url("Generated/ui-shade.png");
+    -unity-background-scale-mode: stretch-to-fill;
 }
 
 .turn-bar__round {
@@ -339,8 +348,8 @@
 }
 
 .turn-portrait {
-    width: 52px;
-    height: 52px;
+    width: 62px;
+    height: 62px;
     margin: 0 3px;
     overflow: hidden;
     justify-content: flex-end;
@@ -352,8 +361,8 @@
 
 /* The active creature reads first: larger, lifted, and the only one ringed in gold. */
 .turn-portrait--active {
-    width: 68px;
-    height: 68px;
+    width: 80px;
+    height: 80px;
     margin-bottom: 0;
     border-color: rgb(226, 191, 122);
 }
@@ -370,11 +379,11 @@
 
 .turn-portrait__initial {
     position: absolute;
-    top: 0;
+    top: 4px;
     left: 0;
     right: 0;
-    bottom: 14px;
-    font-size: 20px;
+    height: 24px;
+    font-size: 18px;
     -unity-font-style: bold;
     color: rgb(150, 158, 178);
     -unity-text-align: middle-center;
@@ -1224,20 +1233,22 @@
     position: absolute;
     left: 16px;
     bottom: 22px;
-    width: 360px;
+    width: 380px;
 
     /* Fixed, and clipped. Without a height of its own the panel grew with its contents and the
        oldest lines climbed off the top of the screen -- which is not scrolling, it is leaking. */
     height: 168px;
     overflow: hidden;
-    opacity: 0.67;
+    opacity: 0.72;
     padding: 8px 10px 6px 10px;
-    background-image: url("Generated/ui-panel.png");
-    -unity-slice-left: 32;
-    -unity-slice-right: 32;
-    -unity-slice-top: 32;
-    -unity-slice-bottom: 32;
-    -unity-slice-scale: 0.5;
+
+    /* No frame. The lines carry their own shadow; a panel around them boxed off a corner of the
+       board for a list that is usually three lines long. */
+    background-color: rgba(4, 5, 8, 0.45);
+}
+
+.combat-log--empty {
+    background-color: rgba(0, 0, 0, 0);
 }
 
 .combat-log:hover {
@@ -1272,8 +1283,9 @@
 .combat-log__line {
     white-space: normal;
     font-size: 12px;
-    color: rgb(150, 157, 175);
+    color: rgb(168, 175, 192);
     margin-bottom: 1px;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.9);
 }
 
 /* A line the reader is part of, brighter than the traffic around it. */
@@ -1285,6 +1297,7 @@
     margin-top: 5px;
     margin-bottom: 2px;
     font-size: 10px;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.9);
     -unity-font-style: bold;
     letter-spacing: 3px;
     color: rgb(198, 158, 88);

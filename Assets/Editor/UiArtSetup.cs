@@ -74,6 +74,7 @@ namespace Dragoneye.MultiplayerEditor
                 new Color32(250, 168, 108, 255), new Color32(255, 208, 164, 255), chamfer: 16));
 
             WriteSized("ui-rule", Rule(128, 18), 128, 18);
+            WriteSized("ui-shade", Shade(2, 128), 2, 128);
             Write("ui-gem", Gem(96));
             Write("ui-glow", Glow(128));
 
@@ -332,6 +333,30 @@ namespace Dragoneye.MultiplayerEditor
                         Byte(255f * Mathf.Clamp01(value)),
                         Byte(255f * Mathf.Clamp01(value)),
                         Byte(255f * alpha));
+                }
+            }
+
+            return pixels;
+        }
+
+        /// <summary>
+        /// A vertical fall from ink to nothing. Stretched across the top of the arena under the
+        /// turn bar, and flipped under the footer: a strip of HUD needs something to sit on, and
+        /// a framed panel across the whole width would box the board in.
+        /// </summary>
+        static Color32[] Shade(int w, int h)
+        {
+            var pixels = new Color32[w * h];
+
+            for (var y = 0; y < h; y++)
+            {
+                // Row zero is the bottom of the texture, so the dense end is the last row.
+                var t = 1f - y / (float)(h - 1);
+                var alpha = Mathf.Pow(t, 1.6f) * 0.82f;
+
+                for (var x = 0; x < w; x++)
+                {
+                    pixels[y * w + x] = new Color32(4, 5, 8, Byte(255f * alpha));
                 }
             }
 

@@ -50,6 +50,7 @@ namespace Dragoneye.Game
         readonly Dictionary<uint, Known> m_Known = new Dictionary<uint, Known>();
 
         ScrollView m_List;
+        VisualElement m_Panel;
         int m_Round;
 
         void Start()
@@ -57,6 +58,8 @@ namespace Dragoneye.Game
             var document = GetComponent<UIDocument>().rootVisualElement;
 
             m_List = document.Q<ScrollView>("combat-log-list");
+            m_Panel = document.Q<VisualElement>("combat-log");
+            m_Panel?.AddToClassList("combat-log--empty");
 
             if (m_List == null)
             {
@@ -281,6 +284,7 @@ namespace Dragoneye.Game
         void Append(VisualElement line)
         {
             m_List.Insert(0, line);
+            m_Panel?.RemoveFromClassList("combat-log--empty");
 
             while (m_List.childCount > m_MaxLines)
             {

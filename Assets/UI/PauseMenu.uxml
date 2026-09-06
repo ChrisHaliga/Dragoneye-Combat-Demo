@@ -8,6 +8,7 @@
         <Style src="SessionMenu.uss" />
         <Style src="Help.uss" />
         <Style src="PauseMenu.uss" />
+        <Style src="Chrome.uss" />
 
         <ui:VisualElement name="pause-menu" class="pause-plate pause-plate--menu">
             <ui:Label text="PAUSED" class="pause__title" />

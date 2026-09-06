@@ -219,6 +219,9 @@ namespace Dragoneye.Game
                 var flag = new VisualElement();
                 flag.AddToClassList("party__flag");
                 flag.style.backgroundColor = PartyPalette.ForParty(party);
+
+                // The column wears its colour along the top as well as beside its name.
+                root.style.borderTopColor = PartyPalette.ForParty(party);
                 head.Add(flag);
 
                 var name = new Label(PartyPalette.NameOf(party).ToUpperInvariant());

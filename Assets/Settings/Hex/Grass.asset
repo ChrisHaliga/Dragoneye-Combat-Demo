@@ -13,6 +13,6 @@ MonoBehaviour:
   m_Name: Grass
   m_EditorClassIdentifier: Dragoneye.Hex::Dragoneye.Hex.TerrainType
   m_DisplayName: Grass
-  m_Color: {r: 0.35, g: 0.52, b: 0.3, a: 1}
+  m_Color: {r: 0.235, g: 0.318, b: 0.212, a: 1}
   m_IsWalkable: 1
   m_MoveCost: 1

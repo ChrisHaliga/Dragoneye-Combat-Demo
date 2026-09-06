@@ -153,13 +153,20 @@
 }
 
 .home__left {
-    width: 380px;
+    width: 400px;
+}
+
+.home__sub {
+    margin: -2px 0 22px 4px;
+    font-size: 11px;
+    letter-spacing: 8px;
+    color: rgb(198, 158, 88);
 }
 
 .home__mark {
-    font-size: 44px;
+    font-size: 52px;
     -unity-font-style: bold;
-    letter-spacing: 10px;
+    letter-spacing: 12px;
     color: rgb(236, 231, 219);
 }
 
@@ -173,8 +180,8 @@
 }
 
 .hero {
-    width: 300px;
-    padding: 26px 24px;
+    width: 360px;
+    padding: 28px 28px 24px 28px;
     background-image: url("Generated/ui-panel.png");
     -unity-slice-left: 32;
     -unity-slice-right: 32;
@@ -197,8 +204,8 @@
 
 .hero__portrait {
     width: 100%;
-    height: 170px;
-    margin-bottom: 12px;
+    height: 240px;
+    margin-bottom: 14px;
 }
 
 .hero__class {
@@ -314,23 +321,55 @@
 }
 
 .btn--menu {
-    height: 50px;
+    height: 46px;
     width: 100%;
-    margin: 0 0 10px 0;
-    font-size: 15px;
-    letter-spacing: 2px;
+    margin: 0 0 2px 0;
+    font-size: 18px;
+    letter-spacing: 3px;
     -unity-text-align: middle-left;
-    padding-left: 26px;
+    padding-left: 22px;
+    color: rgb(178, 184, 200);
+    background-image: none;
+    background-color: rgba(0, 0, 0, 0);
     border-left-width: 3px;
     border-left-color: rgba(0, 0, 0, 0);
-    transition-property: border-left-color, padding-left, color, scale;
+    transition-property: border-left-color, padding-left, color, background-color;
     transition-duration: 0.14s;
     transition-timing-function: ease-out;
 }
 
 .btn--menu:hover {
+    color: rgb(255, 244, 234);
+    padding-left: 30px;
     border-left-color: rgb(226, 191, 122);
-    padding-left: 32px;
+    background-image: none;
+    background-color: rgba(198, 158, 88, 0.08);
+}
+
+.btn--menu:active {
+    scale: 1;
+    padding-left: 28px;
+}
+
+/* The one that starts a game is gold from the start; it is what the screen is for. */
+.btn--menu.btn--primary {
+    color: rgb(226, 191, 122);
+    background-image: none;
+}
+
+.btn--menu.btn--primary:hover {
+    color: rgb(255, 232, 190);
+    background-image: none;
+}
+
+.btn--menu.btn--ghost {
+    margin-top: 14px;
+    font-size: 15px;
+    color: rgb(120, 128, 146);
+}
+
+.btn--menu:disabled {
+    opacity: 0.3;
 }
 
 /* ---------- panels and wells ---------- */

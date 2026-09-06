@@ -130,7 +130,12 @@
     flex-grow: 1;
     flex-basis: 0;
     margin-right: 12px;
-    padding: 14px 12px 12px 12px;
+    padding: 0 12px 12px 12px;
+
+    /* The party colour owns the top edge of its column. A ten-pixel swatch beside the name
+       said which side this was; three pixels along the whole top says it from across the room. */
+    border-top-width: 3px;
+    border-top-color: rgba(0, 0, 0, 0);
     background-image: url("Generated/ui-panel.png");
     -unity-slice-left: 32;
     -unity-slice-right: 32;
@@ -148,7 +153,11 @@
 .party__head {
     flex-direction: row;
     align-items: center;
-    margin-bottom: 4px;
+    margin: 0 -12px 6px -12px;
+    padding: 12px 14px 10px 14px;
+    background-color: rgba(255, 255, 255, 0.035);
+    border-bottom-width: 1px;
+    border-bottom-color: rgba(255, 255, 255, 0.06);
 }
 
 /* A colour swatch rather than coloured text: the same colour is on the ring under each creature on
@@ -161,7 +170,7 @@
 
 .party__name {
     flex-grow: 1;
-    font-size: 13px;
+    font-size: 14px;
     -unity-font-style: bold;
     letter-spacing: 2px;
     color: rgb(232, 226, 212);
@@ -196,10 +205,12 @@
 }
 
 .party__empty {
-    padding: 14px 4px;
-    font-size: 11px;
-    color: rgb(100, 108, 126);
+    padding: 18px 6px;
+    font-size: 12px;
+    -unity-font-style: italic;
+    color: rgb(90, 98, 118);
     white-space: normal;
+    -unity-text-align: upper-center;
 }
 
 .party__add {
@@ -551,4 +562,12 @@
 .draft--in {
     opacity: 1;
     translate: 0 0;
+}
+
+/* The button that starts the fight is the largest thing on the bottom row, not the smallest. */
+.draft__foot .button--primary {
+    height: 42px;
+    padding: 0 30px;
+    font-size: 13px;
+    letter-spacing: 2px;
 }

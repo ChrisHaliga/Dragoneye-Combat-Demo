@@ -1,6 +1,7 @@
 <ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements" editor-extension-mode="False">
     <ui:VisualElement name="root" class="draft-root">
         <Style src="DraftPanel.uss" />
+        <Style src="Chrome.uss" />
 
         <!-- A board, not a sidebar. Every party is a column and every combatant is a card in one of
              them, so the state of the match is the layout rather than something to be reconstructed

@@ -173,9 +173,9 @@ namespace Dragoneye.Game
                 row.AddToClassList("portrait--selected");
             }
 
-            var border = CreatureDisplay.OwnerColor(creature);
-            row.style.borderTopColor = row.style.borderBottomColor =
-                row.style.borderLeftColor = row.style.borderRightColor = border;
+            // Only the left edge. The rest of the border is what the stylesheet uses to mark the
+            // selected card, and setting all four here would have painted over it.
+            row.style.borderLeftColor = CreatureDisplay.OwnerColor(creature);
 
             row.Add(BuildImage(creature));
             row.Add(BuildBody(creature));
