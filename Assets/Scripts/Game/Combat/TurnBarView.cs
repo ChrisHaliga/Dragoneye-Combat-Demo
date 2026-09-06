@@ -256,18 +256,28 @@ namespace Dragoneye.Game
             return strip;
         }
 
-        /// <summary>A thin silver strip above the health, for creatures that have armour to lose.</summary>
+        /// <summary>
+        /// The silver bar above the green, for creatures that have armour to lose.
+        ///
+        /// Numbered like the health under it, because it is read the same way: armour never comes
+        /// back, so "6 of 16 left" is a fact about the rest of the match, not about this turn.
+        /// </summary>
         static VisualElement BuildArmour(CreatureState creature)
         {
-            var strip = new VisualElement();
-            strip.AddToClassList("turn-portrait__armour");
+            var bar = new VisualElement();
+            bar.AddToClassList("turn-portrait__armour");
 
             var fill = new VisualElement();
             fill.AddToClassList("turn-portrait__armour-fill");
             fill.style.width = Length.Percent(CreatureDisplay.ArmourFraction(creature) * 100f);
 
-            strip.Add(fill);
-            return strip;
+            var text = new Label($"{creature.CurrentArmour}/{creature.MaxArmour}");
+            text.AddToClassList("turn-portrait__armour-text");
+            text.tooltip = "Armour. Takes every blow first, and does not come back.";
+
+            bar.Add(fill);
+            bar.Add(text);
+            return bar;
         }
 
         static VisualElement BuildHealth(CreatureState creature)

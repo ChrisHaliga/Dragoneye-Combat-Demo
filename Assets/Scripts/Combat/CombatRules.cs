@@ -8,14 +8,19 @@ namespace Dragoneye.Combat
     /// callers so that authoring them later is a change to one file plus the definition asset, and
     /// so a test can state the rule without hard-coding a literal that has drifted.
     ///
-    /// Costs are <see cref="Ap"/>, which is half-units. Moving a tile costs half a point and a skill
-    /// costs whole points, so a turn is a real trade between covering ground and acting -- which is
-    /// the whole reason DE-000 asks for the half-unit.
+    /// Costs are <see cref="Ap"/>, which is half-units. Moving a tile costs half a point unarmoured
+    /// and a skill costs whole points, so a turn is a real trade between covering ground and acting
+    /// -- which is the whole reason DE-000 asks for the half-unit.
+    ///
+    /// What a step costs is not a constant any more: it is the wearer's suit's to say, through
+    /// <see cref="ArmourRules.StepCost"/>, so every method here that prices a walk takes the step
+    /// cost in rather than assuming one. A caller that wants the unarmoured price can pass
+    /// <see cref="BaseStepCost"/>; a caller pricing a creature's walk asks the creature.
     /// </summary>
     public static class CombatRules
     {
-        /// <summary>What one tile of movement costs. Half a point, per DE-000.</summary>
-        public static readonly Ap MoveCostPerTile = Ap.Step;
+        /// <summary>What one tile costs with nothing worn. Half a point, per DE-000.</summary>
+        public static readonly Ap BaseStepCost = Ap.Step;
 
         /// <summary>
         /// Whether a target at this distance is inside a reach.
@@ -25,12 +30,12 @@ namespace Dragoneye.Combat
         /// </summary>
         public static bool InRange(int distance, int reach) => distance > 0 && distance <= reach;
 
-        /// <summary>What a move of this many steps costs.</summary>
-        public static Ap MoveCost(int steps) => steps <= 0 ? Ap.Zero : MoveCostPerTile * steps;
+        /// <summary>What a move of this many steps costs, at this price per step.</summary>
+        public static Ap MoveCost(int steps, Ap stepCost) => steps <= 0 ? Ap.Zero : stepCost * steps;
 
-        /// <summary>How many tiles a given amount of AP will carry a creature.</summary>
-        public static int StepsAffordable(Ap available) =>
-            MoveCostPerTile.IsZero ? 0 : available.Units / MoveCostPerTile.Units;
+        /// <summary>How many tiles a given amount of AP will carry a creature, at this price per step.</summary>
+        public static int StepsAffordable(Ap available, Ap stepCost) =>
+            stepCost.IsZero ? 0 : available.Units / stepCost.Units;
 
         /// <summary>
         /// What a hit actually lands after the defender's protection is taken off it.
@@ -54,9 +59,8 @@ namespace Dragoneye.Combat
         ///
         /// A pool rather than a subtraction. Flat reduction had a wall in it: any blow smaller than
         /// the reduction did nothing at all, forever, so a creature in plate could stand in front
-        /// of a dagger for the rest of the match. A pool is worn down by anything and back at the
-        /// start of the wearer's turn, which is the difference between being hard to hurt and
-        /// being impossible to.
+        /// of a dagger for the rest of the match. A pool is worn down by anything, and it does not
+        /// come back -- which is the difference between being hard to hurt and being impossible to.
         /// </summary>
         /// <returns>The damage that reached health.</returns>
         public static int Absorb(int damage, int armour, out int armourAfter)
@@ -90,14 +94,15 @@ namespace Dragoneye.Combat
         /// Drives the End Turn button's prompt. It is only a prompt: the turn always ends on the
         /// player's click, never on this returning false.
         /// </summary>
-        public static bool CanAffordAnything(Ap currentAp, bool anyMoveInRange, bool anySkillUsable)
+        public static bool CanAffordAnything(Ap currentAp, bool anyMoveInRange, bool anySkillUsable,
+            Ap stepCost)
         {
             if (anySkillUsable)
             {
                 return true;
             }
 
-            return anyMoveInRange && currentAp >= MoveCostPerTile;
+            return anyMoveInRange && currentAp >= stepCost;
         }
     }
 }

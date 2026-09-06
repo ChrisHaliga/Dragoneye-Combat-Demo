@@ -48,8 +48,13 @@ namespace Dragoneye.Game
         int m_Speed = 5;
 
         [SerializeField, Min(0), Tooltip("Armour: a pool above health, worn down by every blow "
-             + "and restored at the start of each of this creature's turns. Zero for most.")]
+             + "and never restored. Zero for most.")]
         int m_Armour;
+
+        [SerializeField, Tooltip("How heavy what it wears is. Prices every step it takes -- half "
+             + "a point in nothing, a whole point in light, two in heavy. Separate from the pool "
+             + "above so a thick hide can be armour without being slow.")]
+        ArmourClass m_ArmourClass = ArmourClass.None;
 
         [SerializeField, Tooltip("Whether this creature answers a clash with the better of two "
              + "elements -- a shield, or whatever stands in for one. It costs two elements rather "
@@ -122,8 +127,11 @@ namespace Dragoneye.Game
         /// <summary>Whether this creature answers a clash with the better of two elements.</summary>
         public bool Shielded => m_Shielded;
 
-        /// <summary>The armour pool this creature starts every turn with.</summary>
+        /// <summary>The armour pool this creature brings to the match.</summary>
         public int Armour => m_Armour;
+
+        /// <summary>How heavy what it wears is, which is what each of its steps costs.</summary>
+        public ArmourClass ArmourClass => m_ArmourClass;
 
         public int MaxAp => m_MaxAp;
 

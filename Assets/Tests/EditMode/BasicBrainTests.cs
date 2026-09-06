@@ -242,7 +242,7 @@ namespace Dragoneye.Hex.Tests
             // Half a point per tile, so two whole points buys four tiles -- asserted through the
             // rule rather than a literal, so changing the cost does not silently pass a stale test.
             Assert.LessOrEqual(Hex.Distance(Hex.Zero, decision.Destination),
-                CombatRules.StepsAffordable(Ap.FromWhole(2)));
+                CombatRules.StepsAffordable(Ap.FromWhole(2), CombatRules.BaseStepCost));
         }
 
         [Test]

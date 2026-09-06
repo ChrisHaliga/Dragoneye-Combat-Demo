@@ -19,6 +19,9 @@ namespace Dragoneye.Game
         public static readonly CreatureProfile Unknown = new CreatureProfile(
             "Unknown", 1, Ap.Zero, 0, null, ElementCounts.Empty, Progression.FirstLevel);
 
+        /// <summary>What one tile costs this creature. Its armour's to say; half a point in nothing.</summary>
+        public readonly Ap StepCost;
+
         public readonly string Name;
         public readonly int MaxHealth;
         public readonly Ap MaxAp;
@@ -32,15 +35,17 @@ namespace Dragoneye.Game
         /// <summary>Whether this creature answers a clash with the better of two elements.</summary>
         public readonly bool Advantage;
 
-        /// <summary>The armour pool this creature starts each turn with. Zero for most premades.</summary>
+        /// <summary>The armour pool this creature brings to the match. Zero for most premades.</summary>
         public readonly int Armour;
 
         public CreatureProfile(string name, int maxHealth, Ap maxAp, int initiative,
             IReadOnlyList<int> skillIds, ElementCounts startingPool,
-            int level = Progression.FirstLevel, bool advantage = false, int armour = 0)
+            int level = Progression.FirstLevel, bool advantage = false, int armour = 0,
+            Ap? stepCost = null)
         {
             Advantage = advantage;
             Armour = armour < 0 ? 0 : armour;
+            StepCost = stepCost ?? CombatRules.BaseStepCost;
             Name = string.IsNullOrEmpty(name) ? "Unknown" : name;
             MaxHealth = maxHealth < 1 ? 1 : maxHealth;
             MaxAp = maxAp;
@@ -65,7 +70,8 @@ namespace Dragoneye.Game
                 : new CreatureProfile(definition.DisplayName, definition.MaxHpAt(level),
                     Ap.FromWhole(definition.MaxAp), definition.Speed,
                     definition.SkillIdsAt(level), definition.PoolFor(level), level,
-                    definition.Shielded, definition.Armour);
+                    definition.Shielded, definition.Armour,
+                    ArmourRules.StepCost(definition.ArmourClass));
 
         /// <summary>
         /// A character somebody built.
@@ -89,7 +95,7 @@ namespace Dragoneye.Game
 
             return new CreatureProfile(name, loadout.Vitals.MaxHealth, loadout.Vitals.MaxAp,
                 loadout.Vitals.Speed, skillIds, loadout.StartingPool, loadout.Vitals.Level,
-                loadout.Advantage, loadout.ArmourPoints);
+                loadout.Advantage, loadout.ArmourPoints, loadout.StepCost);
         }
     }
 }

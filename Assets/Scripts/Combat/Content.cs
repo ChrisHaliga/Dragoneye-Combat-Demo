@@ -8,7 +8,10 @@ namespace Dragoneye.Combat
         Weapon = 0,
         Armor = 1,
 
-        /// <summary>The other hand. A shield lives here, so carrying one does not cost armour.</summary>
+        /// <summary>
+        /// The other hand. A shield lives here, so carrying one does not cost armour -- what it
+        /// costs is the hand, which is the one a second weapon or a two-handed one would want.
+        /// </summary>
         Offhand = 2
     }
 

@@ -159,6 +159,30 @@ namespace Dragoneye.Combat
         }
 
         /// <summary>
+        /// A skill with its element decided, or null when none of its options can be paid for.
+        ///
+        /// A pick the skill does not offer is discarded rather than refused: the caller that sent
+        /// it is either out of date or lying, and in both cases the honest answer is the one the
+        /// skill would have given on its own -- the first option that can be paid for.
+        /// </summary>
+        public static SkillSpec Settle(SkillSpec skill, Element? element, ElementLedger ledger)
+        {
+            if (skill == null)
+            {
+                return null;
+            }
+
+            if (element.HasValue && skill.Offers(element.Value))
+            {
+                return skill.WithElement(element.Value);
+            }
+
+            return TryChooseElement(skill, ledger, out var chosen)
+                ? skill.WithElement(chosen)
+                : null;
+        }
+
+        /// <summary>
         /// The full check: affordable, and aimed at something it can legally be aimed at.
         /// </summary>
         public static SkillRefusal Check(SkillSpec skill, bool isActorsTurn, Ap currentAp,

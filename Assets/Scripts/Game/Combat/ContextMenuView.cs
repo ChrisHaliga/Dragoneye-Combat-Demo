@@ -159,7 +159,7 @@ namespace Dragoneye.Game
 
             var plan = ActionResolver.Resolve(
                 isActorsTurn: true, controlsActor: true, currentAp: actor.CurrentAp,
-                targetOccupied: false, moveSteps: steps);
+                targetOccupied: false, moveSteps: steps, stepCost: actor.StepCost);
 
             if (plan.Action != BoardAction.Move)
             {
@@ -247,7 +247,7 @@ namespace Dragoneye.Game
 
             var plan = ActionResolver.Resolve(
                 isActorsTurn: true, controlsActor: true, currentAp: actor.CurrentAp,
-                targetOccupied: false, moveSteps: steps);
+                targetOccupied: false, moveSteps: steps, stepCost: actor.StepCost);
 
             entries.Add(new Entry("Move next to", $"{plan.Cost} AP",
                 plan.IsAllowed ? null : ActionLabels.DescribeRefusal(plan.Refusal),
@@ -285,7 +285,8 @@ namespace Dragoneye.Game
                     skill: skill, targetIsCreature: true, targetIsEnemy: isEnemy,
                     stepsToReach: isSelf
                         ? 0
-                        : m_Input.Board.StepsToReach(actor.Cell, hex, skill.Range));
+                        : m_Input.Board.StepsToReach(actor.Cell, hex, skill.Range),
+                    stepCost: actor.StepCost);
 
                 if (plan.Action != BoardAction.UseSkill)
                 {

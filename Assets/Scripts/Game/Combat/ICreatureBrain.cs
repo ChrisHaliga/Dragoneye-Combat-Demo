@@ -31,8 +31,12 @@ namespace Dragoneye.Game
         /// <summary>What it is holding, so affordability is the same question the server asks.</summary>
         public readonly ElementLedger Ledger;
 
+        /// <summary>What one tile costs it, so a brain in plate does not plan a walk in leather.</summary>
+        public readonly Ap StepCost;
+
         public BrainView(uint id, Hex cell, Party party, Ap currentAp, int currentHp,
-            IReadOnlyList<SkillSpec> skills = null, ElementLedger ledger = default)
+            IReadOnlyList<SkillSpec> skills = null, ElementLedger ledger = default,
+            Ap? stepCost = null)
         {
             Id = id;
             Cell = cell;
@@ -41,6 +45,7 @@ namespace Dragoneye.Game
             CurrentHp = currentHp;
             Skills = skills ?? System.Array.Empty<SkillSpec>();
             Ledger = ledger;
+            StepCost = stepCost ?? CombatRules.BaseStepCost;
         }
     }
 

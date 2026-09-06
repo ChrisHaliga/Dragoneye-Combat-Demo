@@ -122,13 +122,14 @@ namespace Dragoneye.Game
             System.Array.Empty<Hex>();
 
         /// <summary>
-        /// Whether walking anywhere from here would give somebody a swing.
+        /// Whether the click under the cursor would give somebody a swing.
         ///
-        /// A property of the tile being left rather than the one being hovered, so it does not
-        /// change as the cursor moves -- which is the point: the price is for going at all, and a
-        /// player should be able to see it before they start looking for somewhere to go.
+        /// About the destination, not the tile being left: a step that ends somewhere an enemy is
+        /// still watching is a step it can follow with its eyes, and only a step out of its sight
+        /// provokes. So the warning changes as the cursor moves, and a player can find the tile
+        /// that does not cost them.
         /// </summary>
-        public bool MoveProvokes { get; private set; }
+        public bool HoveredProvokes { get; private set; }
 
         /// <summary>Which way the pending move would arrive facing.</summary>
         public Facing PendingFacing { get; private set; }
@@ -204,7 +205,7 @@ namespace Dragoneye.Game
             var plan = hovered.HasValue ? Price(hovered.Value) : ActionPlan.Nothing;
 
             HoveredPath = RouteTo(hovered, plan);
-            MoveProvokes = AnybodyWatching();
+            HoveredProvokes = hovered.HasValue && ProvokesAt(hovered.Value, plan);
 
             if (plan.Action == m_Hovered.Action && plan.Cost == m_Hovered.Cost
                 && plan.Refusal == m_Hovered.Refusal)
@@ -216,23 +217,51 @@ namespace Dragoneye.Game
         }
 
         /// <summary>
-        /// Whether any enemy is next to the acting creature and looking at it.
+        /// Whether going where this click would send the creature gives any enemy a swing.
         ///
-        /// Position and facing only, both of which are drawn on the board. Whether they can afford
-        /// the swing is theirs to know.
+        /// A move ends on the hovered tile; a skill ends on the cheapest tile its target is in
+        /// reach from, which is the tile the server will walk to. Position and facing only, both
+        /// of which are drawn on the board. Whether they can afford the swing is theirs to know.
         /// </summary>
-        bool AnybodyWatching()
+        bool ProvokesAt(Hex hovered, ActionPlan plan)
         {
             var actor = Actor;
 
-            if (actor == null || m_Creatures == null)
+            if (actor == null || m_Creatures == null || !plan.IsAllowed)
+            {
+                return false;
+            }
+
+            Hex destination;
+
+            if (plan.Action == BoardAction.Move)
+            {
+                destination = hovered;
+            }
+            else if (plan.Action == BoardAction.UseSkill)
+            {
+                var armed = ArmedSkill(actor);
+
+                if (armed == null || armed.Target == SkillTarget.Self
+                    || !m_Board.TryTileInReach(actor.Cell, hovered, armed.Range, out destination,
+                        out _))
+                {
+                    return false;
+                }
+            }
+            else
+            {
+                return false;
+            }
+
+            if (destination == actor.Cell)
             {
                 return false;
             }
 
             foreach (var creature in m_Creatures.All)
             {
-                if (CombatDirector.Watches(creature, actor))
+                if (CombatDirector.Provokes(creature, actor, destination))
                 {
                     return true;
                 }
@@ -380,7 +409,8 @@ namespace Dragoneye.Game
                 controlsActor: true,
                 currentAp: actor.CurrentAp,
                 targetOccupied: occupied,
-                moveSteps: occupied ? -1 : m_Board.CostTo(actor.Cell, hex));
+                moveSteps: occupied ? -1 : m_Board.CostTo(actor.Cell, hex),
+                stepCost: actor.StepCost);
         }
 
         /// <summary>
@@ -418,7 +448,8 @@ namespace Dragoneye.Game
                 skill: skill,
                 targetIsCreature: target != null,
                 targetIsEnemy: target != null && target.Party != actor.Party,
-                stepsToReach: StepsToReach(actor, skill, hex));
+                stepsToReach: StepsToReach(actor, skill, hex),
+                stepCost: actor.StepCost);
         }
 
         /// <summary>

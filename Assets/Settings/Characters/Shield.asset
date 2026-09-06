@@ -14,8 +14,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: Dragoneye.Data:Dragoneye.Data:EquipmentAsset
   m_Id: 30
   m_DisplayName: Shield
-  m_Description: Three damage off anything that reaches you, and it costs you no
-    speed.
+  m_Description: Three armour between you and anything that reaches you, and no speed
+    for it.
   m_Slot: 2
   m_Modifiers:
     Toughness: 1

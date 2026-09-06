@@ -329,13 +329,19 @@ namespace Dragoneye.Multiplayer
             }
 
             // Armour reads here rather than in a passive line, because it is a number: the pool a
-            // creature has above its health at the start of every turn.
+            // creature has above its health, once, for the match.
             if (loadout.ArmourPoints > 0)
             {
-                var armour = new Label($"{loadout.ArmourPoints} armour, restored every turn");
+                var armour = new Label($"{loadout.ArmourPoints} armour, gone when it is gone");
                 armour.AddToClassList("passive-line");
                 into.Add(armour);
             }
+
+            // What every tile will cost. Said even at the unarmoured price, because the one thing
+            // a player has to know before they buy plate is what walking cost them before it.
+            var step = new Label($"Moves at {loadout.StepCost} AP a tile");
+            step.AddToClassList("passive-line");
+            into.Add(step);
         }
 
         /// <summary>"Level 4 · Human · Guardian", or whichever parts of it resolved.</summary>

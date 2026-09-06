@@ -547,7 +547,14 @@ namespace Dragoneye.Multiplayer
 
             if (guard > 0)
             {
-                text += $"\n{guard} armour, restored every turn";
+                text += $"\n{guard} armour";
+            }
+
+            // Only where the suit changes the price of a step. A shield says nothing here, which is
+            // the point of a shield.
+            if (spec.Armour != ArmourClass.None)
+            {
+                text += $"\n{ArmourRules.StepCost(spec.Armour)} AP a tile";
             }
 
             var speed = ArmourRules.SpeedCostOf(spec.Armour);

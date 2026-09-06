@@ -135,7 +135,7 @@ namespace Dragoneye.Game
                 // with the same problem, but somewhere else is at least where the fight is.
             }
 
-            return actor.CurrentAp >= CombatRules.MoveCostPerTile
+            return actor.CurrentAp >= actor.StepCost
                 ? new BrainPlan(BrainState.Closing, null, enemy.Id)
                 : new BrainPlan(BrainState.Idle);
         }
@@ -309,7 +309,7 @@ namespace Dragoneye.Game
                 // Nowhere beside the enemy can be walked to. Walk towards them anyway, as far as
                 // the points allow, and wait: a creature that sits at its spawn because the way is
                 // blocked this turn is a creature that will never notice the way opening.
-                var budget = CombatRules.StepsAffordable(actor.CurrentAp);
+                var budget = CombatRules.StepsAffordable(actor.CurrentAp, actor.StepCost);
 
                 return budget > 0
                     && board.TryClosest(actor.Cell, enemy.Cell, budget, out var nearer)
@@ -321,7 +321,7 @@ namespace Dragoneye.Game
             // Affordable prefix of the route. Moving part of the way is the right answer for a
             // creature that cannot close the whole gap this turn -- standing still would let a
             // ranged opponent kite it forever.
-            var steps = CombatRules.StepsAffordable(actor.CurrentAp);
+            var steps = CombatRules.StepsAffordable(actor.CurrentAp, actor.StepCost);
             if (steps <= 0)
             {
                 return BrainDecision.Pass;

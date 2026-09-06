@@ -102,8 +102,9 @@ namespace Dragoneye.Combat
         /// Tiles along the cheapest route to the hovered hex, or -1 if there is no route. Ignored
         /// when the hex is occupied. A count of tiles, not a price -- pricing is this method.
         /// </param>
+        /// <param name="stepCost">What one tile costs this creature. Its armour's to say.</param>
         public static ActionPlan Resolve(bool isActorsTurn, bool controlsActor, Ap currentAp,
-            bool targetOccupied, int moveSteps)
+            bool targetOccupied, int moveSteps, Ap stepCost)
         {
             if (!controlsActor)
             {
@@ -122,7 +123,7 @@ namespace Dragoneye.Combat
                 return new ActionPlan(BoardAction.None, Ap.Zero, ActionRefusal.Occupied);
             }
 
-            return ResolveMove(currentAp, moveSteps);
+            return ResolveMove(currentAp, moveSteps, stepCost);
         }
 
         /// <summary>
@@ -137,8 +138,10 @@ namespace Dragoneye.Combat
         /// Tiles along the cheapest route to the nearest hex the skill would reach from. Zero when
         /// the target is already in reach, -1 when there is no such hex.
         /// </param>
+        /// <param name="stepCost">What one tile costs this creature. Its armour's to say.</param>
         public static ActionPlan ResolveSkill(bool isActorsTurn, bool controlsActor, Ap currentAp,
-            SkillSpec skill, bool targetIsCreature, bool targetIsEnemy, int stepsToReach)
+            SkillSpec skill, bool targetIsCreature, bool targetIsEnemy, int stepsToReach,
+            Ap stepCost)
         {
             if (!controlsActor)
             {
@@ -169,7 +172,7 @@ namespace Dragoneye.Combat
                     skill: skill);
             }
 
-            var move = CombatRules.MoveCost(stepsToReach);
+            var move = CombatRules.MoveCost(stepsToReach, stepCost);
             var total = move + skill.ApCost;
 
             return currentAp < total
@@ -177,7 +180,7 @@ namespace Dragoneye.Combat
                 : new ActionPlan(BoardAction.UseSkill, total, ActionRefusal.None, move, skill);
         }
 
-        static ActionPlan ResolveMove(Ap currentAp, int moveSteps)
+        static ActionPlan ResolveMove(Ap currentAp, int moveSteps, Ap stepCost)
         {
             if (moveSteps < 0)
             {
@@ -190,7 +193,7 @@ namespace Dragoneye.Combat
                 return ActionPlan.Nothing;
             }
 
-            var cost = CombatRules.MoveCost(moveSteps);
+            var cost = CombatRules.MoveCost(moveSteps, stepCost);
 
             return currentAp < cost
                 ? new ActionPlan(BoardAction.Move, cost, ActionRefusal.TooExpensive)

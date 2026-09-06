@@ -47,16 +47,22 @@ namespace Dragoneye.Multiplayer
             into.Add(Section("ARMOUR"));
             into.Add(Text(
                 "Armour is a pool above health. Every blow wears it down first, and only what it "
-                + "cannot hold reaches the creature underneath -- and it is back in full at the "
-                + "start of that creature's next turn. So one poke a round does nothing to a "
-                + "creature in plate, and three in a row do everything. The silver bar over the "
-                + "health bar is the armour; the number on the card beside it is what is left."));
+                + "cannot hold reaches the creature underneath. It does not come back: health can "
+                + "be healed, armour cannot, and once it is gone it is gone for the match. The "
+                + "silver bar over the health bar is the armour, in the turn order and on the "
+                + "card, and the number beside it is what is left."));
+            into.Add(Text(
+                "Heavier armour holds more and costs more to move in. Light armour is four points "
+                + "and a whole action point per tile; medium is eight at one and a half; heavy is "
+                + "sixteen at two. With nothing worn a tile costs half a point. A shield adds four "
+                + "more and costs nothing to walk in -- what it costs is the hand, which a second "
+                + "weapon or a two-handed one would want."));
 
             into.Add(Section("ACTION POINTS"));
             into.Add(Text(
-                "Everything costs action points. Walking costs half a point per tile; a skill "
-                + "costs whatever it says on it. Half points are real -- a light attack can cost "
-                + "half a point where a heavy one costs two."));
+                "Everything costs action points. Walking costs half a point per tile with nothing "
+                + "worn, and more in armour; a skill costs whatever it says on it. Half points are "
+                + "real -- a light attack can cost half a point where a heavy one costs two."));
             into.Add(Text(
                 "Moving to reach a target is part of using a skill, not a separate order. If you "
                 + "aim something at a creature out of reach, your creature walks the cheapest way "
@@ -79,10 +85,11 @@ namespace Dragoneye.Multiplayer
 
             into.Add(Section("OPPORTUNITY ATTACKS"));
             into.Add(Text(
-                "The three tiles a creature is looking at are the ones it is watching. Move while "
-                + "you are standing in an enemy front three and they get a swing at you: their own "
-                + "weapon attack, for no action points, and you answer it exactly as you would "
-                + "answer an attack on their own turn."));
+                "The three tiles a creature is looking at are the ones it is watching. Walk out of "
+                + "an enemy's front three and they get a swing at you: their own weapon attack, for "
+                + "no action points, and you answer it exactly as you would answer an attack on "
+                + "their own turn. Stepping from one watched tile to another is safe -- it is "
+                + "leaving their sight that costs."));
             into.Add(Text(
                 "The swing is whatever they are carrying -- there is no choosing an element for it, "
                 + "so what a creature threatens you with is something you can read off their card "
@@ -163,7 +170,7 @@ namespace Dragoneye.Multiplayer
             into.Add(Bullet("Toughness and Vitality each give one more health per point."));
             into.Add(Bullet(
                 "Dexterity gives one more speed per point. Speed decides who acts first, and "
-                + "armour takes it away again."));
+                + "armour takes it away again -- and prices every step you take."));
             into.Add(Bullet(
                 "Endurance gives one more action point and one more speed per point."));
             into.Add(Bullet(

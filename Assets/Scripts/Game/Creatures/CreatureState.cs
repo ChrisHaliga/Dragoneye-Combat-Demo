@@ -126,8 +126,11 @@ namespace Dragoneye.Game
 
         public int MaxHp => Profile.MaxHealth;
 
-        /// <summary>What the armour pool refills to at the start of this creature's turn.</summary>
+        /// <summary>What the armour pool was when the match began. It only goes down.</summary>
         public int MaxArmour => Profile.Armour;
+
+        /// <summary>What one tile costs this creature, which its armour decides.</summary>
+        public Ap StepCost => Profile.StepCost;
 
         /// <summary>What is left of the armour pool right now.</summary>
         public int CurrentArmour => m_CurrentArmour.Value;
@@ -367,21 +370,6 @@ namespace Dragoneye.Game
             if (IsServer)
             {
                 m_CurrentApUnits.Value = MaxAp.Units;
-            }
-        }
-
-        /// <summary>
-        /// Server only. Restores the armour pool at the start of a turn.
-        ///
-        /// Every turn, in full. Armour is what a creature has between its own turns; a round spent
-        /// being hit by three enemies wears it down, and the next turn has it back. That is what
-        /// makes focus fire matter and a single poke not.
-        /// </summary>
-        public void ServerRefillArmour()
-        {
-            if (IsServer)
-            {
-                m_CurrentArmour.Value = MaxArmour;
             }
         }
 

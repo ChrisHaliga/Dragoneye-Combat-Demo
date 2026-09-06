@@ -10,11 +10,14 @@ namespace Dragoneye.Hex.Tests
     /// </summary>
     public class ActionResolverTests
     {
-        static ActionPlan Move(int wholeAp, int steps) =>
-            ActionResolver.Resolve(true, true, Ap.FromWhole(wholeAp), false, steps);
+        static readonly Ap k_Step = CombatRules.BaseStepCost;
+
+        static ActionPlan Move(int wholeAp, int steps, ArmourClass worn = ArmourClass.None) =>
+            ActionResolver.Resolve(true, true, Ap.FromWhole(wholeAp), false, steps,
+                ArmourRules.StepCost(worn));
 
         static ActionPlan OnACreature(int wholeAp) =>
-            ActionResolver.Resolve(true, true, Ap.FromWhole(wholeAp), true, -1);
+            ActionResolver.Resolve(true, true, Ap.FromWhole(wholeAp), true, -1, k_Step);
 
         [Test]
         public void MovingCostsOneApPerStep()
@@ -22,8 +25,23 @@ namespace Dragoneye.Hex.Tests
             var plan = Move(wholeAp: 6, steps: 3);
 
             Assert.AreEqual(BoardAction.Move, plan.Action);
-            Assert.AreEqual(CombatRules.MoveCostPerTile * 3, plan.Cost);
+            Assert.AreEqual(k_Step * 3, plan.Cost);
             Assert.IsTrue(plan.IsAllowed);
+        }
+
+        [Test]
+        public void TheSuitPricesTheStep()
+        {
+            // Two tiles: one point in nothing, two in leather, four in plate. The same route,
+            // priced by what the walker is wearing rather than by a constant.
+            Assert.AreEqual(Ap.FromWhole(1), Move(6, 2).Cost);
+            Assert.AreEqual(Ap.FromWhole(2), Move(6, 2, ArmourClass.Light).Cost);
+            Assert.AreEqual(Ap.FromWhole(3), Move(6, 2, ArmourClass.Medium).Cost);
+            Assert.AreEqual(Ap.FromWhole(4), Move(6, 2, ArmourClass.Heavy).Cost);
+
+            // And a walk plate cannot afford is one leather can.
+            Assert.IsTrue(Move(2, 2, ArmourClass.Light).IsAllowed);
+            Assert.IsTrue(Move(2, 2, ArmourClass.Heavy).IsUnaffordable);
         }
 
         [Test]
@@ -33,7 +51,7 @@ namespace Dragoneye.Hex.Tests
             var plan = Move(wholeAp: 1, steps: 5);
 
             Assert.AreEqual(BoardAction.Move, plan.Action);
-            Assert.AreEqual(CombatRules.MoveCost(5), plan.Cost);
+            Assert.AreEqual(CombatRules.MoveCost(5, k_Step), plan.Cost);
             Assert.IsFalse(plan.IsAllowed);
             Assert.IsTrue(plan.IsUnaffordable);
         }
@@ -71,7 +89,8 @@ namespace Dragoneye.Hex.Tests
         public void NothingIsOfferedWhenItIsNotYourTurn()
         {
             var plan = ActionResolver.Resolve(isActorsTurn: false, controlsActor: true,
-                currentAp: Ap.FromWhole(6), targetOccupied: false, moveSteps: 2);
+                currentAp: Ap.FromWhole(6), targetOccupied: false, moveSteps: 2,
+                stepCost: k_Step);
 
             Assert.AreEqual(ActionRefusal.NotYourTurn, plan.Refusal);
             Assert.IsFalse(plan.IsAllowed);
@@ -83,7 +102,8 @@ namespace Dragoneye.Hex.Tests
             // Checked before the turn, so hovering with an enemy active says nothing at all rather
             // than "not your turn" over every hex on the board.
             var plan = ActionResolver.Resolve(isActorsTurn: true, controlsActor: false,
-                currentAp: Ap.FromWhole(6), targetOccupied: false, moveSteps: 2);
+                currentAp: Ap.FromWhole(6), targetOccupied: false, moveSteps: 2,
+                stepCost: k_Step);
 
             Assert.AreEqual(ActionRefusal.NotYours, plan.Refusal);
             Assert.IsEmpty(ActionLabels.Describe(plan));
@@ -105,7 +125,8 @@ namespace Dragoneye.Hex.Tests
 
         static ActionPlan Aim(int wholeAp, int steps, bool enemy = true, bool creature = true) =>
             ActionResolver.ResolveSkill(true, true, Ap.FromWhole(wholeAp), k_Strike,
-                targetIsCreature: creature, targetIsEnemy: enemy, stepsToReach: steps);
+                targetIsCreature: creature, targetIsEnemy: enemy, stepsToReach: steps,
+                stepCost: k_Step);
 
         [Test]
         public void AnEnemyAlreadyInReachCostsTheSkillAlone()
@@ -125,13 +146,13 @@ namespace Dragoneye.Hex.Tests
             // one of them is avoidable by standing somewhere else first.
             var plan = Aim(wholeAp: 6, steps: 3);
 
-            Assert.AreEqual(CombatRules.MoveCost(3) + k_Strike.ApCost, plan.Cost);
-            Assert.AreEqual(CombatRules.MoveCost(3), plan.MoveCost);
+            Assert.AreEqual(CombatRules.MoveCost(3, k_Step) + k_Strike.ApCost, plan.Cost);
+            Assert.AreEqual(CombatRules.MoveCost(3, k_Step), plan.MoveCost);
             Assert.IsTrue(plan.IsAllowed);
 
             var label = ActionLabels.Describe(plan);
             StringAssert.Contains("Strike", label);
-            StringAssert.Contains($"{CombatRules.MoveCost(3)} + {k_Strike.ApCost} AP", label);
+            StringAssert.Contains($"{CombatRules.MoveCost(3, k_Step)} + {k_Strike.ApCost} AP", label);
         }
 
         [Test]

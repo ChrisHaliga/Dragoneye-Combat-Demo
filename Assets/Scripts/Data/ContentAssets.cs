@@ -136,7 +136,7 @@ namespace Dragoneye.Data
         ArmourClass m_Armour = ArmourClass.None;
 
         [SerializeField, Min(0), Tooltip("Armour this gives on top of its class: a pool above "
-             + "health, worn down by blows and restored every turn. For things that guard without "
+             + "health, worn down by blows and never restored. For things that guard without "
              + "being armour -- a shield. Leave armour itself at zero; its pool comes from its class.")]
         int m_DamageReduction;
 

@@ -2,7 +2,7 @@ using System.Collections.Generic;
 
 namespace Dragoneye.Combat
 {
-    /// <summary>How heavy a suit of armour is. Costs Speed, and stops damage.</summary>
+    /// <summary>How heavy a suit of armour is. Costs Speed, prices every step, and stops damage.</summary>
     public enum ArmourClass
     {
         None = 0,
@@ -14,30 +14,42 @@ namespace Dragoneye.Combat
     /// <summary>
     /// What armour does.
     ///
-    /// Two separate things, which is why the class is an enum rather than a pair of numbers on each
-    /// asset: the speed it costs is its ordinal, and the damage it stops is this table. Heavy
-    /// armour stopping four rather than three is a tuning decision that belongs in one place, not
-    /// spread across every suit somebody authors.
+    /// Three separate things, which is why the class is an enum rather than a trio of numbers on
+    /// each asset: the speed it costs is its ordinal, the price of a step climbs with that same
+    /// ordinal, and the damage it stops is this table. Plate stopping sixteen rather than eight is
+    /// a tuning decision that belongs in one place, not spread across every suit somebody authors.
     /// </summary>
     public static class ArmourRules
     {
         /// <summary>
         /// Armour a suit of this class gives its wearer: a pool above health, worn down by every
-        /// blow and back in full at the start of each of the wearer's turns.
+        /// blow. It does not come back. Health can be healed; armour, once it is gone, is gone for
+        /// the match -- which is what makes it a resource to protect rather than a number to
+        /// outlast, and what makes the doubling worth the price of each step.
         /// </summary>
         public static int PointsFor(ArmourClass armour)
         {
             switch (armour)
             {
-                case ArmourClass.Light: return 3;
-                case ArmourClass.Medium: return 5;
-                case ArmourClass.Heavy: return 8;
+                case ArmourClass.Light: return 4;
+                case ArmourClass.Medium: return 8;
+                case ArmourClass.Heavy: return 16;
                 default: return 0;
             }
         }
 
         /// <summary>Speed this costs its wearer.</summary>
         public static int SpeedCostOf(ArmourClass armour) => (int)armour;
+
+        /// <summary>
+        /// What one tile costs in this suit.
+        ///
+        /// Half a point unarmoured, and half a point more for every class above that: one in
+        /// leather, one and a half in mail, two in plate. The same ordinal that costs speed, so a
+        /// heavier suit is slower to act *and* slower to cover ground -- the second of which is the
+        /// one a player feels every turn.
+        /// </summary>
+        public static Ap StepCost(ArmourClass armour) => Ap.Step * (1 + (int)armour);
     }
 
     /// <summary>
@@ -146,9 +158,12 @@ namespace Dragoneye.Combat
 
         /// <summary>
         /// The armour pool: what the suit gives, plus anything else worn that guards without being
-        /// armour. Worn down by every blow that lands and restored at the start of each turn.
+        /// armour. Worn down by every blow that lands, and never restored.
         /// </summary>
         public int ArmourPoints { get; }
+
+        /// <summary>What one tile costs this creature, which is the suit's to say.</summary>
+        public Ap StepCost => ArmourRules.StepCost(Armour);
 
         /// <summary>
         /// Whether anything worn gives this creature the better of two elements in a clash.

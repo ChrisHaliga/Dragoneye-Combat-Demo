@@ -416,9 +416,10 @@
     -unity-text-align: middle-center;
 }
 
-/* Health sits over the portrait rather than beside it, so a row of them stays scannable. */
+/* Health sits over the portrait rather than beside it, so a row of them stays scannable. Short
+   enough that the armour bar can sit above it without the pair eating the portrait. */
 .turn-portrait__hp {
-    min-height: 15px;
+    min-height: 12px;
     background-color: rgba(5, 6, 9, 0.88);
     justify-content: center;
 }
@@ -432,7 +433,7 @@
 }
 
 .turn-portrait__hp-text {
-    font-size: 10px;
+    font-size: 9px;
     -unity-font-style: bold;
     color: rgb(236, 231, 219);
     -unity-text-align: middle-center;
@@ -1530,7 +1531,7 @@
 
 /* ---------- armour ---------- */
 
-/* Silver, above the green. A pool that is back every turn, drawn as a thin bar so it reads as
+/* Silver, above the green. A pool that never comes back, drawn as a thin bar so it reads as
    something worn over the health rather than as a second health. */
 .armour-track {
     height: 4px;
@@ -1546,17 +1547,29 @@
     background-color: rgb(198, 204, 216);
 }
 
+/* The turn bar's copy is numbered like the health under it, so it is the same height as a line
+   of that text and the pair reads as one two-row gauge. */
 .turn-portrait__armour {
-    height: 5px;
+    min-height: 11px;
     background-color: rgba(5, 6, 9, 0.88);
+    justify-content: center;
+    border-bottom-width: 1px;
+    border-bottom-color: rgba(198, 204, 216, 0.22);
 }
 
 .turn-portrait__armour-fill {
     position: absolute;
-    top: 1px;
+    top: 0;
     left: 0;
-    bottom: 1px;
-    background-color: rgb(198, 204, 216);
+    bottom: 0;
+    background-color: rgba(198, 204, 216, 0.34);
+}
+
+.turn-portrait__armour-text {
+    font-size: 9px;
+    -unity-font-style: bold;
+    color: rgb(214, 219, 228);
+    -unity-text-align: middle-center;
 }
 
 .stat-row__value--armour {

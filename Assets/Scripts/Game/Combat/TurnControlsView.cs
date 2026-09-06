@@ -126,7 +126,8 @@ namespace Dragoneye.Game
             var spent = !CombatRules.CanAffordAnything(
                 actor.CurrentAp,
                 m_Board.HasOpenNeighbour(actor.Cell),
-                AnySkillUsable(actor));
+                AnySkillUsable(actor),
+                actor.StepCost);
 
             // The words never change; the outline does. A button whose label rewrites itself
             // reads as two buttons, and the player already knows the number -- it is right above.
@@ -206,10 +207,10 @@ namespace Dragoneye.Game
                     + "\n" + ClashLabels.AttackerStakes;
             }
 
-            // Only on a move, and only where there is already something to say. It is a price
-            // on leaving, so it belongs beside what leaving costs.
-            if (m_Input.MoveProvokes && !string.IsNullOrEmpty(text)
-                && m_Input.Hovered.Action == BoardAction.Move)
+            // Only where there is already something to say. It is a price on leaving, so it
+            // belongs beside what leaving costs -- and it is on a skill as much as on a move,
+            // because a skill that walks into range walks.
+            if (m_Input.HoveredProvokes && !string.IsNullOrEmpty(text))
             {
                 text += "\n" + ClashLabels.Provokes;
             }

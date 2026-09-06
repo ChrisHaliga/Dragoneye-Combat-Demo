@@ -14,8 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Dragoneye.Data:Dragoneye.Data:EquipmentAsset
   m_Id: 21
   m_DisplayName: Medium armour
-  m_Description: Mail. Two damage off every blow, at two speed. A fair trade, most
-    days.
+  m_Description: Mail. Five armour, at two speed. A fair trade, most days.
   m_Slot: 1
   m_Modifiers:
     Toughness: 2

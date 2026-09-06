@@ -21,6 +21,7 @@ MonoBehaviour:
   m_MaxHp: 34
   m_MaxAp: 4
   m_Speed: 3
+  m_Armour: 0
   m_Shielded: 0
   m_StartingPool:
     Geo: 3
