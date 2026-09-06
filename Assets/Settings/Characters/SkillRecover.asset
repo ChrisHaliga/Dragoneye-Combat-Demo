@@ -25,4 +25,6 @@ MonoBehaviour:
   m_Target: 1
   m_Effect: 1
   m_Amount: 6
+  m_Scales: 0
+  m_ScalesWith: 2
   m_LevelRequired: 1

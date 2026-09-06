@@ -31,6 +31,9 @@ namespace Dragoneye.Game
 
                 case ActionRefusal.TooExpensive:
                     return $"{Name(plan)} (not enough)";
+
+                case ActionRefusal.Waiting:
+                    return "Waiting on an answer";
             }
 
             return Name(plan);
@@ -56,6 +59,7 @@ namespace Dragoneye.Game
                 case ActionRefusal.Unreachable: return "No route there";
                 case ActionRefusal.Occupied: return "Somebody is standing there";
                 case ActionRefusal.TooExpensive: return "Not enough action points";
+                case ActionRefusal.Waiting: return "Waiting on an answer";
                 default: return "Not allowed";
             }
         }

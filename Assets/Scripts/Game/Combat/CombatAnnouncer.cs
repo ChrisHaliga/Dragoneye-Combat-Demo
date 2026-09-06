@@ -61,6 +61,9 @@ namespace Dragoneye.Game
         /// <summary>A creature ran out of health.</summary>
         public static event Action<uint> Fell;
 
+        /// <summary>A watcher let a mover go: (watcher, mover).</summary>
+        public static event Action<uint, uint> HeldBack;
+
         public override void OnNetworkSpawn() => Current = this;
 
         public override void OnNetworkDespawn()
@@ -89,6 +92,18 @@ namespace Dragoneye.Game
                 FellRpc(creatureId);
             }
         }
+
+        /// <summary>Server only. Somebody had a swing at a creature walking past, and did not take it.</summary>
+        public void ServerHeldBack(uint watcherId, uint moverId)
+        {
+            if (IsServer)
+            {
+                HeldBackRpc(watcherId, moverId);
+            }
+        }
+
+        [Rpc(SendTo.Everyone)]
+        void HeldBackRpc(uint watcherId, uint moverId) => HeldBack?.Invoke(watcherId, moverId);
 
         [Rpc(SendTo.Everyone)]
         void ActedRpc(uint actorId, int skillId, uint targetId, bool hasTarget, byte[] returned) =>

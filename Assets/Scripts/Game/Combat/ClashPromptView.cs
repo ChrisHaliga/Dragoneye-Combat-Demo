@@ -69,6 +69,9 @@ namespace Dragoneye.Game
         /// <summary>Whether a decision is on screen. The board stands aside while it is.</summary>
         public bool IsOpen => m_Open;
 
+        // The press that sent the move is the press that opened this. It must not also answer it.
+        readonly PromptGuard m_Guard = new PromptGuard();
+
         void OnAsked(DefenceRequest request)
         {
             m_Request = request;
@@ -77,6 +80,7 @@ namespace Dragoneye.Game
 
             Close();
             Build();
+            m_Guard.Open(m_Panel);
             m_Open = true;
         }
 
@@ -351,6 +355,11 @@ namespace Dragoneye.Game
         /// </summary>
         void Toggle(Element element)
         {
+            if (!m_Guard.Accepts)
+            {
+                return;
+            }
+
             m_Declined = false;
 
             if (Held(element) <= 0 && !m_Staged.Contains(element))
@@ -382,7 +391,13 @@ namespace Dragoneye.Game
         }
 
         /// <summary>The eighth answer goes the moment it is clicked, like the other seven.</summary>
-        void ToggleDecline() => Send(System.Array.Empty<Element>());
+        void ToggleDecline()
+        {
+            if (m_Guard.Accepts)
+            {
+                Send(System.Array.Empty<Element>());
+            }
+        }
 
         /// <summary>
         /// Sends the answer, and takes the prompt down without waiting to be told.

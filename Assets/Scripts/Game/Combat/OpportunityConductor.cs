@@ -75,8 +75,15 @@ namespace Dragoneye.Game
         readonly List<CreatureState> m_Watchers = new List<CreatureState>();
         CreatureState m_Offered;
 
-        /// <summary>How often a computer creature keeps an element it could have swung with.</summary>
-        const float HoldsBack = 0.08f;
+        /// <summary>
+        /// How often a computer creature keeps an element it could have swung with.
+        ///
+        /// A plain roll and nothing cleverer. An earlier cut also declined when the element was the
+        /// last of its kind and the odds were poor -- and a level-one premade holds exactly one
+        /// element, so it declined nearly every swing the board had just warned about. A warning
+        /// that is usually wrong is worse than none, and the reason it was wrong was invisible.
+        /// </summary>
+        const float HoldsBack = 0.15f;
 
         public OpportunityConductor(IOpportunityHost host, CreatureRegistry creatures)
         {
@@ -138,6 +145,7 @@ namespace Dragoneye.Game
             }
 
             m_Pending = action;
+            OpportunityCommands.Current?.ServerHold(action.Actor);
             AskNext();
             return true;
         }
@@ -274,6 +282,9 @@ namespace Dragoneye.Game
 
             if (!swings || !CanSwing(watcher, mover, m_Pending.Destination))
             {
+                // Said out loud. The board warned the mover a swing was coming; when it does not
+                // come, the log has to say who let them go, or the warning reads as a lie.
+                CombatAnnouncer.Current?.ServerHeldBack(watcher.TurnId, mover.TurnId);
                 AskNext();
                 return true;
             }
@@ -328,11 +339,9 @@ namespace Dragoneye.Game
         /// <summary>
         /// Whether a computer creature takes its swing.
         ///
-        /// Nearly always: a free attack is worth taking, and declining one is the unusual choice.
-        /// The exception is judgement rather than a coin: when the element the swing would spend
-        /// is the last of its kind in hand *and* the swing is more likely to lose than land, the
-        /// creature keeps it for its own defence. A small roll remains on top, so the reaction is
-        /// neither a certainty a player can bank on nor a rule they can learn the number of.
+        /// Nearly always: a free attack is worth taking, and the board has already told the mover
+        /// it is coming. The roll that remains is there so the reaction is not a certainty a
+        /// player can bank on -- and when it comes up, the log says so.
         /// </summary>
         static bool Takes(CreatureState watcher, CreatureState mover)
         {
@@ -340,15 +349,7 @@ namespace Dragoneye.Game
             var pool = watcher.GetComponent<CreaturePool>();
 
             if (swing == null || pool == null
-                || !SkillRules.TryChooseElement(swing, pool.ServerLedger, out var element))
-            {
-                return false;
-            }
-
-            var scarce = pool.ServerLedger.Pool[element] <= 1;
-            var odds = CreatureKnowledge.Forecast(element, mover);
-
-            if (scarce && odds.Edge < 0f)
+                || !SkillRules.TryChooseElement(swing, pool.ServerLedger, out _))
             {
                 return false;
             }
@@ -362,6 +363,10 @@ namespace Dragoneye.Game
             var pending = m_Pending;
             m_Pending = default;
             m_Watchers.Clear();
+
+            // Released before the action runs, so a client repricing the board on the move it
+            // sees does not still read the fight as waiting.
+            OpportunityCommands.Current?.ServerRelease();
 
             if (!pending.Exists || !pending.Actor.IsAlive)
             {

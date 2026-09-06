@@ -16,14 +16,6 @@ MonoBehaviour:
   m_DisplayName: Staff
   m_Description: Focuses what you draw from the pool.
   m_Slot: 0
-  m_Modifiers:
-    Toughness: 0
-    Dexterity: 0
-    Strength: 0
-    Skill: 0
-    Vitality: 0
-    Willpower: 1
-    Endurance: 0
   m_Skills:
   - {fileID: 11400000, guid: 52a7d511b6ea7f342a26e9e373d57dd2, type: 2}
   m_Armour: 0

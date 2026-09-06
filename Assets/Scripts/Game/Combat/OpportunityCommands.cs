@@ -58,6 +58,11 @@ namespace Dragoneye.Game
         // Server-side: who was asked, so an answer from anybody else is ignored.
         CreatureState m_Asked;
 
+        // Whose action is being held while the watchers decide. Replicated, unlike the offer,
+        // because the mover's own client has nothing on screen during it -- and a mover who cannot
+        // see that the game is waiting clicks again and is refused for it.
+        readonly NetworkVariable<uint> m_HoldingId = new NetworkVariable<uint>();
+
         public override void OnNetworkSpawn() => Current = this;
 
         public override void OnNetworkDespawn()
@@ -69,6 +74,27 @@ namespace Dragoneye.Game
 
             // A match ending under an open offer must not leave one on screen.
             Closed?.Invoke();
+        }
+
+        /// <summary>Whether an action is being held while somebody decides, as every client sees it.</summary>
+        public bool IsHolding => m_HoldingId.Value != 0;
+
+        /// <summary>Server only. The mover's action is held from here until it runs.</summary>
+        public void ServerHold(CreatureState mover)
+        {
+            if (IsServer && mover != null)
+            {
+                m_HoldingId.Value = mover.TurnId;
+            }
+        }
+
+        /// <summary>Server only. The held action has run, or will never.</summary>
+        public void ServerRelease()
+        {
+            if (IsServer)
+            {
+                m_HoldingId.Value = 0;
+            }
         }
 
         /// <summary>Server only. Offers the swing to whoever runs the watching creature.</summary>

@@ -14,18 +14,10 @@ MonoBehaviour:
   m_EditorClassIdentifier: Dragoneye.Data:Dragoneye.Data:EquipmentAsset
   m_Id: 30
   m_DisplayName: Shield
-  m_Description: Three armour between you and anything that reaches you, and no speed
-    for it.
+  m_Description: Between you and anything that reaches you, and no speed for it.
+    It costs you the other hand.
   m_Slot: 2
-  m_Modifiers:
-    Toughness: 1
-    Dexterity: 0
-    Strength: 0
-    Skill: 0
-    Vitality: 0
-    Willpower: 0
-    Endurance: 0
   m_Skills: []
   m_Armour: 0
-  m_DamageReduction: 3
+  m_DamageReduction: 4
   m_GrantsAdvantage: 0

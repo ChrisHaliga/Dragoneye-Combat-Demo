@@ -53,11 +53,20 @@ namespace Dragoneye.Game
             OpportunityCommands.Closed -= Close;
         }
 
+        // The press that sent the mover's order can be the press this opens under, on a host
+        // that runs both sides. It must not also be the answer.
+        readonly PromptGuard m_Guard = new PromptGuard();
+
         void OnOffered(OpportunityOffer offer)
         {
             m_Offer = offer;
             Close();
             Build();
+
+            if (m_Panel != null)
+            {
+                m_Guard.Open(m_Panel);
+            }
         }
 
         void Close()
@@ -175,6 +184,11 @@ namespace Dragoneye.Game
 
         void Answer(bool swings)
         {
+            if (!m_Guard.Accepts)
+            {
+                return;
+            }
+
             OpportunityCommands.Current?.Answer(swings);
             Close();
         }

@@ -101,7 +101,8 @@ namespace Dragoneye.Multiplayer
                 + "an enemy's front three and they get a swing at you: their own weapon attack, for "
                 + "no action points, and you answer it exactly as you would answer an attack on "
                 + "their own turn. Stepping from one watched tile to another is safe -- it is "
-                + "leaving their sight that costs."));
+                + "leaving their sight that costs. The warning on the cursor is the rule; whether "
+                + "they take the swing is up to them, and the log says when they let you go."));
             into.Add(Text(
                 "The swing is whatever they are carrying -- there is no choosing an element for it, "
                 + "so what a creature threatens you with is something you can read off their card "

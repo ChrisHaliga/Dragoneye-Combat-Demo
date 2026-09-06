@@ -388,6 +388,14 @@ namespace Dragoneye.Game
                 return ActionPlan.Nothing;
             }
 
+            // Nothing is on offer while the fight is stopped on somebody's answer. Said on the
+            // cursor rather than discovered by sending an order and having it refused: with two
+            // enemies each owed a swing, the wait is long enough to click into.
+            if (FightPause.IsPaused)
+            {
+                return new ActionPlan(BoardAction.None, Ap.Zero, ActionRefusal.Waiting);
+            }
+
             var armed = ArmedSkill(actor);
 
             if (armed != null)
@@ -477,6 +485,15 @@ namespace Dragoneye.Game
 
         void OnClicked(Hex hex)
         {
+            // The board stands aside while the fight is waiting on somebody. Even the bearing
+            // click: an order sent now would be refused, and the move it was for is not lost --
+            // it is the one being waited on.
+            if (FightPause.IsPaused)
+            {
+                PendingMove = null;
+                return;
+            }
+
             // A move already waiting on a bearing takes this click, wherever it landed. The
             // bearing is whatever the cursor was pointing at, so the click that settles it is the
             // same click that aimed it.

@@ -89,6 +89,7 @@ namespace Dragoneye.Game
             ClashCommands.Resolved += OnClash;
             CombatAnnouncer.Acted += OnActed;
             CombatAnnouncer.Fell += OnFell;
+            CombatAnnouncer.HeldBack += OnHeldBack;
         }
 
         void OnDestroy()
@@ -101,6 +102,7 @@ namespace Dragoneye.Game
             ClashCommands.Resolved -= OnClash;
             CombatAnnouncer.Acted -= OnActed;
             CombatAnnouncer.Fell -= OnFell;
+            CombatAnnouncer.HeldBack -= OnHeldBack;
         }
 
         /// <summary>
@@ -259,6 +261,12 @@ namespace Dragoneye.Game
 
         void OnFell(uint creatureId) =>
             Add($"{NameOf(creatureId)} falls.", IsMine(creatureId));
+
+        // The swing that was warned about and did not come. Without this line the warning on the
+        // cursor reads as wrong, when what happened is that somebody chose not to.
+        void OnHeldBack(uint watcherId, uint moverId) =>
+            Add($"{NameOf(watcherId)} lets {NameOf(moverId)} go.",
+                IsMine(watcherId) || IsMine(moverId));
 
         static SkillSpec SkillOf(int skillId) =>
             SkillCatalog.Current != null && SkillCatalog.Current.TryGetSkill(skillId, out var spec)

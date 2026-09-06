@@ -52,6 +52,14 @@ namespace Dragoneye.Game
         // Server-side: who was asked, so an answer arriving from anybody else is ignored.
         CreatureState m_Asked;
 
+        // Who is being asked, for everybody. The prompt itself goes to one client; that the fight
+        // is stopped on it is something every client needs, so the board can say so rather than
+        // have its orders refused in silence.
+        readonly NetworkVariable<uint> m_AskingId = new NetworkVariable<uint>();
+
+        /// <summary>Whether a defender is being asked right now, as every client sees it.</summary>
+        public bool IsAsking => m_AskingId.Value != 0;
+
         public override void OnNetworkSpawn() => Current = this;
 
         public override void OnNetworkDespawn()
@@ -81,6 +89,7 @@ namespace Dragoneye.Game
             }
 
             m_Asked = defender;
+            m_AskingId.Value = defender.TurnId;
 
             var options = new byte[request.Options.Count];
 
@@ -105,6 +114,7 @@ namespace Dragoneye.Game
 
             var asked = m_Asked;
             m_Asked = null;
+            m_AskingId.Value = 0;
 
             if (asked != null)
             {

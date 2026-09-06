@@ -28,7 +28,10 @@ namespace Dragoneye.Combat
         /// <summary>Somebody is standing there. Clicking reads their card; a skill has to be armed.</summary>
         Occupied,
 
-        TooExpensive
+        TooExpensive,
+
+        /// <summary>The fight is stopped on somebody's answer. Nothing can be ordered until it comes.</summary>
+        Waiting
     }
 
     /// <summary>
