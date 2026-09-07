@@ -294,11 +294,10 @@ namespace Dragoneye.Game.Combat
             var attacker = NameOf(e.Actor);
             var defender = NameOf(e.Target);
 
-            var reader = IsMine(e.Actor)
-                ? LogSide.Attacker
-                : IsMine(e.Target)
-                    ? LogSide.Defender
-                    : LogSide.Neither;
+            // By side, not by whose creature it is: an ally taking a hit is bad news whoever is
+            // moving them. Whether the line is highlighted is the other question, and it is asked
+            // of the creatures this player actually controls.
+            var reader = SideOf(e.Actor, e.Target);
 
             // A swing belongs to no catalogue, so it is assembled from whichever element was put
             // up -- which the record carries, because by now both sides are revealed.
@@ -314,9 +313,10 @@ namespace Dragoneye.Game.Combat
                 ? $"answered {CombatLogLines.Runes(e.Answer)}"
                 : "did not answer";
 
+            // Highlighted for the creatures this player moves; coloured for the side they are on.
             Add($"{attacker} used <b>{name}</b>{cost} on {defender}, who {answer} — "
-                + CombatLogLines.Verdict(e.Outcome, attacker, defender, reader),
-                reader != LogSide.Neither);
+                + CombatLogLines.Verdict(e.Outcome, reader),
+                IsMine(e.Actor) || IsMine(e.Target));
         }
 
         /// <summary>
@@ -337,6 +337,33 @@ namespace Dragoneye.Game.Combat
                 + (e.Landed ? "it flew true " : "missed ")
                 + CombatLogLines.Tint("#8B93A5", $"({e.Amount}% to hit)"),
                 IsMine(e.Actor) || IsMine(e.Target));
+        }
+
+        /// <summary>
+        /// Which end of an exchange the local player's side is on.
+        ///
+        /// The defender first, for the one case where both are on it: an attack landing on your
+        /// own side is bad news whoever threw it.
+        /// </summary>
+        LogSide SideOf(uint attacker, uint defender)
+        {
+            var side = LocalPlayer.Side();
+
+            if (!side.HasValue || m_Creatures == null)
+            {
+                return LogSide.Neither;
+            }
+
+            var hit = m_Creatures.ByTurnId(defender);
+
+            if (hit != null && hit.Party == side.Value)
+            {
+                return LogSide.Defender;
+            }
+
+            var swung = m_Creatures.ByTurnId(attacker);
+
+            return swung != null && swung.Party == side.Value ? LogSide.Attacker : LogSide.Neither;
         }
 
         static SkillSpec SkillOf(int skillId) =>

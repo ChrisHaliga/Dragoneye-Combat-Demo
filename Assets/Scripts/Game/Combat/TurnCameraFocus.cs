@@ -39,6 +39,7 @@ namespace Dragoneye.Game.Combat
 
         void OnEnable()
         {
+            Current = this;
             m_Input = ArenaContext.Current != null ? ArenaContext.Current.RigInput : null;
 
             if (m_Input != null)
@@ -51,6 +52,11 @@ namespace Dragoneye.Game.Combat
 
         void OnDisable()
         {
+            if (Current == this)
+            {
+                Current = null;
+            }
+
             if (m_Input != null)
             {
                 m_Input.Panned -= Release;
@@ -88,6 +94,27 @@ namespace Dragoneye.Game.Combat
 
         /// <summary>The player took the camera. It is theirs until the next turn begins.</summary>
         void Release() => m_Broken = true;
+
+        /// <summary>The camera in the loaded arena, or null outside a match.</summary>
+        public static TurnCameraFocus Current { get; private set; }
+
+        /// <summary>
+        /// Points the camera at a creature that is not the one acting.
+        ///
+        /// For a click on the turn order: "where is that" is the first thing a player asks of a
+        /// face in a queue, and the answer is on the board rather than on the card. It is held
+        /// only until the next turn begins, which takes the camera back to whoever is acting.
+        /// </summary>
+        public void LookAt(CreatureState creature)
+        {
+            if (creature == null)
+            {
+                return;
+            }
+
+            m_Following = creature.TurnId;
+            m_Broken = false;
+        }
 
         void LateUpdate()
         {

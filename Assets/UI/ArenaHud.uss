@@ -25,8 +25,8 @@
 /* No frame and no heading. The cards are the panel: a box drawn round them said only that a box
    had been drawn, and it took a column of board to say it. */
 .party-column {
-    /* The card, its border, and room for the scroller when the party outgrows the column. */
-    width: 100px;
+    /* The runes, the card, its border, and room for the scroller when the party outgrows it. */
+    width: 132px;
     padding: 0;
     background-color: rgba(0, 0, 0, 0);
 }
@@ -57,7 +57,6 @@
 .portrait {
     width: 76px;
     height: 92px;
-    margin-bottom: 8px;
     justify-content: flex-end;
     overflow: hidden;
     background-color: rgb(10, 12, 16);
@@ -79,6 +78,13 @@
     opacity: 0.38;
 }
 
+/* On your side, but not yours to move. Greyed rather than removed or badged: the party is the
+   party, and the difference is one a player should be able to see without reading anything. */
+.portrait--theirs {
+    -unity-background-image-tint-color: rgb(146, 149, 156);
+    opacity: 0.82;
+}
+
 /* The letter shown when a creature has no face of its own. */
 .portrait__initial {
     position: absolute;
@@ -91,11 +97,18 @@
     -unity-text-align: middle-center;
 }
 
-/* What it is holding, down the left edge, one rune to a line. */
+/* One row per creature: what it is holding, then its face. */
+.party-row {
+    flex-direction: row;
+    align-items: flex-start;
+    margin-bottom: 8px;
+}
+
+/* What it is holding, beside the card, one rune to a line and right against it. */
 .portrait__elements {
-    position: absolute;
-    top: 3px;
-    left: 3px;
+    align-items: flex-end;
+    margin-right: 4px;
+    padding-top: 2px;
 }
 
 .portrait__element {
@@ -344,16 +357,6 @@
     padding-top: 6px;
     padding-bottom: 4px;
     align-items: center;
-}
-
-.turn-bar__shade {
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 76px;
-    background-image: url("Generated/ui-shade.png");
-    -unity-background-scale-mode: stretch-to-fill;
 }
 
 .turn-bar__order {
@@ -1430,7 +1433,7 @@
    this mostly covers hover and the acted-dimming; it is here so a future bar that keeps its
    elements gets the growth for free. */
 .turn-portrait {
-    transition-property: width, height, opacity, border-color;
+    transition-property: width, height, opacity, border-color, translate;
     transition-duration: 0.28s;
     transition-timing-function: ease-out;
 }
@@ -1844,14 +1847,29 @@
     width: 132px;
 }
 
-/* The pace of the playback, on the line under the turn order. */
-.turn-bar__pace {
-    margin-top: 26px;
-    font-size: 10px;
+/* Whose turn it is, over the bar, small and permanent. */
+.turn-announce {
+    margin-bottom: 3px;
+    font-size: 11px;
     -unity-font-style: bold;
     letter-spacing: 3px;
     color: rgb(226, 191, 122);
     text-shadow: 0 1px 3px rgba(0, 0, 0, 0.95);
+}
+
+/* Where the round ends: everything past it goes again next round. */
+.turn-break {
+    width: 2px;
+    height: 44px;
+    margin: 0 10px;
+    background-color: rgba(226, 191, 122, 0.55);
+}
+
+/* Arriving at the back of the queue. The card is built here and released a frame later, so the
+   transition below carries it the rest of the way. */
+.turn-portrait--arriving {
+    translate: 70px 0;
+    opacity: 0;
 }
 
 /* ==================================================================== the menu buttons

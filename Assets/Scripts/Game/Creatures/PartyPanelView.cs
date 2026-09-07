@@ -39,6 +39,9 @@ namespace Dragoneye.Game.Creatures
 
         ScrollView m_List;
 
+        /// <summary>A line break in a tooltip, named so no editing pass can swallow it.</summary>
+        const string NewLine = "\n";
+
         readonly List<CreatureState> m_Observed = new List<CreatureState>();
 
         VisualElement m_Column;
@@ -155,7 +158,7 @@ namespace Dragoneye.Game.Creatures
             Unobserve();
             m_List.Clear();
 
-            var party = LocalParty();
+            var party = LocalPlayer.Side();
 
             if (!party.HasValue)
             {
@@ -172,30 +175,6 @@ namespace Dragoneye.Game.Creatures
         }
 
         /// <summary>
-        /// The side the local player chose, read from the draft.
-        ///
-        /// Null means no party, which is a real state -- a spectator, or a player who has not picked
-        /// yet -- and the caller shows an empty column for it rather than guessing.
-        /// </summary>
-        Party? LocalParty()
-        {
-            var roster = PlayerRoster.Current;
-            var manager = NetworkManager.Singleton;
-            var draft = DraftState.Current;
-
-            if (roster == null || manager == null || draft == null
-                || !roster.TryGet(manager.LocalClientId, out var entry)
-                || entry.Slot < 0 || entry.Slot > byte.MaxValue)
-            {
-                return null;
-            }
-
-            return DraftQueries.TryGetParty(draft.Choices, (byte)entry.Slot, out var party)
-                ? party
-                : (Party?)null;
-        }
-
-        /// <summary>
         /// One creature: its face, its hand and its bars, with the numbers on because this is the
         /// side the player is answerable for.
         ///
@@ -205,25 +184,34 @@ namespace Dragoneye.Game.Creatures
         /// </summary>
         VisualElement BuildPortrait(CreatureState creature)
         {
+            var row = new VisualElement();
+            row.AddToClassList("party-row");
+
             var card = new VisualElement();
             card.AddToClassList("portrait");
             card.EnableInClassList("portrait--fallen", !Shown.IsAlive(creature));
 
-            // The whole edge in the controlling player's colour: with the click gone there is no
-            // second fact competing for the border.
+            // Dimmed when somebody else moves it. The party is everybody on your side, and which
+            // of them answer to you is the question a shared side raises -- it used to be a colour
+            // on one edge, which is a legend to learn rather than something to see.
+            card.EnableInClassList("portrait--theirs", !LocalPlayer.Controls(creature));
+
             card.style.borderTopColor = card.style.borderBottomColor =
                 card.style.borderLeftColor = card.style.borderRightColor =
                     CreatureDisplay.OwnerColor(creature);
 
             CreatureDisplay.DrawPortrait(card, creature);
-            CreatureDisplay.DrawElements(card, creature);
             CreatureDisplay.DrawVitals(card, creature, numbers: true);
 
-            card.tooltip = $"{creature.DisplayName}\n{CreatureDisplay.ControllerName(creature)}"
-                + "\n\nRight-click to inspect.";
+            // The runes go beside the card rather than over the face.
+            CreatureDisplay.DrawElements(row, creature);
+            row.Add(card);
 
-            card.pickingMode = PickingMode.Position;
-            card.RegisterCallback<PointerDownEvent>(evt =>
+            row.tooltip = creature.DisplayName + NewLine + CreatureDisplay.ControllerName(creature)
+                + NewLine + NewLine + "Right-click to inspect.";
+
+            row.pickingMode = PickingMode.Position;
+            row.RegisterCallback<PointerDownEvent>(evt =>
             {
                 if (evt.button == 1)
                 {
@@ -232,7 +220,7 @@ namespace Dragoneye.Game.Creatures
                 }
             });
 
-            return card;
+            return row;
         }
     }
 }

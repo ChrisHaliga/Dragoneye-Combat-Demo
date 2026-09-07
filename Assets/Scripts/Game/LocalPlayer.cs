@@ -40,6 +40,52 @@ namespace Dragoneye.Game
         }
 
         /// <summary>Whether the local player may give this creature orders.</summary>
+        /// <summary>
+        /// The side this player is on, or null for a spectator and for anybody who has not picked.
+        ///
+        /// A side, not a set of creatures. Which creatures answer to this player is a different
+        /// question with a different answer -- an ally's creature is on your side and is not yours
+        /// to move -- and things that colour a result by "did my team win" want this one.
+        /// </summary>
+        public static Party? Side()
+        {
+            var draft = DraftState.Current;
+
+            return draft != null && TryGetSlot(out var slot)
+                && DraftQueries.TryGetParty(draft.Choices, slot, out var party)
+                ? party
+                : (Party?)null;
+        }
+
+        /// <summary>
+        /// The creature this player would act with, whether or not it is their turn.
+        ///
+        /// The bar along the bottom does not go away between turns, so it needs somebody to be
+        /// about when nobody is acting. The lowest turn id of the ones this player controls: a
+        /// stable answer that does not change as the round goes round, which is what matters when
+        /// it decides where a row of skills sits.
+        /// </summary>
+        public static CreatureState Mine(CreatureRegistry creatures)
+        {
+            if (creatures == null)
+            {
+                return null;
+            }
+
+            CreatureState mine = null;
+
+            foreach (var creature in creatures.All)
+            {
+                if (creature != null && Controls(creature)
+                    && (mine == null || creature.TurnId < mine.TurnId))
+                {
+                    mine = creature;
+                }
+            }
+
+            return mine;
+        }
+
         public static bool Controls(CreatureState creature) =>
             creature != null && TryGetSlot(out var slot) && Controls(creature.ControllerSlot, slot);
 

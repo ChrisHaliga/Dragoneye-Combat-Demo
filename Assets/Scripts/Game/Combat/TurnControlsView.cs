@@ -116,22 +116,39 @@ namespace Dragoneye.Game.Combat
             RefreshOutcome();
         }
 
+        /// <summary>
+        /// The band along the bottom, which stays up between turns.
+        ///
+        /// A bar that vanished when the turn passed took the whole bottom of the screen with it
+        /// twice a round, and what it was showing -- this player's points, health and skills --
+        /// is still true while somebody else is acting. So it is drawn for whoever this player
+        /// would act with, and only the button that ends a turn goes away when there is no turn
+        /// to end. A spectator, who has nobody, gets no band.
+        /// </summary>
         void RefreshFooter()
         {
             var actor = m_Input.Actor;
             var mine = actor != null;
+            var shown = actor ?? LocalPlayer.Mine(
+                ArenaContext.Current != null ? ArenaContext.Current.Creatures : null);
 
-            m_Footer.EnableInClassList("is-hidden", !mine);
+            m_Footer.EnableInClassList("is-hidden", shown == null);
+            m_EndTurn.EnableInClassList("is-hidden", !mine);
+
+            if (shown == null)
+            {
+                return;
+            }
+
+            ApPips.Fill(m_ApPips, shown.CurrentAp, shown.MaxAp);
+            m_ApText.text = $"{shown.CurrentAp} / {shown.MaxAp} AP";
+
+            RefreshVitals(shown);
 
             if (!mine)
             {
                 return;
             }
-
-            ApPips.Fill(m_ApPips, actor.CurrentAp, actor.MaxAp);
-            m_ApText.text = $"{actor.CurrentAp} / {actor.MaxAp} AP";
-
-            RefreshVitals(actor);
 
             // What "nothing left to do" means now depends on what the creature knows: a bow can
             // still act at four tiles where a dagger cannot act at two.

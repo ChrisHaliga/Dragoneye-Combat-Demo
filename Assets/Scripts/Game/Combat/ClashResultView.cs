@@ -133,19 +133,10 @@ namespace Dragoneye.Game.Combat
 
             m_Strip.Add(exchange);
 
-            // Oriented to whoever is reading it. A player watching their own creature swing and
-            // a player watching it come at them are looking at the same exchange and want opposite
-            // words for it; a bystander reads it from the defender's side, which is where the
-            // decision was made.
-            var attacker = m_Input != null && m_Input.Creatures != null
-                ? m_Input.Creatures.ByTurnId(e.Actor)
-                : null;
-
-            var mine = attacker != null && LocalPlayer.Controls(attacker);
-
-            var outcome = new Label(ClashLabels.Describe(e.Outcome, mine));
+            // The words say what happened to the attack; the colour says whose news that is.
+            var outcome = new Label(ClashLabels.Describe(e.Outcome));
             outcome.AddToClassList("clash-result__outcome");
-            outcome.style.color = Tint(ClashLabels.ColourOf(e.Outcome, mine));
+            outcome.style.color = Tint(ClashLabels.ColourOf(e.Outcome, SideOf(e)));
             m_Strip.Add(outcome);
 
             m_Root.Add(m_Strip);
@@ -153,6 +144,36 @@ namespace Dragoneye.Game.Combat
 
             var strip = m_Strip;
             strip.schedule.Execute(() => strip.AddToClassList("clash-result--in"));
+        }
+
+        /// <summary>
+        /// Which end of this exchange the local player's side is on.
+        ///
+        /// The defender first, for the one case where both are on it: an attack landing on your
+        /// own side is bad news whoever threw it.
+        /// </summary>
+        LogSide SideOf(CombatEvent e)
+        {
+            var side = LocalPlayer.Side();
+            var creatures = m_Input != null ? m_Input.Creatures : null;
+
+            if (!side.HasValue || creatures == null)
+            {
+                return LogSide.Neither;
+            }
+
+            var defender = creatures.ByTurnId(e.Target);
+
+            if (defender != null && defender.Party == side.Value)
+            {
+                return LogSide.Defender;
+            }
+
+            var attacker = creatures.ByTurnId(e.Actor);
+
+            return attacker != null && attacker.Party == side.Value
+                ? LogSide.Attacker
+                : LogSide.Neither;
         }
 
         /// <summary>One side's commitment: its runes, or the fact that there were none.</summary>

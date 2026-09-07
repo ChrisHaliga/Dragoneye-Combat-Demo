@@ -3,18 +3,17 @@
         <Style src="ArenaHud.uss" />
         <Style src="Chrome.uss" />
 
-        <ui:VisualElement name="turn-shade" class="turn-bar__shade" picking-mode="Ignore" />
-
         <!-- The turn order, across the top. One card per creature in the order they act, the one
              acting now larger and named. Nothing else: whose turn it is is the card that grew. -->
         <ui:VisualElement name="turn-bar" class="turn-bar">
             <ui:VisualElement name="turn-order" class="turn-bar__order" />
-            <ui:Label name="turn-pace" text="" class="turn-bar__pace is-hidden" />
         </ui:VisualElement>
 
         <!-- The bottom band: what the turn is spent out of over what it is spent on. Points above
              health, End Turn on the right of it, and the bar of actions under the pair. -->
         <ui:VisualElement name="turn-footer" class="turn-footer">
+            <ui:Label name="turn-announce" text="" class="turn-announce" />
+
             <ui:VisualElement class="vitals">
                 <ui:VisualElement class="vitals__row">
                     <ui:VisualElement class="vitals__gutter" picking-mode="Ignore" />

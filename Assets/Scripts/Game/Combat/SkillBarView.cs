@@ -75,6 +75,7 @@ namespace Dragoneye.Game.Combat
         int m_DrawnSelected = int.MinValue;
         int m_DrawnChoosing = int.MinValue;
         int m_DrawnCount = -1;
+        bool m_DrawnYours;
 
         // The skills in slot order, as last drawn, so a key press finds its slot.
         readonly List<SkillSpec> m_Slotted = new List<SkillSpec>();
@@ -186,11 +187,13 @@ namespace Dragoneye.Game.Combat
         /// </summary>
         void ShowOwnCard()
         {
-            var actor = m_Input != null ? m_Input.Actor : null;
+            var mine = m_Input != null && m_Input.Actor != null
+                ? m_Input.Actor
+                : LocalPlayer.Mine(ArenaContext.Current != null ? ArenaContext.Current.Creatures : null);
 
-            if (actor != null)
+            if (mine != null)
             {
-                m_Input.Selection?.Select(actor);
+                m_Input?.Selection?.Select(mine);
             }
         }
 
@@ -222,9 +225,15 @@ namespace Dragoneye.Game.Combat
                 return;
             }
 
+            // Between turns the bar shows this player's own creature, greyed. It does not go
+            // away: where a skill sits is something a player learns once, and a row that empties
+            // itself twice a round is a row they have to find again every time.
             var actor = m_Input.Actor;
+            var yours = actor != null;
+            var owner = actor ?? LocalPlayer.Mine(
+                ArenaContext.Current != null ? ArenaContext.Current.Creatures : null);
 
-            if (actor == null)
+            if (owner == null)
             {
                 if (m_DrawnFor != 0 || m_DrawnCount != 0)
                 {
@@ -238,15 +247,20 @@ namespace Dragoneye.Game.Combat
                 return;
             }
 
+            actor = owner;
+
             // A turn starts ready to walk. Moving is what a player does most of, and making the
             // common case the one that needs a click first is backwards. Pressing 1 again puts it
             // away, and with nothing armed a stray click on the board costs nothing.
-            if (m_DrawnFor != actor.TurnId)
+            if (m_DrawnFor != actor.TurnId && yours)
             {
                 m_Selected = MoveSkill;
             }
 
-            ReadKeys(actor);
+            if (yours)
+            {
+                ReadKeys(actor);
+            }
 
             var pool = actor.Pool;
             var poolHash = pool != null ? Hash(pool.Ledger.Pool) : 0;
@@ -254,10 +268,13 @@ namespace Dragoneye.Game.Combat
 
             if (m_DrawnFor == actor.TurnId && m_DrawnAp == actor.CurrentAp
                 && m_DrawnPool == poolHash && m_DrawnSelected == m_Selected
-                && m_DrawnChoosing == m_Choosing && m_DrawnCount == count)
+                && m_DrawnChoosing == m_Choosing && m_DrawnCount == count
+                && m_DrawnYours == yours)
             {
                 return;
             }
+
+            m_DrawnYours = yours;
 
             m_DrawnFor = actor.TurnId;
             m_DrawnAp = actor.CurrentAp;
@@ -266,7 +283,7 @@ namespace Dragoneye.Game.Combat
             m_DrawnChoosing = m_Choosing;
             m_DrawnCount = count;
 
-            Rebuild(actor);
+            Rebuild(actor, yours);
         }
 
         /// <summary>
@@ -361,7 +378,7 @@ namespace Dragoneye.Game.Combat
             return hash;
         }
 
-        void Rebuild(CreatureState actor)
+        void Rebuild(CreatureState actor, bool yours)
         {
             var commands = actor.SkillCommands;
             var pool = actor.Pool;
@@ -385,7 +402,7 @@ namespace Dragoneye.Game.Combat
 
             m_Choosing = NoSkill;
 
-            m_Bar.Add(BuildMoveSlot(actor.StepCost));
+            m_Bar.Add(BuildMoveSlot(actor.StepCost, yours));
 
             var ledger = pool.Ledger;
             var slot = 0;
@@ -399,7 +416,9 @@ namespace Dragoneye.Game.Combat
                     break;
                 }
 
-                var refusal = SkillRules.CheckAffordable(skill, true, actor.CurrentAp, ledger);
+                // The turn is part of the price. Between turns every slot is refused for the one
+                // reason, which greys the row without a second rule about when a bar is live.
+                var refusal = SkillRules.CheckAffordable(skill, yours, actor.CurrentAp, ledger);
 
                 if (skill.Id == m_Selected && refusal != SkillRefusal.None)
                 {
@@ -541,16 +560,21 @@ namespace Dragoneye.Game.Combat
         /// can do -- and "what does a click do right now" then has one answer they can see rather
         /// than a rule they have to remember.
         /// </summary>
-        VisualElement BuildMoveSlot(Ap stepCost)
+        VisualElement BuildMoveSlot(Ap stepCost, bool yours)
         {
             var slot = Slot("1", SkillIcons.Move, "Move");
             slot.AddToClassList("action-slot--move");
             slot.EnableInClassList("action-slot--selected", m_Selected == MoveSkill);
+            slot.EnableInClassList("action-slot--unusable", !yours);
 
             slot.tooltip = $"Move. {stepCost} action points for every tile of the route -- your "
                 + "speed decides. Press again to put it away.";
 
-            slot.clicked += ToggleMove;
+            if (yours)
+            {
+                slot.clicked += ToggleMove;
+            }
+
             return slot;
         }
 

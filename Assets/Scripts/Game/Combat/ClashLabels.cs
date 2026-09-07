@@ -51,27 +51,44 @@ namespace Dragoneye.Game.Combat
         /// </summary>
         public const string DangerColour = "#F05A3C";
 
+        /// <summary>For a fight the reader has no side in. Neither good news nor bad.</summary>
+        public const string NeutralColour = "#C8CCD6";
+
         /// <summary>
-        /// How it came out, for whoever is reading it.
+        /// <summary>Whether the attack got through. A tie stops it as surely as a win does.</summary>
+        public static bool Landed(ClashOutcome outcome) => outcome == ClashOutcome.AttackerWins;
+
+        /// <summary>
+        /// How it came out, said about the attack rather than about either creature.
         ///
-        /// Win, tie and lose, and always from the reader's own side -- an attacker reading "LOSE"
-        /// means their attack lost, and a defender reading it means they took the hit. Naming the
-        /// outcome after what happened to the attack instead ("through", "stopped") meant every
-        /// player had to work out which end of it they were on first.
+        /// It used to read WIN, TIE or LOSE from the reader's own side, which works while the
+        /// reader is in the fight and falls apart the moment they are not: two creatures neither
+        /// of which is yours trade blows and the screen says LOSE, and there is no way to tell
+        /// what lost. What happened to the attack is the same fact for everybody watching, and
+        /// whose good news it is belongs in the colour rather than in the words.
         /// </summary>
-        public static string Describe(ClashOutcome outcome, bool asAttacker)
+        public static string Describe(ClashOutcome outcome) =>
+            Landed(outcome) ? "ATTACK SUCCEEDED" : "ATTACK FAILED";
+
+        /// <summary>
+        /// The colour it is written in: green where it went the local player's side's way, red
+        /// where it did not, and neutral for a fight they are not in.
+        ///
+        /// By side rather than by whose creature it is. An ally's creature taking a hit is bad
+        /// news whether or not the player is the one moving it.
+        /// </summary>
+        public static string ColourOf(ClashOutcome outcome, LogSide side)
         {
-            var mine = asAttacker ? (int)outcome : -(int)outcome;
+            if (side == LogSide.Neither)
+            {
+                return NeutralColour;
+            }
 
-            return mine > 0 ? "WIN" : mine < 0 ? "LOSE" : "TIE";
-        }
+            // The defender's side reads it backwards from the attacker's: an attack that lands is
+            // the attacker's good day and the defender's bad one.
+            var good = side == LogSide.Attacker ? Landed(outcome) : !Landed(outcome);
 
-        /// <summary>The colour that outcome is written in.</summary>
-        public static string ColourOf(ClashOutcome outcome, bool asAttacker)
-        {
-            var mine = asAttacker ? (int)outcome : -(int)outcome;
-
-            return mine > 0 ? WinColour : mine < 0 ? LoseColour : TieColour;
+            return good ? WinColour : LoseColour;
         }
 
         /// <summary>Why a defender is being asked for two elements rather than one.</summary>

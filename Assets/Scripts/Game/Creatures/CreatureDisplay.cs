@@ -156,7 +156,10 @@ namespace Dragoneye.Game.Creatures
         }
 
         /// <summary>
-        /// What a creature is holding, down the left edge of its card.
+        /// What a creature is holding, in a column beside its card.
+        ///
+        /// Beside it rather than on it: runes over a face are two pictures in one square, and the
+        /// face is the half a player recognises a creature by.
         ///
         /// Its own pool where the local player is entitled to it, and only what has been proven
         /// otherwise. The rule is the card's rule, kept here so a portrait cannot become the one

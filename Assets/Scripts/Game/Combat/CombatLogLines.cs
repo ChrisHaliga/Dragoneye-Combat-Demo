@@ -151,22 +151,7 @@ namespace Dragoneye.Game.Combat
         /// true from every seat, and leaves the colour free to say what a reader wants to know
         /// about it: green when their side took it, red when it went the other way.
         /// </summary>
-        public static string Verdict(ClashOutcome outcome, string attacker, string defender,
-            LogSide reader)
-        {
-            if (outcome == ClashOutcome.Tie)
-            {
-                return Tint(ClashLabels.TieColour, "TIE");
-            }
-
-            var attackerWon = outcome == ClashOutcome.AttackerWins;
-            var winner = attackerWon ? attacker : defender;
-
-            var lost = reader != LogSide.Neither
-                && (reader == LogSide.Attacker) != attackerWon;
-
-            return winner + " "
-                + Tint(lost ? ClashLabels.LoseColour : ClashLabels.WinColour, "WINS");
-        }
+        public static string Verdict(ClashOutcome outcome, LogSide reader) =>
+            Tint(ClashLabels.ColourOf(outcome, reader), ClashLabels.Describe(outcome));
     }
 }

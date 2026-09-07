@@ -32,7 +32,15 @@ namespace Dragoneye.Game.Combat
         CreatureSelection m_Selection;
 
         VisualElement m_Order;
-        Label m_Pace;
+
+        // The line above the action bar that says whose turn it is. It never goes away, so it is
+        // the one place a player can always look to answer that.
+        Label m_Announce;
+
+        // The creature that has just finished, so its card can be seen going to the back of the
+        // queue rather than simply being somewhere else the next time the row is drawn.
+        uint m_JustFinished;
+        uint m_LastActive;
 
         CombatPlayback m_Playback;
         bool m_Fast;
@@ -51,9 +59,9 @@ namespace Dragoneye.Game.Combat
             CreatureDisplay.MakeClickThrough(root);
 
             m_Order = root.Q<VisualElement>("turn-order");
-            m_Pace = root.Q<Label>("turn-pace");
+            m_Announce = root.Q<Label>("turn-announce");
 
-            if (m_Order == null || m_Pace == null)
+            if (m_Order == null || m_Announce == null)
             {
                 Debug.LogError($"{nameof(TurnBarView)} could not find its elements; check ArenaHud.uxml.",
                     this);
@@ -97,7 +105,7 @@ namespace Dragoneye.Game.Combat
             if (fast != m_Fast)
             {
                 m_Fast = fast;
-                RefreshPace();
+                RefreshAnnouncement();
             }
         }
 
@@ -110,17 +118,36 @@ namespace Dragoneye.Game.Combat
         }
 
         /// <summary>
-        /// The line under the turn order, which says one thing: that the fight is being played
-        /// fast. The round number used to live above the bar and was dropped -- it cost a line of
-        /// screen across the top of the board to say a number nobody was counting.
+        /// Whose turn it is, on the line above the action bar.
+        ///
+        /// The person where there is one, the creature where there is not: "Ada's turn" is what a
+        /// player wants to know in a match, and "Wolf's turn" is what there is to say when nobody
+        /// is playing it. It stays up for the whole turn rather than announcing itself and going
+        /// away, because the question it answers is asked at any moment, not once.
         /// </summary>
-        void RefreshPace()
+        void RefreshAnnouncement()
         {
             var fight = Shown.Fight;
-            var fast = m_Fast && fight != null && fight.Began;
 
-            m_Pace.text = fast ? "FAST FORWARD" : string.Empty;
-            m_Pace.EnableInClassList("is-hidden", !fast);
+            if (fight == null || !fight.Began || fight.IsOver)
+            {
+                m_Announce.text = string.Empty;
+                return;
+            }
+
+            var creature = m_Creatures.ByTurnId(fight.ActiveId);
+
+            if (creature == null)
+            {
+                m_Announce.text = string.Empty;
+                return;
+            }
+
+            var who = creature.IsComputerControlled
+                ? creature.DisplayName
+                : CreatureDisplay.ControllerName(creature);
+
+            m_Announce.text = m_Fast ? $"{who}'s turn  ·  FAST FORWARD" : $"{who}'s turn";
         }
 
         void Rebuild()
@@ -135,17 +162,24 @@ namespace Dragoneye.Game.Combat
             var fight = Shown.Fight;
             var showing = fight != null && fight.Began && fight.Order.Count > 0 && !fight.IsOver;
 
-            RefreshPace();
+            RefreshAnnouncement();
 
             if (!showing)
             {
                 return;
             }
 
+            // A queue rather than a list with markers on it. Whoever is acting is at the front,
+            // whoever is still to act follows, and everybody who has already been is round the
+            // back waiting for the next round -- which is how the question "how long until I act
+            // again" gets answered by counting from the left instead of by working out which half
+            // of a fixed order you are in.
+            if (fight.ActiveId != m_LastActive)
+            {
+                m_JustFinished = m_LastActive;
+                m_LastActive = fight.ActiveId;
+            }
 
-            // Where the round has got to. Everything before the active creature has had its turn
-            // and everything after is still to come, and a bar that does not say which is which
-            // makes "how long until I act again" a thing you count rather than a thing you see.
             var reached = 0;
 
             for (var i = 0; i < fight.Order.Count; i++)
@@ -157,23 +191,41 @@ namespace Dragoneye.Game.Combat
                 }
             }
 
-            var position = 0;
-
-            foreach (var id in fight.Order)
+            for (var i = reached; i < fight.Order.Count; i++)
             {
-                var acted = position < reached;
-                position++;
-
-                var creature = m_Creatures.ByTurnId(id);
-                var shown = fight.Of(id);
-
-                if (creature == null || shown == null)
-                {
-                    continue;
-                }
-
-                m_Order.Add(BuildPortrait(creature, shown, id == fight.ActiveId, acted));
+                Place(fight, fight.Order[i], acted: false);
             }
+
+            // Where the round ends. Everything past this bar acts again next round, which is the
+            // one thing a flat row of faces could never say.
+            if (reached > 0)
+            {
+                var mark = new VisualElement();
+                mark.AddToClassList("turn-break");
+                mark.tooltip = $"The end of round {fight.Round}.";
+                mark.pickingMode = PickingMode.Ignore;
+                m_Order.Add(mark);
+            }
+
+            for (var i = 0; i < reached; i++)
+            {
+                Place(fight, fight.Order[i], acted: true);
+            }
+
+            m_JustFinished = 0;
+        }
+
+        void Place(PresentedFight fight, uint id, bool acted)
+        {
+            var creature = m_Creatures.ByTurnId(id);
+            var shown = fight.Of(id);
+
+            if (creature == null || shown == null)
+            {
+                return;
+            }
+
+            m_Order.Add(BuildPortrait(creature, shown, id == fight.ActiveId, acted));
         }
 
         /// <summary>
@@ -212,21 +264,29 @@ namespace Dragoneye.Game.Combat
             }
 
             root.tooltip = $"{creature.DisplayName}\n{CreatureDisplay.ControllerName(creature)}"
-                + "\n\nRight-click to inspect.";
+                + "\n\nClick to look at it.";
 
-            // Reading a creature costs nothing and never touches the turn, so it is allowed at any
-            // time -- but only when it is asked for.
+            // A face in a queue raises one question -- where is that -- and the answer is on the
+            // board. So a click points the camera at it and opens its card, which is the pair of
+            // things a player wants and neither of which touches the turn.
             if (m_Selection != null)
             {
                 root.pickingMode = PickingMode.Position;
                 root.RegisterCallback<PointerDownEvent>(evt =>
                 {
-                    if (evt.button == 1)
-                    {
-                        m_Selection.Select(creature);
-                        evt.StopPropagation();
-                    }
+                    TurnCameraFocus.Current?.LookAt(creature);
+                    m_Selection.Select(creature);
+                    evt.StopPropagation();
                 });
+            }
+
+            // The one that has just finished is seen arriving at the back rather than appearing
+            // there. Started off its place and released a frame later, so the transition on the
+            // card carries it in.
+            if (creature.TurnId == m_JustFinished && m_JustFinished != 0)
+            {
+                root.AddToClassList("turn-portrait--arriving");
+                root.schedule.Execute(() => root.RemoveFromClassList("turn-portrait--arriving"));
             }
 
             return root;
