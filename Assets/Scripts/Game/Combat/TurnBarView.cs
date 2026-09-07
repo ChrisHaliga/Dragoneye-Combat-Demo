@@ -32,7 +32,6 @@ namespace Dragoneye.Game.Combat
         CreatureSelection m_Selection;
 
         VisualElement m_Order;
-        Label m_Round;
         Label m_ActiveName;
         Label m_ActiveOwner;
 
@@ -53,11 +52,10 @@ namespace Dragoneye.Game.Combat
             CreatureDisplay.MakeClickThrough(root);
 
             m_Order = root.Q<VisualElement>("turn-order");
-            m_Round = root.Q<Label>("round-label");
             m_ActiveName = root.Q<Label>("active-name");
             m_ActiveOwner = root.Q<Label>("active-owner");
 
-            if (m_Order == null || m_Round == null || m_ActiveName == null || m_ActiveOwner == null)
+            if (m_Order == null || m_ActiveName == null || m_ActiveOwner == null)
             {
                 Debug.LogError($"{nameof(TurnBarView)} could not find its elements; check ArenaHud.uxml.",
                     this);
@@ -101,7 +99,7 @@ namespace Dragoneye.Game.Combat
             if (fast != m_Fast)
             {
                 m_Fast = fast;
-                RefreshRound();
+                RefreshPace();
             }
         }
 
@@ -113,16 +111,18 @@ namespace Dragoneye.Game.Combat
             }
         }
 
-        void RefreshRound()
+        /// <summary>
+        /// The line under the turn order, which says one thing: that the fight is being played
+        /// fast. The round number used to live above the bar and was dropped -- it cost a line of
+        /// screen across the top of the board to say a number nobody was counting.
+        /// </summary>
+        void RefreshPace()
         {
             var fight = Shown.Fight;
+            var fast = m_Fast && fight != null && fight.Began;
 
-            if (fight == null || !fight.Began)
-            {
-                return;
-            }
-
-            m_Round.text = m_Fast ? $"ROUND {fight.Round}  ·  FAST FORWARD" : $"ROUND {fight.Round}";
+            m_ActiveOwner.text = fast ? "FAST FORWARD" : string.Empty;
+            m_ActiveOwner.EnableInClassList("is-hidden", !fast);
         }
 
         void Rebuild()
@@ -137,16 +137,14 @@ namespace Dragoneye.Game.Combat
             var fight = Shown.Fight;
             var showing = fight != null && fight.Began && fight.Order.Count > 0 && !fight.IsOver;
 
-            m_Round.EnableInClassList("is-hidden", !showing);
             m_ActiveName.text = string.Empty;
-            m_ActiveOwner.text = string.Empty;
+            RefreshPace();
 
             if (!showing)
             {
                 return;
             }
 
-            RefreshRound();
 
             // Where the round has got to. Everything before the active creature has had its turn
             // and everything after is still to come, and a bar that does not say which is which
@@ -193,8 +191,6 @@ namespace Dragoneye.Game.Combat
                         ? $"{creature.DisplayName}'s turn"
                         : $"{creature.DisplayName}'s turn  <color=#8B93A5>·  {player}</color>";
 
-                    m_ActiveOwner.text = string.Empty;
-                    m_ActiveOwner.EnableInClassList("is-hidden", true);
                 }
             }
         }

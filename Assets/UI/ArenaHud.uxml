@@ -6,15 +6,16 @@
         <ui:VisualElement name="turn-shade" class="turn-bar__shade" picking-mode="Ignore" />
 
         <ui:VisualElement name="turn-bar" class="turn-bar">
-            <ui:Label name="round-label" text="Round 1" class="turn-bar__round" />
             <ui:VisualElement name="turn-order" class="turn-bar__order" />
             <ui:Label name="active-name" text="" class="turn-bar__active-name" />
             <ui:Label name="active-owner" text="" class="turn-bar__active-owner" />
         </ui:VisualElement>
 
-        <!-- The action bar, along the bottom. One line above it holds what a turn is spent out
-             of: the hand on the left, the action points in the middle, End Turn on the right.
-             What the hovered slot does is drawn above that line by the bar. -->
+        <!-- The action bar, along the bottom, with End Turn on the end of it: the thing that
+             finishes a turn belongs to the row the turn is spent from, not floating off at the
+             edge of the screen on its own. The line above holds what a turn is spent out of:
+             the hand on the left, the action points over the middle of the bar. What the hovered
+             slot does is drawn above that line by the bar. -->
         <ui:VisualElement name="footer-shade" class="turn-footer__shade" picking-mode="Ignore" />
 
         <ui:VisualElement name="turn-footer" class="turn-footer">
@@ -26,10 +27,12 @@
                     <ui:Label name="ap-text" text="" class="ap-row__text" />
                 </ui:VisualElement>
                 <ui:VisualElement class="spacer" />
-                <ui:Button name="end-turn-button" text="End Turn" class="button end-turn" />
             </ui:VisualElement>
 
-            <ui:VisualElement name="skill-bar" class="action-bar" />
+            <ui:VisualElement class="action-row">
+                <ui:VisualElement name="skill-bar" class="action-bar" />
+                <ui:Button name="end-turn-button" text="End Turn" class="button end-turn" />
+            </ui:VisualElement>
         </ui:VisualElement>
 
         <ui:Label name="cursor-action" text="" class="cursor-action" />

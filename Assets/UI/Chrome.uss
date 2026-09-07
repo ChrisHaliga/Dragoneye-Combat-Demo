@@ -46,28 +46,49 @@
     height: 8px;
 }
 
+/* The track and the thumb are one width, stated on the same rules so neither can be widened by a
+   theme rule the other does not match. A track three times the thumb reads as a thumb that has
+   shrunk -- as damage rather than as design -- which is what it looked like. */
 .unity-scroller .unity-base-slider__tracker {
     background-color: rgba(0, 0, 0, 0.35);
     border-width: 0;
     border-radius: 4px;
+    margin: 0;
+}
+
+.unity-scroller--vertical .unity-base-slider__tracker,
+.unity-scroller--vertical .unity-base-slider__dragger {
+    width: 8px;
+    min-width: 8px;
+    max-width: 8px;
+    left: 0;
+    right: auto;
+}
+
+.unity-scroller--horizontal .unity-base-slider__tracker,
+.unity-scroller--horizontal .unity-base-slider__dragger {
+    height: 8px;
+    min-height: 8px;
+    max-height: 8px;
+    top: 0;
+    bottom: auto;
 }
 
 .unity-scroller .unity-base-slider__dragger {
-    width: 8px;
-    min-height: 28px;
-    left: 0;
     background-color: rgb(58, 66, 84);
     border-width: 0;
     border-radius: 4px;
+    margin: 0;
     transition-property: background-color;
     transition-duration: 0.12s;
 }
 
+.unity-scroller--vertical .unity-base-slider__dragger {
+    min-height: 28px;
+}
+
 .unity-scroller--horizontal .unity-base-slider__dragger {
-    width: auto;
-    height: 8px;
     min-width: 28px;
-    top: 0;
 }
 
 .unity-scroller .unity-base-slider__dragger:hover,

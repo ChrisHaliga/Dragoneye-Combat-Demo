@@ -205,7 +205,8 @@ namespace Dragoneye.Multiplayer
             columns.Add(SheetColumn("POOL", pool =>
                 CharacterSheet.Pool(pool, character.Build.StartingPool, character.Build.PoolBudget()),
                 "gem-row"));
-            columns.Add(SheetColumn("CARRIES", kit => CharacterSheet.Kit(kit, loadout), "group"));
+            columns.Add(SheetColumn("EQUIPMENT", kit => CharacterSheet.Kit(kit, loadout), "group",
+                scrolls: true));
             columns.Add(SheetColumn("SKILLS", skills => CharacterSheet.Skills(skills, loadout), "group",
                 scrolls: true));
             m_Sheet.Add(columns);

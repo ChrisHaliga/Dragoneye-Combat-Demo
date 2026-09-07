@@ -323,8 +323,8 @@
     top: 0;
     left: 0;
     right: 0;
-    padding-top: 8px;
-    padding-bottom: 6px;
+    padding-top: 6px;
+    padding-bottom: 4px;
     align-items: center;
 }
 
@@ -333,17 +333,9 @@
     top: 0;
     left: 0;
     right: 0;
-    height: 96px;
+    height: 76px;
     background-image: url("Generated/ui-shade.png");
     -unity-background-scale-mode: stretch-to-fill;
-}
-
-.turn-bar__round {
-    font-size: 10px;
-    -unity-font-style: bold;
-    letter-spacing: 4px;
-    color: rgb(198, 158, 88);
-    margin-bottom: 4px;
 }
 
 .turn-bar__order {
@@ -455,13 +447,15 @@
 /* ---------- end turn ---------- */
 
 /* Full width, along the bottom. Everything else on the HUD stops at the line it draws. */
+/* Every pixel here is a row of tiles the player cannot see, so the band is as short as its
+   contents: one line of what the turn is spent out of, and the bar it is spent on. */
 .turn-footer {
     position: absolute;
     bottom: 0;
     left: 0;
     right: 0;
     align-items: center;
-    padding: 6px 16px 10px 16px;
+    padding: 4px 16px 6px 16px;
 }
 
 /* The shade under the bar. The gradient is drawn for the top of the screen, so the leaf that
@@ -471,7 +465,7 @@
     left: 0;
     right: 0;
     bottom: 0;
-    height: 124px;
+    height: 96px;
     background-image: url("Generated/ui-shade.png");
     -unity-background-scale-mode: stretch-to-fill;
     rotate: 180deg;
@@ -482,8 +476,14 @@
     flex-direction: row;
     align-items: center;
     align-self: stretch;
-    min-height: 34px;
-    margin-bottom: 6px;
+    min-height: 22px;
+    margin-bottom: 4px;
+}
+
+/* The bar and the button that ends the turn, as one row. */
+.action-row {
+    flex-direction: row;
+    align-items: center;
 }
 
 .spacer {
@@ -491,8 +491,9 @@
 }
 
 .end-turn {
-    height: 36px;
-    padding: 0 26px;
+    height: 40px;
+    margin-left: 12px;
+    padding: 0 18px;
     border-width: 2px;
     border-color: rgba(0, 0, 0, 0);
     font-size: 13px;
@@ -1209,8 +1210,8 @@
 }
 
 .action-slot {
-    width: 58px;
-    height: 58px;
+    width: 48px;
+    height: 48px;
     margin: 0 3px;
     padding: 0;
     background-color: rgba(0, 0, 0, 0);
@@ -1362,7 +1363,7 @@
 .combat-log {
     position: absolute;
     left: 16px;
-    bottom: 130px;
+    bottom: 100px;
     width: 380px;
 
     /* Fixed, and clipped. Without a height of its own the panel grew with its contents and the
