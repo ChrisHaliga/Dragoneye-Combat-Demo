@@ -134,6 +134,7 @@ GameObject:
   - component: {fileID: 82840561}
   - component: {fileID: 82840562}
   - component: {fileID: 82840563}
+  - component: {fileID: 82840564}
   m_Layer: 0
   m_Name: Turn State
   m_TagString: Untagged
@@ -248,6 +249,19 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Dragoneye.Game::Dragoneye.Game.OpportunityCommands
   ShowTopMostFoldoutHeaderGroup: 1
+--- !u!114 &82840564
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 82840556}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: cf561f26360e4f742bf2d2af3cfca9a7, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Dragoneye.Game::Dragoneye.Game.Combat.WallCommands
+  ShowTopMostFoldoutHeaderGroup: 1
 --- !u!1 &261654050
 GameObject:
   m_ObjectHideFlags: 0
@@ -275,6 +289,7 @@ GameObject:
   - component: {fileID: 261654069}
   - component: {fileID: 261654072}
   - component: {fileID: 261654071}
+  - component: {fileID: 261654073}
   m_Layer: 0
   m_Name: Arena Context
   m_TagString: Untagged
@@ -315,6 +330,7 @@ MonoBehaviour:
   m_OutputCamera: {fileID: 1164859713}
   m_Units: {fileID: 261654057}
   m_Creatures: {fileID: 261654061}
+  m_Scenarios: {fileID: 261654073}
 --- !u!4 &261654053
 Transform:
   m_ObjectHideFlags: 0
@@ -565,6 +581,20 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d5cc1a40347dc2145b19d6edbe28826a, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Dragoneye.Game::Dragoneye.Game.WallCutaway
+--- !u!114 &261654073
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 261654050}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 85b6c28f76661e7478878e6fa2baaafb, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Dragoneye.Game::Dragoneye.Game.Combat.ScenarioRunner
+  m_Grass: {fileID: 11400000, guid: 9830a486e55c1d743ba2351cff1fd106, type: 2}
+  m_Stone: {fileID: 11400000, guid: e813c741acfc9c344ba02c2d90e06eac, type: 2}
 --- !u!1 &454632036
 GameObject:
   m_ObjectHideFlags: 0
@@ -655,6 +685,7 @@ GameObject:
   - component: {fileID: 648006347}
   - component: {fileID: 648006348}
   - component: {fileID: 648006349}
+  - component: {fileID: 648006350}
   m_Layer: 0
   m_Name: Arena HUD
   m_TagString: Untagged
@@ -869,6 +900,18 @@ MonoBehaviour:
   m_EditorClassIdentifier: Dragoneye.Game::Dragoneye.Game.TurnBannerView
   m_Creatures: {fileID: 261654061}
   m_Hold: 1.25
+--- !u!114 &648006350
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 648006334}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 01cc93b61116cce44a10f4f4a3641b2a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Dragoneye.Game::Dragoneye.Game.Combat.ScenarioReportView
 --- !u!1 &723212526
 GameObject:
   m_ObjectHideFlags: 0

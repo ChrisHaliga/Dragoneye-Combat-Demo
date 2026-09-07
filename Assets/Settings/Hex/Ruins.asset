@@ -14,134 +14,161 @@ MonoBehaviour:
   m_EditorClassIdentifier: Dragoneye.Hex::Dragoneye.Hex.AuthoredMapDefinition
   m_TileSize: 1
   m_Radius: 5
-  m_DefaultTerrain: {fileID: 11400000, guid: 9830a486e55c1d743ba2351cff1fd106, type: 2}
+  m_DefaultTerrain: grass
+  m_Palette:
+  - Name: grass
+    Terrain: {fileID: 11400000, guid: 9830a486e55c1d743ba2351cff1fd106, type: 2}
+  - Name: stone
+    Terrain: {fileID: 11400000, guid: e813c741acfc9c344ba02c2d90e06eac, type: 2}
   m_Tiles:
   - Q: 3
     R: -3
-    Terrain: {fileID: 11400000, guid: e813c741acfc9c344ba02c2d90e06eac, type: 2}
+    Terrain: stone
   - Q: -2
     R: -1
-    Terrain: {fileID: 11400000, guid: e813c741acfc9c344ba02c2d90e06eac, type: 2}
+    Terrain: stone
   - Q: 1
     R: -4
-    Terrain: {fileID: 11400000, guid: e813c741acfc9c344ba02c2d90e06eac, type: 2}
+    Terrain: stone
   - Q: -4
     R: 3
-    Terrain: {fileID: 11400000, guid: e813c741acfc9c344ba02c2d90e06eac, type: 2}
-  m_Rays:
+    Terrain: stone
+  m_Walls:
   - Q: 0
     R: 3
-    Ray: 3
+    Index: 3
+    IsRay: 1
     Flags: 3
     Integrity: 0
   - Q: 0
     R: 3
-    Ray: 6
+    Index: 6
+    IsRay: 1
+    Flags: 3
+    Integrity: 0
+  - Q: 1
+    R: 2
+    Index: 11
+    IsRay: 0
+    Flags: 3
+    Integrity: 0
+  - Q: 1
+    R: 2
+    Index: 0
+    IsRay: 0
     Flags: 3
     Integrity: 0
   - Q: 2
     R: 2
-    Ray: 9
+    Index: 9
+    IsRay: 1
     Flags: 3
     Integrity: 0
   - Q: 2
     R: 2
-    Ray: 6
+    Index: 6
+    IsRay: 1
     Flags: 3
     Integrity: 0
   - Q: 2
     R: 1
-    Ray: 0
+    Index: 0
+    IsRay: 1
     Flags: 3
     Integrity: 0
   - Q: 2
     R: 1
-    Ray: 6
+    Index: 6
+    IsRay: 1
     Flags: 3
     Integrity: 0
   - Q: 2
     R: 0
-    Ray: 0
+    Index: 0
+    IsRay: 1
     Flags: 3
     Integrity: 0
   - Q: 2
     R: 0
-    Ray: 9
+    Index: 9
+    IsRay: 1
     Flags: 3
     Integrity: 0
   - Q: 0
     R: 1
-    Ray: 3
+    Index: 3
+    IsRay: 1
     Flags: 3
     Integrity: 0
   - Q: 0
     R: 1
-    Ray: 0
+    Index: 0
+    IsRay: 1
     Flags: 3
     Integrity: 0
   - Q: 0
     R: 2
-    Ray: 0
+    Index: 0
+    IsRay: 1
     Flags: 3
     Integrity: 0
   - Q: 0
     R: 2
-    Ray: 6
+    Index: 6
+    IsRay: 1
     Flags: 3
     Integrity: 0
   - Q: -3
     R: 0
-    Ray: 0
+    Index: 0
+    IsRay: 1
     Flags: 1
     Integrity: 0
   - Q: -3
     R: 0
-    Ray: 6
+    Index: 6
+    IsRay: 1
     Flags: 1
     Integrity: 0
   - Q: -3
     R: 1
-    Ray: 0
+    Index: 0
+    IsRay: 1
     Flags: 1
     Integrity: 0
   - Q: -3
     R: 1
-    Ray: 6
+    Index: 6
+    IsRay: 1
     Flags: 1
     Integrity: 0
   - Q: -3
     R: 2
-    Ray: 0
+    Index: 0
+    IsRay: 1
     Flags: 1
     Integrity: 0
   - Q: -3
     R: 2
-    Ray: 6
+    Index: 6
+    IsRay: 1
     Flags: 1
+    Integrity: 0
+  - Q: -1
+    R: -2
+    Index: 11
+    IsRay: 0
+    Flags: 2
+    Integrity: 0
+  - Q: -1
+    R: -2
+    Index: 0
+    IsRay: 0
+    Flags: 2
     Integrity: 0
   - Q: 3
     R: -1
-    Ray: 9
+    Index: 9
+    IsRay: 1
     Flags: 3
-    Integrity: 0
-  m_HalfEdges:
-  - Q: 1
-    R: 2
-    HalfEdge: 11
-    Flags: 3
-    Integrity: 0
-  - Q: 1
-    R: 2
-    HalfEdge: 0
-    Flags: 3
-    Integrity: 0
-  - Q: -1
-    R: -2
-    HalfEdge: 11
-    Flags: 2
-    Integrity: 0
-  - Q: -1
-    R: -2
-    HalfEdge: 0
-    Flags: 2
     Integrity: 0

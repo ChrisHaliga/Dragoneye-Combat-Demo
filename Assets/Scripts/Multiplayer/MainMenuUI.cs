@@ -62,6 +62,23 @@ namespace Dragoneye.Multiplayer
             var root = GetComponent<UIDocument>().rootVisualElement;
             UiTypeface.Apply(root);
 
+            // Before anything draws, and before any panel is built.
+            //
+            // The catalog builds lazily on its first accessor and fills the statics on the way --
+            // portraits, element runes, the matchup table -- and the pages below read those
+            // without touching an accessor of their own. The rules page asks the table what beats
+            // what while it is being built, so a menu that prepared the content later than this
+            // threw on its way to drawing and left the whole screen unbuilt.
+            if (m_Content == null)
+            {
+                Debug.LogError($"{nameof(MainMenuUI)} has no {nameof(ContentCatalog)}; nothing can "
+                    + "be drawn. Run ClaudeCode > Set Up Everything.", this);
+                enabled = false;
+                return;
+            }
+
+            m_Content.Prepare();
+
             if (!BindPanels(root) || !BindHome(root))
             {
                 enabled = false;
@@ -152,18 +169,6 @@ namespace Dragoneye.Multiplayer
 
         bool BindCharacterScreens(VisualElement root)
         {
-            if (m_Content == null)
-            {
-                Debug.LogError($"{nameof(MainMenuUI)} has no {nameof(ContentCatalog)}; "
-                    + "characters cannot be built or listed.", this);
-                return false;
-            }
-
-            // Before any screen draws. The catalog builds lazily on its first accessor, and the
-            // statics it fills on the way -- portraits, element runes -- are read by screens that
-            // never touch an accessor. Whichever of those drew first used to get nothing.
-            m_Content.Prepare();
-
             m_Characters = new CharacterListScreen(root, m_Content, OnEditCharacter,
                 () => Show(MenuScreen.Home));
 
