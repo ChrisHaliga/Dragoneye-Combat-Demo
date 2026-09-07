@@ -39,7 +39,6 @@ namespace Dragoneye.Game
             return false;
         }
 
-        /// <summary>Whether the local player may give this creature orders.</summary>
         /// <summary>
         /// The side this player is on, or null for a spectator and for anybody who has not picked.
         ///
@@ -86,6 +85,7 @@ namespace Dragoneye.Game
             return mine;
         }
 
+        /// <summary>Whether the local player may give this creature orders.</summary>
         public static bool Controls(CreatureState creature) =>
             creature != null && TryGetSlot(out var slot) && Controls(creature.ControllerSlot, slot);
 
