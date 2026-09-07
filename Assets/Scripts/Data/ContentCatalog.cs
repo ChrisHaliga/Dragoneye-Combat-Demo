@@ -15,7 +15,7 @@ namespace Dragoneye.Data
     /// the creator, and would hand out a different object each time for what is a fixed answer.
     /// </summary>
     [CreateAssetMenu(menuName = "Dragoneye/Content Catalog", fileName = "ContentCatalog")]
-    public sealed class ContentCatalog : ScriptableObject, IContentIndex
+    public sealed class ContentCatalog : ScriptableObject, IContentIndex, ISkillIconSource
     {
         [SerializeField]
         List<SpeciesDefinition> m_Species = new List<SpeciesDefinition>();
@@ -161,6 +161,20 @@ namespace Dragoneye.Data
             return result;
         }
 
+        /// <summary>The icon somebody drew for a skill, or null for one the game draws itself.</summary>
+        public Sprite AuthoredIcon(int skillId)
+        {
+            foreach (var asset in m_Skills)
+            {
+                if (asset != null && asset.Id == skillId)
+                {
+                    return asset.Icon;
+                }
+            }
+
+            return null;
+        }
+
         /// <summary>Rebuilds the caches. Called by the editor when the assets change.</summary>
         public void Invalidate() => m_Built = false;
 
@@ -214,6 +228,7 @@ namespace Dragoneye.Data
             // by the time anything wants to draw a face this is already answered.
             Portraits.Current = m_Portraits;
             ElementIcons.Current = m_ElementIcons;
+            SkillIcons.Current = this;
             ElementMatchups.Current = m_ElementMatchups;
 
             foreach (var asset in m_Skills)

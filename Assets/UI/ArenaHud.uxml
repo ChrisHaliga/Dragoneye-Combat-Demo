@@ -12,23 +12,24 @@
             <ui:Label name="active-owner" text="" class="turn-bar__active-owner" />
         </ui:VisualElement>
 
-        <ui:VisualElement name="turn-footer" class="turn-footer">
-            <!-- What the creature you are playing is holding. Above the skills rather than in the
-                 card, because the card follows what you clicked and this has to follow you. -->
-            <ui:VisualElement name="own-hand" class="own-hand" />
-            <ui:VisualElement name="skill-bar" class="skill-bar" />
+        <!-- The action bar, along the bottom. One line above it holds what a turn is spent out
+             of: the hand on the left, the action points in the middle, End Turn on the right.
+             What the hovered slot does is drawn above that line by the bar. -->
+        <ui:VisualElement name="footer-shade" class="turn-footer__shade" picking-mode="Ignore" />
 
-            <!-- Action points, as pips, between the things they buy and the button that gives the
-                 rest away. The one currency a turn is spent out of, drawn the same way the card
-                 draws it. -->
+        <ui:VisualElement name="turn-footer" class="turn-footer">
             <ui:VisualElement class="turn-footer__line">
+                <ui:VisualElement name="own-hand" class="own-hand" />
+                <ui:VisualElement class="spacer" />
                 <ui:VisualElement name="ap-row" class="ap-row">
                     <ui:VisualElement name="ap-pips" class="pips pips--footer" />
                     <ui:Label name="ap-text" text="" class="ap-row__text" />
                 </ui:VisualElement>
-
+                <ui:VisualElement class="spacer" />
                 <ui:Button name="end-turn-button" text="End Turn" class="button end-turn" />
             </ui:VisualElement>
+
+            <ui:VisualElement name="skill-bar" class="action-bar" />
         </ui:VisualElement>
 
         <ui:Label name="cursor-action" text="" class="cursor-action" />

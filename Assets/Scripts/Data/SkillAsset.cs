@@ -40,6 +40,10 @@ namespace Dragoneye.Data
         [SerializeField, TextArea(2, 4)]
         string m_Description = "";
 
+        [SerializeField, Tooltip("The picture on the skill's slot. Leave empty and one is drawn "
+             + "from what the skill does, in its element's colour.")]
+        Sprite m_Icon;
+
         [SerializeField, Tooltip("What this skill is made of, or the first of the elements it "
              + "may be made of.")]
         Element m_Element = Element.Pyro;
@@ -95,6 +99,9 @@ namespace Dragoneye.Data
         public int Id => m_Id;
 
         public string DisplayName => m_DisplayName;
+
+        /// <summary>The authored icon, or null for one the game draws itself.</summary>
+        public Sprite Icon => m_Icon;
 
         /// <summary>Exposed so premade creatures can filter their authored list by level.</summary>
         public int LevelRequired => m_LevelRequired;
