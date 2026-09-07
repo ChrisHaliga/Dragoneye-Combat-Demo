@@ -15,6 +15,7 @@ MonoBehaviour:
   m_Id: 152
   m_DisplayName: Rally
   m_Description: Two points spent, four back. A second wind that costs Lux to catch.
+  m_Icon: {fileID: 0}
   m_Element: 4
   m_ElementOptions: 
   m_Conditions: []

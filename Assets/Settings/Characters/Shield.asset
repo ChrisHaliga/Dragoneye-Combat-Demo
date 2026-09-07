@@ -21,3 +21,12 @@ MonoBehaviour:
   m_Armour: 0
   m_ArmourPoints: 4
   m_GrantsAdvantage: 0
+  m_TwoHanded: 0
+  m_Modifiers:
+    Toughness: 0
+    Dexterity: 0
+    Strength: 0
+    Skill: 0
+    Vitality: 0
+    Willpower: 0
+    Endurance: 0

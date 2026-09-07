@@ -15,6 +15,7 @@ MonoBehaviour:
   m_Id: 141
   m_DisplayName: Storm
   m_Description: The air itself, and all of it at once.
+  m_Icon: {fileID: 0}
   m_Element: 3
   m_ElementOptions: 
   m_Conditions: []

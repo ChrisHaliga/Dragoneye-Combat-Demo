@@ -16,6 +16,7 @@ MonoBehaviour:
   m_DisplayName: Jab
   m_Description: Quick, and it asks its question in Aero. What you throw when Aero
     is what you are holding.
+  m_Icon: {fileID: 0}
   m_Element: 3
   m_ElementOptions: 
   m_Conditions: []

@@ -32,8 +32,7 @@ namespace Dragoneye.Game.Combat
         CreatureSelection m_Selection;
 
         VisualElement m_Order;
-        Label m_ActiveName;
-        Label m_ActiveOwner;
+        Label m_Pace;
 
         CombatPlayback m_Playback;
         bool m_Fast;
@@ -52,10 +51,9 @@ namespace Dragoneye.Game.Combat
             CreatureDisplay.MakeClickThrough(root);
 
             m_Order = root.Q<VisualElement>("turn-order");
-            m_ActiveName = root.Q<Label>("active-name");
-            m_ActiveOwner = root.Q<Label>("active-owner");
+            m_Pace = root.Q<Label>("turn-pace");
 
-            if (m_Order == null || m_ActiveName == null || m_ActiveOwner == null)
+            if (m_Order == null || m_Pace == null)
             {
                 Debug.LogError($"{nameof(TurnBarView)} could not find its elements; check ArenaHud.uxml.",
                     this);
@@ -121,8 +119,8 @@ namespace Dragoneye.Game.Combat
             var fight = Shown.Fight;
             var fast = m_Fast && fight != null && fight.Began;
 
-            m_ActiveOwner.text = fast ? "FAST FORWARD" : string.Empty;
-            m_ActiveOwner.EnableInClassList("is-hidden", !fast);
+            m_Pace.text = fast ? "FAST FORWARD" : string.Empty;
+            m_Pace.EnableInClassList("is-hidden", !fast);
         }
 
         void Rebuild()
@@ -137,7 +135,6 @@ namespace Dragoneye.Game.Combat
             var fight = Shown.Fight;
             var showing = fight != null && fight.Began && fight.Order.Count > 0 && !fight.IsOver;
 
-            m_ActiveName.text = string.Empty;
             RefreshPace();
 
             if (!showing)
@@ -175,26 +172,19 @@ namespace Dragoneye.Game.Combat
                     continue;
                 }
 
-                var active = id == fight.ActiveId;
-                m_Order.Add(BuildPortrait(creature, shown, active, acted));
-
-                if (active)
-                {
-                    // Whose turn, on the line that says whose turn it is: the creature and, where
-                    // there is one, the person -- side by side, because every line the bar takes
-                    // is a row of tiles the player cannot see.
-                    var player = creature.IsComputerControlled
-                        ? string.Empty
-                        : CreatureDisplay.ControllerName(creature);
-
-                    m_ActiveName.text = player.Length == 0
-                        ? $"{creature.DisplayName}'s turn"
-                        : $"{creature.DisplayName}'s turn  <color=#8B93A5>·  {player}</color>";
-
-                }
+                m_Order.Add(BuildPortrait(creature, shown, id == fight.ActiveId, acted));
             }
         }
 
+        /// <summary>
+        /// One place in the order: a face, and its bars along the bottom.
+        ///
+        /// The creature acting now is drawn larger, named under its card, and is the only one whose
+        /// numbers are written on. Everybody else refills the moment their own turn starts, so what
+        /// they hold now says nothing about what they will have when it matters -- and a row of
+        /// faces with a number on every one of them answers a question nobody asked. Action points
+        /// are not here at all; they are on the line above the bar, where they are spent.
+        /// </summary>
         VisualElement BuildPortrait(CreatureState creature, PresentedCreature shown, bool active, bool acted)
         {
             var root = new VisualElement();
@@ -211,84 +201,36 @@ namespace Dragoneye.Game.Combat
                     active ? Color.white : tint;
 
             CreatureDisplay.DrawPortrait(root, creature, "turn-portrait__initial");
+            CreatureDisplay.DrawVitals(root, creature, numbers: active);
 
-            // Only the creature actually acting. Everybody else refills the moment their turn
-            // starts, so what they are holding now says nothing about what they will have when it
-            // matters -- and a number that is about to change is worse than no number.
             if (active)
             {
-                root.Add(BuildActionPoints(creature, shown));
+                var name = new Label(creature.DisplayName);
+                name.AddToClassList("turn-portrait__name");
+                name.pickingMode = PickingMode.Ignore;
+                root.Add(name);
             }
 
-            if (creature.MaxArmour > 0)
-            {
-                root.Add(BuildArmour(creature, shown));
-            }
+            root.tooltip = $"{creature.DisplayName}\n{CreatureDisplay.ControllerName(creature)}"
+                + "\n\nRight-click to inspect.";
 
-            root.Add(BuildHealth(creature, shown));
-
-            // Inspecting from the bar, the same gesture the party column already offers. Reading a
-            // creature costs nothing and never touches the turn, so it is allowed at any time.
+            // Reading a creature costs nothing and never touches the turn, so it is allowed at any
+            // time -- but only when it is asked for.
             if (m_Selection != null)
             {
-                root.RegisterCallback<ClickEvent>(_ => m_Selection.Select(creature));
+                root.pickingMode = PickingMode.Position;
+                root.RegisterCallback<PointerDownEvent>(evt =>
+                {
+                    if (evt.button == 1)
+                    {
+                        m_Selection.Select(creature);
+                        evt.StopPropagation();
+                    }
+                });
             }
 
             return root;
         }
 
-        static VisualElement BuildActionPoints(CreatureState creature, PresentedCreature shown)
-        {
-            var strip = new VisualElement();
-            strip.AddToClassList("turn-portrait__ap");
-
-            var text = new Label($"{shown.Ap}/{creature.MaxAp}");
-            text.AddToClassList("turn-portrait__ap-text");
-            text.tooltip = "Action points left this turn.";
-
-            strip.Add(text);
-            return strip;
-        }
-
-        /// <summary>
-        /// The silver bar above the red, for creatures that have armour to lose.
-        ///
-        /// Numbered like the health under it, because it is read the same way: armour never comes
-        /// back, so "6 of 16 left" is a fact about the rest of the match, not about this turn.
-        /// </summary>
-        static VisualElement BuildArmour(CreatureState creature, PresentedCreature shown)
-        {
-            var bar = new VisualElement();
-            bar.AddToClassList("turn-portrait__armour");
-
-            var fill = new VisualElement();
-            fill.AddToClassList("turn-portrait__armour-fill");
-            fill.style.width = Length.Percent(CreatureDisplay.Fraction(shown.Armour, creature.MaxArmour) * 100f);
-
-            var text = new Label($"{shown.Armour}/{creature.MaxArmour}");
-            text.AddToClassList("turn-portrait__armour-text");
-            text.tooltip = "Armour. Takes every blow first, and does not come back.";
-
-            bar.Add(fill);
-            bar.Add(text);
-            return bar;
-        }
-
-        static VisualElement BuildHealth(CreatureState creature, PresentedCreature shown)
-        {
-            var bar = new VisualElement();
-            bar.AddToClassList("turn-portrait__hp");
-
-            var fill = new VisualElement();
-            fill.AddToClassList("turn-portrait__hp-fill");
-            fill.style.width = Length.Percent(CreatureDisplay.Fraction(shown.Hp, creature.MaxHp) * 100f);
-
-            var text = new Label($"{shown.Hp}/{creature.MaxHp}");
-            text.AddToClassList("turn-portrait__hp-text");
-
-            bar.Add(fill);
-            bar.Add(text);
-            return bar;
-        }
     }
 }

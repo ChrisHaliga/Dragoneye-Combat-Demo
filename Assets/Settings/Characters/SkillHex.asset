@@ -15,6 +15,7 @@ MonoBehaviour:
   m_Id: 190
   m_DisplayName: Hex
   m_Description: A word, and it reaches them. Nyx, at range.
+  m_Icon: {fileID: 0}
   m_Element: 5
   m_ElementOptions: 
   m_Conditions: []

@@ -1,5 +1,6 @@
 using Dragoneye.Combat;
 using Dragoneye.Data;
+using Dragoneye.UI;
 using UnityEngine;
 using UnityEngine.UIElements;
 using Dragoneye.Game;
@@ -46,13 +47,7 @@ namespace Dragoneye.Game.Creatures
             return $"Player {creature.ControllerSlot + 1}";
         }
 
-        /// <summary>How full a bar is, from the shown fight.</summary>
-        public static float HealthFraction(CreatureState creature) =>
-            Fraction(Shown.Hp(creature), creature.MaxHp);
-
-        public static float ArmourFraction(CreatureState creature) =>
-            Fraction(Shown.Armour(creature), creature.MaxArmour);
-
+        /// <summary>How full a bar is: nothing at all when there is no maximum to be full of.</summary>
         public static float Fraction(int current, int max) =>
             max <= 0 ? 0f : Mathf.Clamp01((float)current / max);
 
@@ -107,6 +102,108 @@ namespace Dragoneye.Game.Creatures
             var initial = new Label(Initial(creature.DisplayName));
             initial.AddToClassList(initialClass);
             into.Add(initial);
+        }
+
+        /// <summary>
+        /// What is left of a creature, along the bottom of its card: armour over health.
+        ///
+        /// One drawing for every place a creature is shown small, so the party column and the turn
+        /// order cannot end up disagreeing about what a half-empty bar looks like. Armour is only
+        /// drawn where there is armour to lose, and the numbers are optional -- a row of faces
+        /// answers "who is next", and a number on every one of them answers a question nobody
+        /// asked.
+        /// </summary>
+        public static void DrawVitals(VisualElement into, CreatureState creature, bool numbers)
+        {
+            var bars = new VisualElement();
+            bars.AddToClassList("portrait__bars");
+            bars.pickingMode = PickingMode.Ignore;
+
+            if (creature.MaxArmour > 0)
+            {
+                bars.Add(Bar("armour-track", "armour-fill",
+                    Shown.Armour(creature), creature.MaxArmour, numbers,
+                    "Armour. Takes every blow first, and does not come back."));
+            }
+
+            bars.Add(Bar("hp-track", "hp-fill", Shown.Hp(creature), creature.MaxHp, numbers,
+                "Health."));
+
+            into.Add(bars);
+        }
+
+        static VisualElement Bar(string trackClass, string fillClass, int current, int max,
+            bool numbers, string tip)
+        {
+            var track = new VisualElement();
+            track.AddToClassList(trackClass);
+            track.tooltip = tip;
+
+            var fill = new VisualElement();
+            fill.AddToClassList(fillClass);
+            fill.style.width = Length.Percent(Fraction(current, max) * 100f);
+            track.Add(fill);
+
+            if (numbers)
+            {
+                var text = new Label($"{current} / {max}");
+                text.AddToClassList("bar-text");
+                text.pickingMode = PickingMode.Ignore;
+                track.Add(text);
+            }
+
+            return track;
+        }
+
+        /// <summary>
+        /// What a creature is holding, down the left edge of its card.
+        ///
+        /// Its own pool where the local player is entitled to it, and only what has been proven
+        /// otherwise. The rule is the card's rule, kept here so a portrait cannot become the one
+        /// place an opponent's hand leaks.
+        /// </summary>
+        public static void DrawElements(VisualElement into, CreatureState creature)
+        {
+            var pool = creature.Pool;
+
+            if (pool == null)
+            {
+                return;
+            }
+
+            var held = pool.CanSee ? pool.Pool : PossibleElements.Seen(pool.Ledger).Known;
+            var column = new VisualElement();
+            column.AddToClassList("portrait__elements");
+            column.pickingMode = PickingMode.Ignore;
+
+            foreach (var element in ElementInfo.All)
+            {
+                var count = held[element];
+
+                if (count <= 0)
+                {
+                    continue;
+                }
+
+                var row = new VisualElement();
+                row.AddToClassList("portrait__element");
+
+                var rune = new VisualElement();
+                rune.AddToClassList("portrait__rune");
+                CharacterSheet.PaintElement(rune, element);
+                row.Add(rune);
+
+                var label = new Label(count.ToString());
+                label.AddToClassList("portrait__count");
+                row.Add(label);
+
+                column.Add(row);
+            }
+
+            if (column.childCount > 0)
+            {
+                into.Add(column);
+            }
         }
 
         /// <summary>

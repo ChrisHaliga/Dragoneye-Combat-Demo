@@ -43,6 +43,10 @@ namespace Dragoneye.Game.Combat
         Label m_OutcomeTitle;
         Button m_EndTurn;
 
+        // What is left of the creature being played, on the line the turn is spent from.
+        VisualElement m_HealthFill;
+        Label m_HealthText;
+
         ArenaBoard m_Board;
 
         void Start()
@@ -66,6 +70,9 @@ namespace Dragoneye.Game.Combat
             m_Cursor = root.Q<Label>("cursor-action");
             m_OutcomeTitle = root.Q<Label>("outcome-title");
             m_EndTurn = root.Q<Button>("end-turn-button");
+
+            m_HealthFill = root.Q<VisualElement>("own-health-fill");
+            m_HealthText = root.Q<Label>("own-health-text");
 
             if (m_Footer == null || m_Banner == null || m_ApPips == null || m_ApText == null
                 || m_Cursor == null
@@ -127,6 +134,8 @@ namespace Dragoneye.Game.Combat
             ApPips.Fill(m_ApPips, actor.CurrentAp, actor.MaxAp);
             m_ApText.text = $"{actor.CurrentAp} / {actor.MaxAp} AP";
 
+            RefreshVitals(actor);
+
             // What "nothing left to do" means now depends on what the creature knows: a bow can
             // still act at four tiles where a dagger cannot act at two.
             var spent = !CombatRules.CanAffordAnything(
@@ -138,6 +147,29 @@ namespace Dragoneye.Game.Combat
             // The words never change; the outline does. A button whose label rewrites itself
             // reads as two buttons, and the player already knows the number -- it is right above.
             m_EndTurn.EnableInClassList("end-turn--spent", spent);
+        }
+
+        /// <summary>
+        /// What is left of the creature being played, under the points it has to spend.
+        ///
+        /// Health alone. Armour is on the same creature's card in the party column, with its own
+        /// numbers on it, and a second copy here would cost a row of the board to repeat something
+        /// already on screen.
+        ///
+        /// Read from the shown fight rather than the live one, like every other display, so the
+        /// bar drops when the blow that emptied it is shown landing and not several turns early.
+        /// </summary>
+        void RefreshVitals(CreatureState actor)
+        {
+            if (m_HealthFill == null)
+            {
+                return;
+            }
+
+            var hp = Shown.Hp(actor);
+            m_HealthFill.style.width = Length.Percent(
+                CreatureDisplay.Fraction(hp, actor.MaxHp) * 100f);
+            m_HealthText.text = $"{hp} / {actor.MaxHp}";
         }
 
         /// <summary>

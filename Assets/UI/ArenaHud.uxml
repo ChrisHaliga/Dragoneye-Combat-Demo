@@ -5,33 +5,48 @@
 
         <ui:VisualElement name="turn-shade" class="turn-bar__shade" picking-mode="Ignore" />
 
+        <!-- The turn order, across the top. One card per creature in the order they act, the one
+             acting now larger and named. Nothing else: whose turn it is is the card that grew. -->
         <ui:VisualElement name="turn-bar" class="turn-bar">
             <ui:VisualElement name="turn-order" class="turn-bar__order" />
-            <ui:Label name="active-name" text="" class="turn-bar__active-name" />
-            <ui:Label name="active-owner" text="" class="turn-bar__active-owner" />
+            <ui:Label name="turn-pace" text="" class="turn-bar__pace is-hidden" />
         </ui:VisualElement>
 
-        <!-- The action bar, along the bottom, with End Turn on the end of it: the thing that
-             finishes a turn belongs to the row the turn is spent from, not floating off at the
-             edge of the screen on its own. The line above holds what a turn is spent out of:
-             the hand on the left, the action points over the middle of the bar. What the hovered
-             slot does is drawn above that line by the bar. -->
         <ui:VisualElement name="footer-shade" class="turn-footer__shade" picking-mode="Ignore" />
 
+        <!-- The bottom band: what the turn is spent out of over what it is spent on. Points above
+             health, End Turn on the right of it, and the bar of actions under the pair. -->
         <ui:VisualElement name="turn-footer" class="turn-footer">
-            <ui:VisualElement class="turn-footer__line">
-                <ui:VisualElement name="own-hand" class="own-hand" />
-                <ui:VisualElement class="spacer" />
-                <ui:VisualElement name="ap-row" class="ap-row">
-                    <ui:VisualElement name="ap-pips" class="pips pips--footer" />
-                    <ui:Label name="ap-text" text="" class="ap-row__text" />
+            <ui:VisualElement class="vitals">
+                <ui:VisualElement class="vitals__row">
+                    <ui:VisualElement class="vitals__gutter" picking-mode="Ignore" />
+                    <ui:VisualElement name="ap-row" class="ap-row">
+                        <ui:VisualElement name="ap-pips" class="pips pips--footer" />
+                        <ui:Label name="ap-text" text="" class="ap-row__text" />
+                    </ui:VisualElement>
+                    <ui:VisualElement class="vitals__gutter" picking-mode="Ignore" />
                 </ui:VisualElement>
-                <ui:VisualElement class="spacer" />
+
+                <ui:VisualElement class="vitals__row">
+                    <ui:VisualElement class="vitals__gutter" picking-mode="Ignore" />
+                    <ui:VisualElement name="own-vitals" class="own-vitals">
+                        <ui:VisualElement name="own-health" class="own-health">
+                            <ui:VisualElement name="own-health-fill" class="own-health__fill" />
+                            <ui:Label name="own-health-text" text="" class="own-health__text" />
+                        </ui:VisualElement>
+                    </ui:VisualElement>
+                    <ui:Button name="end-turn-button" text="End Turn" class="button end-turn" />
+                </ui:VisualElement>
             </ui:VisualElement>
 
             <ui:VisualElement class="action-row">
+                <ui:VisualElement name="action-menu" class="action-menu">
+                    <ui:Button name="menu-equipment" class="action-menu__button" />
+                    <ui:Button name="menu-skills" class="action-menu__button" />
+                    <ui:Button name="menu-items" class="action-menu__button" />
+                </ui:VisualElement>
+
                 <ui:VisualElement name="skill-bar" class="action-bar" />
-                <ui:Button name="end-turn-button" text="End Turn" class="button end-turn" />
             </ui:VisualElement>
         </ui:VisualElement>
 
@@ -56,20 +71,45 @@
             <ui:Label name="outcome-note" text="Returning to the menu..." class="outcome__note" />
         </ui:VisualElement>
 
+        <!-- The party, floating. No frame, no heading: the cards are the panel. -->
         <ui:VisualElement name="party-column" class="party-column">
-            <ui:Label name="party-title" text="Party" class="party-title" />
             <ui:ScrollView name="portrait-list" class="portrait-list" />
         </ui:VisualElement>
 
-        <!-- What has happened, in order. Bottom left, out of the way of the board and beside the
-             party it is about. -->
-        <ui:VisualElement name="combat-log" class="combat-log">
-            <ui:ScrollView name="combat-log-list" class="combat-log-list" />
+        <!-- What has happened, in order, in two sizes. Shut it and the last line stays as a
+             sliver above the bar; open it and it is the whole record, scrollable. -->
+        <ui:VisualElement name="combat-log" class="combat-log combat-log--small">
+            <ui:VisualElement name="combat-log-frame" class="combat-log__frame">
+                <ui:VisualElement class="combat-log__head">
+                    <ui:Label text="COMBAT LOG" class="combat-log__title" />
+                    <ui:Button name="combat-log-minimize" class="icon-button" />
+                </ui:VisualElement>
+                <ui:ScrollView name="combat-log-list" class="combat-log-list" />
+            </ui:VisualElement>
+
+            <ui:Button name="combat-log-sliver" class="combat-log__sliver" />
+        </ui:VisualElement>
+
+        <!-- One skill, in full, because a slot is an icon and an icon is not a rulebook. Opened
+             from the slot's own right-click menu and closed from the corner. -->
+        <ui:VisualElement name="skill-window" class="skill-window is-hidden">
+            <ui:VisualElement class="skill-window__head">
+                <ui:Label name="skill-window-name" text="" class="skill-window__name" />
+                <ui:Button name="skill-window-close" class="icon-button" />
+            </ui:VisualElement>
+            <ui:Label name="skill-window-cost" text="" class="skill-window__cost" />
+            <ui:Label name="skill-window-text" text="" class="skill-window__text" />
+            <ui:VisualElement name="skill-window-stats" class="skill-window__stats" />
         </ui:VisualElement>
 
         <!-- Everything below the party line scrolls: a level-six creature carries more skills and
              elements than a card can show, and the card is not allowed to grow past the HUD. -->
-        <ui:VisualElement name="summary-card" class="card">
+        <ui:VisualElement name="summary-card" class="card is-hidden">
+
+            <ui:VisualElement class="card__corner">
+                <ui:Button name="card-pin" class="icon-button" />
+                <ui:Button name="card-close" class="icon-button" />
+            </ui:VisualElement>
 
             <!-- Which side, first and in that side's colour. It is the thing a player checks before
                  anything else on the card, and it was buried three lines down. -->

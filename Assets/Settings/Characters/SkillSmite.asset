@@ -15,6 +15,7 @@ MonoBehaviour:
   m_Id: 105
   m_DisplayName: Smite
   m_Description: Light, at a distance, for a price only the devout tend to be holding.
+  m_Icon: {fileID: 0}
   m_Element: 4
   m_ElementOptions: 
   m_Conditions: []

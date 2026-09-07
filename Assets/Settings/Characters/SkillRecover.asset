@@ -16,6 +16,7 @@ MonoBehaviour:
   m_DisplayName: Recover
   m_Description: Spend a turn staying alive. Hydro, so it competes with nothing you
     attack with.
+  m_Icon: {fileID: 0}
   m_Element: 1
   m_ElementOptions: 
   m_Conditions: []

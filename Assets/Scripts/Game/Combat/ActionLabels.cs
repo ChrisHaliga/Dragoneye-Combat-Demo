@@ -76,6 +76,10 @@ namespace Dragoneye.Game.Combat
         /// "Strike -- 1.5 + 1 AP" rather than "Strike -- 2.5 AP", because half of that price is
         /// avoidable by standing somewhere else first and the player cannot tell which half from a
         /// single number.
+        ///
+        /// The whole price, elements included. The slots on the bar carry an icon and a key and
+        /// nothing else now, so the one place a skill says what it costs is here -- against the
+        /// cursor, at the moment the player is choosing where to spend it.
         /// </summary>
         static string Name(ActionPlan plan)
         {
@@ -84,9 +88,14 @@ namespace Dragoneye.Game.Combat
                 return $"Move -- {plan.Cost} AP";
             }
 
-            return plan.MoveCost.IsZero
-                ? $"{plan.Skill.Name} -- {plan.Cost} AP"
-                : $"{plan.Skill.Name} -- {plan.MoveCost} + {plan.Skill.ApCost} AP";
+            var points = plan.MoveCost.IsZero
+                ? $"{plan.Cost} AP"
+                : $"{plan.MoveCost} + {plan.Skill.ApCost} AP";
+
+            return plan.Skill.ElementCost > 0
+                ? $"{plan.Skill.Name} -- {points}, {plan.Skill.ElementCost} "
+                  + ElementInfo.ShortNameOf(plan.Skill.Element)
+                : $"{plan.Skill.Name} -- {points}";
         }
     }
 }

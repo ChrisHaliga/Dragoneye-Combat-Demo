@@ -15,6 +15,7 @@ MonoBehaviour:
   m_Id: 90
   m_DisplayName: Take a Breath
   m_Description: Recover the element you spent longest ago. A point for a breath.
+  m_Icon: {fileID: 0}
   m_Element: 6
   m_ElementOptions: 
   m_Conditions: []

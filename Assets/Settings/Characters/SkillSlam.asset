@@ -15,6 +15,7 @@ MonoBehaviour:
   m_Id: 122
   m_DisplayName: Slam
   m_Description: The whole of you, arriving at once.
+  m_Icon: {fileID: 0}
   m_Element: 0
   m_ElementOptions: 00000000010000000200000003000000
   m_Conditions:

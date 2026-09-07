@@ -3,6 +3,7 @@ using Dragoneye.Combat;
 using Dragoneye.Data;
 using Dragoneye.Multiplayer;
 using UnityEngine;
+using UnityEngine.InputSystem;
 using UnityEngine.UIElements;
 using Dragoneye.UI;
 using Dragoneye.Game;
@@ -11,10 +12,15 @@ using Dragoneye.Game.Combat;
 namespace Dragoneye.Game.Creatures
 {
     /// <summary>
-    /// The summary card for whatever creature is selected.
+    /// The summary card for whatever creature has been asked about.
     ///
-    /// Driven entirely by <see cref="CreatureSelection"/>, so a board click and a portrait click
-    /// produce the same card without either producer knowing the other exists.
+    /// Driven entirely by <see cref="CreatureSelection"/>, so every way of asking produces the same
+    /// card without any of them knowing the others exist. Asking is a right-click and an Inspect:
+    /// the card used to appear on any click and on being attacked, which meant it was usually up,
+    /// usually about somebody the player had stopped caring about, and always over the board.
+    ///
+    /// It closes from the cross in its corner, and by itself the moment attention goes elsewhere.
+    /// The pin beside the cross stops that, for reading two creatures against each other.
     ///
     /// AP is shown as discrete pips rather than a bar: players count remaining actions, they do not
     /// estimate them. It appears here and not on the portraits because until turn order exists it
@@ -28,6 +34,12 @@ namespace Dragoneye.Game.Creatures
         CreatureSelection m_Selection;
 
         VisualElement m_Card;
+        Button m_Pin;
+        bool m_Pinned;
+
+        // The frame the card was last asked for. The click that asks is a click outside the card,
+        // and without this it would be the same click that dismissed it.
+        int m_AskedOn = -1;
         VisualElement m_ApPips;
         Label m_Name;
         VisualElement m_Portrait;
@@ -92,8 +104,56 @@ namespace Dragoneye.Game.Creatures
                 return;
             }
 
+            BindCorner(root);
+
             m_Selection.SelectionChanged += OnSelectionChanged;
             OnSelectionChanged(m_Selection.Selected);
+        }
+
+        /// <summary>
+        /// The two buttons over the top right: pin, then close.
+        ///
+        /// Both are drawn rather than lettered. A cross in a typeface is the letter x sitting where
+        /// a button should be, and there is no character for "pinned" at all.
+        /// </summary>
+        void BindCorner(VisualElement root)
+        {
+            var close = root.Q<Button>("card-close");
+
+            if (close != null)
+            {
+                HudIcons.DrawClose(close);
+                close.tooltip = "Close.";
+                close.clicked += () => m_Selection.Clear();
+            }
+
+            m_Pin = root.Q<Button>("card-pin");
+
+            if (m_Pin != null)
+            {
+                HudIcons.DrawPin(m_Pin);
+                m_Pin.clicked += TogglePin;
+                RefreshPin();
+            }
+        }
+
+        void TogglePin()
+        {
+            m_Pinned = !m_Pinned;
+            RefreshPin();
+        }
+
+        void RefreshPin()
+        {
+            if (m_Pin == null)
+            {
+                return;
+            }
+
+            m_Pin.EnableInClassList("icon-button--pinned", m_Pinned);
+            m_Pin.tooltip = m_Pinned
+                ? "Pinned. It stays until you close it."
+                : "Pin it open. Otherwise it closes when you look elsewhere.";
         }
 
         void OnDestroy()
@@ -114,6 +174,8 @@ namespace Dragoneye.Game.Creatures
         // The vitals on the card are the shown ones, so the card redraws as the fight is shown.
         void Update()
         {
+            CloseIfLookedAway();
+
             if (m_Playback == CombatPlayback.Current)
             {
                 return;
@@ -134,8 +196,44 @@ namespace Dragoneye.Game.Creatures
 
         void OnSelectionChanged(CreatureState creature)
         {
+            m_AskedOn = Time.frameCount;
             Observe(creature);
             Redraw();
+        }
+
+        /// <summary>
+        /// Shuts an unpinned card as soon as the player presses anywhere that is not it.
+        ///
+        /// Watched from the mouse rather than from a callback on the panel, because the click that
+        /// should close it is as often on the board as on the HUD, and those arrive by different
+        /// routes. One test, in the one place, against the card's own rectangle.
+        /// </summary>
+        void CloseIfLookedAway()
+        {
+            // Not on the frame it was asked for. Inspect is on a menu, and that menu is outside the
+            // card -- so the click that opens it is a click that would close it, and whether the
+            // two land in the same frame is a matter of when input is pumped rather than of intent.
+            if (m_Pinned || m_Card == null || !m_Selection.HasSelection
+                || Time.frameCount <= m_AskedOn + 1)
+            {
+                return;
+            }
+
+            var mouse = Mouse.current;
+
+            if (mouse == null || !mouse.leftButton.wasPressedThisFrame || m_Card.panel == null)
+            {
+                return;
+            }
+
+            var screen = mouse.position.ReadValue();
+            var point = RuntimePanelUtils.ScreenToPanel(m_Card.panel,
+                new Vector2(screen.x, Screen.height - screen.y));
+
+            if (!m_Card.worldBound.Contains(point))
+            {
+                m_Selection.Clear();
+            }
         }
 
         /// <summary>

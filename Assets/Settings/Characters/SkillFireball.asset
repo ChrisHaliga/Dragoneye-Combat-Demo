@@ -15,6 +15,7 @@ MonoBehaviour:
   m_Id: 140
   m_DisplayName: Fireball
   m_Description: The reason the staff is held at arm's length. Two Pyro, thrown.
+  m_Icon: {fileID: 0}
   m_Element: 2
   m_ElementOptions: 
   m_Conditions: []

@@ -15,6 +15,7 @@ MonoBehaviour:
   m_Id: 112
   m_DisplayName: Focus
   m_Description: A longer breath. Two elements back, at twice the price of one.
+  m_Icon: {fileID: 0}
   m_Element: 6
   m_ElementOptions: 
   m_Conditions: []

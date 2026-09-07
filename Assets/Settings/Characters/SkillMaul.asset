@@ -15,6 +15,7 @@ MonoBehaviour:
   m_Id: 202
   m_DisplayName: Maul
   m_Description: The whole weight behind it.
+  m_Icon: {fileID: 0}
   m_Element: 0
   m_ElementOptions: 
   m_Conditions: []

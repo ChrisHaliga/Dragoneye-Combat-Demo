@@ -16,6 +16,7 @@ MonoBehaviour:
   m_DisplayName: Meditate
   m_Description: Trade a point now for two later. Only worth it if you have somewhere
     to spend them.
+  m_Icon: {fileID: 0}
   m_Element: 3
   m_ElementOptions: 
   m_Conditions: []

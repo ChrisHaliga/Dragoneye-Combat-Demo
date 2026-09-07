@@ -12,14 +12,19 @@ using Dragoneye.Game.Creatures;
 namespace Dragoneye.Game.Combat
 {
     /// <summary>
-    /// The action bar: a row of fixed slots along the bottom of the screen, one for walking, eight
-    /// for skills and three held for items, each with its key, its icon and its price.
+    /// The action bar: a row of fixed slots along the bottom of the screen, one for walking, nine
+    /// for skills and four held for items, each carrying its icon and its key and nothing else.
+    ///
+    /// A slot says what it is and where to press. What it costs is shown against the cursor once it
+    /// is armed, which is where the player is already looking when they are deciding where to aim
+    /// it -- printing the price on forty pixels of icon made every slot a small table.
     ///
     /// Fixed slots rather than a row that grows: a player learns where Strike is and presses 2
     /// without looking, and a bar whose buttons moved as skills came and went would make that
     /// impossible. Empty slots are drawn empty. Availability comes from <see cref="SkillRules"/> --
     /// the same check the server runs when the skill arrives, so a slot that is lit here is a slot
-    /// the host will honour.
+    /// the host will honour. A slot that cannot be afforded is greyed rather than disabled, because
+    /// a disabled button never sees the pointer and so could never say what it was.
     ///
     /// Selecting a slot arms it; the next board click aims it. That is why the selection lives
     /// here rather than in the input component: the bar is what the player pressed, and the input
@@ -32,22 +37,24 @@ namespace Dragoneye.Game.Combat
         [SerializeField]
         BoardActionInput m_Input;
 
-        /// <summary>Skill slots on the bar. Keys 2 to 9.</summary>
-        public const int SkillSlots = 8;
+        /// <summary>Skill slots on the bar. Keys 2 to 9, then 0 for the ninth.</summary>
+        public const int SkillSlots = 9;
 
         /// <summary>Item slots on the bar. Nothing is carried yet; the slots say where it will go.</summary>
-        public const int ItemSlots = 3;
+        public const int ItemSlots = 4;
 
+        VisualElement m_Root;
         VisualElement m_Bar;
-        VisualElement m_Hand;
-        Label m_Reason;
 
-        // What the skill under the cursor, or the one armed, actually does. Above the bar, because
-        // a row of icons is not a description and a tooltip is not one either until it is hovered.
-        VisualElement m_Detail;
-        Label m_DetailHead;
-        Label m_DetailText;
-        int m_Hovered = NoSkill;
+        // One skill, in full, for when an icon is not enough. Opened from a slot's own right-click.
+        VisualElement m_Window;
+        Label m_WindowName;
+        Label m_WindowCost;
+        Label m_WindowText;
+        VisualElement m_WindowStats;
+
+        // The one-item menu a right-click opens, and the sheet behind it that closes it again.
+        VisualElement m_SlotMenu;
 
         int m_Selected = NoSkill;
 
@@ -114,18 +121,90 @@ namespace Dragoneye.Game.Combat
                 return;
             }
 
-            var root = GetComponent<UIDocument>().rootVisualElement;
+            var document = GetComponent<UIDocument>().rootVisualElement;
 
-            m_Bar = root.Q<VisualElement>("skill-bar");
-            m_Hand = root.Q<VisualElement>("own-hand");
-            m_Reason = root.Q<Label>("skill-reason");
+            m_Root = document.Q<VisualElement>("root") ?? document;
+            m_Bar = m_Root.Q<VisualElement>("skill-bar");
 
-            if (m_Bar == null)
+            m_Window = m_Root.Q<VisualElement>("skill-window");
+            m_WindowName = m_Root.Q<Label>("skill-window-name");
+            m_WindowCost = m_Root.Q<Label>("skill-window-cost");
+            m_WindowText = m_Root.Q<Label>("skill-window-text");
+            m_WindowStats = m_Root.Q<VisualElement>("skill-window-stats");
+
+            if (m_Bar == null || m_Window == null)
             {
                 Debug.LogError($"{nameof(SkillBarView)} could not find its elements; "
                     + "check ArenaHud.uxml.", this);
                 enabled = false;
+                return;
             }
+
+            BindWindow();
+            BindMenu();
+        }
+
+        /// <summary>
+        /// The three buttons on the left of the bar: what a creature wears, knows and carries.
+        ///
+        /// Only one of them has anywhere to go yet. The other two are drawn and disabled with the
+        /// reason on them rather than left out, because a bar that grows a button later moves every
+        /// slot along it -- and where the keys are is the one thing this bar promises not to change.
+        /// </summary>
+        void BindMenu()
+        {
+            Menu("menu-equipment", "E", false,
+                "Equipment is chosen in the character creator, before the match.");
+            Menu("menu-skills", "S", true, "Everything this creature can do.");
+            Menu("menu-items", "I", false, "Items come later. Nothing is carried yet.");
+        }
+
+        void Menu(string name, string letter, bool works, string why)
+        {
+            var button = m_Root.Q<Button>(name);
+
+            if (button == null)
+            {
+                return;
+            }
+
+            button.text = letter;
+            button.tooltip = why;
+            button.SetEnabled(works);
+
+            if (works)
+            {
+                button.clicked += ShowOwnCard;
+            }
+        }
+
+        /// <summary>
+        /// Opens the inspector on the creature being played.
+        ///
+        /// The card is the only sheet the arena has, and it lists the skills and the pool. Asked
+        /// for by a button, so it is a request like any other rather than something that appears.
+        /// </summary>
+        void ShowOwnCard()
+        {
+            var actor = m_Input != null ? m_Input.Actor : null;
+
+            if (actor != null)
+            {
+                m_Input.Selection?.Select(actor);
+            }
+        }
+
+        void BindWindow()
+        {
+            var close = m_Root.Q<Button>("skill-window-close");
+
+            if (close != null)
+            {
+                HudIcons.DrawClose(close);
+                close.clicked += CloseWindow;
+            }
+
+            CloseWindow();
         }
 
         /// <summary>
@@ -150,15 +229,7 @@ namespace Dragoneye.Game.Combat
                 if (m_DrawnFor != 0 || m_DrawnCount != 0)
                 {
                     m_Bar.Clear();
-                    m_Hand?.Clear();
                     m_Slotted.Clear();
-                    m_Detail?.AddToClassList("is-hidden");
-
-                    if (m_Reason != null)
-                    {
-                        m_Reason.text = string.Empty;
-                    }
-
                     m_Selected = NoSkill;
                     m_DrawnFor = 0;
                     m_DrawnCount = 0;
@@ -199,7 +270,7 @@ namespace Dragoneye.Game.Combat
         }
 
         /// <summary>
-        /// The number keys: 1 walks, 2 to 9 are the skill slots in order.
+        /// The number keys: 1 walks, then 2 to 9 and 0 are the skill slots in order.
         ///
         /// The same thing a click on the slot does, so the two cannot drift. Ignored while a
         /// question is open on screen, because the answer to that is not on this bar.
@@ -235,6 +306,14 @@ namespace Dragoneye.Game.Combat
             }
         }
 
+        /// <summary>
+        /// The key for a slot: 1 walks, 2 through 9 are the first eight skills, and the ninth is 0.
+        ///
+        /// Zero last because that is where it is on the keyboard -- the row reads 1 to 0 left to
+        /// right, and the bar reads the same way.
+        /// </summary>
+        static string KeyFor(int slot) => slot == 10 ? "0" : slot.ToString();
+
         static UnityEngine.InputSystem.Controls.KeyControl Digit(Keyboard keyboard, int digit)
         {
             switch (digit)
@@ -246,7 +325,8 @@ namespace Dragoneye.Game.Combat
                 case 6: return keyboard.digit6Key;
                 case 7: return keyboard.digit7Key;
                 case 8: return keyboard.digit8Key;
-                default: return keyboard.digit9Key;
+                case 9: return keyboard.digit9Key;
+                default: return keyboard.digit0Key;
             }
         }
 
@@ -294,8 +374,6 @@ namespace Dragoneye.Game.Combat
                 return;
             }
 
-            DrawHand(pool);
-
             // Picking what a fist is made of takes the bar over entirely. It is one question with
             // a few answers and a way out, and leaving the rest of the bar live beside it would
             // offer a second decision on top of the one already being asked.
@@ -310,7 +388,6 @@ namespace Dragoneye.Game.Combat
             m_Bar.Add(BuildMoveSlot(actor.StepCost));
 
             var ledger = pool.Ledger;
-            var worstReason = SkillRefusal.None;
             var slot = 0;
 
             foreach (var skill in commands.Skills)
@@ -331,11 +408,6 @@ namespace Dragoneye.Game.Combat
                     m_Selected = NoSkill;
                 }
 
-                if (refusal != SkillRefusal.None && worstReason == SkillRefusal.None)
-                {
-                    worstReason = refusal;
-                }
-
                 m_Bar.Add(BuildSkillSlot(skill, refusal, slot + 2));
                 m_Slotted.Add(skill);
                 slot++;
@@ -343,25 +415,15 @@ namespace Dragoneye.Game.Combat
 
             for (; slot < SkillSlots; slot++)
             {
-                m_Bar.Add(EmptySlot(slot + 2, "An empty slot. A skill learned at a later level sits here."));
+                m_Bar.Add(EmptySlot(KeyFor(slot + 2),
+                    "An empty slot. A skill learned at a later level sits here."));
             }
 
             m_Bar.Add(Divider());
 
             for (var item = 0; item < ItemSlots; item++)
             {
-                m_Bar.Add(EmptySlot(0, "Items come later. Nothing is carried yet."));
-            }
-
-            ShowDetail(actor);
-
-            // The reason line is gone from the HUD -- every slot explains itself on hover and the
-            // points are drawn above the bar -- but a document that still has one gets it filled.
-            if (m_Reason != null)
-            {
-                m_Reason.text = m_Selected == NoSkill && worstReason != SkillRefusal.None
-                    ? SkillLabels.Describe(worstReason)
-                    : string.Empty;
+                m_Bar.Add(EmptySlot(string.Empty, "Items come later. Nothing is carried yet."));
             }
         }
 
@@ -468,112 +530,6 @@ namespace Dragoneye.Game.Combat
             cancel.AddToClassList("action-slot");
             cancel.AddToClassList("action-slot--cancel");
             m_Bar.Add(cancel);
-
-            if (m_Reason != null)
-            {
-                m_Reason.text = string.Empty;
-            }
-        }
-
-        /// <summary>
-        /// What the creature you are playing is holding, on the line above the slots.
-        ///
-        /// The inspect card shows whatever was last clicked, which is usually somebody else -- so
-        /// the one hand a player needs constantly was the one hand they had to give up looking at
-        /// an enemy to see. This follows the player rather than the cursor.
-        /// </summary>
-        void DrawHand(CreaturePool pool)
-        {
-            if (m_Hand == null)
-            {
-                return;
-            }
-
-            m_Hand.Clear();
-
-            var ledger = pool.Ledger;
-
-            m_Hand.Add(BuildHeld(ledger.Pool));
-
-            if (ledger.Outstanding.Count > 0)
-            {
-                m_Hand.Add(BuildSpent(ledger.Outstanding));
-            }
-        }
-
-        /// <summary>What is still in the hand, counted under its rune.</summary>
-        static VisualElement BuildHeld(ElementCounts held)
-        {
-            var group = new VisualElement();
-            group.AddToClassList("own-hand__group");
-
-            var title = new Label("HAND");
-            title.AddToClassList("own-hand__label");
-            group.Add(title);
-
-            foreach (var element in ElementInfo.All)
-            {
-                var count = held[element];
-
-                if (count > 0)
-                {
-                    group.Add(CharacterSheet.ElementChip(element, count));
-                }
-            }
-
-            if (held.Total == 0)
-            {
-                var empty = new Label("nothing left to spend");
-                empty.AddToClassList("own-hand__empty");
-                group.Add(empty);
-            }
-
-            return group;
-        }
-
-        /// <summary>
-        /// What has been spent, in the order it went -- oldest on the left.
-        ///
-        /// The order is the point, and it is not decoration: elements come back oldest first, so
-        /// the leftmost rune here is precisely the one the next Take a Breath returns.
-        /// </summary>
-        static VisualElement BuildSpent(IReadOnlyList<Element> outstanding)
-        {
-            var group = new VisualElement();
-            group.AddToClassList("own-hand__group");
-            group.AddToClassList("own-spent");
-
-            var title = new Label("SPENT");
-            title.AddToClassList("own-hand__label");
-            title.tooltip = "In the order they were spent. They come back oldest first.";
-            group.Add(title);
-
-            for (var i = 0; i < outstanding.Count; i++)
-            {
-                var mark = new VisualElement();
-                mark.AddToClassList("own-spent__mark");
-                mark.EnableInClassList("own-spent__mark--next", i == 0);
-                CharacterSheet.PaintElement(mark, outstanding[i]);
-
-                mark.tooltip = (i == 0 ? "Next one back." : $"{Ordinal(i + 1)} one back.")
-                    + "\n\n" + ElementLore.Describe(outstanding[i]);
-
-                group.Add(mark);
-            }
-
-            return group;
-        }
-
-        /// <summary>Small ordinals, spelled out. Nothing here ever reaches a number worth a rule.</summary>
-        static string Ordinal(int position)
-        {
-            switch (position)
-            {
-                case 1: return "1st";
-                case 2: return "2nd";
-                case 3: return "3rd";
-                default: return position + "th";
-            }
         }
 
         // ---------- the slots ----------
@@ -587,88 +543,61 @@ namespace Dragoneye.Game.Combat
         /// </summary>
         VisualElement BuildMoveSlot(Ap stepCost)
         {
-            var slot = Slot(1, SkillIcons.Move);
+            var slot = Slot("1", SkillIcons.Move, "Move");
             slot.AddToClassList("action-slot--move");
             slot.EnableInClassList("action-slot--selected", m_Selected == MoveSkill);
-
-            // This creature's price, not a constant. The bar is rebuilt whenever the actor
-            // changes, so a knight in plate and a wolf read different numbers here.
-            var ap = new Label($"{stepCost}");
-            ap.AddToClassList("action-slot__ap");
-            ap.tooltip = "Action points per tile.";
-            slot.Add(ap);
 
             slot.tooltip = $"Move. {stepCost} action points for every tile of the route -- your "
                 + "speed decides. Press again to put it away.";
 
             slot.clicked += ToggleMove;
-            slot.RegisterCallback<PointerEnterEvent>(_ => Hover(MoveSkill));
-            slot.RegisterCallback<PointerLeaveEvent>(_ => Hover(NoSkill));
-
             return slot;
         }
 
-        VisualElement BuildSkillSlot(SkillSpec skill, SkillRefusal refusal, int key)
+        VisualElement BuildSkillSlot(SkillSpec skill, SkillRefusal refusal, int slotNumber)
         {
             var usable = refusal == SkillRefusal.None;
 
-            var slot = Slot(key, SkillIcons.For(skill));
+            var slot = Slot(KeyFor(slotNumber), SkillIcons.For(skill), skill.Name);
             slot.EnableInClassList("action-slot--unusable", !usable);
             slot.EnableInClassList("action-slot--selected", skill.Id == m_Selected);
 
-            var ap = new Label($"{skill.ApCost}");
-            ap.AddToClassList("action-slot__ap");
-            slot.Add(ap);
-
-            if (skill.ElementCost > 0)
-            {
-                var cost = new VisualElement();
-                cost.AddToClassList("action-slot__cost");
-
-                var rune = new VisualElement();
-                rune.AddToClassList("action-slot__rune");
-                CharacterSheet.PaintElement(rune, skill.Element);
-                cost.Add(rune);
-
-                if (skill.ElementCost > 1)
-                {
-                    var count = new Label(skill.ElementCost.ToString());
-                    count.AddToClassList("action-slot__rune-count");
-                    count.style.color = ElementPalette.ForElement(skill.Element);
-                    cost.Add(count);
-                }
-
-                slot.Add(cost);
-            }
-
-            // The reason is on the slot as well as the line, so hovering an unusable skill
-            // explains itself without the player having to look elsewhere.
             slot.tooltip = usable
                 ? $"{skill.Name}\n{PlainCost(skill)}\n{CharacterSheet.Describe(skill)}"
-                : $"{skill.Name}\n{SkillLabels.Describe(refusal)}";
+                + "\n\nRight-click to inspect."
+                : $"{skill.Name}\n{SkillLabels.Describe(refusal)}\n\nRight-click to inspect.";
 
-            slot.SetEnabled(usable);
-            slot.clicked += () => OnSkillClicked(skill);
+            // Greyed rather than disabled. A disabled button never sees the pointer, so an
+            // unusable slot could neither name itself nor be read -- which is exactly when a
+            // player most wants to know what it is and why they cannot have it.
+            if (usable)
+            {
+                slot.clicked += () => OnSkillClicked(skill);
+            }
 
-            // Hover names the skill the detail line is about. A skill that cannot be afforded is
-            // disabled and never sees a pointer, which is why the armed one is the fallback.
-            slot.RegisterCallback<PointerEnterEvent>(_ => Hover(skill.Id));
-            slot.RegisterCallback<PointerLeaveEvent>(_ => Hover(NoSkill));
+            slot.RegisterCallback<PointerDownEvent>(evt =>
+            {
+                if (evt.button == 1)
+                {
+                    OpenSlotMenu(skill, evt.position);
+                    evt.StopPropagation();
+                }
+            });
 
             return slot;
         }
 
         /// <summary>A slot with nothing in it: the frame, the key, and what will go there.</summary>
-        static VisualElement EmptySlot(int key, string why)
+        static VisualElement EmptySlot(string key, string why)
         {
             var slot = new VisualElement();
             slot.AddToClassList("action-slot");
             slot.AddToClassList("action-slot--empty");
             slot.tooltip = why;
 
-            if (key > 0)
+            if (key.Length > 0)
             {
-                var label = new Label(key.ToString());
+                var label = new Label(key);
                 label.AddToClassList("action-slot__key");
                 slot.Add(label);
             }
@@ -689,7 +618,7 @@ namespace Dragoneye.Game.Combat
         /// click-through so the board underneath stays reachable, and that pass leaves the
         /// framework's own controls alone by type.
         /// </summary>
-        static Button Slot(int key, Sprite icon)
+        static Button Slot(string key, Sprite icon, string name)
         {
             var slot = new Button { text = string.Empty };
             slot.AddToClassList("action-slot");
@@ -705,10 +634,21 @@ namespace Dragoneye.Game.Combat
 
             slot.Add(image);
 
-            var label = new Label(key.ToString());
+            var label = new Label(key);
             label.AddToClassList("action-slot__key");
             label.pickingMode = PickingMode.Ignore;
             slot.Add(label);
+
+            // The name, over the slot, while the pointer is on it. A child of the slot rather than
+            // a panel above the bar, so being centred on the slot costs no measurement and only
+            // the one being pointed at is ever up.
+            var title = new Label(name);
+            title.AddToClassList("action-slot__name");
+            title.pickingMode = PickingMode.Ignore;
+            slot.Add(title);
+
+            slot.RegisterCallback<PointerEnterEvent>(_ => slot.AddToClassList("action-slot--named"));
+            slot.RegisterCallback<PointerLeaveEvent>(_ => slot.RemoveFromClassList("action-slot--named"));
 
             return slot;
         }
@@ -719,71 +659,135 @@ namespace Dragoneye.Game.Combat
                 ? $"{skill.ApCost} AP, {skill.ElementCost} {ElementInfo.ShortNameOf(skill.Element)}"
                 : $"{skill.ApCost} AP";
 
-        void Hover(int skillId)
-        {
-            if (m_Hovered == skillId)
-            {
-                return;
-            }
+        // ---------- reading one slot ----------
 
-            m_Hovered = skillId;
-            ShowDetail(m_Input != null ? m_Input.Actor : null);
+        /// <summary>
+        /// The right-click menu on a slot, which offers the one thing a slot can be asked.
+        ///
+        /// A menu of one rather than a right-click that inspects outright: the gesture is the same
+        /// one the board answers with a list, and a right-click that did something different
+        /// depending on what was under it would be two gestures wearing one button.
+        /// </summary>
+        void OpenSlotMenu(SkillSpec skill, Vector2 position)
+        {
+            CloseSlotMenu();
+
+            m_SlotMenu = new VisualElement();
+            m_SlotMenu.AddToClassList("context-backdrop");
+            m_SlotMenu.RegisterCallback<PointerDownEvent>(_ => CloseSlotMenu());
+
+            var menu = new VisualElement();
+            menu.AddToClassList("context-menu");
+
+            var inspect = new Button();
+            inspect.AddToClassList("context-item");
+
+            var label = new Label("Inspect");
+            label.AddToClassList("context-item__label");
+            inspect.Add(label);
+
+            inspect.clicked += () =>
+            {
+                ShowWindow(skill);
+                CloseSlotMenu();
+            };
+
+            menu.Add(inspect);
+            m_SlotMenu.Add(menu);
+            m_Root.Add(m_SlotMenu);
+
+            var point = m_SlotMenu.WorldToLocal(position);
+            menu.style.left = point.x;
+            menu.style.top = point.y;
+
+            menu.schedule.Execute(() => menu.AddToClassList("context-menu--in"));
+        }
+
+        void CloseSlotMenu()
+        {
+            m_SlotMenu?.RemoveFromHierarchy();
+            m_SlotMenu = null;
         }
 
         /// <summary>
-        /// What the skill under the cursor does, or the armed one when nothing is hovered.
+        /// One skill in full: what it costs, what it does, and every number behind that.
         ///
-        /// Built above the bar rather than inside it: the bar is rebuilt whenever the creature's
-        /// state changes, and a click is a press and a release on the same element -- anything
-        /// that redraws on hover has to live where a hover cannot destroy the button under it.
+        /// The slot is an icon and a key, which is the right amount to glance at and not enough to
+        /// decide with. This is where the deciding is done, and it is asked for rather than hovered
+        /// into -- a panel this size appearing under the pointer would cover the board.
         /// </summary>
-        void ShowDetail(CreatureState actor)
+        void ShowWindow(SkillSpec skill)
         {
-            if (m_Bar == null || m_Bar.parent == null)
+            if (m_Window == null)
             {
                 return;
             }
 
-            if (m_Detail == null)
+            m_WindowName.text = skill.Name;
+            m_WindowCost.text = CharacterSheet.Cost(skill);
+            m_WindowText.text = string.IsNullOrWhiteSpace(skill.Description)
+                ? SkillEffectInfo.Describe(skill.Effect)
+                : skill.Description;
+
+            m_WindowStats.Clear();
+            m_WindowStats.Add(WindowRow("ELEMENT", skill.ChoosesElement
+                ? "Your choice"
+                : ElementInfo.NameOf(skill.Element)));
+            m_WindowStats.Add(WindowRow("ACTION POINTS", skill.ApCost.ToString()));
+            m_WindowStats.Add(WindowRow("FROM THE POOL", skill.ElementCost == 0
+                ? "Nothing"
+                : $"{skill.ElementCost} {ElementInfo.ShortNameOf(skill.Element)}"));
+            m_WindowStats.Add(WindowRow("REACH", Reach(skill)));
+            m_WindowStats.Add(WindowRow("AIMED AT", Aimed(skill)));
+            m_WindowStats.Add(WindowRow("DOES", SkillEffectInfo.Describe(skill.Effect)));
+
+            if (skill.RollsToHit)
             {
-                m_Detail = new VisualElement();
-                m_Detail.AddToClassList("skill-detail");
-                m_Detail.pickingMode = PickingMode.Ignore;
-
-                m_DetailHead = new Label();
-                m_DetailHead.AddToClassList("skill-detail__head");
-                m_Detail.Add(m_DetailHead);
-
-                m_DetailText = new Label();
-                m_DetailText.AddToClassList("skill-detail__text");
-                m_Detail.Add(m_DetailText);
-
-                // Above everything else in the footer: the line and the bar both sit under it.
-                m_Bar.parent.Insert(0, m_Detail);
+                m_WindowStats.Add(WindowRow("TO HIT",
+                    $"{SkillRules.HitChance(skill, 1)}% adjacent, "
+                    + $"{SkillRules.HitChance(skill, skill.Range)}% at {skill.Range}"));
             }
 
-            var wanted = m_Hovered != NoSkill ? m_Hovered : m_Selected;
-
-            if (actor != null && wanted == MoveSkill)
+            if (skill.IsContested)
             {
-                m_Detail.RemoveFromClassList("is-hidden");
-                m_DetailHead.text = $"Move   <color={CharacterSheet.PointsColour}>{actor.StepCost} AP per tile</color>";
-                m_DetailText.text = "Walk the route the board shows. Leaving a tile an enemy is watching "
-                    + "gives them a swing at you.";
-                return;
+                m_WindowStats.Add(WindowRow("ANSWERED", "The defender may put up an element"));
             }
 
-            var commands = actor != null ? actor.SkillCommands : null;
-
-            if (commands == null || wanted == NoSkill || !commands.TryGetSkill(wanted, out var skill))
-            {
-                m_Detail.AddToClassList("is-hidden");
-                return;
-            }
-
-            m_Detail.RemoveFromClassList("is-hidden");
-            m_DetailHead.text = $"{skill.Name}   {CharacterSheet.Cost(skill)}";
-            m_DetailText.text = CharacterSheet.Describe(skill);
+            m_Window.RemoveFromClassList("is-hidden");
         }
+
+        void CloseWindow() => m_Window?.AddToClassList("is-hidden");
+
+        static string Reach(SkillSpec skill) =>
+            skill.Target == SkillTarget.Self
+                ? "Yourself"
+                : skill.Range <= 1 ? "Adjacent" : $"{skill.Range} tiles";
+
+        static string Aimed(SkillSpec skill)
+        {
+            switch (skill.Target)
+            {
+                case SkillTarget.Self: return "Yourself";
+                case SkillTarget.Tile: return "A place on the board";
+                default: return "Another creature";
+            }
+        }
+
+        static VisualElement WindowRow(string label, string value)
+        {
+            var row = new VisualElement();
+            row.AddToClassList("skill-window__row");
+
+            var name = new Label(label);
+            name.AddToClassList("skill-window__label");
+            row.Add(name);
+
+            var text = new Label(value);
+            text.AddToClassList("skill-window__value");
+            row.Add(text);
+
+            return row;
+        }
+
     }
 }

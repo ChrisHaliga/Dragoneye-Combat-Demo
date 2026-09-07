@@ -12,7 +12,12 @@ using Dragoneye.Game.Creatures;
 namespace Dragoneye.Game.Combat
 {
     /// <summary>
-    /// A running account of the fight, bottom-left, newest at the top.
+    /// A running account of the fight, bottom-left, newest at the top, in two sizes.
+    ///
+    /// Shut, it is one line: the last thing that happened, floated above the bar, taking a strip of
+    /// screen and no attention. Open, it is the whole record and scrolls. A fight is watched, not
+    /// read -- so the size that is up almost all the time is the one that says the least, and the
+    /// player asks for the rest when they have looked away and want to know what they missed.
     ///
     /// Everything else on the HUD shows a state: how much health, whose turn, what is in a hand
     /// right now. None of it shows a *change*, and a fight is made of changes -- so a creature that
@@ -51,6 +56,7 @@ namespace Dragoneye.Game.Combat
 
         ScrollView m_List;
         VisualElement m_Panel;
+        Button m_Sliver;
         CombatPlayback m_Playback;
 
         void Start()
@@ -78,11 +84,23 @@ namespace Dragoneye.Game.Combat
             // The wheel, handled here by one path. See WheelScroll for the history.
             WheelScroll.Attach(m_List);
 
-            // And two buttons, because a click is the one input this HUD has never dropped.
-            // Newest is at the top, so "older" is further down.
-            m_List.parent.Insert(m_List.parent.IndexOf(m_List), Navigation());
+            m_Sliver = document.Q<Button>("combat-log-sliver");
+            var minimise = document.Q<Button>("combat-log-minimize");
 
-            m_Panel?.AddToClassList("combat-log--empty");
+            if (minimise != null)
+            {
+                HudIcons.DrawMinimise(minimise);
+                minimise.tooltip = "Shut the log. The last line stays.";
+                minimise.clicked += () => SetOpen(false);
+            }
+
+            if (m_Sliver != null)
+            {
+                m_Sliver.text = string.Empty;
+                m_Sliver.tooltip = "Open the log.";
+                m_Sliver.clicked += () => SetOpen(true);
+                m_Sliver.style.display = DisplayStyle.None;
+            }
 
             if (m_Creatures != null)
             {
@@ -177,10 +195,6 @@ namespace Dragoneye.Game.Combat
         {
             switch (e.Kind)
             {
-                case CombatEventKind.RoundBegan:
-                    AddRound($"ROUND {e.Round}");
-                    break;
-
                 case CombatEventKind.Recovered:
                     Add($"{NameOf(e.Actor)} recovers {e.Amount} HP.", IsMine(e.Actor));
                     break;
@@ -324,29 +338,8 @@ namespace Dragoneye.Game.Combat
                 ? spec
                 : null;
 
-        /// <summary>Older and newer, as buttons, above the list.</summary>
-        VisualElement Navigation()
-        {
-            var row = new VisualElement();
-            row.AddToClassList("combat-log__nav");
-
-            var newer = new Button(() => WheelScroll.Page(m_List, -1f)) { text = "newer" };
-            newer.AddToClassList("combat-log__button");
-            row.Add(newer);
-
-            var older = new Button(() => WheelScroll.Page(m_List, 1f)) { text = "older" };
-            older.AddToClassList("combat-log__button");
-            row.Add(older);
-
-            return row;
-        }
-
-        void AddRound(string text)
-        {
-            var label = new Label(text);
-            label.AddToClassList("combat-log__round");
-            Append(label);
-        }
+        /// <summary>Open or shut. The lines are kept either way; only what is drawn changes.</summary>
+        void SetOpen(bool open) => m_Panel?.EnableInClassList("combat-log--small", !open);
 
         /// <summary>
         /// One line. Lines a player is part of are marked, so their own fight stands out of the
@@ -366,10 +359,17 @@ namespace Dragoneye.Game.Combat
         /// A stack, not a transcript. The thing that just happened is the thing being read, and a
         /// log that grows downwards makes the newest line the one that keeps moving.
         /// </summary>
-        void Append(VisualElement line)
+        void Append(Label line)
         {
             m_List.Insert(0, line);
-            m_Panel?.RemoveFromClassList("combat-log--empty");
+
+            // The same text on the sliver. It is the newest line by construction: this is the only
+            // place a line is added, and the newest one goes to the top of both.
+            if (m_Sliver != null)
+            {
+                m_Sliver.text = line.text;
+                m_Sliver.style.display = DisplayStyle.Flex;
+            }
 
             while (m_List.childCount > m_MaxLines)
             {

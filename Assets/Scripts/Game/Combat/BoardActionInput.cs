@@ -571,22 +571,10 @@ namespace Dragoneye.Game.Combat
                 return;
             }
 
-            // Inspecting comes first and is always allowed. Reading a card mid-turn is a normal
-            // thing to want, and it costs nothing.
-            //
-            // Clicking bare ground puts the card away again. It is a panel about one creature, and
-            // leaving it up after the player has looked somewhere else makes it a panel about a
-            // creature they have stopped caring about. Clicks that land on the HUD never reach here
-            // at all, so arming a skill or ending a turn does not dismiss what is being read.
-            if (m_Units.TryGet(hex, out var occupant))
-            {
-                m_Selection.Select(occupant.GetComponent<CreatureState>());
-            }
-            else
-            {
-                m_Selection.Clear();
-            }
-
+            // A left click on the board does not read anybody. It used to, and the card was
+            // therefore up almost all the time and almost always about the wrong creature --
+            // reading one is a right-click and an Inspect, which is a thing a player asks for.
+            // The card closes itself on any click outside it, which this is.
             var actor = Actor;
 
             if (actor == null)

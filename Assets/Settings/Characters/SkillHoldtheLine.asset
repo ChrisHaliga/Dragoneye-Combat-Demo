@@ -15,6 +15,7 @@ MonoBehaviour:
   m_Id: 150
   m_DisplayName: Hold the Line
   m_Description: Set your feet and take a breath. Heals with your Toughness.
+  m_Icon: {fileID: 0}
   m_Element: 1
   m_ElementOptions: 
   m_Conditions: []

@@ -15,6 +15,7 @@ MonoBehaviour:
   m_Id: 123
   m_DisplayName: Shiv
   m_Description: Not a weapon. Nobody has ever successfully argued otherwise.
+  m_Icon: {fileID: 0}
   m_Element: 0
   m_ElementOptions: 00000000010000000200000003000000
   m_Conditions:

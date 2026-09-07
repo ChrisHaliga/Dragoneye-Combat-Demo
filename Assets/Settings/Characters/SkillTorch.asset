@@ -16,6 +16,7 @@ MonoBehaviour:
   m_DisplayName: Torch
   m_Description: A burning brand, swung. It asks in Pyro and it does not care who
     answers.
+  m_Icon: {fileID: 0}
   m_Element: 2
   m_ElementOptions: 
   m_Conditions: []

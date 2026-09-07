@@ -15,6 +15,7 @@ MonoBehaviour:
   m_Id: 200
   m_DisplayName: Club
   m_Description: Something heavy on the end of something long.
+  m_Icon: {fileID: 0}
   m_Element: 0
   m_ElementOptions: 
   m_Conditions: []

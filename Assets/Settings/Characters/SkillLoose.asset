@@ -16,6 +16,7 @@ MonoBehaviour:
   m_DisplayName: Loose
   m_Description: An arrow, from wherever you are standing. Surer the closer they
     are.
+  m_Icon: {fileID: 0}
   m_Element: 3
   m_ElementOptions: 
   m_Conditions: []

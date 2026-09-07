@@ -15,6 +15,7 @@ MonoBehaviour:
   m_Id: 120
   m_DisplayName: Fists
   m_Description: No weapon, and no excuses. Whatever you throw, you throw with.
+  m_Icon: {fileID: 0}
   m_Element: 0
   m_ElementOptions: 00000000010000000200000003000000
   m_Conditions:

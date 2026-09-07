@@ -15,6 +15,7 @@ MonoBehaviour:
   m_Id: 151
   m_DisplayName: Shield Bash
   m_Description: The rim, not the face. Geo, because it is mostly weight.
+  m_Icon: {fileID: 0}
   m_Element: 0
   m_ElementOptions: 
   m_Conditions: []

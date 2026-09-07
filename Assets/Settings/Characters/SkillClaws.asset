@@ -15,6 +15,7 @@ MonoBehaviour:
   m_Id: 121
   m_DisplayName: Claws
   m_Description: What you were born holding. It has never needed sharpening.
+  m_Icon: {fileID: 0}
   m_Element: 0
   m_ElementOptions: 00000000010000000200000003000000
   m_Conditions:

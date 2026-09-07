@@ -15,6 +15,7 @@ MonoBehaviour:
   m_Id: 162
   m_DisplayName: Assassinate
   m_Description: The one that was planned. Two Nyx, and it is usually over.
+  m_Icon: {fileID: 0}
   m_Element: 5
   m_ElementOptions: 
   m_Conditions: []

@@ -15,6 +15,7 @@ MonoBehaviour:
   m_Id: 104
   m_DisplayName: Ember
   m_Description: A coal flicked off the end of the staff. Reaches, a little.
+  m_Icon: {fileID: 0}
   m_Element: 2
   m_ElementOptions: 
   m_Conditions: []

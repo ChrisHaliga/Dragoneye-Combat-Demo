@@ -138,7 +138,7 @@ namespace Dragoneye.Game.Combat
                 AddApproach(entries, actor, target, hex);
 
                 var inspected = target;
-                entries.Add(new Entry("Creature info", string.Empty, null,
+                entries.Add(new Entry("Inspect", string.Empty, null,
                     () => m_Input.Selection?.Select(inspected)));
 
                 return entries;

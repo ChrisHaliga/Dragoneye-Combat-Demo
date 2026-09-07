@@ -15,6 +15,7 @@ MonoBehaviour:
   m_Id: 161
   m_DisplayName: Slip Away
   m_Description: Gone for a moment, and back with two of what you spent.
+  m_Icon: {fileID: 0}
   m_Element: 3
   m_ElementOptions: 
   m_Conditions: []

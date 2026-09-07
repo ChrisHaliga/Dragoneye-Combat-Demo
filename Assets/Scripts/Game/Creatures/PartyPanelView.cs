@@ -9,7 +9,11 @@ using Dragoneye.Game.Combat;
 namespace Dragoneye.Game.Creatures
 {
     /// <summary>
-    /// The party column: one portrait per creature on the local player's side.
+    /// The party column: one card per creature on the local player's side.
+    ///
+    /// A face, what it is holding down one edge, and what is left of it along the bottom. No frame
+    /// around the column and no heading over it: the cards are the panel, and a box drawn round
+    /// them cost a strip of board to say only that a box had been drawn.
     ///
     /// Shows the whole party, not just the player's own claims -- you need to see what your
     /// teammates are fielding. Which of them are yours is carried by the border colour, because that
@@ -33,7 +37,6 @@ namespace Dragoneye.Game.Creatures
         [SerializeField]
         CreatureRegistry m_Creatures;
 
-        Label m_Title;
         ScrollView m_List;
 
         readonly List<CreatureState> m_Observed = new List<CreatureState>();
@@ -53,7 +56,6 @@ namespace Dragoneye.Game.Creatures
             var root = GetComponent<UIDocument>().rootVisualElement;
             CreatureDisplay.MakeClickThrough(root);
 
-            m_Title = root.Q<Label>("party-title");
             m_List = root.Q<ScrollView>("portrait-list");
 
             m_Column = root.Q<VisualElement>("party-column");
@@ -63,7 +65,7 @@ namespace Dragoneye.Game.Creatures
                 m_Column.pickingMode = PickingMode.Ignore;
             }
 
-            if (m_Title == null || m_List == null)
+            if (m_List == null)
             {
                 Debug.LogError("PartyPanelView could not find its elements; check ArenaHud.uxml.", this);
                 enabled = false;
@@ -155,16 +157,6 @@ namespace Dragoneye.Game.Creatures
 
             var party = LocalParty();
 
-            // Named and coloured, matching the band on the inspect card. Two panels talking about
-            // the same side should say so the same way.
-            m_Title.text = party.HasValue
-                ? "TEAM " + PartyPalette.NameOf(party.Value).ToUpperInvariant()
-                : "SPECTATING";
-
-            m_Title.style.color = party.HasValue
-                ? new StyleColor(PartyPalette.ForParty(party.Value))
-                : new StyleColor(StyleKeyword.Null);
-
             if (!party.HasValue)
             {
                 return;
@@ -203,74 +195,44 @@ namespace Dragoneye.Game.Creatures
                 : (Party?)null;
         }
 
+        /// <summary>
+        /// One creature: its face, its hand and its bars, with the numbers on because this is the
+        /// side the player is answerable for.
+        ///
+        /// Right-click reads it. A left click used to open the inspector, which meant the card
+        /// appeared for a glance at a health bar and stayed until something else was clicked --
+        /// reading a creature is now something you ask for.
+        /// </summary>
         VisualElement BuildPortrait(CreatureState creature)
         {
-            var row = new VisualElement();
-            row.AddToClassList("portrait");
-            row.EnableInClassList("portrait--fallen", !Shown.IsAlive(creature));
+            var card = new VisualElement();
+            card.AddToClassList("portrait");
+            card.EnableInClassList("portrait--fallen", !Shown.IsAlive(creature));
 
-            if (m_Selection.Selected == creature)
+            // The whole edge in the controlling player's colour: with the click gone there is no
+            // second fact competing for the border.
+            card.style.borderTopColor = card.style.borderBottomColor =
+                card.style.borderLeftColor = card.style.borderRightColor =
+                    CreatureDisplay.OwnerColor(creature);
+
+            CreatureDisplay.DrawPortrait(card, creature);
+            CreatureDisplay.DrawElements(card, creature);
+            CreatureDisplay.DrawVitals(card, creature, numbers: true);
+
+            card.tooltip = $"{creature.DisplayName}\n{CreatureDisplay.ControllerName(creature)}"
+                + "\n\nRight-click to inspect.";
+
+            card.pickingMode = PickingMode.Position;
+            card.RegisterCallback<PointerDownEvent>(evt =>
             {
-                row.AddToClassList("portrait--selected");
-            }
+                if (evt.button == 1)
+                {
+                    m_Selection.Select(creature);
+                    evt.StopPropagation();
+                }
+            });
 
-            // Only the left edge. The rest of the border is what the stylesheet uses to mark the
-            // selected card, and setting all four here would have painted over it.
-            row.style.borderLeftColor = CreatureDisplay.OwnerColor(creature);
-
-            row.Add(BuildImage(creature));
-            row.Add(BuildBody(creature));
-
-            row.pickingMode = PickingMode.Position;
-            row.RegisterCallback<ClickEvent>(_ => m_Selection.Select(creature));
-
-            return row;
-        }
-
-        static VisualElement BuildImage(CreatureState creature)
-        {
-            var image = new VisualElement();
-            image.AddToClassList("portrait__image");
-
-            CreatureDisplay.DrawPortrait(image, creature);
-            return image;
-        }
-
-        static VisualElement BuildBody(CreatureState creature)
-        {
-            var body = new VisualElement();
-            body.AddToClassList("portrait__body");
-
-            var name = new Label(creature.DisplayName);
-            name.AddToClassList("portrait__name");
-
-            // The track stays visible so a nearly-empty bar reads as "hurt" rather than "missing".
-            var track = new VisualElement();
-            track.AddToClassList("hp-track");
-
-            var fill = new VisualElement();
-            fill.AddToClassList("hp-fill");
-            fill.style.width = Length.Percent(CreatureDisplay.HealthFraction(creature) * 100f);
-            track.Add(fill);
-
-            body.Add(name);
-
-            // The silver bar, above the health it protects, and only where there is any.
-            if (creature.MaxArmour > 0)
-            {
-                var guard = new VisualElement();
-                guard.AddToClassList("armour-track");
-
-                var plate = new VisualElement();
-                plate.AddToClassList("armour-fill");
-                plate.style.width = Length.Percent(CreatureDisplay.ArmourFraction(creature) * 100f);
-                guard.Add(plate);
-
-                body.Add(guard);
-            }
-
-            body.Add(track);
-            return body;
+            return card;
         }
     }
 }

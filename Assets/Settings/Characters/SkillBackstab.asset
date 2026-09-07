@@ -15,6 +15,7 @@ MonoBehaviour:
   m_Id: 160
   m_DisplayName: Backstab
   m_Description: Somewhere they were not covering. Nyx, and quick.
+  m_Icon: {fileID: 0}
   m_Element: 5
   m_ElementOptions: 
   m_Conditions: []
