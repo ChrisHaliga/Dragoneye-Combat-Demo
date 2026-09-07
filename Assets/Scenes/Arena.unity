@@ -1083,6 +1083,7 @@ MonoBehaviour:
   m_BrainActionDelay: 0.45
   m_BrainSkillDwell: 1.6
   m_BrainSecondsPerTile: 0.3
+  m_ClashSettleDelay: 0.9
   m_TurnLeadIn: 0.7
   m_Seed: 0
 --- !u!114 &261654064

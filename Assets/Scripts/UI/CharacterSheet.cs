@@ -335,11 +335,10 @@ namespace Dragoneye.UI
             var name = new Label(skill.Name);
             name.AddToClassList("skill-line__name");
 
-            var cost = new Label(skill.ElementCost > 0
-                ? $"{skill.ApCost} AP · {skill.ElementCost} {ElementInfo.ShortNameOf(skill.Element)}"
-                : $"{skill.ApCost} AP");
+            // The points in a grey no element uses, the element in its own colour. Both halves in
+            // the element's colour put two gold numbers side by side with nothing to tell them apart.
+            var cost = new Label(Cost(skill));
             cost.AddToClassList("skill-line__cost");
-            cost.style.color = ElementPalette.ForElement(skill.Element);
 
             head.Add(name);
             head.Add(cost);
@@ -350,6 +349,25 @@ namespace Dragoneye.UI
             line.Add(Detail(skill));
 
             return line;
+        }
+
+        /// <summary>The grey the points are written in, which no element uses.</summary>
+        public const string PointsColour = "#8B93A5";
+
+        /// <summary>"1 AP · 1 PYR", points grey and element in its colour, as rich text.</summary>
+        public static string Cost(SkillSpec skill)
+        {
+            var points = $"<color={PointsColour}>{skill.ApCost} AP</color>";
+
+            if (skill.ElementCost <= 0)
+            {
+                return points;
+            }
+
+            var tint = ColorUtility.ToHtmlStringRGB(ElementPalette.ForElement(skill.Element));
+
+            return points + $"<color={PointsColour}> · </color>"
+                + $"<color=#{tint}>{skill.ElementCost} {ElementInfo.ShortNameOf(skill.Element)}</color>";
         }
 
         /// <summary>Reach, effect and description, in one wrapped line.</summary>

@@ -71,8 +71,13 @@ namespace Dragoneye.Game.Combat
                 m_List.mode = ScrollViewMode.Vertical;
                 m_List.verticalScrollerVisibility = ScrollerVisibility.AlwaysVisible;
                 m_List.horizontalScrollerVisibility = ScrollerVisibility.Hidden;
-                m_List.mouseWheelScrollSize = 28f;
 
+                // The wheel, handled here by one path. See WheelScroll for the history.
+                WheelScroll.Attach(m_List);
+
+                // And two buttons, because a click is the one input this HUD has never dropped.
+                // Newest is at the top, so "older" is further down.
+                m_List.parent.Insert(m_List.parent.IndexOf(m_List), Navigation());
             }
             m_Panel?.AddToClassList("combat-log--empty");
 
@@ -316,6 +321,23 @@ namespace Dragoneye.Game.Combat
             SkillCatalog.Current != null && SkillCatalog.Current.TryGetSkill(skillId, out var spec)
                 ? spec
                 : null;
+
+        /// <summary>Older and newer, as buttons, above the list.</summary>
+        VisualElement Navigation()
+        {
+            var row = new VisualElement();
+            row.AddToClassList("combat-log__nav");
+
+            var newer = new Button(() => WheelScroll.Page(m_List, -1f)) { text = "newer" };
+            newer.AddToClassList("combat-log__button");
+            row.Add(newer);
+
+            var older = new Button(() => WheelScroll.Page(m_List, 1f)) { text = "older" };
+            older.AddToClassList("combat-log__button");
+            row.Add(older);
+
+            return row;
+        }
 
         void AddRound(string text)
         {

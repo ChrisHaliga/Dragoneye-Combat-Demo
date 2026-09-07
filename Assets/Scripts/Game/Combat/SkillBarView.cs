@@ -577,10 +577,7 @@ namespace Dragoneye.Game.Combat
 
             m_Detail.RemoveFromClassList("is-hidden");
 
-            m_DetailHead.text = skill.ElementCost > 0
-                ? $"{skill.Name}   {skill.ApCost} AP · {skill.ElementCost} "
-                    + ElementInfo.ShortNameOf(skill.Element)
-                : $"{skill.Name}   {skill.ApCost} AP";
+            m_DetailHead.text = $"{skill.Name}   {CharacterSheet.Cost(skill)}";
 
             m_DetailText.text = CharacterSheet.Describe(skill);
         }

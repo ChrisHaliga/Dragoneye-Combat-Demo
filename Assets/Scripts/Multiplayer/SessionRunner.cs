@@ -36,7 +36,7 @@ namespace Dragoneye.Multiplayer
         int m_MaxPlayers = 4;
 
         [SerializeField, Tooltip("Session name shown in queries. Does not need to be unique.")]
-        string m_SessionName = "Dragoneye Combat";
+        string m_SessionName = "Dragoneye Combat Demo";
 
         [SerializeField, Tooltip("Force a Relay region (e.g. us-central1). Leave empty to auto-pick the lowest latency one.")]
         string m_RelayRegion = "";

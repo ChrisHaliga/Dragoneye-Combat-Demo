@@ -47,6 +47,8 @@ namespace Dragoneye.Game.Combat
             }
 
 
+            WheelScroll.Attach(m_Checks);
+
             m_Next.clicked += () => MatchFlow.Instance?.ContinueScenarios();
             m_Back.clicked += () => MatchFlow.Instance?.LeaveMatch();
 

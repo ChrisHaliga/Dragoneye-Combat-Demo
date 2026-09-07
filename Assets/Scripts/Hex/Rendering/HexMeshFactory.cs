@@ -192,11 +192,11 @@ namespace Dragoneye.Hex.Rendering
             // Each face wound clockwise seen from outside, the way Quad expects. The colours are
             // a gradient up the wall, so a flat grey slab reads as something with a foot and a
             // head; the top is lightest because it is the face the light actually falls on.
-            Quad(vertices, normals, uvs, triangles, sl + up, el + up, el, sl, -side.normalized, colours);
-            Quad(vertices, normals, uvs, triangles, er + up, sr + up, sr, er, side.normalized, colours);
-            Quad(vertices, normals, uvs, triangles, sr + up, sl + up, sl, sr, -along, colours);
-            Quad(vertices, normals, uvs, triangles, el + up, er + up, er, el, along, colours);
-            Quad(vertices, normals, uvs, triangles, sl + up, sr + up, er + up, el + up, Vector3.up,
+            Quad(vertices, normals, uvs, triangles, el + up, sl + up, sl, el, -side.normalized, colours);
+            Quad(vertices, normals, uvs, triangles, sr + up, er + up, er, sr, side.normalized, colours);
+            Quad(vertices, normals, uvs, triangles, sl + up, sr + up, sr, sl, -along, colours);
+            Quad(vertices, normals, uvs, triangles, er + up, el + up, el, er, along, colours);
+            Quad(vertices, normals, uvs, triangles, sr + up, sl + up, el + up, er + up, Vector3.up,
                 colours, WallCap, WallCap);
 
             var mesh = Finish(vertices, normals, uvs, triangles, colours);
@@ -271,16 +271,18 @@ namespace Dragoneye.Hex.Rendering
             uvs.Add(Vector2.one);
             uvs.Add(Vector2.up);
 
-            // Clockwise seen from the side the normal points at, which is what Unity calls the
-            // front. Wound the other way round, every face of every wall and every tile skirt was
-            // a back face: you saw straight through the outside of a wall and onto its inside.
+            // topA, topB, bottomB, bottomA -- clockwise seen from the front. The tile skirt has
+            // always passed its corners in this order and drawn the right way; the walls passed
+            // theirs the other way round and drew inside out, and the first fix for that turned
+            // this winding over and took the tile skirts with it. The winding is what it was; it
+            // is the walls' calls that were wrong, and they are the ones that changed.
             triangles.Add(start);
-            triangles.Add(start + 2);
             triangles.Add(start + 1);
+            triangles.Add(start + 2);
 
             triangles.Add(start);
-            triangles.Add(start + 3);
             triangles.Add(start + 2);
+            triangles.Add(start + 3);
         }
 
         static Mesh Finish(System.Collections.Generic.List<Vector3> vertices,

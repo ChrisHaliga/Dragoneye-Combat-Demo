@@ -1763,3 +1763,36 @@
 .card__scroll .unity-scroll-view__content-container > * {
     flex-shrink: 0;
 }
+
+/* Never wider than the card. A line that will not wrap is clipped, not scrolled sideways. */
+.card__scroll .unity-scroll-view__content-viewport {
+    overflow: hidden;
+}
+
+.card__scroll .unity-scroll-view__content-container {
+    width: 100%;
+}
+
+/* ---------- the log's own way back through itself ---------- */
+
+.combat-log__nav {
+    flex-direction: row;
+    justify-content: flex-end;
+    margin-bottom: 3px;
+}
+
+.combat-log__button {
+    height: 18px;
+    margin-left: 4px;
+    padding: 0 8px;
+    font-size: 10px;
+    letter-spacing: 1px;
+    color: rgb(168, 175, 192);
+    background-color: rgba(20, 24, 32, 0.9);
+    border-width: 1px;
+    border-color: rgb(52, 58, 74);
+}
+
+.combat-log__button:hover {
+    color: rgb(232, 226, 212);
+}

@@ -71,7 +71,7 @@
                  anything else on the card, and it was buried three lines down. -->
             <ui:Label name="card-party" text="" class="card__party" />
 
-            <ui:ScrollView name="card-scroll" class="card__scroll">
+            <ui:ScrollView name="card-scroll" class="card__scroll" mode="Vertical" horizontal-scroller-visibility="Hidden">
 
             <ui:VisualElement class="card__head">
                 <ui:VisualElement name="card-portrait" class="card__portrait" />

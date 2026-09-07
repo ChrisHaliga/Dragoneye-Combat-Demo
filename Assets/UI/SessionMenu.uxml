@@ -12,7 +12,7 @@
             <ui:VisualElement class="start">
                 <ui:Label text="DRAGONEYE" class="start__title" />
                 <ui:VisualElement class="rule rule--long" />
-                <ui:Label text="C O M B A T" class="start__sub" />
+                <ui:Label text="C O M B A T   D E M O" class="start__sub" />
                 <ui:Label name="start-prompt" text="PRESS ANY KEY" class="start__prompt" />
             </ui:VisualElement>
         </ui:VisualElement>
@@ -24,7 +24,7 @@
                 <ui:VisualElement class="home__left">
                     <ui:Label text="DRAGONEYE" class="home__mark" />
                     <ui:VisualElement class="rule" />
-                    <ui:Label text="C O M B A T" class="home__sub" />
+                    <ui:Label text="C O M B A T   D E M O" class="home__sub" />
 
                     <ui:VisualElement class="menu-stack">
                         <ui:Button name="singleplayer-button" text="Singleplayer" class="btn btn--menu btn--primary" />

@@ -18,20 +18,24 @@ namespace Dragoneye.Game
     /// </summary>
     public static class CreatureToken
     {
-        /// <summary>Radius of the token, in world units. A hex is about 1.7 across.</summary>
-        public const float Radius = 0.44f;
+        /// <summary>
+        /// Radius of the token, in world units. A hex is about 1.7 across, and a tile a wall
+        /// runs through is two places to stand, each about half that -- so a token has to fit in
+        /// half a tile without leaning on the wall.
+        /// </summary>
+        public const float Radius = 0.24f;
 
         /// <summary>How thick the checker is.</summary>
-        public const float Height = 0.22f;
+        public const float Height = 0.13f;
 
         /// <summary>How much smaller the portrait is than the token, leaving a rim of party colour.</summary>
         public const float PortraitInset = 0.86f;
 
         /// <summary>How far past the token's edge the facing mark reaches.</summary>
-        public const float PointerReach = 0.34f;
+        public const float PointerReach = 0.2f;
 
-        /// <summary>How wide the facing mark is at its base, as a fraction of the token.</summary>
-        public const float PointerWidth = 0.42f;
+        /// <summary>How wide the facing mark is at its base.</summary>
+        public const float PointerWidth = 0.24f;
 
         static Mesh s_Disc;
         static Mesh s_Cylinder;

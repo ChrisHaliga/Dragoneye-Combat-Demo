@@ -563,11 +563,7 @@ namespace Dragoneye.Multiplayer
         /// <summary>"1 AP · 1 PYR · 4 + STR damage", the way the skill list writes it.</summary>
         static string SkillLine(SkillSpec skill)
         {
-            var cost = skill.ElementCost > 0
-                ? $"{skill.ApCost} AP \u00b7 {skill.ElementCost} {ElementInfo.ShortNameOf(skill.Element)}"
-                : $"{skill.ApCost} AP";
-
-            return $"{cost} \u00b7 {SkillEffectInfo.Describe(skill.Effect)}";
+            return $"{CharacterSheet.Cost(skill)} \u00b7 {SkillEffectInfo.Describe(skill.Effect)}";
         }
 
         /// <summary>The dropdown text: the name, and for anything worn, what it does to the stats.</summary>

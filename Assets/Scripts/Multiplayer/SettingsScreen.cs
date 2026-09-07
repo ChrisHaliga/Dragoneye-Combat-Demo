@@ -87,9 +87,23 @@ namespace Dragoneye.Multiplayer
             m_Monitor.RegisterValueChangedCallback(_ => OnMonitorChanged());
             m_Resolution.RegisterValueChangedCallback(_ => OnResolutionChanged());
 
-            m_Pan.RegisterValueChangedCallback(evt => GameSettings.PanSensitivity = evt.newValue);
-            m_Zoom.RegisterValueChangedCallback(evt => GameSettings.ZoomSensitivity = evt.newValue);
-            m_Orbit.RegisterValueChangedCallback(evt => GameSettings.OrbitSensitivity = evt.newValue);
+            // The number beside each slider follows it. It used to be written only when the panel
+            // opened, so a slider moved and its number sat there saying what it had said before.
+            m_Pan.RegisterValueChangedCallback(evt =>
+            {
+                GameSettings.PanSensitivity = evt.newValue;
+                m_PanValue.text = Format(evt.newValue);
+            });
+            m_Zoom.RegisterValueChangedCallback(evt =>
+            {
+                GameSettings.ZoomSensitivity = evt.newValue;
+                m_ZoomValue.text = Format(evt.newValue);
+            });
+            m_Orbit.RegisterValueChangedCallback(evt =>
+            {
+                GameSettings.OrbitSensitivity = evt.newValue;
+                m_OrbitValue.text = Format(evt.newValue);
+            });
             m_Invert.RegisterValueChangedCallback(evt => GameSettings.InvertOrbit = evt.newValue);
 
             m_Reset.clicked += OnResetClicked;
