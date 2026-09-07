@@ -27,4 +27,6 @@ MonoBehaviour:
   m_Amount: 2
   m_Scales: 0
   m_ScalesWith: 2
+  m_Accuracy: 0
+  m_Falloff: 0
   m_LevelRequired: 1

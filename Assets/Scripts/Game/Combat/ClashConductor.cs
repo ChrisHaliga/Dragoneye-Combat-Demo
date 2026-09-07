@@ -4,6 +4,8 @@ using Dragoneye.Data;
 using UnityEngine;
 using Dragoneye.Game;
 using Dragoneye.Game.Creatures;
+using Dragoneye.Hex;
+using Dragoneye.Hex.Systems;
 
 namespace Dragoneye.Game.Combat
 {
@@ -22,6 +24,7 @@ namespace Dragoneye.Game.Combat
     {
         readonly IClashHost m_Host;
         readonly Dice m_Dice;
+        readonly ArenaMap m_Map;
 
         // The attack that is waiting on an answer, and everything needed to finish it.
         ClashSequence m_Clash;
@@ -30,10 +33,11 @@ namespace Dragoneye.Game.Combat
         SkillSpec m_Skill;
         bool m_Flanked;
 
-        public ClashConductor(IClashHost host, Dice dice)
+        public ClashConductor(IClashHost host, Dice dice, ArenaMap map)
         {
             m_Host = host;
             m_Dice = dice;
+            m_Map = map;
         }
 
         /// <summary>Whether an attack is waiting on somebody's answer.</summary>
@@ -62,7 +66,7 @@ namespace Dragoneye.Game.Combat
 
             // Which way the blow arrived, from the defender's point of view.
             var flanked = FacingRules.IsFlank(target.Facing,
-                ThreatGeometry.Bearing(target.Cell, actor.Cell));
+                ThreatGeometry.Bearing(m_Map.Map, target.Cell, actor.Cell));
 
             var committed = new List<Element>();
 
@@ -277,7 +281,7 @@ namespace Dragoneye.Game.Combat
             // landed is the one the position bought, and only if there is still somebody to turn.
             if (flanked && defender.IsAlive && attacker.IsAlive)
             {
-                defender.ServerFace(ThreatGeometry.Bearing(defender.Cell, attacker.Cell));
+                defender.ServerFace(ThreatGeometry.Bearing(m_Map.Map, defender.Cell, attacker.Cell));
             }
 
             // The attack is over, so whatever the pause was holding up can go on.

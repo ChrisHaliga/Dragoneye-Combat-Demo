@@ -5,6 +5,7 @@ using Unity.Netcode;
 using UnityEngine;
 using Dragoneye.Game;
 using Dragoneye.Game.Creatures;
+using Dragoneye.Hex;
 
 namespace Dragoneye.Game.Combat
 {
@@ -81,8 +82,8 @@ namespace Dragoneye.Game.Combat
             m_Dice = new Dice(m_Seed != 0 ? m_Seed : unchecked((int)System.DateTime.UtcNow.Ticks));
             Debug.Log($"[CombatDirector] Fight seed {m_Dice.Seed}.", this);
 
-            m_Clashes = new ClashConductor(this, m_Dice);
-            m_Opportunities = new OpportunityConductor(this, m_Creatures, m_Dice);
+            m_Clashes = new ClashConductor(this, m_Dice, m_Map);
+            m_Opportunities = new OpportunityConductor(this, m_Creatures, m_Dice, m_Map);
 
             // Swapped wholesale to change the opponent. Not serialised: brains are code, not
             // assets, and a ScriptableObject wrapper would be indirection for a choice nobody is
@@ -115,11 +116,12 @@ namespace Dragoneye.Game.Combat
 
         /// <summary>Whether this creature is stood next to that one and looking at it.</summary>
         public static bool Watches(CreatureState watcher, CreatureState mover) =>
-            OpportunityConductor.Watches(watcher, mover);
+            OpportunityConductor.Watches(Current != null ? Current.m_Map : null, watcher, mover);
 
-        /// <summary>Whether that creature walking to this tile would give this one a swing.</summary>
-        public static bool Provokes(CreatureState watcher, CreatureState mover, Hex destination) =>
-            OpportunityConductor.Provokes(watcher, mover, destination);
+        /// <summary>Whether that creature walking to this cell would give this one a swing.</summary>
+        public static bool Provokes(CreatureState watcher, CreatureState mover, Cell destination) =>
+            OpportunityConductor.Provokes(Current != null ? Current.m_Map : null, watcher, mover,
+                destination);
 
         // ---------- the match ----------
 
@@ -230,7 +232,7 @@ namespace Dragoneye.Game.Combat
         /// Anybody the walk leaves behind gets their swing first. The move is put away and taken
         /// out again once they have all had their answer, whether it landed or not.
         /// </summary>
-        public bool ServerMove(CreatureState actor, Hex destination, Facing? facing = null)
+        public bool ServerMove(CreatureState actor, Cell destination, Facing? facing = null)
         {
             if (!CanAct(actor))
             {
@@ -258,7 +260,7 @@ namespace Dragoneye.Game.Combat
         ///
         /// The same arithmetic <see cref="PerformMove"/> does, asked before the move is suspended.
         /// </summary>
-        bool CanAffordMove(CreatureState actor, Hex destination)
+        bool CanAffordMove(CreatureState actor, Cell destination)
         {
             var cost = m_Board.CostTo(actor.Cell, destination);
 
@@ -274,7 +276,7 @@ namespace Dragoneye.Game.Combat
         /// Re-costs the route rather than trusting the requested destination, so a client that asks
         /// for a hex it cannot afford is refused with the same arithmetic the cursor showed it.
         /// </summary>
-        public bool PerformMove(CreatureState actor, Hex destination, Facing? facing)
+        public bool PerformMove(CreatureState actor, Cell destination, Facing? facing)
         {
             if (actor == null || !actor.IsAlive)
             {
@@ -298,7 +300,7 @@ namespace Dragoneye.Game.Combat
 
             // Read before the move, because afterwards the two hexes are the same one and the
             // bearing between them is meaningless.
-            var travelled = ThreatGeometry.Bearing(actor.Cell, destination);
+            var travelled = ThreatGeometry.Bearing(m_Map.Map, actor.Cell, destination);
             var from = actor.Cell;
 
             actor.Unit.ServerSetCell(destination);
@@ -316,7 +318,7 @@ namespace Dragoneye.Game.Combat
         /// is checked before it so a refused element cannot leave the AP gone. DE-002 requires a
         /// creature that cannot pay either cost to be unable to use the skill at all.
         /// </summary>
-        public bool ServerUseSkill(CreatureState actor, int skillId, Hex target,
+        public bool ServerUseSkill(CreatureState actor, int skillId, Cell target,
             out SkillRefusal refusal, Element? element = null) =>
             UseSkill(actor, skillId, target, out refusal, element, provoked: false);
 
@@ -328,10 +330,10 @@ namespace Dragoneye.Game.Combat
         /// anybody wants a swing: they have all had one. The first cut of this replayed through the
         /// same door it came in by, and the same watchers were asked twice about one walk.
         /// </summary>
-        public void ReplaySkill(CreatureState actor, int skillId, Hex target, Element element) =>
+        public void ReplaySkill(CreatureState actor, int skillId, Cell target, Element element) =>
             UseSkill(actor, skillId, target, out _, element, provoked: true);
 
-        bool UseSkill(CreatureState actor, int skillId, Hex target, out SkillRefusal refusal,
+        bool UseSkill(CreatureState actor, int skillId, Cell target, out SkillRefusal refusal,
             Element? element, bool provoked)
         {
             refusal = SkillRefusal.NoSkill;
@@ -415,7 +417,7 @@ namespace Dragoneye.Game.Combat
             // they swung at, which opens their own flank to everybody they did not.
             if (occupant != null && occupant != actor)
             {
-                actor.ServerFace(ThreatGeometry.Bearing(actor.Cell, target));
+                actor.ServerFace(ThreatGeometry.Bearing(m_Map.Map, actor.Cell, target));
             }
 
             // A shot rolls before anybody answers it. The element is committed already -- the
@@ -423,8 +425,8 @@ namespace Dragoneye.Game.Combat
             // never asked about an attack that did not arrive.
             if (skill.RollsToHit && IsContested(skill, actor, occupant))
             {
-                var distance = Hex.Distance(actor.Cell, target);
-                var cover = LineOfFire.CoverCount(actor.Cell, target, m_Units);
+                var distance = Cell.Distance(actor.Cell, target);
+                var cover = LineOfFire.Trace(m_Map.Grid, m_Units, actor.Cell, target).Cover;
                 var chance = SkillRules.HitChance(skill, distance, cover);
 
                 if (!SkillRules.Hits(skill, distance, cover, m_Dice.Roll()))
@@ -453,12 +455,12 @@ namespace Dragoneye.Game.Combat
         /// The tile is the cheapest one the target is in reach from, which is the tile the walk
         /// will end on -- and so the tile the watchers care about.
         /// </summary>
-        bool WouldApproach(CreatureState actor, SkillSpec skill, Hex target, out Hex approach)
+        bool WouldApproach(CreatureState actor, SkillSpec skill, Cell target, out Cell approach)
         {
             approach = actor.Cell;
 
             if (skill.Target == SkillTarget.Self
-                || CombatRules.InRange(Hex.Distance(actor.Cell, target), skill.Range))
+                || CombatRules.InRange(Cell.Distance(actor.Cell, target), skill.Range))
             {
                 return false;
             }
@@ -474,7 +476,7 @@ namespace Dragoneye.Game.Combat
         /// run afterwards, on the replay; this exists so an unaffordable order cannot be used to
         /// bait swings out of everybody standing next to you.
         /// </summary>
-        bool CanAffordApproach(CreatureState actor, SkillSpec skill, Hex target, CreaturePool pool)
+        bool CanAffordApproach(CreatureState actor, SkillSpec skill, Cell target, CreaturePool pool)
         {
             var steps = m_Board.StepsToReach(actor.Cell, target, skill.Range);
 
@@ -499,12 +501,12 @@ namespace Dragoneye.Game.Combat
         /// Self-directed skills never move: the one place they reach from is where the creature is
         /// standing.
         /// </summary>
-        bool ServerCloseTo(CreatureState actor, SkillSpec skill, Hex target, out SkillRefusal refusal)
+        bool ServerCloseTo(CreatureState actor, SkillSpec skill, Cell target, out SkillRefusal refusal)
         {
             refusal = SkillRefusal.None;
 
             if (skill.Target == SkillTarget.Self
-                || CombatRules.InRange(Hex.Distance(actor.Cell, target), skill.Range))
+                || CombatRules.InRange(Cell.Distance(actor.Cell, target), skill.Range))
             {
                 return true;
             }
@@ -633,7 +635,7 @@ namespace Dragoneye.Game.Combat
         public void ClashSettled() => m_Opportunities.Continue();
 
         // The brain's door into the fight is the same one a player uses.
-        public bool Move(CreatureState actor, Hex destination) => ServerMove(actor, destination);
+        public bool Move(CreatureState actor, Cell destination) => ServerMove(actor, destination);
 
         public bool UseSkillOn(CreatureState actor, int skillId, CreatureState target) =>
             target != null && target.IsAlive
@@ -731,20 +733,21 @@ namespace Dragoneye.Game.Combat
             return returned;
         }
 
-        CreatureState TargetAt(Hex hex) =>
+        CreatureState TargetAt(Cell hex) =>
             m_Units != null && m_Units.TryGet(hex, out var occupant)
                 ? occupant.GetComponent<CreatureState>()
                 : null;
 
         /// <summary>What the rules need to know about whatever is being aimed at.</summary>
-        static SkillTargetInfo Describe(CreatureState actor, CreatureState target, Hex hex)
+        SkillTargetInfo Describe(CreatureState actor, CreatureState target, Cell hex)
         {
-            var distance = Hex.Distance(actor.Cell, hex);
+            var distance = Cell.Distance(actor.Cell, hex);
+            var line = target == actor || m_Board.HasLine(actor.Cell, hex);
 
             return target == null
-                ? SkillTargetInfo.Tile(distance)
+                ? SkillTargetInfo.Tile(distance, line)
                 : SkillTargetInfo.Creature(distance, target == actor,
-                    target.Party == actor.Party, target.IsAlive);
+                    target.Party == actor.Party, target.IsAlive, line);
         }
 
         /// <summary>

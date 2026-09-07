@@ -271,6 +271,8 @@ GameObject:
   - component: {fileID: 261654066}
   - component: {fileID: 261654068}
   - component: {fileID: 261654067}
+  - component: {fileID: 261654070}
+  - component: {fileID: 261654069}
   m_Layer: 0
   m_Name: Arena Context
   m_TagString: Untagged
@@ -427,7 +429,8 @@ MonoBehaviour:
   m_Map: {fileID: 1461267523}
   m_BrainActionDelay: 0.45
   m_BrainSkillDwell: 1.6
-  m_MoveWaitLimit: 4
+  m_BrainSecondsPerTile: 0.3
+  m_Seed: 0
 --- !u!114 &261654064
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -503,6 +506,36 @@ MonoBehaviour:
   m_TableDrop: 0.2
   m_FogStart: 26
   m_FogEnd: 84
+--- !u!114 &261654069
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 261654050}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 421bfc621a720294f8f78ddd14cc6e5b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Dragoneye.Game::Dragoneye.Game.ProjectileView
+  m_SecondsPerTile: 0.07
+  m_BaseSeconds: 0.14
+  m_BeadSize: 0.16
+--- !u!114 &261654070
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 261654050}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4aa83141d759c3245bfe0a7d4bd25670, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Dragoneye.Game::Dragoneye.Game.ShotPreview
+  m_Input: {fileID: 261654062}
+  m_Samples: 24
+  m_Opacity: 0.8
 --- !u!1 &454632036
 GameObject:
   m_ObjectHideFlags: 0

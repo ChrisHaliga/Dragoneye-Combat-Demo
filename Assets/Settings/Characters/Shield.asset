@@ -19,5 +19,5 @@ MonoBehaviour:
   m_Slot: 2
   m_Skills: []
   m_Armour: 0
-  m_DamageReduction: 4
+  m_ArmourPoints: 4
   m_GrantsAdvantage: 0

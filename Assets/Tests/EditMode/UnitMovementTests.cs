@@ -178,9 +178,9 @@ namespace Dragoneye.Hex.Tests
             try
             {
                 var index = go.AddComponent<UnitIndex>();
-                Assert.IsFalse(index.IsOccupied(Hex.Zero));
-                Assert.IsFalse(index.IsOccupiedByOther(Hex.Zero, null));
-                Assert.IsFalse(index.TryGet(Hex.Zero, out _));
+                Assert.IsFalse(index.IsOccupied(Cell.Whole(Hex.Zero)));
+                Assert.IsFalse(index.IsOccupiedByOther(Cell.Whole(Hex.Zero), null));
+                Assert.IsFalse(index.TryGet(Cell.Whole(Hex.Zero), out _));
             }
             finally
             {
@@ -197,11 +197,11 @@ namespace Dragoneye.Hex.Tests
             try
             {
                 var index = go.AddComponent<UnitIndex>();
-                var into = new HashSet<Hex> { new Hex(7, 7) };
+                var into = new HashSet<Cell> { Cell.Whole(new Hex(7, 7)) };
 
-                index.CopyOccupiedTo(into, Hex.Zero);
+                index.CopyOccupiedTo(into, Cell.Whole(Hex.Zero));
 
-                CollectionAssert.Contains(into, new Hex(7, 7), "Existing entries are kept");
+                CollectionAssert.Contains(into, Cell.Whole(new Hex(7, 7)), "Existing entries are kept");
                 Assert.AreEqual(1, into.Count, "An empty index adds nothing");
             }
             finally
@@ -216,7 +216,7 @@ namespace Dragoneye.Hex.Tests
             var go = new GameObject("index");
             try
             {
-                Assert.DoesNotThrow(() => go.AddComponent<UnitIndex>().CopyOccupiedTo(null, Hex.Zero));
+                Assert.DoesNotThrow(() => go.AddComponent<UnitIndex>().CopyOccupiedTo(null, Cell.Whole(Hex.Zero)));
             }
             finally
             {

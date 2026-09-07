@@ -56,7 +56,7 @@ namespace Dragoneye.Game
             }
         }
 
-        void OnHoverChanged(Hex? hex)
+        void OnHoverChanged(Cell? hex)
         {
             var context = ArenaContext.Current;
             if (!hex.HasValue || context == null || context.Map == null)

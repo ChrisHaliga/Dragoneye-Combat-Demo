@@ -23,7 +23,10 @@ namespace Dragoneye.Combat
         OutOfRange,
         TargetIsSelf,
         TargetIsAlly,
-        TargetIsDead
+        TargetIsDead,
+
+        /// <summary>Something that cannot be seen through stands between.</summary>
+        NoLine
     }
 
     /// <summary>
@@ -44,8 +47,11 @@ namespace Dragoneye.Combat
         public readonly bool IsAlive;
         public readonly int Distance;
 
+        /// <summary>Whether nothing opaque stands between. The board answers; the rules only ask.</summary>
+        public readonly bool HasLine;
+
         public SkillTargetInfo(bool exists, bool isCreature, bool isSelf, bool isAlly,
-            bool isAlive, int distance)
+            bool isAlive, int distance, bool hasLine = true)
         {
             Exists = exists;
             IsCreature = isCreature;
@@ -53,16 +59,17 @@ namespace Dragoneye.Combat
             IsAlly = isAlly;
             IsAlive = isAlive;
             Distance = distance;
+            HasLine = hasLine;
         }
 
         /// <summary>A creature at a known distance.</summary>
         public static SkillTargetInfo Creature(int distance, bool isSelf, bool isAlly,
-            bool isAlive = true) =>
-            new SkillTargetInfo(true, true, isSelf, isAlly, isAlive, distance);
+            bool isAlive = true, bool hasLine = true) =>
+            new SkillTargetInfo(true, true, isSelf, isAlly, isAlive, distance, hasLine);
 
         /// <summary>An empty place on the board.</summary>
-        public static SkillTargetInfo Tile(int distance) =>
-            new SkillTargetInfo(true, false, false, false, false, distance);
+        public static SkillTargetInfo Tile(int distance, bool hasLine = true) =>
+            new SkillTargetInfo(true, false, false, false, false, distance, hasLine);
     }
 
     /// <summary>
@@ -244,6 +251,13 @@ namespace Dragoneye.Combat
             if (target.Distance > skill.Range)
             {
                 return SkillRefusal.OutOfRange;
+            }
+
+            // A wall between is a wall between, whatever the reach. Checked before what the
+            // target is: an ally behind a wall is still behind a wall.
+            if (!target.HasLine)
+            {
+                return SkillRefusal.NoLine;
             }
 
             if (skill.Target == SkillTarget.Tile)

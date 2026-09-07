@@ -3,100 +3,223 @@ using System.Collections.Generic;
 namespace Dragoneye.Hex.Systems
 {
     /// <summary>
-    /// Shortest walkable routes across a map.
+    /// The cheapest way from one cell to another, by the map's own rules.
     ///
-    /// Breadth-first, not A*: every step costs exactly one, and with a uniform cost BFS already
-    /// returns a shortest path. A* would add a heuristic and a priority queue to arrive at the same
-    /// answer. The day terrain gains a movement cost this has to become Dijkstra -- that is the one
-    /// change that would make BFS silently wrong rather than merely slower, so it is worth knowing
-    /// which line to look at.
+    /// Dijkstra rather than the breadth-first search it used to be, because a step is not one
+    /// step any more: difficult ground costs two, and a route through mud that is shorter in tiles
+    /// can be dearer in steps. Adjacency comes from <see cref="IGridRules"/>, so walls are simply
+    /// edges that are not there.
     ///
-    /// Blocked cells are passed in rather than looked up. The pathfinder has no idea what a unit is,
-    /// which is what lets it be tested with a set of coordinates and nothing else.
+    /// The path returned is the cells walked, excluding the start and including the destination,
+    /// and its cost is the steps paid to walk it -- which is what the rules price in AP.
     /// </summary>
     public static class HexPathfinder
     {
         /// <summary>
-        /// The cheapest route from <paramref name="from"/> to <paramref name="to"/>.
-        ///
-        /// The returned path excludes the starting hex and includes the destination, so its count is
-        /// the number of steps taken -- which is also the cost. An empty result means unreachable.
+        /// Finds the cheapest route.
         /// </summary>
-        /// <param name="blocked">
-        /// Cells that may not be entered, typically occupied ones. The destination is exempt only if
-        /// it is not in this set; a caller wanting to path *next to* something should pass the
-        /// neighbour it wants instead.
-        /// </param>
-        /// <param name="maxCost">Stop searching past this many steps. Negative means no limit.</param>
-        public static bool TryFindPath(HexMap map, Hex from, Hex to, ICollection<Hex> blocked,
-            List<Hex> path, int maxCost = -1)
+        /// <param name="blocked">Cells that cannot be walked through or onto. Occupied ones, usually.</param>
+        /// <param name="maxCost">Give up past this many steps; negative for no limit.</param>
+        /// <returns>False when there is no route; <paramref name="path"/> is then empty.</returns>
+        public static bool TryFindPath(IGridRules grid, Cell from, Cell to, ICollection<Cell> blocked,
+            List<Cell> path, out int cost, int maxCost = -1)
         {
+            cost = -1;
             path?.Clear();
 
-            if (map == null || path == null || from == to || !CanEnter(map, to, blocked))
+            if (grid == null || path == null || from == to || !CanEnter(grid, to, blocked))
             {
                 return false;
             }
 
-            var cameFrom = new Dictionary<Hex, Hex>();
-            var frontier = new Queue<Hex>();
-            var depth = new Dictionary<Hex, int> { [from] = 0 };
+            var cameFrom = new Dictionary<Cell, Cell>();
+            var best = new Dictionary<Cell, int> { [from] = 0 };
+            var open = new List<Cell> { from };
+            var neighbours = new List<Cell>();
 
-            frontier.Enqueue(from);
-
-            while (frontier.Count > 0)
+            while (open.Count > 0)
             {
-                var current = frontier.Dequeue();
-                var step = depth[current] + 1;
+                // The cheapest open cell. A heap would be faster; the maps are small enough that a
+                // scan is not the cost that matters, and it keeps the search readable.
+                var index = 0;
 
-                if (maxCost >= 0 && step > maxCost)
+                for (var i = 1; i < open.Count; i++)
                 {
-                    continue;
+                    if (best[open[i]] < best[open[index]])
+                    {
+                        index = i;
+                    }
                 }
 
-                foreach (var next in current.Neighbors())
+                var current = open[index];
+                open.RemoveAt(index);
+
+                var here = best[current];
+
+                if (current == to)
                 {
-                    if (depth.ContainsKey(next) || !CanEnter(map, next, blocked))
+                    Rebuild(cameFrom, from, to, path);
+                    cost = here;
+                    return true;
+                }
+
+                neighbours.Clear();
+                grid.Neighbours(current, neighbours);
+
+                foreach (var next in neighbours)
+                {
+                    if (!CanEnter(grid, next, blocked))
                     {
                         continue;
                     }
 
-                    depth[next] = step;
-                    cameFrom[next] = current;
+                    var through = here + grid.StepsToEnter(next);
 
-                    if (next == to)
+                    if (maxCost >= 0 && through > maxCost)
                     {
-                        Rebuild(cameFrom, from, to, path);
-                        return true;
+                        continue;
                     }
 
-                    frontier.Enqueue(next);
+                    if (best.TryGetValue(next, out var known) && known <= through)
+                    {
+                        continue;
+                    }
+
+                    best[next] = through;
+                    cameFrom[next] = current;
+
+                    if (!open.Contains(next))
+                    {
+                        open.Add(next);
+                    }
                 }
             }
 
             return false;
         }
 
-        /// <summary>
-        /// The cost in steps of the cheapest route, or -1 if there is no route within
-        /// <paramref name="maxCost"/>.
-        ///
-        /// Allocates a path it then discards; callers that need the route itself should ask for it
-        /// directly rather than calling both.
-        /// </summary>
-        public static int CostTo(HexMap map, Hex from, Hex to, ICollection<Hex> blocked,
+        /// <summary>The steps a route costs, or -1 when there is none.</summary>
+        public static int CostTo(IGridRules grid, Cell from, Cell to, ICollection<Cell> blocked,
             int maxCost = -1)
         {
-            var path = new List<Hex>();
-            return TryFindPath(map, from, to, blocked, path, maxCost) ? path.Count : -1;
+            var path = new List<Cell>();
+            return TryFindPath(grid, from, to, blocked, path, out var cost, maxCost) ? cost : -1;
         }
 
-        static bool CanEnter(HexMap map, Hex hex, ICollection<Hex> blocked) =>
-            (blocked == null || !blocked.Contains(hex))
-            && map.TryGetTile(hex, out var tile)
-            && tile.IsWalkable;
+        /// <summary>
+        /// Every cell reachable within a budget of steps, with what each costs to reach.
+        ///
+        /// The reach overlay and the brain's "walk as far as you can" both want this: the whole
+        /// frontier at once rather than one destination priced at a time.
+        /// </summary>
+        public static void Reachable(IGridRules grid, Cell from, int budget, ICollection<Cell> blocked,
+            Dictionary<Cell, int> into)
+        {
+            into.Clear();
 
-        static void Rebuild(Dictionary<Hex, Hex> cameFrom, Hex from, Hex to, List<Hex> path)
+            if (grid == null || budget <= 0)
+            {
+                return;
+            }
+
+            var open = new List<Cell> { from };
+            var neighbours = new List<Cell>();
+            into[from] = 0;
+
+            while (open.Count > 0)
+            {
+                var index = 0;
+
+                for (var i = 1; i < open.Count; i++)
+                {
+                    if (into[open[i]] < into[open[index]])
+                    {
+                        index = i;
+                    }
+                }
+
+                var current = open[index];
+                open.RemoveAt(index);
+
+                neighbours.Clear();
+                grid.Neighbours(current, neighbours);
+
+                foreach (var next in neighbours)
+                {
+                    if (!CanEnter(grid, next, blocked))
+                    {
+                        continue;
+                    }
+
+                    var through = into[current] + grid.StepsToEnter(next);
+
+                    if (through > budget || (into.TryGetValue(next, out var known) && known <= through))
+                    {
+                        continue;
+                    }
+
+                    into[next] = through;
+
+                    if (!open.Contains(next))
+                    {
+                        open.Add(next);
+                    }
+                }
+            }
+
+            into.Remove(from);
+        }
+
+        // ---------- the tile-only face, for maps that have no walls ----------
+
+        /// <summary>A route between whole tiles, for a map without walls. What the old search answered.</summary>
+        public static bool TryFindPath(HexMap map, Hex from, Hex to, ICollection<Hex> blocked,
+            List<Hex> path, int maxCost = -1)
+        {
+            path?.Clear();
+
+            if (map == null || path == null)
+            {
+                return false;
+            }
+
+            var cells = new List<Cell>();
+            var found = TryFindPath(new GridRules(map), Cell.Whole(from), Cell.Whole(to),
+                Whole(blocked), cells, out _, maxCost);
+
+            foreach (var cell in cells)
+            {
+                path.Add(cell.Tile);
+            }
+
+            return found;
+        }
+
+        public static int CostTo(HexMap map, Hex from, Hex to, ICollection<Hex> blocked,
+            int maxCost = -1) =>
+            CostTo(new GridRules(map), Cell.Whole(from), Cell.Whole(to), Whole(blocked), maxCost);
+
+        static ICollection<Cell> Whole(ICollection<Hex> tiles)
+        {
+            if (tiles == null)
+            {
+                return null;
+            }
+
+            var cells = new HashSet<Cell>();
+
+            foreach (var tile in tiles)
+            {
+                cells.Add(Cell.Whole(tile));
+            }
+
+            return cells;
+        }
+
+        static bool CanEnter(IGridRules grid, Cell cell, ICollection<Cell> blocked) =>
+            (blocked == null || !blocked.Contains(cell)) && grid.IsWalkable(cell);
+
+        static void Rebuild(Dictionary<Cell, Cell> cameFrom, Cell from, Cell to, List<Cell> path)
         {
             var current = to;
 

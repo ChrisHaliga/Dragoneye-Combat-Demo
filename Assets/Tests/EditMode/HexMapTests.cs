@@ -179,7 +179,7 @@ namespace Dragoneye.Hex.Tests
         [Test]
         public void SpawnPlacementHandlesDegenerateInput()
         {
-            Assert.IsEmpty(HexSpawnPlacement.ChooseSpawns(null, 4));
+            Assert.IsEmpty(HexSpawnPlacement.ChooseSpawns((HexMap)null, 4));
             Assert.IsEmpty(HexSpawnPlacement.ChooseSpawns(BuildHexagon(3), 0));
         }
     }

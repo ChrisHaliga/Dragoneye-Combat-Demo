@@ -14,14 +14,14 @@ MonoBehaviour:
   m_EditorClassIdentifier: Dragoneye.Game::Dragoneye.Game.CreatureDefinition
   m_Id: monster-ogre
   m_DisplayName: Ogre
-  m_Portrait: {fileID: 0}
+  m_Portrait: {fileID: 21300000, guid: fcc74f57b7f6f934e9c00a141ad0782e, type: 3}
   m_Species: {fileID: 11400000, guid: b92cd10445fd19f4daf506356eaa5e11, type: 2}
   m_Class: {fileID: 11400000, guid: cfa970c61106e9d4794dea48dae53016, type: 2}
   m_Level: 3
   m_MaxHp: 34
   m_MaxAp: 4
-  m_Speed: 3
-  m_Armour: 0
+  m_Speed: 5
+  m_Armour: 6
   m_Shielded: 0
   m_StartingPool:
     Geo: 3
@@ -33,5 +33,6 @@ MonoBehaviour:
     Arcana: 0
   m_LevelUpPicks: 0000000000000000000000000000000000000000000000000000000000000000
   m_Skills:
-  - {fileID: 11400000, guid: 033e1b59e526f754fb62a30a8156f229, type: 2}
+  - {fileID: 11400000, guid: 19df20f0bf9914a4f8b6aa162b4e951b, type: 2}
+  - {fileID: 11400000, guid: 597bcabd5e70fe34ab9b37e0c47ea0ac, type: 2}
   - {fileID: 11400000, guid: 50e887c1586957747a36566bdbdcd0d5, type: 2}

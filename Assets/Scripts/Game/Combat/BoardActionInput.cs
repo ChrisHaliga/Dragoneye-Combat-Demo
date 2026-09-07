@@ -4,6 +4,7 @@ using Dragoneye.Hex.Systems;
 using UnityEngine;
 using Dragoneye.Game;
 using Dragoneye.Game.Creatures;
+using Dragoneye.Hex;
 
 namespace Dragoneye.Game.Combat
 {
@@ -52,8 +53,8 @@ namespace Dragoneye.Game.Combat
         // Working out where to stand to reach somebody costs a route search per candidate tile, so
         // it is done when the question changes rather than once a frame. Everything else about a
         // plan -- what it costs, whether it is affordable -- is cheap and still repriced live.
-        Hex? m_ReachFrom;
-        Hex m_ReachTarget;
+        Cell? m_ReachFrom;
+        Cell m_ReachTarget;
         int m_ReachSkill;
         int m_ReachSteps = -1;
 
@@ -110,7 +111,7 @@ namespace Dragoneye.Game.Combat
         /// picks a tile does not send anything: it puts the creature down in ghost form and waits
         /// for a bearing. The next click sends both together.
         /// </summary>
-        public Hex? PendingMove { get; private set; }
+        public Cell? PendingMove { get; private set; }
 
         /// <summary>
         /// The tiles a move to the hovered hex would cross, destination last. Empty when the hover
@@ -120,8 +121,8 @@ namespace Dragoneye.Game.Combat
         /// round anybody standing in the way, and how far round decides both what it costs and
         /// whose front it walks across.
         /// </summary>
-        public IReadOnlyList<Hex> HoveredPath { get; private set; } =
-            System.Array.Empty<Hex>();
+        public IReadOnlyList<Cell> HoveredPath { get; private set; } =
+            System.Array.Empty<Cell>();
 
         /// <summary>
         /// Whether the click under the cursor would give somebody a swing.
@@ -201,9 +202,9 @@ namespace Dragoneye.Game.Combat
         // a creature dies or the turn passes all change what the same hex would cost.
         void Update() => Reprice(m_Pointer.Hovered);
 
-        void OnHoverChanged(Hex? hovered) => Reprice(hovered);
+        void OnHoverChanged(Cell? hovered) => Reprice(hovered);
 
-        void Reprice(Hex? hovered)
+        void Reprice(Cell? hovered)
         {
             AimPendingMove(hovered);
 
@@ -232,7 +233,7 @@ namespace Dragoneye.Game.Combat
         /// tile in reach if the skill has to walk first -- because cover is a fact about the
         /// line, and the line starts where the shooter ends up.
         /// </summary>
-        ShotPlan? ShotAt(Hex hovered, ActionPlan plan)
+        ShotPlan? ShotAt(Cell hovered, ActionPlan plan)
         {
             var actor = Actor;
 
@@ -245,7 +246,7 @@ namespace Dragoneye.Game.Combat
 
             var from = actor.Cell;
 
-            if (!CombatRules.InRange(Hex.Distance(from, hovered), plan.Skill.Range))
+            if (!CombatRules.InRange(Cell.Distance(from, hovered), plan.Skill.Range))
             {
                 if (!m_Board.TryTileInReach(actor.Cell, hovered, plan.Skill.Range, out var tile,
                         out _))
@@ -256,10 +257,12 @@ namespace Dragoneye.Game.Combat
                 from = tile;
             }
 
-            var cover = LineOfFire.Cover(from, hovered, m_Units);
-            var chance = SkillRules.HitChance(plan.Skill, Hex.Distance(from, hovered), cover.Count);
+            var line = LineOfFire.Trace(m_Map.Grid, m_Units, from, hovered);
+            var chance = line.IsBlocked
+                ? 0
+                : SkillRules.HitChance(plan.Skill, Cell.Distance(from, hovered), line.Cover);
 
-            return new ShotPlan(from, hovered, chance, cover);
+            return new ShotPlan(from, hovered, chance, line.Walls, line.Bodies);
         }
 
         /// <summary>
@@ -269,7 +272,7 @@ namespace Dragoneye.Game.Combat
         /// reach from, which is the tile the server will walk to. Position and facing only, both
         /// of which are drawn on the board. Whether they can afford the swing is theirs to know.
         /// </summary>
-        bool ProvokesAt(Hex hovered, ActionPlan plan)
+        bool ProvokesAt(Cell hovered, ActionPlan plan)
         {
             var actor = Actor;
 
@@ -278,7 +281,7 @@ namespace Dragoneye.Game.Combat
                 return false;
             }
 
-            Hex destination;
+            Cell destination;
 
             if (plan.Action == BoardAction.Move)
             {
@@ -322,14 +325,14 @@ namespace Dragoneye.Game.Combat
         /// Only for a move that would actually be allowed. Drawing the way to somewhere the
         /// creature cannot afford would be a route it is not going to walk.
         /// </summary>
-        IReadOnlyList<Hex> RouteTo(Hex? hovered, ActionPlan plan)
+        IReadOnlyList<Cell> RouteTo(Cell? hovered, ActionPlan plan)
         {
             var actor = Actor;
 
             if (!hovered.HasValue || actor == null || m_Board == null
                 || plan.Action != BoardAction.Move || !plan.IsAllowed)
             {
-                return System.Array.Empty<Hex>();
+                return System.Array.Empty<Cell>();
             }
 
             return m_Board.PathTo(actor.Cell, hovered.Value);
@@ -342,7 +345,7 @@ namespace Dragoneye.Game.Combat
         /// mouse. Pointing at the destination itself says nothing, so the last bearing stands --
         /// otherwise the ghost would spin to a default every time the cursor crossed it.
         /// </summary>
-        void AimPendingMove(Hex? hovered)
+        void AimPendingMove(Cell? hovered)
         {
             if (!PendingMove.HasValue)
             {
@@ -360,7 +363,7 @@ namespace Dragoneye.Game.Combat
             if (hovered.HasValue && hovered.Value != PendingMove.Value)
             {
                 PendingFacing = Facing.Of(
-                    (int)Dragoneye.Hex.Hex.DirectionTo(PendingMove.Value, hovered.Value));
+                    (int)AreaGeometry.Direction(m_Map.Map, PendingMove.Value, hovered.Value));
             }
         }
 
@@ -371,7 +374,7 @@ namespace Dragoneye.Game.Combat
         /// all is not an attack, and calling any of those a flank would be telling the player
         /// something about a blow they are not about to throw.
         /// </summary>
-        bool WouldFlank(Hex hex)
+        bool WouldFlank(Cell hex)
         {
             var actor = Actor;
 
@@ -395,7 +398,7 @@ namespace Dragoneye.Game.Combat
                 : actor.Cell;
 
             return FacingRules.IsFlank(target.Facing,
-                Facing.Of((int)Dragoneye.Hex.Hex.DirectionTo(target.Cell, from)));
+                Facing.Of((int)AreaGeometry.Direction(m_Map.Map, target.Cell, from)));
         }
 
         /// <summary>
@@ -405,7 +408,7 @@ namespace Dragoneye.Game.Combat
         /// commits nothing is not contested, and putting odds on a walk or a heal would be putting
         /// numbers on a certainty.
         /// </summary>
-        ClashOdds? OddsAgainst(Hex hex)
+        ClashOdds? OddsAgainst(Cell hex)
         {
             var actor = Actor;
             var skill = actor != null ? ArmedSkill(actor) : null;
@@ -426,7 +429,7 @@ namespace Dragoneye.Game.Combat
             return CreatureKnowledge.Forecast(skill.Element, target);
         }
 
-        ActionPlan Price(Hex hex)
+        ActionPlan Price(Cell hex)
         {
             var actor = Actor;
             if (actor == null)
@@ -490,10 +493,17 @@ namespace Dragoneye.Game.Combat
                 : null;
         }
 
-        ActionPlan PriceSkill(CreatureState actor, SkillSpec skill, Hex hex)
+        ActionPlan PriceSkill(CreatureState actor, SkillSpec skill, Cell hex)
         {
             var occupied = m_Units.TryGet(hex, out var occupant);
             var target = occupied ? occupant.GetComponent<CreatureState>() : null;
+
+            var steps = StepsToReach(actor, skill, hex);
+
+            // Nowhere in reach with a line to it, though the target is already within reach: that
+            // is a wall, not a distance, and the cursor should say so.
+            var walled = steps < 0 && target != null && target != actor
+                && CombatRules.InRange(Cell.Distance(actor.Cell, hex), skill.Range);
 
             return ActionResolver.ResolveSkill(
                 isActorsTurn: true,
@@ -502,8 +512,9 @@ namespace Dragoneye.Game.Combat
                 skill: skill,
                 targetIsCreature: target != null,
                 targetIsEnemy: target != null && target.Party != actor.Party,
-                stepsToReach: StepsToReach(actor, skill, hex),
-                stepCost: actor.StepCost);
+                stepsToReach: steps,
+                stepCost: actor.StepCost,
+                hasLine: !walled);
         }
 
         /// <summary>
@@ -513,7 +524,7 @@ namespace Dragoneye.Game.Combat
         /// which is every input that could change the answer, and none of the ones that happen
         /// sixty times a second while nothing does.
         /// </summary>
-        int StepsToReach(CreatureState actor, SkillSpec skill, Hex hex)
+        int StepsToReach(CreatureState actor, SkillSpec skill, Cell hex)
         {
             if (m_ReachFrom.HasValue && m_ReachFrom.Value == actor.Cell
                 && m_ReachTarget == hex && m_ReachSkill == skill.Id)
@@ -529,7 +540,7 @@ namespace Dragoneye.Game.Combat
             return m_ReachSteps;
         }
 
-        void OnClicked(Hex hex)
+        void OnClicked(Cell hex)
         {
             // The board stands aside while the fight is waiting on somebody. Even the bearing
             // click: an order sent now would be refused, and the move it was for is not lost --
@@ -619,7 +630,7 @@ namespace Dragoneye.Game.Combat
                 // means almost every time -- so a player who does not care can click twice in the
                 // same place and get exactly what they used to get.
                 PendingMove = hex;
-                PendingFacing = Facing.Of((int)Dragoneye.Hex.Hex.DirectionTo(actor.Cell, hex));
+                PendingFacing = Facing.Of((int)AreaGeometry.Direction(m_Map.Map, actor.Cell, hex));
             }
         }
     }

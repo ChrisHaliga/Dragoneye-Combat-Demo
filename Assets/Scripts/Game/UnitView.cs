@@ -78,7 +78,7 @@ namespace Dragoneye.Game
             new System.Collections.Generic.List<Vector3>();
 
         int m_Leg;
-        Hex m_Cell;
+        Cell m_Cell;
 
         Transform m_Pointer;
 
@@ -463,7 +463,7 @@ namespace Dragoneye.Game
         public static Vector3 Step(Vector3 current, Vector3 target, float speed, float deltaTime) =>
             Vector3.MoveTowards(current, target, Mathf.Max(0f, speed) * Mathf.Max(0f, deltaTime));
 
-        void OnCellChanged(Hex cell)
+        void OnCellChanged(Cell cell)
         {
             var context = ArenaContext.Current;
             if (context == null || context.Map == null)
@@ -506,7 +506,7 @@ namespace Dragoneye.Game
         /// An empty route means there is no walkable way there, which is what a spawn or a despawn
         /// looks like. The straight line stands in for it; there is nothing better to draw.
         /// </summary>
-        void BuildRoute(ArenaContext context, Hex from, Hex to)
+        void BuildRoute(ArenaContext context, Cell from, Cell to)
         {
             if (context.Units == null || from == to)
             {

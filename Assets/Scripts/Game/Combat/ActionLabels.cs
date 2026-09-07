@@ -36,6 +36,9 @@ namespace Dragoneye.Game.Combat
 
                 case ActionRefusal.Waiting:
                     return "Waiting on an answer";
+
+                case ActionRefusal.NoLine:
+                    return $"{Name(plan)} (no line of sight)";
             }
 
             return Name(plan);
@@ -62,6 +65,7 @@ namespace Dragoneye.Game.Combat
                 case ActionRefusal.Occupied: return "Somebody is standing there";
                 case ActionRefusal.TooExpensive: return "Not enough action points";
                 case ActionRefusal.Waiting: return "Waiting on an answer";
+                case ActionRefusal.NoLine: return "No line of sight";
                 default: return "Not allowed";
             }
         }

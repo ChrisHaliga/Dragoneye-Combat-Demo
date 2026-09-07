@@ -25,22 +25,31 @@ namespace Dragoneye.Hex.Tests
 
             public OpenBoard(params Hex[] occupied) => m_Occupied = new HashSet<Hex>(occupied);
 
-            public int CostTo(Hex from, Hex to) => Hex.Distance(from, to);
+            public int CostTo(Cell from, Cell to) => Hex.Distance(from.Tile, to.Tile);
 
-            public IReadOnlyList<Hex> PathTo(Hex from, Hex to)
-            {
-                var line = Hex.Line(from, to).Skip(1).ToList();
-                return line;
-            }
+            public IReadOnlyList<Cell> PathTo(Cell from, Cell to) =>
+                Hex.Line(from.Tile, to.Tile).Skip(1).Select(Cell.Whole).ToList();
 
-            public bool IsOccupied(Hex hex) => m_Occupied.Contains(hex);
+            public bool IsOccupied(Cell cell) => m_Occupied.Contains(cell.Tile);
 
             // An open board has no walls, so there is never anywhere nearer than the route itself.
-            public bool TryClosest(Hex from, Hex target, int budget, out Hex tile)
+            public bool TryClosest(Cell from, Cell target, int budget, out Cell tile)
             {
                 tile = from;
                 return false;
             }
+
+            public void Neighbours(Cell of, List<Cell> into)
+            {
+                foreach (var hex in of.Tile.Neighbors())
+                {
+                    into.Add(Cell.Whole(hex));
+                }
+            }
+
+            public int StepsToEnter(Cell cell) => 1;
+
+            public bool HasLine(Cell from, Cell to) => true;
         }
 
         /// <summary>
@@ -68,11 +77,11 @@ namespace Dragoneye.Hex.Tests
 
         static BrainView Actor(Hex cell, int wholeAp = 6, Party party = Party.Monsters,
             params SkillSpec[] skills) =>
-            new BrainView(1, cell, party, Ap.FromWhole(wholeAp), 20,
+            new BrainView(1, Cell.Whole(cell), party, Ap.FromWhole(wholeAp), 20,
                 skills.Length > 0 ? skills : new[] { k_Jab });
 
         static BrainView Enemy(uint id, Hex cell, int hp = 20) =>
-            new BrainView(id, cell, Party.Heroes, Ap.FromWhole(6), hp);
+            new BrainView(id, Cell.Whole(cell), Party.Heroes, Ap.FromWhole(6), hp);
 
         [Test]
         public void UsesASkillOnAnAdjacentEnemy()
@@ -127,7 +136,7 @@ namespace Dragoneye.Hex.Tests
                 new[] { Enemy(2, new Hex(8, 0)) }, new OpenBoard(new Hex(8, 0)));
 
             Assert.AreEqual(BrainAction.Move, decision.Action);
-            Assert.AreEqual(4, Hex.Distance(decision.Destination, new Hex(8, 0)),
+            Assert.AreEqual(4, Hex.Distance(decision.Destination.Tile, new Hex(8, 0)),
                 "it stops at the edge of its reach rather than walking into melee");
         }
 
@@ -161,7 +170,7 @@ namespace Dragoneye.Hex.Tests
             ElementLedger.Starting(new ElementCounts(0, 0, 1, 0, 0, 0, 0))
                 .TrySpend(Element.Pyro, 1, out var spent, out _);
 
-            var actor = new BrainView(1, Hex.Zero, Party.Monsters, Ap.FromWhole(6), 20,
+            var actor = new BrainView(1, Cell.Whole(Hex.Zero), Party.Monsters, Ap.FromWhole(6), 20,
                 new[] { k_Strike, k_Breath }, spent);
 
             var plan = BasicBrain.Assess(actor, Enemy(2, new Hex(5, 0)));
@@ -174,7 +183,7 @@ namespace Dragoneye.Hex.Tests
         [Test]
         public void DoesNotStandAroundBreathingWhileItCanStillFight()
         {
-            var actor = new BrainView(1, Hex.Zero, Party.Monsters, Ap.FromWhole(6), 20,
+            var actor = new BrainView(1, Cell.Whole(Hex.Zero), Party.Monsters, Ap.FromWhole(6), 20,
                 new[] { k_Jab, k_Breath });
 
             Assert.AreEqual(BrainState.Striking, BasicBrain.Assess(actor, Enemy(2, new Hex(1, 0))).State);
@@ -190,7 +199,7 @@ namespace Dragoneye.Hex.Tests
         [Test]
         public void IdlesWithNothingLeftToSpend()
         {
-            var actor = new BrainView(1, Hex.Zero, Party.Monsters, Ap.Zero, 20, new[] { k_Jab });
+            var actor = new BrainView(1, Cell.Whole(Hex.Zero), Party.Monsters, Ap.Zero, 20, new[] { k_Jab });
 
             Assert.AreEqual(BrainState.Idle, BasicBrain.Assess(actor, Enemy(2, new Hex(5, 0))).State);
         }
@@ -217,7 +226,7 @@ namespace Dragoneye.Hex.Tests
                 Actor(Hex.Zero), new[] { Enemy(2, new Hex(4, 0)) }, new OpenBoard(new Hex(4, 0)));
 
             Assert.AreEqual(BrainAction.Move, decision.Action);
-            Assert.Less(Hex.Distance(decision.Destination, new Hex(4, 0)), 4,
+            Assert.Less(Hex.Distance(decision.Destination.Tile, new Hex(4, 0)), 4,
                 "Moving should close the gap");
         }
 
@@ -230,7 +239,7 @@ namespace Dragoneye.Hex.Tests
             var decision = new BasicBrain().Decide(
                 Actor(Hex.Zero), new[] { Enemy(2, enemyCell) }, new OpenBoard(enemyCell));
 
-            Assert.AreNotEqual(enemyCell, decision.Destination);
+            Assert.AreNotEqual(enemyCell, decision.Destination.Tile);
         }
 
         [Test]
@@ -243,7 +252,7 @@ namespace Dragoneye.Hex.Tests
             Assert.AreEqual(BrainAction.Move, decision.Action);
             // Half a point per tile, so two whole points buys four tiles -- asserted through the
             // rule rather than a literal, so changing the cost does not silently pass a stale test.
-            Assert.LessOrEqual(Hex.Distance(Hex.Zero, decision.Destination),
+            Assert.LessOrEqual(Hex.Distance(Hex.Zero, decision.Destination.Tile),
                 CombatRules.StepsAffordable(Ap.FromWhole(2), CombatRules.BaseStepCost));
         }
 
@@ -264,7 +273,7 @@ namespace Dragoneye.Hex.Tests
             // enemy is a legal destination and none of them is an improvement, so a brain that
             // moved here would shuffle back and forth until its AP ran out.
             var decision = new BasicBrain().Decide(
-                new BrainView(1, Hex.Zero, Party.Monsters, Ap.Step, 20, new[] { k_Jab }),
+                new BrainView(1, Cell.Whole(Hex.Zero), Party.Monsters, Ap.Step, 20, new[] { k_Jab }),
                 new[] { Enemy(2, new Hex(1, 0)) }, new OpenBoard(new Hex(1, 0)));
 
             Assert.AreEqual(BrainAction.None, decision.Action);
@@ -276,7 +285,7 @@ namespace Dragoneye.Hex.Tests
             // The same guard from further out: a creature with nothing it can pay for is adjacent
             // and staying there, rather than circling the enemy for the rest of the turn.
             var decision = new BasicBrain().Decide(
-                new BrainView(1, Hex.Zero, Party.Monsters, Ap.FromWhole(6), 20, new SkillSpec[0]),
+                new BrainView(1, Cell.Whole(Hex.Zero), Party.Monsters, Ap.FromWhole(6), 20, new SkillSpec[0]),
                 new[] { Enemy(2, new Hex(1, 0)) }, new OpenBoard(new Hex(1, 0)));
 
             Assert.AreEqual(BrainAction.None, decision.Action);
@@ -285,7 +294,7 @@ namespace Dragoneye.Hex.Tests
         [Test]
         public void IgnoresItsOwnParty()
         {
-            var ally = new BrainView(2, new Hex(1, 0), Party.Monsters, Ap.FromWhole(6), 20);
+            var ally = new BrainView(2, Cell.Whole(new Hex(1, 0)), Party.Monsters, Ap.FromWhole(6), 20);
 
             var decision = new BasicBrain().Decide(
                 Actor(Hex.Zero), new[] { ally }, new OpenBoard(new Hex(1, 0)));

@@ -14,7 +14,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: Dragoneye.Data::Dragoneye.Data.SkillAsset
   m_Id: 102
   m_DisplayName: Loose
-  m_Description: From wherever you are standing, which is the whole idea.
+  m_Description: An arrow, from wherever you are standing. Surer the closer they
+    are.
   m_Element: 3
   m_ElementOptions: 
   m_Conditions: []
@@ -26,4 +27,6 @@ MonoBehaviour:
   m_Amount: 3
   m_Scales: 1
   m_ScalesWith: 1
+  m_Accuracy: 90
+  m_Falloff: 8
   m_LevelRequired: 1

@@ -4,6 +4,7 @@ using UnityEngine;
 using UnityEngine.UIElements;
 using Dragoneye.Game;
 using Dragoneye.Game.Creatures;
+using Dragoneye.Hex;
 
 namespace Dragoneye.Game.Combat
 {
@@ -70,9 +71,9 @@ namespace Dragoneye.Game.Combat
             }
         }
 
-        void OnBoardClicked(Hex _) => Close();
+        void OnBoardClicked(Cell _) => Close();
 
-        void OnContextRequested(Hex hex, Vector2 screenPosition)
+        void OnContextRequested(Cell hex, Vector2 screenPosition)
         {
             // Asking what is possible here is not answering the question a waiting move asked.
             m_Input.CancelPendingMove();
@@ -122,7 +123,7 @@ namespace Dragoneye.Game.Combat
         /// all is left out rather than listed and refused, because "Strike cannot target you" is a
         /// sentence nobody needs to read every time they look at themselves.
         /// </summary>
-        List<Entry> Build(Hex hex)
+        List<Entry> Build(Cell hex)
         {
             var entries = new List<Entry>();
             var actor = m_Input.Actor;
@@ -150,7 +151,7 @@ namespace Dragoneye.Game.Combat
             return entries;
         }
 
-        void AddMove(List<Entry> entries, CreatureState actor, Hex hex)
+        void AddMove(List<Entry> entries, CreatureState actor, Cell hex)
         {
             if (actor == null)
             {
@@ -191,7 +192,7 @@ namespace Dragoneye.Game.Combat
         /// where you walked is what a player means almost every time, and six buttons in front of
         /// them every time they want to take a step would be six buttons in the way.
         /// </summary>
-        void ShowFacings(CreatureState actor, Hex hex)
+        void ShowFacings(CreatureState actor, Cell hex)
         {
             if (m_Menu == null)
             {
@@ -215,7 +216,7 @@ namespace Dragoneye.Game.Combat
             m_Menu.Add(row);
         }
 
-        VisualElement FacingButton(CreatureState actor, Hex hex, Facing facing)
+        VisualElement FacingButton(CreatureState actor, Cell hex, Facing facing)
         {
             var button = new Button();
             button.AddToClassList("context-facing");
@@ -238,7 +239,7 @@ namespace Dragoneye.Game.Combat
         /// nearest one that is -- which is what a player means when they right-click an enemy and
         /// ask to move.
         /// </summary>
-        void AddApproach(List<Entry> entries, CreatureState actor, CreatureState target, Hex hex)
+        void AddApproach(List<Entry> entries, CreatureState actor, CreatureState target, Cell hex)
         {
             if (actor == null || target == actor
                 || !m_Input.Board.TryTileInReach(actor.Cell, hex, 1, out var tile, out var steps)
@@ -263,7 +264,7 @@ namespace Dragoneye.Game.Combat
         /// is affordable right now: what a player cannot pay for this turn is worth seeing with the
         /// reason attached, and what could never apply is noise.
         /// </summary>
-        void AddSkills(List<Entry> entries, CreatureState actor, CreatureState target, Hex hex)
+        void AddSkills(List<Entry> entries, CreatureState actor, CreatureState target, Cell hex)
         {
             var commands = actor != null ? actor.SkillCommands : null;
 
@@ -321,11 +322,11 @@ namespace Dragoneye.Game.Combat
         /// the answer belongs where they pointed. There is one fact worth saying about a tile
         /// today; terrain that does something -- water, an acid pool -- says it in the same place.
         /// </summary>
-        void ShowDetails(Hex hex)
+        void ShowDetails(Cell hex)
         {
             var map = m_Input.Map != null ? m_Input.Map.Map : null;
 
-            if (m_Menu == null || map == null || !map.TryGetTile(hex, out var tile)
+            if (m_Menu == null || map == null || !map.TryGetTile(hex.Tile, out var tile)
                 || tile.Terrain == null)
             {
                 return;
@@ -339,8 +340,11 @@ namespace Dragoneye.Game.Combat
             name.AddToClassList("context-title");
             m_Menu.Add(name);
 
+            var steps = terrain.StepsToEnter;
+            var split = tile.Areas.Count > 1 ? $" Walls cut this tile into {tile.Areas.Count}." : string.Empty;
+
             var note = new Label(terrain.IsWalkable
-                ? $"Costs {terrain.MoveCost:0.#} of a step to cross."
+                ? (steps == 1 ? "One step to enter." : $"{steps} steps to enter.") + split
                 : "Nothing can cross this.");
             note.AddToClassList("context-note");
             m_Menu.Add(note);

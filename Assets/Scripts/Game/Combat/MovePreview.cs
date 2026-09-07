@@ -2,6 +2,7 @@ using Dragoneye.Combat;
 using UnityEngine;
 using Dragoneye.Game;
 using Dragoneye.Game.Creatures;
+using Dragoneye.Hex;
 
 namespace Dragoneye.Game.Combat
 {
@@ -57,7 +58,7 @@ namespace Dragoneye.Game.Combat
             }
         }
 
-        void Show(Hex hex, Facing facing, CreatureState actor)
+        void Show(Cell hex, Facing facing, CreatureState actor)
         {
             var arena = ArenaContext.Current.Map;
 

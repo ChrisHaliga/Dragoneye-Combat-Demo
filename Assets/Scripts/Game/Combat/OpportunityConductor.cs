@@ -3,6 +3,8 @@ using Dragoneye.Combat;
 using UnityEngine;
 using Dragoneye.Game;
 using Dragoneye.Game.Creatures;
+using Dragoneye.Hex;
+using Dragoneye.Hex.Systems;
 
 namespace Dragoneye.Game.Combat
 {
@@ -23,10 +25,10 @@ namespace Dragoneye.Game.Combat
         public readonly CreatureState Actor;
 
         /// <summary>Where the move goes, or what the skill is aimed at.</summary>
-        public readonly Hex Where;
+        public readonly Cell Where;
 
         /// <summary>Where the actor will actually be standing afterwards. What the watchers care about.</summary>
-        public readonly Hex Destination;
+        public readonly Cell Destination;
 
         public readonly Facing? Facing;
         public readonly int SkillId;
@@ -34,7 +36,7 @@ namespace Dragoneye.Game.Combat
         /// <summary>Which element the skill was going to arrive as, where that was a choice.</summary>
         public readonly Element Element;
 
-        public PendingAction(CreatureState actor, Hex where, Hex destination, Facing? facing,
+        public PendingAction(CreatureState actor, Cell where, Cell destination, Facing? facing,
             int skillId, Element element = default)
         {
             Actor = actor;
@@ -45,11 +47,11 @@ namespace Dragoneye.Game.Combat
             Element = element;
         }
 
-        public static PendingAction Move(CreatureState actor, Hex destination, Facing? facing) =>
+        public static PendingAction Move(CreatureState actor, Cell destination, Facing? facing) =>
             new PendingAction(actor, destination, destination, facing, NoSkill);
 
-        public static PendingAction Skill(CreatureState actor, int skillId, Hex target,
-            Hex approach, Element element) =>
+        public static PendingAction Skill(CreatureState actor, int skillId, Cell target,
+            Cell approach, Element element) =>
             new PendingAction(actor, target, approach, null, skillId, element);
 
         public bool Exists => Actor != null;
@@ -73,6 +75,7 @@ namespace Dragoneye.Game.Combat
         readonly IOpportunityHost m_Host;
         readonly CreatureRegistry m_Creatures;
         readonly Dice m_Dice;
+        readonly ArenaMap m_Map;
 
         PendingAction m_Pending;
         readonly List<CreatureState> m_Watchers = new List<CreatureState>();
@@ -88,11 +91,13 @@ namespace Dragoneye.Game.Combat
         /// </summary>
         const float HoldsBack = 0.15f;
 
-        public OpportunityConductor(IOpportunityHost host, CreatureRegistry creatures, Dice dice)
+        public OpportunityConductor(IOpportunityHost host, CreatureRegistry creatures, Dice dice,
+            ArenaMap map)
         {
             m_Host = host;
             m_Creatures = creatures;
             m_Dice = dice;
+            m_Map = map;
         }
 
         /// <summary>Whether an action is being held while somebody decides.</summary>
@@ -107,14 +112,25 @@ namespace Dragoneye.Game.Combat
         /// Position and facing only, both of which are on the board for anybody to read. Whether
         /// it can afford the swing is its own business -- that is the whole of DE-005.
         /// </summary>
-        public static bool Watches(CreatureState watcher, CreatureState mover) =>
-            AreEnemies(watcher, mover)
-            && ThreatGeometry.Watches(watcher.Cell, watcher.Facing, mover.Cell);
+        public static bool Watches(ArenaMap map, CreatureState watcher, CreatureState mover) =>
+            AreEnemies(watcher, mover) && map != null
+            && ThreatGeometry.Watches(map.Map, watcher.Cell, watcher.Facing, mover.Cell)
+            && CanSee(map, watcher.Cell, mover.Cell);
 
-        /// <summary>Whether that creature walking to this tile would give this one a swing.</summary>
-        public static bool Provokes(CreatureState watcher, CreatureState mover, Hex destination) =>
-            AreEnemies(watcher, mover)
-            && ThreatGeometry.Provokes(watcher.Cell, watcher.Facing, mover.Cell, destination);
+        /// <summary>
+        /// Whether that creature walking to this cell would give this one a swing.
+        ///
+        /// Geometry first, then the wall: a creature the arc covers but a wall hides is not one
+        /// that can be struck at, and the far side of a low wall is still within reach of a swing.
+        /// </summary>
+        public static bool Provokes(ArenaMap map, CreatureState watcher, CreatureState mover,
+            Cell destination) =>
+            AreEnemies(watcher, mover) && map != null
+            && ThreatGeometry.Provokes(map.Map, watcher.Cell, watcher.Facing, mover.Cell, destination)
+            && CanSee(map, watcher.Cell, mover.Cell);
+
+        static bool CanSee(ArenaMap map, Cell from, Cell to) =>
+            map.Grid == null || LineOfSight.Verdict(map.Grid, from, to) != LineVerdict.Blocked;
 
         static bool AreEnemies(CreatureState a, CreatureState b) =>
             a != null && b != null && a != b && a.IsAlive && b.IsAlive && a.Party != b.Party;
@@ -161,9 +177,9 @@ namespace Dragoneye.Game.Combat
         /// swing may have killed the mover, and a creature may have spent its last element
         /// answering one.
         /// </summary>
-        static bool CanSwing(CreatureState watcher, CreatureState mover, Hex destination)
+        bool CanSwing(CreatureState watcher, CreatureState mover, Cell destination)
         {
-            if (!Provokes(watcher, mover, destination))
+            if (!Provokes(m_Map, watcher, mover, destination))
             {
                 return false;
             }
@@ -316,7 +332,7 @@ namespace Dragoneye.Game.Combat
             }
 
             // Turning to swing, like any other attack, which opens the swinger's own back in turn.
-            watcher.ServerFace(ThreatGeometry.Bearing(watcher.Cell, mover.Cell));
+            watcher.ServerFace(ThreatGeometry.Bearing(m_Map.Map, watcher.Cell, mover.Cell));
 
             m_Host.BeginClash(watcher, skill, mover, telegraphed);
             return true;

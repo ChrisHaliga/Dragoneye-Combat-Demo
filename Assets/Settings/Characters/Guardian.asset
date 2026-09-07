@@ -28,3 +28,6 @@ MonoBehaviour:
   - {fileID: 11400000, guid: 5384d91a35e8ccc468b36e2e3a0210af, type: 2}
   m_Skills:
   - {fileID: 11400000, guid: d3df0d8534ad78d4cb8e75b3ddc7042d, type: 2}
+  - {fileID: 11400000, guid: b7849c93b56a9b6408b832e781268fcf, type: 2}
+  - {fileID: 11400000, guid: 2dbe8e049d031974097292f5dd6d4b35, type: 2}
+  - {fileID: 11400000, guid: be289aa267d77e145b0b20c5778d03a0, type: 2}

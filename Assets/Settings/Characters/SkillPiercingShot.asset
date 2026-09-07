@@ -1,0 +1,31 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0cf33f73d5fe1f5499fed1e4fddc1ebf, type: 3}
+  m_Name: SkillPiercingShot
+  m_EditorClassIdentifier: Dragoneye.Data::Dragoneye.Data.SkillAsset
+  m_Id: 132
+  m_DisplayName: Piercing Shot
+  m_Description: A heavy shaft. Geo, because it arrives like a thrown stone.
+  m_Element: 0
+  m_ElementOptions: 
+  m_Conditions: []
+  m_ApCost: 2
+  m_ElementCost: 2
+  m_Range: 4
+  m_Target: 0
+  m_Effect: 0
+  m_Amount: 8
+  m_Scales: 1
+  m_ScalesWith: 1
+  m_Accuracy: 90
+  m_Falloff: 8
+  m_LevelRequired: 6

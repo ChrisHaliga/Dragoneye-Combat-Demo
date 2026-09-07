@@ -51,7 +51,7 @@ namespace Dragoneye.Game
         /// Which way to end up turned, or null for the direction of travel -- which is what a
         /// creature that walked somewhere is looking at.
         /// </param>
-        public void RequestMove(Hex target, Facing? facing = null)
+        public void RequestMove(Cell target, Facing? facing = null)
         {
             if (CanCommand())
             {
@@ -84,9 +84,9 @@ namespace Dragoneye.Game
 
             // Refusals are ordinary -- a misclick on unreachable ground is one -- so this is verbose
             // rather than a warning. The client is simply not told; its creature does not move.
-            if (!CombatDirector.Current.ServerMove(m_Creature, cell.ToHex(), chosen))
+            if (!CombatDirector.Current.ServerMove(m_Creature, cell.ToCell(), chosen))
             {
-                Debug.Log($"[UnitCommands] Move to {cell.ToHex()} refused.", this);
+                Debug.Log($"[UnitCommands] Move to {cell.ToCell()} refused.", this);
             }
         }
 

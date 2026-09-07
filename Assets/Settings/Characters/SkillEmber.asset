@@ -14,16 +14,18 @@ MonoBehaviour:
   m_EditorClassIdentifier: Dragoneye.Data::Dragoneye.Data.SkillAsset
   m_Id: 104
   m_DisplayName: Ember
-  m_Description: Reaches, and it is expensive in exactly the element it is made of.
+  m_Description: A coal flicked off the end of the staff. Reaches, a little.
   m_Element: 2
   m_ElementOptions: 
   m_Conditions: []
-  m_ApCost: 2
-  m_ElementCost: 2
-  m_Range: 3
+  m_ApCost: 1
+  m_ElementCost: 1
+  m_Range: 2
   m_Target: 0
   m_Effect: 0
-  m_Amount: 9
+  m_Amount: 4
   m_Scales: 0
   m_ScalesWith: 2
-  m_LevelRequired: 2
+  m_Accuracy: 95
+  m_Falloff: 10
+  m_LevelRequired: 1

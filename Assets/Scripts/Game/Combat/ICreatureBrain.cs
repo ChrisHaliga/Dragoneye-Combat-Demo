@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using Dragoneye.Combat;
 using Dragoneye.Game;
 using Dragoneye.Game.Creatures;
+using Dragoneye.Hex;
 
 namespace Dragoneye.Game.Combat
 {
@@ -22,7 +23,7 @@ namespace Dragoneye.Game.Combat
     public readonly struct BrainView
     {
         public readonly uint Id;
-        public readonly Hex Cell;
+        public readonly Cell Cell;
         public readonly Party Party;
         public readonly Ap CurrentAp;
         public readonly int CurrentHp;
@@ -36,7 +37,7 @@ namespace Dragoneye.Game.Combat
         /// <summary>What one tile costs it, so a brain in plate does not plan a walk in leather.</summary>
         public readonly Ap StepCost;
 
-        public BrainView(uint id, Hex cell, Party party, Ap currentAp, int currentHp,
+        public BrainView(uint id, Cell cell, Party party, Ap currentAp, int currentHp,
             IReadOnlyList<SkillSpec> skills = null, ElementLedger ledger = default,
             Ap? stepCost = null)
         {
@@ -73,9 +74,9 @@ namespace Dragoneye.Game.Combat
         public readonly int SkillId;
 
         /// <summary>Where to move. Meaningful only for <see cref="BrainAction.Move"/>.</summary>
-        public readonly Hex Destination;
+        public readonly Cell Destination;
 
-        BrainDecision(BrainAction action, uint targetId, int skillId, Hex destination)
+        BrainDecision(BrainAction action, uint targetId, int skillId, Cell destination)
         {
             Action = action;
             TargetId = targetId;
@@ -89,7 +90,7 @@ namespace Dragoneye.Game.Combat
         public static BrainDecision UseSkill(int skillId, uint targetId) =>
             new BrainDecision(BrainAction.UseSkill, targetId, skillId, default);
 
-        public static BrainDecision MoveTo(Hex destination) =>
+        public static BrainDecision MoveTo(Cell destination) =>
             new BrainDecision(BrainAction.Move, 0, 0, destination);
     }
 
@@ -122,18 +123,27 @@ namespace Dragoneye.Game.Combat
     public interface IBoardQuery
     {
         /// <summary>Steps along the cheapest route, or -1 if there is none.</summary>
-        int CostTo(Hex from, Hex to);
+        int CostTo(Cell from, Cell to);
 
         /// <summary>The cheapest route, destination last, empty if unreachable.</summary>
-        IReadOnlyList<Hex> PathTo(Hex from, Hex to);
+        IReadOnlyList<Cell> PathTo(Cell from, Cell to);
 
         /// <summary>Whether a creature stands on this hex.</summary>
-        bool IsOccupied(Hex hex);
+        bool IsOccupied(Cell cell);
 
         /// <summary>
         /// The tile within this many steps that ends nearest the target, when the target itself
         /// cannot be reached. False when nowhere is nearer than where the creature stands.
         /// </summary>
-        bool TryClosest(Hex from, Hex target, int budget, out Hex tile);
+        bool TryClosest(Cell from, Cell target, int budget, out Cell tile);
+
+        /// <summary>Every cell one step from this one, by the map's rules: across open edges only.</summary>
+        void Neighbours(Cell of, List<Cell> into);
+
+        /// <summary>Steps it costs to enter a cell. One for open ground.</summary>
+        int StepsToEnter(Cell cell);
+
+        /// <summary>Whether nothing opaque stands between two cells. No line, no attack.</summary>
+        bool HasLine(Cell from, Cell to);
     }
 }

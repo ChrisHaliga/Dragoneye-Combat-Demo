@@ -290,7 +290,7 @@ namespace Dragoneye.Game.Creatures
         /// split -- but combat needs both in the same breath, and every caller reaching across with
         /// GetComponent would be the same lookup written eight times.
         /// </summary>
-        public Dragoneye.Hex.Hex Cell => Unit != null ? Unit.Cell : default;
+        public Dragoneye.Hex.Cell Cell => Unit != null ? Unit.Cell : default;
 
         /// <summary>The position half of this creature. Cached; both live on the one prefab.</summary>
         public UnitState Unit

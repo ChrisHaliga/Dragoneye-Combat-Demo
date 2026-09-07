@@ -211,7 +211,7 @@ namespace Dragoneye.Hex.Tests
         {
             Assert.IsEmpty(HexSpawnPlacement.PlaceGrouped(Map(3), null, 2));
             Assert.IsEmpty(HexSpawnPlacement.PlaceGrouped(Map(3), new int[0], 2));
-            Assert.AreEqual(1, HexSpawnPlacement.PlaceGrouped(null, new[] { 0 }, 1).Count);
+            Assert.AreEqual(1, HexSpawnPlacement.PlaceGrouped((HexMap)null, new[] { 0 }, 1).Count);
         }
 
         static int Widest(List<Hex> cells)

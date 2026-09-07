@@ -40,10 +40,10 @@ namespace Dragoneye.Game
         UnitIndex m_Index;
 
         /// <summary>The hex this unit occupies. Authoritative the instant the server writes it.</summary>
-        public Hex Cell => m_Cell.Value.ToHex();
+        public Cell Cell => m_Cell.Value.ToCell();
 
         /// <summary>Raised on every client when the unit's cell changes.</summary>
-        public event Action<Hex> CellChanged;
+        public event Action<Cell> CellChanged;
 
         /// <summary>
         /// Server only, and only before <c>Spawn()</c>. Sets where the unit comes into existence.
@@ -54,7 +54,7 @@ namespace Dragoneye.Game
         /// momentarily claims the same hex and anything reading occupancy in that window is wrong.
         /// Set here, published in <see cref="OnNetworkSpawn"/>, the unit is never anywhere else.
         /// </summary>
-        public void ServerPlaceAt(Hex hex) => m_StartCell = new NetCell(hex);
+        public void ServerPlaceAt(Cell cell) => m_StartCell = new NetCell(cell);
 
         public override void OnNetworkSpawn()
         {
@@ -96,7 +96,7 @@ namespace Dragoneye.Game
         }
 
         /// <summary>Server only. Moves the unit without any client being able to ask for it.</summary>
-        public void ServerSetCell(Hex hex)
+        public void ServerSetCell(Cell cell)
         {
             if (!IsServer)
             {
@@ -108,13 +108,13 @@ namespace Dragoneye.Game
                 return;
             }
 
-            m_Cell.Value = new NetCell(hex);
+            m_Cell.Value = new NetCell(cell);
         }
 
         void OnCellChanged(NetCell previous, NetCell current)
         {
-            m_Index?.Move(this, previous.ToHex(), current.ToHex());
-            CellChanged?.Invoke(current.ToHex());
+            m_Index?.Move(this, previous.ToCell(), current.ToCell());
+            CellChanged?.Invoke(current.ToCell());
         }
 
     }

@@ -4,36 +4,41 @@ using UnityEngine;
 namespace Dragoneye.Hex.Systems
 {
     /// <summary>
-    /// Chooses evenly spread starting tiles around the edge of a map.
+    /// Where creatures start.
     ///
-    /// Shape-agnostic on purpose: it works outward from the map's own bounds rather than assuming a
-    /// hexagon, so a rectangle or a hand-authored arena gets sensible spawns with no code change.
+    /// Candidates are cells, not tiles, and only cells in the largest connected piece of the map.
+    /// A split rim tile can have an area that is walled off from everything, and a creature
+    /// placed there would spend the fight looking at a wall; the connected-piece rule is what
+    /// stops that, and it costs one flood fill at spawn time.
     /// </summary>
     public static class HexSpawnPlacement
     {
-        /// <summary>
-        /// The nearest walkable, unoccupied hex to <paramref name="anchor"/>, searched outward a
-        /// ring at a time so a group clusters around its anchor rather than forming a line.
-        /// </summary>
-        /// <param name="taken">Hexes already handed out in this batch. Not mutated.</param>
-        /// <returns>The anchor itself if nothing free is found within the search radius.</returns>
-        public static Hex FindNearestFree(HexMap map, Hex anchor, ICollection<Hex> taken,
-            int maxRadius = 16)
+        /// <summary>The nearest unclaimed standable cell to an anchor, searching outward by tile.</summary>
+        public static Cell FindNearestFree(IGridRules grid, Cell anchor, ICollection<Cell> taken,
+            ICollection<Cell> allowed = null, int maxRadius = 16)
         {
-            if (map == null)
+            if (grid == null)
             {
                 return anchor;
             }
 
+            var cells = new List<Cell>();
+
             for (var radius = 0; radius <= maxRadius; radius++)
             {
-                foreach (var candidate in Hex.Ring(anchor, radius))
+                foreach (var tile in Hex.Ring(anchor.Tile, radius))
                 {
-                    if ((taken == null || !taken.Contains(candidate))
-                        && map.TryGetTile(candidate, out var tile)
-                        && tile.IsWalkable)
+                    cells.Clear();
+                    grid.CellsOf(tile, cells);
+
+                    foreach (var candidate in cells)
                     {
-                        return candidate;
+                        if ((taken == null || !taken.Contains(candidate))
+                            && (allowed == null || allowed.Contains(candidate))
+                            && grid.IsWalkable(candidate))
+                        {
+                            return candidate;
+                        }
                     }
                 }
             }
@@ -42,68 +47,60 @@ namespace Dragoneye.Hex.Systems
         }
 
         /// <summary>
-        /// Picks <paramref name="count"/> distinct walkable tiles, spaced around the map's rim at
-        /// equal angles. Returns fewer only if the map has fewer walkable tiles than requested.
+        /// One starting cell per side, spread evenly round the rim of the playable ground.
         /// </summary>
-        /// <param name="startAngleDegrees">
-        /// Rotates the whole arrangement. Useful to keep spawn 1 in a consistent place.
-        /// </param>
-        public static IReadOnlyList<Hex> ChooseSpawns(HexMap map, int count, float startAngleDegrees = 90f)
+        public static IReadOnlyList<Cell> ChooseSpawns(IGridRules grid, int count,
+            float startAngleDegrees = 90f)
         {
-            var spawns = new List<Hex>();
-            if (map == null || count <= 0)
+            var spawns = new List<Cell>();
+
+            if (grid == null || grid.Map == null || count <= 0)
             {
                 return spawns;
             }
 
-            // Sorted so the result is stable run to run; dictionary order is not guaranteed.
-            var candidates = new List<Hex>();
-            foreach (var tile in map.Tiles)
-            {
-                if (tile.IsWalkable)
-                {
-                    candidates.Add(tile.Coordinates);
-                }
-            }
+            var candidates = new List<Cell>(Playable(grid));
 
-            candidates.Sort((a, b) => a.Q != b.Q ? a.Q.CompareTo(b.Q) : a.R.CompareTo(b.R));
             if (candidates.Count == 0)
             {
                 return spawns;
             }
 
+            var map = grid.Map;
             var center = map.WorldCenter();
             var radius = 0f;
-            foreach (var hex in candidates)
+
+            foreach (var cell in candidates)
             {
-                radius = Mathf.Max(radius, Vector3.Distance(map.Layout.ToWorld(hex), center));
+                radius = Mathf.Max(radius, Vector3.Distance(map.Layout.ToWorld(cell.Tile), center));
             }
 
-            var taken = new HashSet<Hex>();
+            var taken = new HashSet<Cell>();
 
             for (var i = 0; i < count && taken.Count < candidates.Count; i++)
             {
                 var angle = Mathf.Deg2Rad * (startAngleDegrees + 360f * i / count);
                 var target = center + new Vector3(Mathf.Cos(angle), 0f, Mathf.Sin(angle)) * radius;
 
-                // Aim past the rim, then take the nearest real tile. This lands on the edge for a
+                // Aim past the rim, then take the nearest real cell. This lands on the edge for a
                 // convex map and degrades gracefully to "as far out as possible" for anything else.
-                var best = default(Hex);
+                var best = default(Cell);
                 var bestDistance = float.MaxValue;
                 var found = false;
 
-                foreach (var hex in candidates)
+                foreach (var cell in candidates)
                 {
-                    if (taken.Contains(hex))
+                    if (taken.Contains(cell))
                     {
                         continue;
                     }
 
-                    var distance = Vector3.SqrMagnitude(map.Layout.ToWorld(hex) - target);
+                    var distance = Vector3.SqrMagnitude(map.Layout.ToWorld(cell.Tile) - target);
+
                     if (distance < bestDistance)
                     {
                         bestDistance = distance;
-                        best = hex;
+                        best = cell;
                         found = true;
                     }
                 }
@@ -119,38 +116,164 @@ namespace Dragoneye.Hex.Systems
         }
 
         /// <summary>
-        /// Places a batch of things so members of a group land together and the groups land apart.
-        ///
-        /// Each group takes one rim anchor from <see cref="ChooseSpawns"/>; its members then fill
-        /// the rings around it. Groups are identified by index rather than by any game type, so the
-        /// systems layer stays ignorant of what a "party" is.
+        /// A cell for every item, grouped: each group gets an anchor from <see cref="ChooseSpawns"/>
+        /// and its members fill outward from it.
         /// </summary>
-        /// <param name="groupOfItem">One group index per item, in the order items are placed.</param>
-        /// <returns>One distinct cell per item, in the same order.</returns>
-        public static IReadOnlyList<Hex> PlaceGrouped(HexMap map, IReadOnlyList<int> groupOfItem,
+        public static IReadOnlyList<Cell> PlaceGrouped(IGridRules grid, IReadOnlyList<int> groupOfItem,
             int groupCount)
         {
-            var cells = new List<Hex>();
-            if (groupOfItem == null)
+            var cells = new List<Cell>();
+
+            if (groupOfItem == null || grid == null)
             {
                 return cells;
             }
 
-            var anchors = ChooseSpawns(map, Mathf.Max(1, groupCount));
-            var taken = new HashSet<Hex>();
+            var playable = Playable(grid);
+            var anchors = ChooseSpawns(grid, Mathf.Max(1, groupCount));
+            var taken = new HashSet<Cell>();
 
             foreach (var group in groupOfItem)
             {
                 var anchor = anchors.Count > 0
                     ? anchors[Mathf.Max(0, group) % anchors.Count]
-                    : Hex.Zero;
+                    : Cell.Whole(Hex.Zero);
 
-                var cell = FindNearestFree(map, anchor, taken);
+                var cell = FindNearestFree(grid, anchor, taken, playable);
                 taken.Add(cell);
                 cells.Add(cell);
             }
 
             return cells;
+        }
+
+        /// <summary>
+        /// Every standable cell in the largest connected piece of the map, sorted so the result is
+        /// stable run to run.
+        /// </summary>
+        public static HashSet<Cell> Playable(IGridRules grid)
+        {
+            var best = new HashSet<Cell>();
+
+            if (grid == null || grid.Map == null)
+            {
+                return best;
+            }
+
+            var seen = new HashSet<Cell>();
+            var cells = new List<Cell>();
+            var neighbours = new List<Cell>();
+
+            // Tiles in a fixed order, so which piece wins a tie is the same every time.
+            var tiles = new List<Hex>(grid.Map.Coordinates);
+            tiles.Sort((a, b) => a.Q != b.Q ? a.Q.CompareTo(b.Q) : a.R.CompareTo(b.R));
+
+            foreach (var tile in tiles)
+            {
+                cells.Clear();
+                grid.CellsOf(tile, cells);
+
+                foreach (var start in cells)
+                {
+                    if (seen.Contains(start) || !grid.IsWalkable(start))
+                    {
+                        continue;
+                    }
+
+                    var piece = new HashSet<Cell> { start };
+                    var frontier = new Queue<Cell>();
+                    frontier.Enqueue(start);
+                    seen.Add(start);
+
+                    while (frontier.Count > 0)
+                    {
+                        neighbours.Clear();
+                        grid.Neighbours(frontier.Dequeue(), neighbours);
+
+                        foreach (var next in neighbours)
+                        {
+                            if (seen.Add(next) && grid.IsWalkable(next))
+                            {
+                                piece.Add(next);
+                                frontier.Enqueue(next);
+                            }
+                        }
+                    }
+
+                    if (piece.Count > best.Count)
+                    {
+                        best = piece;
+                    }
+                }
+            }
+
+            return best;
+        }
+        // ---------- the tile-only face, for maps without walls ----------
+
+        public static Hex FindNearestFree(HexMap map, Hex anchor, ICollection<Hex> taken,
+            int maxRadius = 16)
+        {
+            if (map == null)
+            {
+                return anchor;
+            }
+
+            return FindNearestFree(new GridRules(map), Cell.Whole(anchor), Whole(taken), null, maxRadius).Tile;
+        }
+
+        public static IReadOnlyList<Hex> ChooseSpawns(HexMap map, int count, float startAngleDegrees = 90f) =>
+            Tiles(ChooseSpawns(map != null ? new GridRules(map) : null, count, startAngleDegrees));
+
+        public static IReadOnlyList<Hex> PlaceGrouped(HexMap map, IReadOnlyList<int> groupOfItem,
+            int groupCount)
+        {
+            if (map != null)
+            {
+                return Tiles(PlaceGrouped(new GridRules(map), groupOfItem, groupCount));
+            }
+
+            // No map: everybody at the origin, which is where the anchor search ends without one.
+            var fallback = new List<Hex>();
+
+            if (groupOfItem != null)
+            {
+                foreach (var _ in groupOfItem)
+                {
+                    fallback.Add(Hex.Zero);
+                }
+            }
+
+            return fallback;
+        }
+
+        static ICollection<Cell> Whole(ICollection<Hex> tiles)
+        {
+            if (tiles == null)
+            {
+                return null;
+            }
+
+            var cells = new HashSet<Cell>();
+
+            foreach (var tile in tiles)
+            {
+                cells.Add(Cell.Whole(tile));
+            }
+
+            return cells;
+        }
+
+        static IReadOnlyList<Hex> Tiles(IReadOnlyList<Cell> cells)
+        {
+            var tiles = new List<Hex>(cells.Count);
+
+            foreach (var cell in cells)
+            {
+                tiles.Add(cell.Tile);
+            }
+
+            return tiles;
         }
     }
 }

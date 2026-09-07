@@ -5,6 +5,7 @@ using Unity.Netcode;
 using UnityEngine;
 using Dragoneye.Game;
 using Dragoneye.Game.Creatures;
+using Dragoneye.Hex;
 
 namespace Dragoneye.Game.Combat
 {
@@ -180,7 +181,7 @@ namespace Dragoneye.Game.Combat
         /// than decided on the server so that what the player picked is what happens -- an element
         /// chosen for them, however sensibly, is a decision they cannot learn from.
         /// </summary>
-        public void RequestUse(int skillId, Hex target, Element? element = null)
+        public void RequestUse(int skillId, Cell target, Element? element = null)
         {
             if (LocalPlayer.Controls(m_Creature)
                 && TurnState.Current != null && TurnState.Current.IsActive(m_Creature))
@@ -205,7 +206,7 @@ namespace Dragoneye.Game.Combat
             // Whether the skill actually offers it is the director question, not this one.
             var chosen = chose && ElementInfo.IsDefined(picked) ? picked : (Element?)null;
 
-            if (!CombatDirector.Current.ServerUseSkill(m_Creature, skillId, cell.ToHex(),
+            if (!CombatDirector.Current.ServerUseSkill(m_Creature, skillId, cell.ToCell(),
                     out var why, chosen))
             {
                 // Refusals are ordinary -- a misclick out of range is one -- so this is verbose

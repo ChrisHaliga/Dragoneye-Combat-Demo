@@ -48,6 +48,29 @@ MonoBehaviour:
   - {fileID: 11400000, guid: d3df0d8534ad78d4cb8e75b3ddc7042d, type: 2}
   - {fileID: 11400000, guid: d57f35a51af6b494d9d323120731af2c, type: 2}
   - {fileID: 11400000, guid: fefeeeeca6617854181644d90f24fcf6, type: 2}
+  - {fileID: 11400000, guid: b7849c93b56a9b6408b832e781268fcf, type: 2}
+  - {fileID: 11400000, guid: 2dbe8e049d031974097292f5dd6d4b35, type: 2}
+  - {fileID: 11400000, guid: be289aa267d77e145b0b20c5778d03a0, type: 2}
+  - {fileID: 11400000, guid: 8e5769d1fccdb3847bcff273fca2b61b, type: 2}
+  - {fileID: 11400000, guid: 96aa1d1d65a5ba344beec6c3218cbb27, type: 2}
+  - {fileID: 11400000, guid: c7bc191414580b94c80dbd4ba6f9c7e2, type: 2}
+  - {fileID: 11400000, guid: 8900854cab095b84a8e9cab956ff9a78, type: 2}
+  - {fileID: 11400000, guid: af23e3f8bbfaa0b4e97fab65215d2937, type: 2}
+  - {fileID: 11400000, guid: 3fbf0f5718c495342b855aa631b77690, type: 2}
+  - {fileID: 11400000, guid: 922bc04a07445724ca5d52263cdec4a7, type: 2}
+  - {fileID: 11400000, guid: d7aded005875a544c8e902b1e1d4cc5f, type: 2}
+  - {fileID: 11400000, guid: dcebaef701d4f2c46aee01c8081b3123, type: 2}
+  - {fileID: 11400000, guid: b736e8627f784f14ebc3c488fc9d3455, type: 2}
+  - {fileID: 11400000, guid: f518bd5df92340645821431f865d7ed3, type: 2}
+  - {fileID: 11400000, guid: 44562af5c7a2d7748806ab7c67653765, type: 2}
+  - {fileID: 11400000, guid: 4d0c0295a1316244aa0a26884ee76488, type: 2}
+  - {fileID: 11400000, guid: 915cd4b7db1037645971d3c24b1dbe52, type: 2}
+  - {fileID: 11400000, guid: be2bfc5667ed24246b4e752c3b7c1b23, type: 2}
+  - {fileID: 11400000, guid: 3a9ebc4e7d1b11a40a5050b27d62761f, type: 2}
+  - {fileID: 11400000, guid: 57669350c4faab542af9819d3648d52a, type: 2}
+  - {fileID: 11400000, guid: 19df20f0bf9914a4f8b6aa162b4e951b, type: 2}
+  - {fileID: 11400000, guid: b1661daf8a99f9f4bbd2a7f4d8ced19d, type: 2}
+  - {fileID: 11400000, guid: 597bcabd5e70fe34ab9b37e0c47ea0ac, type: 2}
   m_Portraits: {fileID: 11400000, guid: 6633950f887b0bb43a52ee5680e98291, type: 2}
   m_ElementIcons: {fileID: 11400000, guid: ae43c083302147146a111869a9e8eea8, type: 2}
   m_ElementMatchups: {fileID: 11400000, guid: 28427c1ad5d4ad9499a4328fa2d7b3ff, type: 2}

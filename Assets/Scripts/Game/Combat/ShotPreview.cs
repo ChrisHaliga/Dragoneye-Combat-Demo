@@ -2,6 +2,7 @@ using Dragoneye.Data;
 using UnityEngine;
 using Dragoneye.Game;
 using Dragoneye.Game.Creatures;
+using Dragoneye.Hex;
 
 namespace Dragoneye.Game.Combat
 {
@@ -51,7 +52,7 @@ namespace Dragoneye.Game.Combat
             var plan = shot.Value;
             var from = arena.ToWorld(plan.From) + Vector3.up * Lift(m_Input.Actor);
             var to = arena.ToWorld(plan.To) + Vector3.up * 0.5f;
-            var tiles = Dragoneye.Hex.Hex.Distance(plan.From, plan.To);
+            var tiles = Cell.Distance(plan.From, plan.To);
 
             ShotArc.Sample(from, to, ShotArc.Height(tiles), m_Points);
             m_Line.SetPositions(m_Points);

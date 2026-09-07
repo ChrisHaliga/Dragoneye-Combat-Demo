@@ -1,8 +1,6 @@
 using System.Collections.Generic;
 using Dragoneye.Hex;
 using UnityEngine;
-using Dragoneye.Game.Combat;
-using Dragoneye.Game.Creatures;
 
 namespace Dragoneye.Game
 {
@@ -12,37 +10,32 @@ namespace Dragoneye.Game
     using Hex = Dragoneye.Hex.Hex;
 
     /// <summary>
-    /// Which unit is standing on which hex.
-    ///
-    /// This is what makes "click a unit" and "click a tile" the same operation: a click resolves to
-    /// a hex, and the hex is looked up here. No second raycast, no colliders on units, and the same
-    /// structure answers the occupancy question that movement validation and, later, targeting both
-    /// need anyway.
-    ///
-    /// A plain component rather than a static so it dies with the arena scene. A static registry
-    /// would carry stale entries into the next match.
-    /// </summary>
+    /// Who is standing where. One occupant per cell; a split tile can hold one per area.</summary>
     [DisallowMultipleComponent]
     public sealed class UnitIndex : MonoBehaviour
     {
-        readonly Dictionary<Hex, UnitState> m_Occupants = new Dictionary<Hex, UnitState>();
+        readonly Dictionary<Cell, UnitState> m_Occupants = new Dictionary<Cell, UnitState>();
 
-        public bool TryGet(Hex hex, out UnitState unit) => m_Occupants.TryGetValue(hex, out unit);
+        public bool TryGet(Cell cell, out UnitState unit) => m_Occupants.TryGetValue(cell, out unit);
 
-        public bool IsOccupied(Hex hex) => m_Occupants.ContainsKey(hex);
+        public bool IsOccupied(Cell cell) => m_Occupants.ContainsKey(cell);
 
-        /// <summary>Occupancy ignoring one unit -- the mover should not block its own move.</summary>
-        public bool IsOccupiedByOther(Hex hex, UnitState mover) =>
-            m_Occupants.TryGetValue(hex, out var occupant) && occupant != mover;
+        public bool IsOccupiedByOther(Cell cell, UnitState mover) =>
+            m_Occupants.TryGetValue(cell, out var occupant) && occupant != mover;
 
-        /// <summary>
-        /// Copies every occupied hex into <paramref name="into"/>, skipping <paramref name="except"/>.
-        ///
-        /// Exists so pathfinding can be told what blocks a route without every caller rebuilding
-        /// that set from a different source. The exception is the mover: a unit must not be an
-        /// obstacle to itself, which would make every route from its own hex unreachable.
-        /// </summary>
-        public void CopyOccupiedTo(ICollection<Hex> into, Hex except)
+        /// <summary>Everybody on any area of a tile. A line passing over the tile passes them all.</summary>
+        public void OccupantsOf(Hex tile, List<UnitState> into)
+        {
+            foreach (var pair in m_Occupants)
+            {
+                if (pair.Key.Tile == tile)
+                {
+                    into.Add(pair.Value);
+                }
+            }
+        }
+
+        public void CopyOccupiedTo(ICollection<Cell> into, Cell except)
         {
             if (into == null)
             {
@@ -68,7 +61,7 @@ namespace Dragoneye.Game
             }
         }
 
-        public void Move(UnitState unit, Hex from, Hex to)
+        public void Move(UnitState unit, Cell from, Cell to)
         {
             // Guarded because the entry at `from` may already belong to someone else if two units
             // swapped in the same tick.

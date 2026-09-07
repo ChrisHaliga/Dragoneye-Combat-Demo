@@ -40,6 +40,8 @@ namespace Dragoneye.Game.Combat
                     return "That is an ally.";
                 case SkillRefusal.TargetIsDead:
                     return "That creature is already dead.";
+                case SkillRefusal.NoLine:
+                    return "No line of sight to that.";
                 default:
                     return "Unavailable.";
             }

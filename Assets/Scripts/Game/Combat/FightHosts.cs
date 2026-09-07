@@ -1,6 +1,7 @@
 using Dragoneye.Combat;
 using Dragoneye.Game;
 using Dragoneye.Game.Creatures;
+using Dragoneye.Hex;
 
 namespace Dragoneye.Game.Combat
 {
@@ -31,10 +32,10 @@ namespace Dragoneye.Game.Combat
     public interface IOpportunityHost
     {
         /// <summary>The move, once nobody is owed a swing at it.</summary>
-        bool PerformMove(CreatureState actor, Hex destination, Facing? facing);
+        bool PerformMove(CreatureState actor, Cell destination, Facing? facing);
 
         /// <summary>The skill, replayed from the top, once nobody is owed a swing at its approach.</summary>
-        void ReplaySkill(CreatureState actor, int skillId, Hex target, Element element);
+        void ReplaySkill(CreatureState actor, int skillId, Cell target, Element element);
 
         /// <summary>Opens a clash for a swing.</summary>
         void BeginClash(CreatureState attacker, SkillSpec skill, CreatureState defender,
@@ -48,7 +49,7 @@ namespace Dragoneye.Game.Combat
 
         bool CanAct(CreatureState actor);
 
-        bool Move(CreatureState actor, Hex destination);
+        bool Move(CreatureState actor, Cell destination);
 
         bool UseSkillOn(CreatureState actor, int skillId, CreatureState target);
 

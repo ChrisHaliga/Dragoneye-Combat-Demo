@@ -8,6 +8,7 @@ using UnityEngine;
 using UnityEngine.SceneManagement;
 using Dragoneye.Game.Combat;
 using Dragoneye.Game.Creatures;
+using Dragoneye.Hex;
 
 namespace Dragoneye.Game
 {
@@ -216,12 +217,12 @@ namespace Dragoneye.Game
         void SpawnFocusPoints(ArenaMap arena)
         {
             var clients = NetworkManager.Singleton.ConnectedClientsIds;
-            var spawns = HexSpawnPlacement.ChooseSpawns(arena.Map, clients.Count);
+            var spawns = HexSpawnPlacement.ChooseSpawns(arena.Grid, clients.Count);
             var index = 0;
 
             foreach (var clientId in clients)
             {
-                var cell = spawns.Count > 0 ? spawns[index % spawns.Count] : Hex.Zero;
+                var cell = spawns.Count > 0 ? spawns[index % spawns.Count] : Cell.Whole(Hex.Zero);
                 index++;
 
                 SpawnFocus(clientId, arena.ToWorld(cell));
@@ -310,7 +311,7 @@ namespace Dragoneye.Game
                 groups.Add(Mathf.Max(0, parties.IndexOf(placement.Entry.Party)));
             }
 
-            var cells = HexSpawnPlacement.PlaceGrouped(arena.Map, groups, parties.Count);
+            var cells = HexSpawnPlacement.PlaceGrouped(arena.Grid, groups, parties.Count);
 
             // Everybody starts looking inward. Facing defaults to north, and a board where every
             // creature faces north is a board where whoever spawned to the north is flanked before
@@ -320,7 +321,7 @@ namespace Dragoneye.Game
             for (var i = 0; i < placements.Count; i++)
             {
                 SpawnUnit(placements[i].Entry, cells[i], placements[i].BuildSlot,
-                    Facing.Of((int)Hex.DirectionTo(cells[i], middle)), placements[i].Ordinal);
+                    Facing.Of((int)Hex.DirectionTo(cells[i].Tile, middle)), placements[i].Ordinal);
             }
         }
 
@@ -331,7 +332,7 @@ namespace Dragoneye.Game
         /// not obliged to be centred on it -- a rectangle generated from a corner would send half
         /// the board looking off the edge of it.
         /// </summary>
-        static Hex Middle(IReadOnlyList<Hex> cells)
+        static Hex Middle(IReadOnlyList<Cell> cells)
         {
             if (cells.Count == 0)
             {
@@ -343,8 +344,8 @@ namespace Dragoneye.Game
 
             foreach (var cell in cells)
             {
-                q += cell.Q;
-                r += cell.R;
+                q += cell.Tile.Q;
+                r += cell.Tile.R;
             }
 
             return new Hex(q / cells.Count, r / cells.Count);
@@ -427,7 +428,7 @@ namespace Dragoneye.Game
         /// it; an unclaimed creature stays owned by the server, which is what "computer-controlled"
         /// means for now.
         /// </summary>
-        void SpawnUnit(RosterEntry entry, Hex cell, byte buildSlot = PartyInfo.Unclaimed,
+        void SpawnUnit(RosterEntry entry, Cell cell, byte buildSlot = PartyInfo.Unclaimed,
             Facing facing = default, int ordinal = 0)
         {
             if (m_UnitPrefab == null)

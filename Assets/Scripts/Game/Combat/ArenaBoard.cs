@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using Dragoneye.Combat;
+using Dragoneye.Hex;
 using Dragoneye.Hex.Systems;
 using Dragoneye.Game;
 using Dragoneye.Game.Creatures;
@@ -11,17 +12,11 @@ namespace Dragoneye.Game.Combat
     using Hex = Dragoneye.Hex.Hex;
 
     /// <summary>
-    /// The arena as combat needs to see it: what a route costs, what is standing where, and what is
-    /// next to a given hex.
+    /// Every question about the board, answered from the map's rules and who is standing on it.
     ///
-    /// One implementation, used by the server when it validates an action, by the brain when it
-    /// decides one, and by the client when it prices the hover. That is the point. Each of those had
-    /// its own copy of "living creatures block a route, except the one moving", and three copies of a
-    /// rule is three chances for the label to promise a move the server refuses.
-    ///
-    /// Occupancy comes from <see cref="UnitIndex"/> rather than a scan of the creature registry,
-    /// because the index is already the authority on which hex holds what and answers in constant
-    /// time.
+    /// The seam between the fight and the grid. Walls, terrain cost and split tiles all live on
+    /// the map side of it; occupancy lives on the game side; this is where the two are read
+    /// together, and nothing else reads either for a fighting decision.
     /// </summary>
     public sealed class ArenaBoard : IBoardQuery
     {
@@ -30,8 +25,10 @@ namespace Dragoneye.Game.Combat
 
         // Reused across calls. Every method that fills them consumes them before returning, and
         // PathTo hands back a copy, so no caller is left holding a buffer that later changes.
-        readonly List<Hex> m_Path = new List<Hex>();
-        readonly HashSet<Hex> m_Blocked = new HashSet<Hex>();
+        readonly List<Cell> m_Path = new List<Cell>();
+        readonly HashSet<Cell> m_Blocked = new HashSet<Cell>();
+        readonly List<Cell> m_Cells = new List<Cell>();
+        readonly Dictionary<Cell, int> m_Reach = new Dictionary<Cell, int>();
 
         public ArenaBoard(ArenaMap map, UnitIndex units)
         {
@@ -39,46 +36,54 @@ namespace Dragoneye.Game.Combat
             m_Units = units;
         }
 
-        /// <summary>True when there is a map to path across.</summary>
-        public bool IsReady => m_Map != null && m_Map.Map != null && m_Units != null;
+        public bool IsReady => m_Map != null && m_Map.Map != null && m_Map.Grid != null && m_Units != null;
 
-        /// <summary>Steps along the cheapest route, or -1 if there is none.</summary>
-        public int CostTo(Hex from, Hex to) => TryPath(from, to) ? m_Path.Count : -1;
+        IGridRules Grid => m_Map != null ? m_Map.Grid : null;
+
+        // ---------- walking ----------
+
+        public int CostTo(Cell from, Cell to) => TryPath(from, to, from, out var cost) ? cost : -1;
+
+        public IReadOnlyList<Cell> PathTo(Cell from, Cell to) =>
+            TryPath(from, to, from, out _) ? new List<Cell>(m_Path) : System.Array.Empty<Cell>();
+
+        public IReadOnlyList<Cell> PathTo(Cell from, Cell to, Cell ignore) =>
+            TryPath(from, to, ignore, out _) ? new List<Cell>(m_Path) : System.Array.Empty<Cell>();
+
+        public bool IsOccupied(Cell cell) => m_Units != null && m_Units.IsOccupied(cell);
+
+        public int StepsToEnter(Cell cell) => IsReady ? Grid.StepsToEnter(cell) : 1;
+
+        public void Neighbours(Cell of, List<Cell> into)
+        {
+            if (IsReady)
+            {
+                Grid.Neighbours(of, into);
+            }
+        }
+
+        /// <summary>Every cell this creature could walk to for this many steps, and what each costs.</summary>
+        public void Reachable(Cell from, int budget, Dictionary<Cell, int> into)
+        {
+            into.Clear();
+
+            if (!IsReady)
+            {
+                return;
+            }
+
+            m_Blocked.Clear();
+            m_Units.CopyOccupiedTo(m_Blocked, from);
+            HexPathfinder.Reachable(Grid, from, budget, m_Blocked, into);
+        }
 
         /// <summary>
-        /// The cheapest route, destination last, empty if unreachable.
+        /// The reachable cell nearest the target, for a creature that cannot get all the way.
         ///
-        /// Returns a copy. The caller may hold it across further queries -- the brain compares
-        /// several routes before choosing -- and handing out the shared buffer would let the second
-        /// query rewrite the first answer.
+        /// Nearest by distance to the target, and among equals the cheapest to reach. Nothing
+        /// further away than the start is offered.
         /// </summary>
-        public IReadOnlyList<Hex> PathTo(Hex from, Hex to) =>
-            TryPath(from, to) ? new List<Hex>(m_Path) : System.Array.Empty<Hex>();
-
-        /// <summary>
-        /// The same route, with one more hex treated as empty.
-        ///
-        /// For drawing a move that has already happened. The rules move a creature the instant the
-        /// server says so, so by the time anything wants to walk the token along the route, the
-        /// creature is standing on the destination and blocking its own way to it. The tile it came
-        /// from is already excluded; this excludes the one it is going to.
-        /// </summary>
-        public IReadOnlyList<Hex> PathTo(Hex from, Hex to, Hex ignore) =>
-            TryPath(from, to, ignore) ? new List<Hex>(m_Path) : System.Array.Empty<Hex>();
-
-        public bool IsOccupied(Hex hex) => m_Units != null && m_Units.IsOccupied(hex);
-
-        /// <summary>
-        /// The tile within this many steps that ends nearest the target.
-        ///
-        /// For a creature whose target is walled off -- by allies, by enemies, by the shape of the
-        /// map. The route search has no answer for that, and a brain that took its silence as an
-        /// instruction stood at its spawn point for the whole match. This walks outward from where
-        /// the creature is, as far as it can afford, and picks whichever reachable tile is closest
-        /// to where it wanted to be. Closest by distance first, then by steps, so it does not walk
-        /// the long way round to an equally near tile.
-        /// </summary>
-        public bool TryClosest(Hex from, Hex target, int budget, out Hex tile)
+        public bool TryClosest(Cell from, Cell target, int budget, out Cell tile)
         {
             tile = from;
 
@@ -87,84 +92,43 @@ namespace Dragoneye.Game.Combat
                 return false;
             }
 
-            m_Blocked.Clear();
-            m_Units.CopyOccupiedTo(m_Blocked, from);
+            Reachable(from, budget, m_Reach);
 
-            var steps = new Dictionary<Hex, int> { [from] = 0 };
-            var frontier = new Queue<Hex>();
-            frontier.Enqueue(from);
-
-            var bestDistance = Hex.Distance(from, target);
-            var bestSteps = 0;
+            var bestDistance = Cell.Distance(from, target);
+            var bestCost = int.MaxValue;
             var found = false;
 
-            while (frontier.Count > 0)
+            foreach (var pair in m_Reach)
             {
-                var here = frontier.Dequeue();
-                var walked = steps[here];
+                var distance = Cell.Distance(pair.Key, target);
 
-                if (walked >= budget)
+                if (distance < bestDistance || (distance == bestDistance && found && pair.Value < bestCost))
                 {
-                    continue;
-                }
-
-                foreach (var next in here.Neighbors())
-                {
-                    if (steps.ContainsKey(next) || m_Blocked.Contains(next)
-                        || !m_Map.Map.TryGetTile(next, out var ground) || !ground.IsWalkable)
-                    {
-                        continue;
-                    }
-
-                    steps[next] = walked + 1;
-                    frontier.Enqueue(next);
-
-                    var distance = Hex.Distance(next, target);
-
-                    if (distance < bestDistance
-                        || (distance == bestDistance && found && walked + 1 < bestSteps))
-                    {
-                        bestDistance = distance;
-                        bestSteps = walked + 1;
-                        tile = next;
-                        found = true;
-                    }
+                    bestDistance = distance;
+                    bestCost = pair.Value;
+                    tile = pair.Key;
+                    found = true;
                 }
             }
 
             return found;
         }
 
-        /// <summary>
-        /// Whether at least one neighbouring hex could be stepped into.
-        ///
-        /// Asked rather than assumed from AP: a creature walled in by its own allies has points it
-        /// cannot spend, and the End Turn prompt would otherwise never fire for it.
-        /// </summary>
-        /// <summary>
-        /// The cheapest route to somewhere this target could be reached from, in tiles.
-        ///
-        /// Zero when the actor is already close enough, and -1 when no such tile can be walked to.
-        /// The ring is searched outward from the target, so a creature closing on somebody walks the
-        /// shortest distance that does the job rather than all the way to melee.
-        ///
-        /// One route search per candidate tile, which is thirty-seven at reach three -- affordable
-        /// on a board this size, and asked once per hover rather than once per frame.
-        /// </summary>
-        public int StepsToReach(Hex from, Hex target, int reach) =>
+        // ---------- reaching ----------
+
+        public int StepsToReach(Cell from, Cell target, int reach) =>
             TryTileInReach(from, target, reach, out _, out var steps) ? steps : -1;
 
         /// <summary>
-        /// The nearest tile this creature could stand on and still have the target within reach.
+        /// The cheapest cell to stand on to have the target in reach, with a line to it.
         ///
-        /// The same search <see cref="StepsToReach"/> answers, returning where as well as how far.
-        /// One implementation, because a menu offering to walk somewhere and a label pricing the
-        /// walk must not be able to pick different tiles.
+        /// Where the creature already is, if that will do. Otherwise every cell within the reach
+        /// of the target -- every area of every tile, since a split tile is two places to stand --
+        /// that has a line to the target and nobody on it, priced by the route there.
         /// </summary>
-        /// <returns>False when there is no route to anywhere in reach.</returns>
-        public bool TryTileInReach(Hex from, Hex target, int reach, out Hex tile, out int steps)
+        public bool TryTileInReach(Cell from, Cell target, int reach, out Cell tile, out int steps)
         {
-            if (CombatRules.InRange(Hex.Distance(from, target), reach))
+            if (CombatRules.InRange(Cell.Distance(from, target), reach) && HasLine(from, target))
             {
                 tile = from;
                 steps = 0;
@@ -174,38 +138,53 @@ namespace Dragoneye.Game.Combat
             tile = from;
             steps = -1;
 
-            foreach (var candidate in Hex.Range(target, reach))
+            if (!IsReady)
             {
-                if (candidate == target || m_Units.IsOccupied(candidate))
+                return false;
+            }
+
+            foreach (var hex in Hex.Range(target.Tile, reach))
+            {
+                m_Cells.Clear();
+                Grid.CellsOf(hex, m_Cells);
+
+                foreach (var candidate in m_Cells)
                 {
-                    continue;
+                    if (candidate == target || m_Units.IsOccupied(candidate)
+                        || !CombatRules.InRange(Cell.Distance(candidate, target), reach)
+                        || !HasLine(candidate, target))
+                    {
+                        continue;
+                    }
+
+                    var cost = CostTo(from, candidate);
+
+                    if (cost < 0 || (steps >= 0 && cost >= steps))
+                    {
+                        continue;
+                    }
+
+                    steps = cost;
+                    tile = candidate;
                 }
-
-                var cost = CostTo(from, candidate);
-
-                if (cost < 0 || (steps >= 0 && cost >= steps))
-                {
-                    continue;
-                }
-
-                steps = cost;
-                tile = candidate;
             }
 
             return steps >= 0;
         }
 
-        public bool HasOpenNeighbour(Hex from)
+        public bool HasOpenNeighbour(Cell from)
         {
             if (!IsReady)
             {
                 return false;
             }
 
-            foreach (var neighbour in from.Neighbors())
+            m_Cells.Clear();
+            Grid.Neighbours(from, m_Cells);
+
+            foreach (var neighbour in m_Cells)
             {
-                if (!m_Units.IsOccupied(neighbour)
-                    && m_Map.Map.TryGetTile(neighbour, out var tile) && tile.IsWalkable)
+                if (!m_Units.IsOccupied(neighbour))
                 {
                     return true;
                 }
@@ -214,36 +193,51 @@ namespace Dragoneye.Game.Combat
             return false;
         }
 
-        /// <summary>Whether a living enemy stands within this many tiles of a hex.</summary>
-        public bool HasEnemyInReach(Hex from, Party party, int reach)
+        public bool HasEnemyInReach(Cell from, Party party, int reach)
         {
-            if (m_Units == null || reach <= 0)
+            if (!IsReady || reach <= 0)
             {
                 return false;
             }
 
-            foreach (var candidate in Hex.Range(from, reach))
+            foreach (var hex in Hex.Range(from.Tile, reach))
             {
-                if (candidate == from || !m_Units.TryGet(candidate, out var occupant))
-                {
-                    continue;
-                }
+                m_Cells.Clear();
+                Grid.CellsOf(hex, m_Cells);
 
-                var creature = occupant.GetComponent<CreatureState>();
-                if (creature != null && creature.IsAlive && creature.Party != party)
+                foreach (var candidate in m_Cells)
                 {
-                    return true;
+                    if (candidate == from || !m_Units.TryGet(candidate, out var occupant)
+                        || !CombatRules.InRange(Cell.Distance(from, candidate), reach))
+                    {
+                        continue;
+                    }
+
+                    var creature = occupant.GetComponent<CreatureState>();
+
+                    if (creature != null && creature.IsAlive && creature.Party != party
+                        && HasLine(from, candidate))
+                    {
+                        return true;
+                    }
                 }
             }
 
             return false;
         }
 
-        bool TryPath(Hex from, Hex to) => TryPath(from, to, from);
+        // ---------- seeing ----------
 
-        bool TryPath(Hex from, Hex to, Hex ignore)
+        /// <summary>What the walls make of a line. Bodies are <see cref="LineOfFire"/>'s to add.</summary>
+        public LineVerdict Line(Cell from, Cell to) =>
+            IsReady ? LineOfSight.Verdict(Grid, from, to) : LineVerdict.Clear;
+
+        public bool HasLine(Cell from, Cell to) => Line(from, to) != LineVerdict.Blocked;
+
+        bool TryPath(Cell from, Cell to, Cell ignore, out int cost)
         {
             m_Path.Clear();
+            cost = -1;
 
             if (!IsReady)
             {
@@ -254,7 +248,7 @@ namespace Dragoneye.Game.Combat
             m_Units.CopyOccupiedTo(m_Blocked, from);
             m_Blocked.Remove(ignore);
 
-            return HexPathfinder.TryFindPath(m_Map.Map, from, to, m_Blocked, m_Path);
+            return HexPathfinder.TryFindPath(Grid, from, to, m_Blocked, m_Path, out cost);
         }
     }
 }

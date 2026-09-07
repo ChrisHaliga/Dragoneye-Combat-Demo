@@ -228,12 +228,21 @@ namespace Dragoneye.Game.Combat
             if (m_Input.HoveredShot.HasValue && !string.IsNullOrEmpty(text))
             {
                 var shot = m_Input.HoveredShot.Value;
-                text += "\n" + ClashLabels.Chance(shot.Chance);
+                if (!shot.IsBlocked)
+                {
+                    text += "\n" + ClashLabels.Chance(shot.Chance);
+                }
 
                 if (shot.IsCovered)
                 {
-                    text += "\n" + ClashLabels.Cover(Names(shot.Cover),
-                        SkillRules.CoverPenalty * shot.Cover.Count);
+                    var over = Names(shot.Bodies);
+
+                    if (shot.Walls == Dragoneye.Hex.Systems.LineVerdict.Obstructed)
+                    {
+                        over += (over.Length > 0 ? ", " : string.Empty) + "a low wall";
+                    }
+
+                    text += "\n" + ClashLabels.Cover(over, SkillRules.CoverPenalty * shot.Cover);
                 }
             }
 

@@ -4,6 +4,7 @@ using Dragoneye.Data;
 using UnityEngine;
 using Dragoneye.Game;
 using Dragoneye.Game.Creatures;
+using Dragoneye.Hex;
 
 namespace Dragoneye.Game.Combat
 {
@@ -82,7 +83,7 @@ namespace Dragoneye.Game.Combat
 
             var from = arena.Map.ToWorld(attacker.Cell) + Vector3.up * Lift(attacker);
             var to = arena.Map.ToWorld(target.Cell) + Vector3.up * Lift(target);
-            var tiles = Dragoneye.Hex.Hex.Distance(attacker.Cell, target.Cell);
+            var tiles = Cell.Distance(attacker.Cell, target.Cell);
 
             StartCoroutine(Fly(from, to, tiles, ElementPalette.ForElement(skill.Element),
                 missed, targetId));

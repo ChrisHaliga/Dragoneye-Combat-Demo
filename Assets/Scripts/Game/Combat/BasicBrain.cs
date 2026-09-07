@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using Dragoneye.Combat;
 using Dragoneye.Game;
 using Dragoneye.Game.Creatures;
+using Dragoneye.Hex;
 
 namespace Dragoneye.Game.Combat
 {
@@ -78,7 +79,7 @@ namespace Dragoneye.Game.Combat
             }
 
             var target = NearestEnemy(actor, others);
-            var plan = Assess(actor, target);
+            var plan = Assess(actor, target, board);
 
             switch (plan.State)
             {
@@ -101,7 +102,13 @@ namespace Dragoneye.Game.Combat
         /// hit does, something that cannot pay recovers rather than walking closer to a fight it
         /// still could not join, and only a creature that could act if it were somewhere else walks.
         /// </summary>
-        public static BrainPlan Assess(BrainView actor, BrainView? target)
+        public static BrainPlan Assess(BrainView actor, BrainView? target) => Assess(actor, target, null);
+
+        /// <summary>
+        /// The same assessment, with a board to ask about walls. An enemy in reach behind
+        /// something opaque is an enemy to walk round to, not to swing at.
+        /// </summary>
+        public static BrainPlan Assess(BrainView actor, BrainView? target, IBoardQuery board)
         {
             if (!target.HasValue)
             {
@@ -109,9 +116,10 @@ namespace Dragoneye.Game.Combat
             }
 
             var enemy = target.Value;
-            var distance = Hex.Distance(actor.Cell, enemy.Cell);
+            var distance = Cell.Distance(actor.Cell, enemy.Cell);
+            var seen = board == null || board.HasLine(actor.Cell, enemy.Cell);
 
-            var reaching = BestOffensive(actor, distance);
+            var reaching = seen ? BestOffensive(actor, distance) : null;
 
             if (reaching != null)
             {
@@ -267,7 +275,7 @@ namespace Dragoneye.Game.Combat
                     continue;
                 }
 
-                var distance = Hex.Distance(actor.Cell, other.Cell);
+                var distance = Cell.Distance(actor.Cell, other.Cell);
 
                 if (distance < bestDistance
                     || (distance == bestDistance && best.HasValue && other.Id < best.Value.Id))
@@ -293,10 +301,15 @@ namespace Dragoneye.Game.Combat
         /// </summary>
         static BrainDecision Approach(BrainView actor, BrainView enemy, IBoardQuery board)
         {
-            var bestPath = default(IReadOnlyList<Hex>);
+            var bestPath = default(IReadOnlyList<Cell>);
             var bestCost = int.MaxValue;
 
-            foreach (var approach in enemy.Cell.Neighbors())
+            // Where it could stand to swing: the cells a step away from the enemy by the map's
+            // rules, which is what leaves out the far side of a wall.
+            var approaches = new List<Cell>();
+            board.Neighbours(enemy.Cell, approaches);
+
+            foreach (var approach in approaches)
             {
                 if (board.IsOccupied(approach))
                 {
@@ -304,12 +317,19 @@ namespace Dragoneye.Game.Combat
                 }
 
                 var path = board.PathTo(actor.Cell, approach);
-                if (path == null || path.Count == 0 || path.Count >= bestCost)
+                if (path == null || path.Count == 0)
                 {
                     continue;
                 }
 
-                bestCost = path.Count;
+                var cost = board.CostTo(actor.Cell, approach);
+
+                if (cost < 0 || cost >= bestCost)
+                {
+                    continue;
+                }
+
+                bestCost = cost;
                 bestPath = path;
             }
 
@@ -322,7 +342,7 @@ namespace Dragoneye.Game.Combat
 
                 return budget > 0
                     && board.TryClosest(actor.Cell, enemy.Cell, budget, out var nearer)
-                    && Hex.Distance(nearer, enemy.Cell) < Hex.Distance(actor.Cell, enemy.Cell)
+                    && Cell.Distance(nearer, enemy.Cell) < Cell.Distance(actor.Cell, enemy.Cell)
                     ? BrainDecision.MoveTo(nearer)
                     : BrainDecision.Pass;
             }
@@ -336,13 +356,34 @@ namespace Dragoneye.Game.Combat
                 return BrainDecision.Pass;
             }
 
-            var last = (steps < bestPath.Count ? steps : bestPath.Count) - 1;
+            // As far along the route as the steps pay for, with each cell priced by its ground.
+            var last = -1;
+            var paid = 0;
+
+            for (var i = 0; i < bestPath.Count; i++)
+            {
+                paid += board.StepsToEnter(bestPath[i]);
+
+                if (paid > steps)
+                {
+                    break;
+                }
+
+                last = i;
+            }
+
+            if (last < 0)
+            {
+                return BrainDecision.Pass;
+            }
+
             var reach = Reach(actor);
             var destination = bestPath[last];
 
             for (var i = 0; i <= last; i++)
             {
-                if (CombatRules.InRange(Hex.Distance(bestPath[i], enemy.Cell), reach))
+                if (CombatRules.InRange(Cell.Distance(bestPath[i], enemy.Cell), reach)
+                    && board.HasLine(bestPath[i], enemy.Cell))
                 {
                     destination = bestPath[i];
                     break;
@@ -353,7 +394,7 @@ namespace Dragoneye.Game.Combat
             // it cannot afford to hit shuffles between the tiles around it -- every one of them is a
             // legal destination, none of them is an improvement, and it paces until the AP runs out.
             // Ending the turn is the honest answer: there is nothing it can do from anywhere.
-            return Hex.Distance(destination, enemy.Cell) < Hex.Distance(actor.Cell, enemy.Cell)
+            return Cell.Distance(destination, enemy.Cell) < Cell.Distance(actor.Cell, enemy.Cell)
                 ? BrainDecision.MoveTo(destination)
                 : BrainDecision.Pass;
         }

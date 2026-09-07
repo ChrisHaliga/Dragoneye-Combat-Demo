@@ -53,13 +53,13 @@ namespace Dragoneye.Game
         const float k_ClickSlop = 6f;
 
         /// <summary>The hex under the cursor, or null when the cursor is off the map.</summary>
-        public Hex? Hovered { get; private set; }
+        public Cell? Hovered { get; private set; }
 
         /// <summary>Raised when a click lands on a hex that exists.</summary>
-        public event Action<Hex> Clicked;
+        public event Action<Cell> Clicked;
 
         /// <summary>Raised whenever <see cref="Hovered"/> changes, including to null.</summary>
-        public event Action<Hex?> HoverChanged;
+        public event Action<Cell?> HoverChanged;
 
         /// <summary>
         /// Raised when the right button is pressed and released on the same spot over a hex.
@@ -69,7 +69,7 @@ namespace Dragoneye.Game
         /// a press that dragged was a gesture. Carries the screen position as well as the hex,
         /// because whatever answers has to appear where the player asked.
         /// </summary>
-        public event Action<Hex, Vector2> ContextRequested;
+        public event Action<Cell, Vector2> ContextRequested;
 
         void Awake()
         {
@@ -137,7 +137,7 @@ namespace Dragoneye.Game
             }
         }
 
-        Hex? Resolve()
+        Cell? Resolve()
         {
             var context = ArenaContext.Current;
             if (context == null || context.OutputCamera == null || context.Map == null
@@ -158,11 +158,12 @@ namespace Dragoneye.Game
                 return null;
             }
 
-            var hex = arena.FromWorld(point);
-            return arena.Map.Contains(hex) ? hex : (Hex?)null;
+            // The cell, not the tile: a split tile has two places to point at, and the walls
+            // decide which one the cursor is over.
+            return arena.CellFromWorld(point);
         }
 
-        void SetHovered(Hex? hex)
+        void SetHovered(Cell? hex)
         {
             Hovered = hex;
             HoverChanged?.Invoke(hex);

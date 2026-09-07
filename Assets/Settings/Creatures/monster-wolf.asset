@@ -14,23 +14,24 @@ MonoBehaviour:
   m_EditorClassIdentifier: Dragoneye.Game::Dragoneye.Game.CreatureDefinition
   m_Id: monster-wolf
   m_DisplayName: Dire Wolf
-  m_Portrait: {fileID: 0}
+  m_Portrait: {fileID: 21300000, guid: aa87b498579813047a63a2d501af9f7e, type: 3}
   m_Species: {fileID: 11400000, guid: 2063cff57027aa64991faa0b8d425938, type: 2}
   m_Class: {fileID: 11400000, guid: b6641c8d1cc267e4e8e6aba65955e29c, type: 2}
   m_Level: 1
-  m_MaxHp: 16
+  m_MaxHp: 14
   m_MaxAp: 6
-  m_Speed: 9
+  m_Speed: 12
   m_Armour: 0
   m_Shielded: 0
   m_StartingPool:
-    Geo: 0
+    Geo: 2
     Hydro: 0
-    Pyro: 1
-    Aero: 3
+    Pyro: 0
+    Aero: 2
     Lux: 0
     Nyx: 0
     Arcana: 0
   m_LevelUpPicks: 0300000003000000030000000300000003000000030000000300000003000000
   m_Skills:
-  - {fileID: 11400000, guid: 93164347dec5e714c85648e200cbd77f, type: 2}
+  - {fileID: 11400000, guid: 57669350c4faab542af9819d3648d52a, type: 2}
+  - {fileID: 11400000, guid: 19df20f0bf9914a4f8b6aa162b4e951b, type: 2}

@@ -92,7 +92,7 @@ namespace Dragoneye.Game.Combat
         public static event Action<uint, int> Recovered;
 
         /// <summary>A creature walked: (creature, from, to). The rules put it there instantly.</summary>
-        public static event Action<uint, Dragoneye.Hex.Hex, Dragoneye.Hex.Hex> Moved;
+        public static event Action<uint, Dragoneye.Hex.Cell, Dragoneye.Hex.Cell> Moved;
 
         /// <summary>A creature's turn began.</summary>
         public static event Action<uint> TurnBegan;
@@ -148,18 +148,17 @@ namespace Dragoneye.Game.Combat
         }
 
         /// <summary>Server only. A creature moved, as far as the rules are concerned.</summary>
-        public void ServerMoved(uint creatureId, Dragoneye.Hex.Hex from, Dragoneye.Hex.Hex to)
+        public void ServerMoved(uint creatureId, Dragoneye.Hex.Cell from, Dragoneye.Hex.Cell to)
         {
             if (IsServer)
             {
-                MovedRpc(creatureId, from.Q, from.R, to.Q, to.R);
+                MovedRpc(creatureId, new NetCell(from), new NetCell(to));
             }
         }
 
         [Rpc(SendTo.Everyone)]
-        void MovedRpc(uint creatureId, int fromQ, int fromR, int toQ, int toR) =>
-            Moved?.Invoke(creatureId, new Dragoneye.Hex.Hex(fromQ, fromR),
-                new Dragoneye.Hex.Hex(toQ, toR));
+        void MovedRpc(uint creatureId, NetCell from, NetCell to) =>
+            Moved?.Invoke(creatureId, from.ToCell(), to.ToCell());
 
         /// <summary>Server only. A creature's turn began.</summary>
         public void ServerTurnBegan(uint creatureId)

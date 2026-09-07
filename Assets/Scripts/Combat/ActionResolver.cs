@@ -31,7 +31,10 @@ namespace Dragoneye.Combat
         TooExpensive,
 
         /// <summary>The fight is stopped on somebody's answer. Nothing can be ordered until it comes.</summary>
-        Waiting
+        Waiting,
+
+        /// <summary>A wall stands between, and there is nowhere in reach to stand that it does not.</summary>
+        NoLine
     }
 
     /// <summary>
@@ -144,7 +147,7 @@ namespace Dragoneye.Combat
         /// <param name="stepCost">What one tile costs this creature. Its armour's to say.</param>
         public static ActionPlan ResolveSkill(bool isActorsTurn, bool controlsActor, Ap currentAp,
             SkillSpec skill, bool targetIsCreature, bool targetIsEnemy, int stepsToReach,
-            Ap stepCost)
+            Ap stepCost, bool hasLine = true)
         {
             if (!controlsActor)
             {
@@ -166,6 +169,12 @@ namespace Dragoneye.Combat
             if (skill.Target == SkillTarget.Creature && (!targetIsCreature || !targetIsEnemy))
             {
                 return new ActionPlan(BoardAction.None, Ap.Zero, ActionRefusal.NoTarget,
+                    skill: skill);
+            }
+
+            if (!hasLine)
+            {
+                return new ActionPlan(BoardAction.UseSkill, skill.ApCost, ActionRefusal.NoLine,
                     skill: skill);
             }
 

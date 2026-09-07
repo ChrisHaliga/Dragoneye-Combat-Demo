@@ -1,44 +1,77 @@
 using System.Collections.Generic;
+using Dragoneye.Hex;
 using Dragoneye.Hex.Systems;
 using Dragoneye.Game;
 using Dragoneye.Game.Creatures;
 
 namespace Dragoneye.Game.Combat
 {
-    using Hex = Dragoneye.Hex.Hex;
-
     /// <summary>
     /// What a shot would do, priced for the cursor: where it flies from and to, the chance it
-    /// lands, and who is standing in the way.
+    /// lands, and what is in the way.
     /// </summary>
     public readonly struct ShotPlan
     {
-        public readonly Hex From;
-        public readonly Hex To;
+        public readonly Cell From;
+        public readonly Cell To;
 
-        /// <summary>Percent chance to hit, cover already taken off.</summary>
+        /// <summary>Percent chance to hit, cover already taken off. Zero when the line is blocked.</summary>
         public readonly int Chance;
 
-        /// <summary>Creatures the shot passes over. Each one costs accuracy.</summary>
-        public readonly IReadOnlyList<CreatureState> Cover;
+        /// <summary>What the walls make of the line.</summary>
+        public readonly LineVerdict Walls;
 
-        public ShotPlan(Hex from, Hex to, int chance, IReadOnlyList<CreatureState> cover)
+        /// <summary>Creatures the shot passes over. Each one costs accuracy.</summary>
+        public readonly IReadOnlyList<CreatureState> Bodies;
+
+        public ShotPlan(Cell from, Cell to, int chance, LineVerdict walls,
+            IReadOnlyList<CreatureState> bodies)
         {
             From = from;
             To = to;
             Chance = chance;
-            Cover = cover ?? System.Array.Empty<CreatureState>();
+            Walls = walls;
+            Bodies = bodies ?? System.Array.Empty<CreatureState>();
         }
 
-        public bool IsCovered => Cover.Count > 0;
+        public bool IsBlocked => Walls == LineVerdict.Blocked;
+
+        /// <summary>Whether anything at all is between them, body or low wall.</summary>
+        public bool IsCovered => Bodies.Count > 0 || Walls == LineVerdict.Obstructed;
+
+        /// <summary>How many penalties the line carries: one per body, one for a low wall.</summary>
+        public int Cover => Bodies.Count + (Walls == LineVerdict.Obstructed ? 1 : 0);
     }
 
     /// <summary>
-    /// Who is standing between a shooter and a target.
+    /// A line traced, both halves: the walls the map knows about, and the bodies the game does.
+    /// </summary>
+    public readonly struct ShotLine
+    {
+        public readonly LineVerdict Walls;
+        public readonly IReadOnlyList<CreatureState> Bodies;
+
+        public ShotLine(LineVerdict walls, IReadOnlyList<CreatureState> bodies)
+        {
+            Walls = walls;
+            Bodies = bodies ?? System.Array.Empty<CreatureState>();
+        }
+
+        public bool IsBlocked => Walls == LineVerdict.Blocked;
+
+        /// <summary>Penalties to the roll: one per body passed over, one for a low wall.</summary>
+        public int Cover => Bodies.Count + (Walls == LineVerdict.Obstructed ? 1 : 0);
+
+        public static readonly ShotLine Clear = new ShotLine(LineVerdict.Clear, null);
+    }
+
+    /// <summary>
+    /// Who and what is between a shooter and a target.
     ///
-    /// The straight line between the two tiles, with both ends left out: the shooter is not in
-    /// their own way, and the target is what the shot is for. Anybody on a tile in between --
-    /// friend or foe, it makes no difference to an arrow -- is cover, and cover costs accuracy.
+    /// Two passes. The walls first, from <see cref="LineOfSight"/>: a blocked line ends the
+    /// question, and a low wall in the way is one obstruction. Then the bodies: anybody on a tile
+    /// the line passes over, both ends left out -- the shooter is not in their own way, and the
+    /// target is what the shot is for. Friend or foe, it makes no difference to an arrow.
     ///
     /// Why accuracy and not the clash: "disadvantage" in this game is a doubled commitment read
     /// worst-of, and a skill that commits one element commits two of the same one, so the flag
@@ -47,38 +80,46 @@ namespace Dragoneye.Game.Combat
     /// </summary>
     public static class LineOfFire
     {
-        /// <summary>Everybody on the tiles between the two, in order from the shooter.</summary>
-        public static List<CreatureState> Cover(Hex from, Hex to, UnitIndex units)
-        {
-            var cover = new List<CreatureState>();
+        static readonly List<UnitState> s_Occupants = new List<UnitState>();
 
-            if (units == null || Hex.Distance(from, to) < 2)
+        public static ShotLine Trace(IGridRules grid, UnitIndex units, Cell from, Cell to)
+        {
+            var walls = grid != null ? LineOfSight.Verdict(grid, from, to) : LineVerdict.Clear;
+
+            if (walls == LineVerdict.Blocked)
             {
-                return cover;
+                return new ShotLine(walls, null);
             }
 
-            foreach (var tile in Hex.Line(from, to))
+            var bodies = new List<CreatureState>();
+
+            if (units == null || Cell.Distance(from, to) < 2)
             {
-                if (tile == from || tile == to)
+                return new ShotLine(walls, bodies);
+            }
+
+            foreach (var tile in Dragoneye.Hex.Hex.Line(from.Tile, to.Tile))
+            {
+                if (tile == from.Tile || tile == to.Tile)
                 {
                     continue;
                 }
 
-                if (units.TryGet(tile, out var occupant))
+                s_Occupants.Clear();
+                units.OccupantsOf(tile, s_Occupants);
+
+                foreach (var occupant in s_Occupants)
                 {
                     var creature = occupant.GetComponent<CreatureState>();
 
                     if (creature != null && creature.IsAlive)
                     {
-                        cover.Add(creature);
+                        bodies.Add(creature);
                     }
                 }
             }
 
-            return cover;
+            return new ShotLine(walls, bodies);
         }
-
-        /// <summary>How many creatures a shot along this line would pass over.</summary>
-        public static int CoverCount(Hex from, Hex to, UnitIndex units) => Cover(from, to, units).Count;
     }
 }
