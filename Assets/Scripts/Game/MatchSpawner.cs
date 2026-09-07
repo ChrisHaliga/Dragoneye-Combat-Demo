@@ -509,7 +509,7 @@ namespace Dragoneye.Game
                 instance.GetComponent<UnitState>().ServerPlaceAt(cell);
                 var creature = instance.GetComponent<CreatureState>();
 
-                creature.ServerConfigure(creatureId, party, claimedBySlot, buildSlot, level, ordinal);
+                creature.ServerConfigure(creatureId, party, claimedBySlot, buildSlot, level, ordinal, facing);
 
                 // The starting pool is authored on the premade definition. A built character will
                 // bring its own from the creator; both arrive here before the spawn so the owning
@@ -535,9 +535,6 @@ namespace Dragoneye.Game
                     networkObject.Spawn(destroyWithScene: true);
                 }
 
-                // After the spawn, because ServerFace writes a NetworkVariable and one written
-                // before there is a spawned object to carry it goes nowhere.
-                creature.ServerFace(facing);
                 return creature;
             }
             catch (Exception e)

@@ -27,7 +27,7 @@ namespace Dragoneye.Hex.Systems
     /// obstruction.
     ///
     /// Bodies are the other half, and they are the game's to count: which creature stands where is
-    /// not the map's business. See <c>LineOfFire</c>.
+    /// not the map's business. See <c>Dragoneye.Sim.ShotLines</c>.
     ///
     /// Integer arithmetic throughout, on <see cref="TileGeometry"/>'s scaled frame, for the same
     /// reason a bearing is: the server refuses a shot on this verdict and every client previews

@@ -398,7 +398,7 @@ namespace Dragoneye.Game.Creatures
                 return;
             }
 
-            var mine = m_ObservedPool.CanSee;
+            var mine = LocalPlayer.Controls(m_Observed);
 
             if (mine)
             {
@@ -525,7 +525,7 @@ namespace Dragoneye.Game.Creatures
                 return;
             }
 
-            var mine = m_ObservedPool.CanSee;
+            var mine = LocalPlayer.Controls(m_Observed);
             var spent = SpentCounts();
 
             // Two rows, always: what can still be spent, and what has been. The second is the

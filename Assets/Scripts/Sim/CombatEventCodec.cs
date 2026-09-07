@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using Dragoneye.Combat;
 using Dragoneye.Hex;
 
-namespace Dragoneye.Game.Combat
+namespace Dragoneye.Sim
 {
     // Declared inside the namespace: out here the bare name Hex would bind to the Dragoneye.Hex
     // namespace rather than the type.

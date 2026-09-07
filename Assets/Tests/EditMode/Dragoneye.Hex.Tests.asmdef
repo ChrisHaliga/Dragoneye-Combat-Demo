@@ -6,6 +6,7 @@
         "Dragoneye.Combat",
         "Dragoneye.Hex",
         "Dragoneye.Hex.Systems",
+        "Dragoneye.Sim",
         "Dragoneye.Scenarios",
         "Dragoneye.Camera",
         "Dragoneye.Game",

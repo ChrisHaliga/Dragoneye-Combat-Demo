@@ -174,7 +174,7 @@ namespace Dragoneye.Game.Creatures
                 return;
             }
 
-            var held = pool.CanSee ? pool.Pool : PossibleElements.Seen(pool.Ledger).Known;
+            var held = LocalPlayer.Controls(creature) ? pool.Pool : PossibleElements.Seen(pool.Ledger).Known;
             var column = new VisualElement();
             column.AddToClassList("portrait__elements");
             column.pickingMode = PickingMode.Ignore;

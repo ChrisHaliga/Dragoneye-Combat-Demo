@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using Dragoneye.Combat;
 using Dragoneye.Hex.Systems;
+using Dragoneye.Sim;
 using UnityEngine;
 using Dragoneye.Game;
 using Dragoneye.Game.Creatures;
@@ -190,7 +191,7 @@ namespace Dragoneye.Game.Combat
                 return;
             }
 
-            m_Board = new ArenaBoard(m_Map, m_Units);
+            m_Board = new ArenaBoard(m_Map, m_Units, m_Creatures);
 
             m_Pointer.Clicked += OnClicked;
             m_Pointer.HoverChanged += OnHoverChanged;
@@ -264,7 +265,7 @@ namespace Dragoneye.Game.Combat
                 from = tile;
             }
 
-            var line = LineOfFire.Trace(m_Map.Grid, m_Units, from, hovered);
+            var line = ShotLines.Trace(m_Map.Grid, m_Board.Occupancy, from, hovered);
             var chance = line.IsBlocked
                 ? 0
                 : SkillRules.HitChance(plan.Skill, Cell.Distance(from, hovered), line.Cover);

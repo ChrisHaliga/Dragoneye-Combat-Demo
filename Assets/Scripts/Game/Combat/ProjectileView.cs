@@ -5,6 +5,7 @@ using UnityEngine;
 using Dragoneye.Game;
 using Dragoneye.Game.Creatures;
 using Dragoneye.Hex;
+using Dragoneye.Sim;
 
 namespace Dragoneye.Game.Combat
 {
@@ -103,7 +104,7 @@ namespace Dragoneye.Game.Combat
             var creature = ArenaContext.Current != null && ArenaContext.Current.Creatures != null
                 ? ArenaContext.Current.Creatures.ByTurnId(id)
                 : null;
-            var view = creature != null ? creature.View : null;
+            var view = UnitView.Of(creature);
             return view != null ? view.GroundOffset + 0.15f : 0.65f;
         }
 

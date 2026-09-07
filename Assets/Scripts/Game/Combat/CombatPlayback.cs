@@ -4,6 +4,7 @@ using Dragoneye.Combat;
 using Dragoneye.Data;
 using Dragoneye.Hex;
 using Dragoneye.Hex.Systems;
+using Dragoneye.Sim;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using Dragoneye.Game.Creatures;
@@ -178,7 +179,7 @@ namespace Dragoneye.Game.Combat
         Func<bool> StillWalking(uint id)
         {
             var creature = m_Creatures != null ? m_Creatures.ByTurnId(id) : null;
-            var view = creature != null ? creature.View : null;
+            var view = UnitView.Of(creature);
 
             return view == null ? null : (Func<bool>)(() => !view.IsMoving);
         }

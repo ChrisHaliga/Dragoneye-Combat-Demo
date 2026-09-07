@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using Dragoneye.Combat;
+using Dragoneye.Sim;
 using Dragoneye.Game;
 using NUnit.Framework;
 using Hex = Dragoneye.Hex.Hex;

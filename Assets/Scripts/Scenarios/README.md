@@ -26,8 +26,8 @@ a scene.
 sees a scenario pending and hands over to `ScenarioRunner`, which rebuilds the arena's map from
 the recipe, spawns the actors in order (which is the order initiative ties break in), gives the
 director the scenario's seed and a `ScriptedBrain`, and listens to everything the fight announces.
-The fight is the real one: the same director, conductors, turn runner, announcer and HUD a match
-uses. When every script has run out -- or the match ends, or the rounds allowed run out -- the
+The fight is the real one: the same `Fight`, director, announcer and HUD a match uses, with the
+scripted brain stepped by the director exactly as the thinking one is. When every script has run out -- or the match ends, or the rounds allowed run out -- the
 runner stops the fight where it stands and reads the checks against the world a frame later. The
 fight is stopped rather than left running: every turn after the last order is a creature with
 nothing to do passing to the next, and a board still playing behind a finished report is worse

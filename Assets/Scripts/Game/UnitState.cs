@@ -13,18 +13,20 @@ namespace Dragoneye.Game
     using Hex = Dragoneye.Hex.Hex;
 
     /// <summary>
-    /// A unit's replicated state: which hex it stands on, and whose it is.
+    /// A unit's replicated position: which hex it stands on, and whether it still stands at all.
     ///
-    /// The cell is the *only* replicated position. There is deliberately no NetworkTransform on the
-    /// unit prefab: two ints per move replace a continuous transform stream, every client derives
-    /// the world position locally, and the height never travels at all -- so "constant Y across the
-    /// map" is structural rather than something to remember to enforce.
+    /// A mirror of the fight's own record of where the creature is, written by
+    /// <see cref="CombatDirector"/> after every order. The cell is the *only* replicated
+    /// position. There is deliberately no NetworkTransform on the unit prefab: two ints per move
+    /// replace a continuous transform stream, every client derives the world position locally,
+    /// and the height never travels at all -- so "constant Y across the map" is structural rather
+    /// than something to remember to enforce.
     ///
     /// It also means animation cannot leak into the data. There is no mechanism by which the
     /// authoritative position could wait for a view to finish sliding.
     ///
     /// Server-write, unlike the focus point's owner-authoritative transform. A unit's position
-    /// decides outcomes, so clients send intent through <see cref="UnitCommands"/> and the server
+    /// decides outcomes, so clients send intent through <see cref="UnitCommands"/> and the fight
     /// decides. The payload is a destination rather than a stream, so authority costs nothing here.
     /// </summary>
     [RequireComponent(typeof(NetworkObject))]
@@ -55,7 +57,7 @@ namespace Dragoneye.Game
         /// <summary>
         /// Server only, and only before <c>Spawn()</c>. Sets where the unit comes into existence.
         ///
-        /// Separate from <see cref="ServerSetCell"/> because a NetworkVariable written before the
+        /// Separate from <see cref="ServerMirror"/> because a NetworkVariable written before the
         /// object is spawned is dropped. Writing the cell after the spawn call instead would work,
         /// but only by ordering: the object is live and filed at (0,0) in between, so every unit
         /// momentarily claims the same hex and anything reading occupancy in that window is wrong.
@@ -104,28 +106,29 @@ namespace Dragoneye.Game
             }
         }
 
-        /// <summary>Server only. Moves the unit without any client being able to ask for it.</summary>
-        public void ServerSetCell(Cell cell)
+        /// <summary>
+        /// Server only. Copies where the fight says this unit is.
+        ///
+        /// Leaving the board is written before the cell: a fallen creature's cell is meaningless,
+        /// and the index must unregister it rather than move it.
+        /// </summary>
+        public void ServerMirror(Cell cell, bool onBoard)
         {
             if (!IsServer)
             {
-                // A silent no-op here reads as a replication failure at the call site. Editor only:
-                // a shipped client has no way to act on it and the check costs a branch per move.
-#if UNITY_EDITOR
-                Debug.LogError($"{nameof(ServerSetCell)} called on a client; the move was dropped.", this);
-#endif
                 return;
             }
 
-            m_Cell.Value = new NetCell(cell);
-        }
-
-        /// <summary>Server only. Gives up the cell. The object stays; the board forgets it.</summary>
-        public void ServerLeaveBoard()
-        {
-            if (IsServer)
+            if (m_OnBoard.Value != onBoard)
             {
-                m_OnBoard.Value = false;
+                m_OnBoard.Value = onBoard;
+            }
+
+            var next = new NetCell(cell);
+
+            if (onBoard && !m_Cell.Value.Equals(next))
+            {
+                m_Cell.Value = next;
             }
         }
 
@@ -146,6 +149,5 @@ namespace Dragoneye.Game
 
             Notify.Raise(CellChanged, current.ToCell(), this);
         }
-
     }
 }

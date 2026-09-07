@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using Dragoneye.Scenarios;
+using Dragoneye.Sim;
 
 namespace Dragoneye.Game.Combat
 {
@@ -8,8 +9,7 @@ namespace Dragoneye.Game.Combat
     /// A brain that does what it was told, in the order it was told, one turn's worth at a time.
     ///
     /// The scenario runner's way into the fight, through the same door the game's own opponent
-    /// uses: the turn runner asks it for a decision, hands the decision to the director, and
-    /// paces the result. Nothing about the fight is special-cased for a script -- a scripted
+    /// uses: the fight asks it for a decision and carries the decision out, one per step. Nothing about the fight is special-cased for a script -- a scripted
     /// order can be refused exactly as a thought-up one can, and when it is, the turn ends.
     ///
     /// An actor's turns are counted by the round they are asked in, so a refusal that ends a

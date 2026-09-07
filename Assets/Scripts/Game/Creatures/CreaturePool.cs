@@ -81,8 +81,10 @@ namespace Dragoneye.Game.Creatures
     /// client, and an unclaimed one is owned by the server, which is also the only thing that needs
     /// to see a computer creature's pool.
     ///
-    /// The pair is written through <see cref="ElementLedger"/> in one operation, so a spend can
-    /// never lower the pool without raising the record.
+    /// A mirror of the fight's own <see cref="Dragoneye.Sim.ElementPool"/>, written by
+    /// <see cref="CombatDirector"/> after every order. Nothing here spends anything: what is
+    /// spent, committed, announced or returned is decided in the fight, and the whole ledger is
+    /// copied here in one operation so the pool can never be lowered without the record rising.
     /// </summary>
     [RequireComponent(typeof(NetworkObject))]
     [DisallowMultipleComponent]
@@ -114,17 +116,6 @@ namespace Dragoneye.Game.Creatures
 
         ElementCounts m_StartingPool;
 
-        CreatureState m_Creature;
-
-        // A spend that has happened but has not been announced. Server only, and only while a clash
-        // is in flight -- see ServerCommit.
-        ElementLedger? m_Pending;
-
-        // What was put up for the clash in flight, so it can be handed back if it is kept.
-        readonly List<Element> m_Committed = new List<Element>();
-
-        void Awake() => m_Creature = GetComponent<CreatureState>();
-
         /// <summary>Raised on every peer when either half changes.</summary>
         public event Action Changed;
 
@@ -132,7 +123,8 @@ namespace Dragoneye.Game.Creatures
         /// What this creature can still spend.
         ///
         /// Reads as empty on a peer that is not the owner, because netcode never delivered it. That
-        /// is the intended answer rather than a failure: use <see cref="CanSee"/> to tell "holds
+        /// is the intended answer rather than a failure: whether the local player is entitled to
+        /// it is <see cref="LocalPlayer.Controls(CreatureState)"/>'s question, and it tells "holds
         /// nothing" apart from "none of your business".
         /// </summary>
         public ElementCounts Pool => m_Pool.Value.ToCounts();
@@ -178,43 +170,15 @@ namespace Dragoneye.Game.Creatures
         }
 
         /// <summary>
-        /// Whether this peer is entitled to <see cref="Pool"/>.
-        ///
-        /// Whether a *player* runs this creature, not whether this process owns the object. The two
-        /// come apart on the host, which owns every computer creature -- so the host could read
-        /// every enemy hand while everybody else was guessing, and saw no unknown count on the card
-        /// because as far as the card was concerned there was nothing unknown.
-        ///
-        /// The server still reads the pool directly to run the brain. That is a different question
-        /// from whether it may be drawn.
-        /// </summary>
-        public bool CanSee => LocalPlayer.Controls(m_Creature);
-
-        /// <summary>
         /// What everybody has been told about this creature's elements.
         ///
-        /// The published state, and deliberately *not* the uncommitted one. A commitment in flight
-        /// is held back from the record on purpose -- that is the whole of DE-005's concealment --
-        /// so anything drawing a hand or forecasting a clash has to read this and nothing else.
-        ///
-        /// Reading the uncommitted state instead is not a small error. The server is also a player,
-        /// so on a host the defender's prompt was working from a hand with the incoming attack
-        /// already deducted from it: the odds were computed against every element *except* the one
-        /// about to arrive. That reads as confident and lands as backwards, and it explains why a
-        /// hundred-per-cent answer kept losing. A remote client, reading the published state, saw
-        /// different numbers for the same clash.
+        /// The published state: a commitment in flight is held back from the record on purpose --
+        /// that is the whole of DE-005's concealment -- so anything drawing a hand or forecasting
+        /// a clash reads this. There is no other state to read here by mistake; the fight keeps
+        /// its uncommitted ledger to itself.
         /// </summary>
         public ElementLedger Ledger =>
             new ElementLedger(Pool, Revealed, m_OutstandingView, Total, Identified);
-
-        /// <summary>
-        /// The true state, including anything committed and not yet announced.
-        ///
-        /// Server only, and only for arithmetic the server does on its own behalf: whether a second
-        /// commitment can be afforded, what is left to spend. It must never reach a view or a
-        /// forecast -- see <see cref="Ledger"/> for what happens when it does.
-        /// </summary>
-        public ElementLedger ServerLedger => m_Pending ?? Ledger;
 
         /// <summary>Spends not yet returned, oldest first. Public information.</summary>
         public IReadOnlyList<Element> Outstanding => m_OutstandingView;
@@ -265,162 +229,68 @@ namespace Dragoneye.Game.Creatures
         }
 
         /// <summary>
-        /// Server only. Spends an element, lowering the pool and raising the reveal record together.
+        /// Server only. Copies the fight's pool in: the hand for the owner, the record for everybody.
+        ///
+        /// Two things because they have two audiences. The hand is what is actually left,
+        /// commitments already gone from it, and it reads to the owning client alone. The
+        /// ledger is the published record -- what has been revealed, what is outstanding, what
+        /// has been proven -- and a commitment in flight is deliberately not in it yet. That gap
+        /// is the whole of DE-005's concealment, and it is the fight's to keep: this only copies
+        /// what it is handed, when it is handed it.
         /// </summary>
-        /// <returns>False if the creature does not hold it, in which case nothing changed.</returns>
-        public bool ServerSpend(Element element, int amount, out SpendRefusal refusal)
+        public void ServerMirror(ElementCounts hand, ElementLedger published)
         {
-            refusal = SpendRefusal.None;
-
             if (!IsServer)
-            {
-                return false;
-            }
-
-            if (!Ledger.TrySpend(element, amount, out var next, out refusal))
-            {
-                return false;
-            }
-
-            Publish(next);
-            return true;
-        }
-
-        /// <summary>
-        /// Server only. Spends an element without saying what it was.
-        ///
-        /// This is the whole of DE-005's concealment on the pool's side, and it is not optional:
-        /// an ordinary spend publishes the reveal record to everybody, so an attacker whose
-        /// commitment left their pool the moment they swung had already told the defender exactly
-        /// what was coming. Reading an opponent's reveal record is not cheating -- it is public by
-        /// design -- which is precisely why the record must not move yet.
-        ///
-        /// The pool itself is written straight away. It reads to the owner alone, so the creature's
-        /// own player sees their hand shrink as they act and nobody else learns anything.
-        ///
-        /// <see cref="ServerAnnounceCommitted"/> is the other half, and DE-005 is specific about
-        /// when it runs: each side's expenditure is emitted after that side's own reveal.
-        /// </summary>
-        public bool ServerCommit(Element element, int amount, out SpendRefusal refusal)
-        {
-            refusal = SpendRefusal.None;
-
-            if (!IsServer)
-            {
-                return false;
-            }
-
-            if (!ServerLedger.TrySpend(element, amount, out var next, out refusal))
-            {
-                return false;
-            }
-
-            m_Pending = next;
-            m_Pool.Value = new NetElementCounts(next.Pool);
-
-            for (var i = 0; i < amount; i++)
-            {
-                m_Committed.Add(element);
-            }
-
-            Notify.Raise(Changed, this);
-            return true;
-        }
-
-        /// <summary>
-        /// Server only. Says what was committed, now that saying so is allowed.
-        ///
-        /// Safe to call on a pool with nothing pending, because both sides of a clash are announced
-        /// together and only one of them may have committed anything.
-        /// </summary>
-        /// <param name="keep">
-        /// Whether the commitment goes back into the hand. A defender who answered well enough to
-        /// stop the blow outright keeps what they put up; everybody else has spent it.
-        /// </param>
-        public void ServerAnnounceCommitted(bool keep = false)
-        {
-            if (!IsServer || !m_Pending.HasValue)
             {
                 return;
             }
 
-            var ledger = m_Pending.Value;
+            Write(m_Pool, hand);
+            Write(m_Revealed, published.Revealed);
+            Write(m_Identified, published.Identified);
 
-            if (keep && m_Committed.Count > 0)
+            if (m_Total.Value != published.Total)
             {
-                // Shown, but not spent. The identification stands -- putting an element up is how
-                // you prove you have it, and nobody unsees that -- while the element itself goes
-                // back in the hand.
-                var pool = ledger.Pool;
-                var outstanding = new List<Element>(ledger.Outstanding);
+                m_Total.Value = published.Total;
+            }
 
-                foreach (var element in m_Committed)
+            if (!SameOutstanding(published.Outstanding))
+            {
+                m_Outstanding.Clear();
+
+                foreach (var element in published.Outstanding)
                 {
-                    pool = pool.Plus(element, 1);
-
-                    // From the end: this commitment is the most recent thing to leave the hand.
-                    var last = outstanding.LastIndexOf(element);
-
-                    if (last >= 0)
-                    {
-                        outstanding.RemoveAt(last);
-                    }
+                    m_Outstanding.Add((byte)element);
                 }
-
-                ledger = new ElementLedger(pool, ledger.Revealed, outstanding,
-                    ledger.Total, ledger.Identified);
             }
-
-            m_Committed.Clear();
-            Publish(ledger);
-            m_Pending = null;
         }
 
-        /// <summary>
-        /// Server only. Brings back the oldest outstanding spend, which is what Take a Breath does.
-        /// </summary>
-        public bool ServerReturn(out Element returned, out SpendRefusal refusal)
+        static void Write(NetworkVariable<NetElementCounts> variable, ElementCounts counts)
         {
-            returned = default;
-            refusal = SpendRefusal.None;
+            var next = new NetElementCounts(counts);
 
-            if (!IsServer)
+            if (!variable.Value.Equals(next))
+            {
+                variable.Value = next;
+            }
+        }
+
+        bool SameOutstanding(IReadOnlyList<Element> outstanding)
+        {
+            if (m_Outstanding.Count != outstanding.Count)
             {
                 return false;
             }
 
-            if (!ServerLedger.TryReturn(out var next, out returned, out refusal))
+            for (var i = 0; i < outstanding.Count; i++)
             {
-                return false;
+                if (m_Outstanding[i] != (byte)outstanding[i])
+                {
+                    return false;
+                }
             }
 
-            // Publishing settles anything pending along with it. Nothing returns an element
-            // mid-clash -- Take a Breath is a turn's action, not a defence -- so this is a
-            // consistency guarantee rather than a path anybody walks.
-            m_Pending = null;
-            m_Committed.Clear();
-            Publish(next);
             return true;
-        }
-
-        /// <summary>
-        /// Writes a whole ledger back.
-        ///
-        /// All three or none. They are separate replicated fields only because they have different
-        /// audiences; the ledger is what guarantees they agree.
-        /// </summary>
-        void Publish(ElementLedger ledger)
-        {
-            m_Pool.Value = new NetElementCounts(ledger.Pool);
-            m_Revealed.Value = new NetElementCounts(ledger.Revealed);
-            m_Identified.Value = new NetElementCounts(ledger.Identified);
-
-            m_Outstanding.Clear();
-
-            foreach (var element in ledger.Outstanding)
-            {
-                m_Outstanding.Add((byte)element);
-            }
         }
 
         void OnCountsChanged(NetElementCounts previous, NetElementCounts current) => Notify.Raise(Changed, this);

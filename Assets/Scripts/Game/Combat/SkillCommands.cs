@@ -21,8 +21,9 @@ namespace Dragoneye.Game.Combat
     /// that cannot change would be the same unchanging bytes once per creature per match.
     ///
     /// The checks stack the same way <see cref="UnitCommands"/> stacks them: ownership is
-    /// transport-level, the controller slot is the game rule for whose creature this is, and
-    /// <see cref="CombatDirector"/> decides whether the skill is affordable, in range and legal.
+    /// transport-level, the controller slot is the game rule for whose creature this is, and the
+    /// fight behind <see cref="CombatDirector"/> decides whether the skill is affordable, in range
+    /// and legal.
     /// </summary>
     [RequireComponent(typeof(CreatureState))]
     [DisallowMultipleComponent]
@@ -78,29 +79,25 @@ namespace Dragoneye.Game.Combat
         }
 
         /// <summary>
-        /// Server only. Records that this creature has now been seen using a skill.
+        /// Server only. Copies which skills the fight says this creature has been watched using.
         ///
-        /// Called when the skill's effect lands rather than when it is asked for, which for a
-        /// contested skill is after the defender has committed. Recording it at the moment of use
-        /// would publish the attacking skill -- and therefore its element -- into the very window
-        /// DE-005 exists to keep empty.
+        /// The list only ever grows, in the order skills were first used, so the mirror appends
+        /// what is missing. The fight records a use when the skill's effect lands rather than
+        /// when it is asked for -- for a contested skill, after the defender has committed --
+        /// so the attacking skill, and therefore its element, never reaches this public list
+        /// inside the window DE-005 exists to keep empty.
         /// </summary>
-        public void ServerRecordUse(int skillId)
+        public void ServerMirrorSeen(IReadOnlyList<int> seen)
         {
             if (!IsServer)
             {
                 return;
             }
 
-            for (var i = 0; i < m_Seen.Count; i++)
+            for (var i = m_Seen.Count; i < seen.Count; i++)
             {
-                if (m_Seen[i] == skillId)
-                {
-                    return;
-                }
+                m_Seen.Add(seen[i]);
             }
-
-            m_Seen.Add(skillId);
         }
 
         /// <summary>

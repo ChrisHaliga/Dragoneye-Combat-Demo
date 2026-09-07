@@ -1,3 +1,4 @@
+using Dragoneye.Sim;
 namespace Dragoneye.Game.Combat
 {
     /// <summary>

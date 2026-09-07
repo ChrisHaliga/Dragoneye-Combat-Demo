@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using Dragoneye.Combat;
 using Dragoneye.Hex;
+using Dragoneye.Sim;
 
 namespace Dragoneye.Game.Combat
 {

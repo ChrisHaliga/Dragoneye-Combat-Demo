@@ -8,28 +8,16 @@ using Dragoneye.Game.Combat;
 
 namespace Dragoneye.Game.Creatures
 {
-    /// <summary>What a blow came to: what got through, what the armour held, what is left.</summary>
-    public readonly struct DamageResult
-    {
-        public readonly int Landed;
-        public readonly int Absorbed;
-        public readonly int HpAfter;
-        public readonly int ArmourAfter;
-        public readonly bool Killed;
-
-        public DamageResult(int landed, int absorbed, int hpAfter, int armourAfter, bool killed)
-        {
-            Landed = landed;
-            Absorbed = absorbed;
-            HpAfter = hpAfter;
-            ArmourAfter = armourAfter;
-            Killed = killed;
-        }
-    }
-
     /// <summary>
-    /// A unit's identity and vitals. <see cref="UnitState"/> keeps where it stands; this keeps what
-    /// it is. One prefab, two NetworkBehaviours, one responsibility each.
+    /// A unit's identity and vitals, as every client sees them. <see cref="UnitState"/> keeps
+    /// where it stands; this keeps what it is. One prefab, two NetworkBehaviours, one
+    /// responsibility each.
+    ///
+    /// A mirror. The vitals are decided by the fight's own <see cref="Dragoneye.Sim.FightCreature"/>
+    /// and copied here by <see cref="CombatDirector"/> after every order; nothing here can change
+    /// them, and nothing in the fight reads them back. What this adds is identity -- which
+    /// creature, whose, what to call it -- which is what a client needs to draw the fight and
+    /// the fight never needs at all.
     ///
     /// Only mutable state is replicated. Name, portrait, species, class, max HP, max AP and speed are
     /// all authored constants, resolved locally from <see cref="CreatureId"/> through the catalog --
@@ -80,6 +68,7 @@ namespace Dragoneye.Game.Creatures
         byte m_StartControllerSlot = PartyInfo.Unclaimed;
         int m_StartLevel = Progression.FirstLevel;
         byte m_StartOrdinal;
+        Facing m_StartFacing;
 
         CreatureDefinition m_Definition;
         CreatureRegistry m_Registry;
@@ -222,6 +211,7 @@ namespace Dragoneye.Game.Creatures
                 m_CreatureId.Value = m_StartCreatureId;
                 m_PartyId.Value = (byte)m_StartParty;
                 m_ControllerSlot.Value = m_StartControllerSlot;
+                m_Facing.Value = (byte)m_StartFacing.Index;
                 m_CurrentHp.Value = profile.MaxHealth;
                 m_CurrentArmour.Value = profile.Armour;
                 m_CurrentApUnits.Value = profile.MaxAp.Units;
@@ -274,8 +264,8 @@ namespace Dragoneye.Game.Creatures
         }
 
         /// <summary>
-        /// Server only, and only before <c>Spawn()</c>. Sets what this creature is; vitals are
-        /// filled from the authored definition when the object spawns.
+        /// Server only, and only before <c>Spawn()</c>. Sets what this creature is and which way it
+        /// starts turned; vitals are filled from the authored definition when the object spawns.
         ///
         /// Takes an id rather than a definition: the definition is authored data every peer can
         /// resolve locally, so passing one in would invite a caller to hand over a definition that
@@ -283,7 +273,7 @@ namespace Dragoneye.Game.Creatures
         /// </summary>
         public void ServerConfigure(ushort creatureId, Party party, byte controllerSlot,
             byte buildSlot = PartyInfo.Unclaimed, int level = Progression.FirstLevel,
-            int ordinal = 0)
+            int ordinal = 0, Facing facing = default)
         {
             m_StartCreatureId = creatureId;
             m_StartParty = party;
@@ -291,6 +281,7 @@ namespace Dragoneye.Game.Creatures
             m_StartBuildSlot = buildSlot;
             m_StartLevel = level;
             m_StartOrdinal = (byte)(ordinal < 0 ? 0 : ordinal > byte.MaxValue ? 0 : ordinal);
+            m_StartFacing = facing;
         }
 
         /// <summary>
@@ -306,7 +297,7 @@ namespace Dragoneye.Game.Creatures
         /// Where this creature stands.
         ///
         /// Position lives on <see cref="UnitState"/> and identity lives here, which is the right
-        /// split -- but combat needs both in the same breath, and every caller reaching across with
+        /// split -- but the HUD needs both in the same breath, and every caller reaching across with
         /// GetComponent would be the same lookup written eight times.
         /// </summary>
         public Dragoneye.Hex.Cell Cell => Unit != null ? Unit.Cell : default;
@@ -330,10 +321,13 @@ namespace Dragoneye.Game.Creatures
         // something else when the answer was null. They are asked for here, once, and a prefab
         // that lacks one is a prefab that fails at the first question rather than behaving
         // differently for the rest of the match.
+        //
+        // Data only. The token that draws this creature is not here, on purpose: a view that a
+        // piece of replicated state could reach is a view a bug in the fight could reach, and
+        // one did. What draws a creature asks for it from the presentation side.
         CreaturePool m_Pool;
         SkillCommands m_SkillCommands;
         UnitCommands m_UnitCommands;
-        UnitView m_View;
 
         /// <summary>What this creature holds.</summary>
         public CreaturePool Pool => m_Pool != null ? m_Pool : m_Pool = GetComponent<CreaturePool>();
@@ -345,9 +339,6 @@ namespace Dragoneye.Game.Creatures
         /// <summary>Where this creature is asked to go.</summary>
         public UnitCommands UnitCommands =>
             m_UnitCommands != null ? m_UnitCommands : m_UnitCommands = GetComponent<UnitCommands>();
-
-        /// <summary>The token that draws it. Null on a headless server, and nothing here needs it.</summary>
-        public UnitView View => m_View != null ? m_View : m_View = GetComponent<UnitView>();
 
         /// <summary>Alive until its health reaches zero.</summary>
         public bool IsAlive => CombatRules.IsAlive(m_CurrentHp.Value);
@@ -362,22 +353,6 @@ namespace Dragoneye.Game.Creatures
         public uint TurnId => (uint)NetworkObjectId;
 
         /// <summary>
-        /// Server only. Deducts AP, refusing to go below zero.
-        /// </summary>
-        /// <returns>False if the creature could not afford it, in which case nothing was spent.</returns>
-        public bool ServerSpendAp(Ap amount)
-        {
-            if (!IsServer || amount.Units < 0 || m_CurrentApUnits.Value < amount.Units)
-            {
-                return false;
-            }
-
-            m_CurrentApUnits.Value -= amount.Units;
-            return true;
-        }
-
-        /// <summary>Server only. Restores health, never past the maximum.</summary>
-        /// <summary>
         /// Which of six ways this creature is turned.
         ///
         /// Stored rather than worked out, which DE-006 is explicit about: it is a consequence of
@@ -386,87 +361,37 @@ namespace Dragoneye.Game.Creatures
         /// </summary>
         public Facing Facing => Dragoneye.Combat.Facing.Of(m_Facing.Value);
 
-        /// <summary>Server only. Turns the creature.</summary>
-        public void ServerFace(Facing facing)
-        {
-            if (IsServer)
-            {
-                m_Facing.Value = (byte)facing.Index;
-            }
-        }
-
         /// <summary>
-        /// Server only. Restores health, never past the maximum.
-        /// </summary>
-        /// <returns>What actually came back, which is less than asked for at full health.</returns>
-        public int ServerHeal(int amount)
-        {
-            if (!IsServer || !IsAlive)
-            {
-                return 0;
-            }
-
-            var before = m_CurrentHp.Value;
-
-            m_CurrentHp.Value = SkillRules.Apply(
-                new SkillEffect(SkillEffectKind.Heal, amount), before, MaxHp);
-
-            return m_CurrentHp.Value - before;
-        }
-
-        /// <summary>Server only. Restores action points, never past the maximum.</summary>
-        public void ServerRestoreAp(Ap amount)
-        {
-            if (IsServer)
-            {
-                m_CurrentApUnits.Value = SkillRules.Apply(
-                    new SkillEffect(SkillEffectKind.RestoreAp, amount.Units),
-                    m_CurrentApUnits.Value, MaxAp.Units);
-            }
-        }
-
-        /// <summary>Server only. Restores AP to full at the start of a turn.</summary>
-        public void ServerRefillAp()
-        {
-            if (IsServer)
-            {
-                m_CurrentApUnits.Value = MaxAp.Units;
-            }
-        }
-
-        /// <summary>
-        /// Server only. Applies damage: armour first, health second.
+        /// Server only. Copies the fight's vitals in.
         ///
-        /// Both here rather than in the caller, so what lands and what is written down cannot
-        /// disagree: one subtraction, one set of numbers, handed back for the record.
+        /// Each field is written only when it differs, so a mirror after an order that touched
+        /// somebody else sends nothing for this creature.
         /// </summary>
-        public DamageResult ServerApplyDamage(int damage)
+        public void ServerMirror(int hp, int armour, int apUnits, int facingIndex)
         {
-            if (!IsServer || !IsAlive)
+            if (!IsServer)
             {
-                return new DamageResult(0, 0, m_CurrentHp.Value, m_CurrentArmour.Value, false);
+                return;
             }
 
-            var through = CombatRules.Absorb(damage, m_CurrentArmour.Value, out var armourLeft);
-            var absorbed = m_CurrentArmour.Value - armourLeft;
-
-            m_CurrentArmour.Value = armourLeft;
-            m_CurrentHp.Value = CombatRules.Damaged(m_CurrentHp.Value, through);
-
-            return new DamageResult(through, absorbed, m_CurrentHp.Value, m_CurrentArmour.Value, !IsAlive);
-        }
-
-        /// <summary>
-        /// Server only. Takes a dead creature off the board without despawning it.
-        ///
-        /// It gives up its cell, so nothing walks round a body, and stays as an object so a
-        /// watcher behind the fight can still be shown it fall. It goes with the arena.
-        /// </summary>
-        public void ServerLeaveBoard()
-        {
-            if (IsServer)
+            if (m_CurrentArmour.Value != armour)
             {
-                Unit?.ServerLeaveBoard();
+                m_CurrentArmour.Value = armour;
+            }
+
+            if (m_CurrentHp.Value != hp)
+            {
+                m_CurrentHp.Value = hp;
+            }
+
+            if (m_CurrentApUnits.Value != apUnits)
+            {
+                m_CurrentApUnits.Value = apUnits;
+            }
+
+            if (m_Facing.Value != (byte)facingIndex)
+            {
+                m_Facing.Value = (byte)facingIndex;
             }
         }
 

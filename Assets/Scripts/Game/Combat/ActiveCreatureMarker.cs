@@ -85,7 +85,7 @@ namespace Dragoneye.Game.Combat
         /// <summary>How high the token sits above its tile, so the ring can be put on the tile itself.</summary>
         static float GroundOf(CreatureState creature)
         {
-            var view = creature.View;
+            var view = UnitView.Of(creature);
             return view != null ? view.GroundOffset : 0.5f;
         }
 

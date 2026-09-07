@@ -2,6 +2,7 @@ using System.Linq;
 using Dragoneye.Combat;
 using Dragoneye.Game.Combat;
 using Dragoneye.Hex.Systems;
+using Dragoneye.Sim;
 using NUnit.Framework;
 using UnityEngine;
 using Cell = Dragoneye.Hex.Cell;

@@ -72,7 +72,7 @@ namespace Dragoneye.Game.Combat
 
         static float Lift(CreatureState actor)
         {
-            var view = actor != null ? actor.View : null;
+            var view = UnitView.Of(actor);
             return view != null ? view.GroundOffset + 0.2f : 0.7f;
         }
 

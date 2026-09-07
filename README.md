@@ -51,7 +51,7 @@ leaves you on Bootstrap when it finishes.
 
 ## The shape of it
 
-Eleven assemblies. The boundaries are not documentation — they are separate DLLs, so a layering
+Twelve assemblies. The boundaries are not documentation — they are separate DLLs, so a layering
 mistake is a compile error rather than something a review has to catch.
 
 ```
@@ -60,6 +60,8 @@ mistake is a compile error rather than something a review has to catch.
                     Data          ← authored ScriptableObjects. Answers the questions Combat asks.
                       ↑
    Hex ─→ Hex.Systems ─→ Hex.Rendering
+            ↑
+           Sim            ← the fight itself, as plain objects. Combat and the grid only. No engine.
             ↑
         Scenarios         ← fights written down, and what they prove. Rules and grid only.
                       ↑
@@ -80,6 +82,7 @@ mistake is a compile error rather than something a review has to catch.
 | `Dragoneye.Hex` | `Scripts/Hex` | nothing but the engine |
 | `Dragoneye.Hex.Systems` | `Scripts/Hex/Systems` | Hex |
 | `Dragoneye.Hex.Rendering` | `Scripts/Hex/Rendering` | Hex |
+| `Dragoneye.Sim` | `Scripts/Sim` | Combat, Hex, Hex.Systems -- and not UnityEngine |
 | `Dragoneye.Scenarios` | `Scripts/Scenarios` | Combat, Hex, Hex.Systems |
 | `Dragoneye.Camera` | `Scripts/Camera` | Settings, Input System, Cinemachine |
 | `Dragoneye.UI` | `Scripts/UI` | Combat, Data, Input System |
@@ -120,6 +123,17 @@ disagree**. When the UI prices a move at 3 AP and the server charges 3 AP, it is
 
 It also means the whole rules layer is testable in a plain console app with no Unity present, which
 is exactly what the verification harness does.
+
+The same holds one level up. `Dragoneye.Sim` is the fight itself -- `Fight`, its creatures, their
+pools, the turn queue, the clash, the swing at somebody walking past, the computer's turn -- and it
+sets `noEngineReferences` too. It references `Combat` and the grid and nothing else, and the build
+check refuses any source in it that even names `UnityEngine`, `Unity.Netcode`, `Dragoneye.Game`,
+`Dragoneye.UI` or `Dragoneye.Data`. What the fight has to say goes out through `IFightListener`;
+what it is asked to do comes in through its methods, by creature id. So a whole fight runs in a
+console with nothing watching it (the harness does exactly that, in `FightChecks`), and no view
+can reach it: the arrow from presentation to simulation does not exist to be misused. The first
+cut had it -- a creature's replicated state could reach its own token, a destroyed ring renderer
+threw inside the AI's move, and the match froze. See `Scripts/Sim/README.md`.
 
 ### One answer per question
 
@@ -252,9 +266,10 @@ Idle ──enemy in reach & affordable──> Striking
 ```
 
 `Assess(actor, target)` is a pure static function over a `BrainView` — no scene, no netcode — so a
-new brain is a new implementation and nothing else changes. `CombatDirector` executes what it
-returns, and waits for `UnitView.IsMoving` to settle plus a dwell before acting again, so a computer
-turn can be watched rather than resolving in one frame.
+new brain is a new implementation and nothing else changes. `Fight.Step()` asks the brain for one
+decision and carries it out; the director takes one step a frame, so a question a decision opens
+is on somebody's screen before the next is asked for, and the playback paces what is shown. A
+brain that throws, or that keeps asking for what it cannot do, loses its turn and not the match.
 
 The `Closing` state only accepts a destination strictly closer than where it started. Without that
 check the AI paced back and forth between equidistant tiles until its AP ran out.
@@ -353,9 +368,10 @@ between a rules change and a playtest.
 
 ### Change how a fight is shown
 
-The simulation and the screen are separate, and the screen is behind. The server plays the fight
-at its own pace and writes every consequence down as a `CombatEvent` (`FightRecord.Say`), packed
-to ints by `CombatEventCodec` and sent to everyone by `CombatAnnouncer`. Each client queues them in
+The simulation and the screen are separate, and the screen is behind. The fight
+(`Dragoneye.Sim.Fight`) plays at its own pace and writes every consequence down as a
+`CombatEvent`, handed to its `IFightListener` -- on the server, `CombatDirector` -- which packs it
+to ints with `CombatEventCodec` and sends it to everyone through `CombatAnnouncer`. Each client queues them in
 `CombatPlayback`, which applies one at a time to a `PresentedFight` — positions, health, armour,
 AP, elements shown and spent, who fell — and waits the beat `PresentationPacing` gives it: a walk
 takes as long as the token needs to walk the server's own route, a shot flies its distance, and
@@ -517,7 +533,7 @@ that whole run on the clipboard, failing checks and traces included. A scenario'
 will do, by replaying the rules from the seed, so a failure is the board disagreeing with the
 rules, and the report's trace says where.
 
-`build.sh` does six things:
+`build.sh` does seven things:
 
 1. **Compiles each assembly separately against only the references its own asmdef declares.** The
    reference lists are read out of the asmdef files rather than duplicated in the script — a
@@ -532,11 +548,15 @@ rules, and the report's trace says where.
 5. **Checks whether an editor step is owed**, by reading the components every file in
    `Assets/Editor` adds and looking for each in the scenes.
 6. **Checks the harness is fresh**: every source it compiles is the same file as the project's.
+7. **Checks the simulation is pure**: no source in `Scripts/Sim` names the engine, the network, or
+   any assembly above it. Compiling engine-free stops it linking to them; this stops it mentioning
+   them, which is the first step back to the two-way street that froze the AI.
 
 There is also a .NET console harness (`scratchpad/harness/`) that compiles the pure sources and
-runs twenty-eight check suites over them — rules, progression, pool pricing, brain decisions, draft
+runs twenty-nine check suites over them — rules, progression, pool pricing, brain decisions, draft
 queries, hex placement, camera maths, the presented fight against the events that build it, every
-walk's geometry against the walls it crosses, and every map a host can pick.
+walk's geometry against the walls it crosses, every map a host can pick, and whole fights run
+headless from a map, a table and dice to a winner.
 
 **These scripts are not committed.** They live in the session scratchpad. If you want them in the
 repo — and they probably should be — say so and they can move to a `Tools/` folder.
@@ -642,9 +662,10 @@ Flagged rather than fixed, deliberately:
 - **The camera follows whoever is acting**, and lets go the moment you pan -- for that turn only,
   so the next one brings its creature back into view. Turning and zooming do not break it. If it
   reads as fighting you, the ease and what counts as breaking it are both in `TurnCameraFocus`.
-- **No skill breaks a wall yet.** Walls change mid-fight through `CombatDirector.ServerSetWall`
-  -- the test mode's wall-break scenario does exactly that, replicated by `WallCommands`, with every
-  creature on the tile carried to the ground it stood on -- but nothing a creature can do calls it,
+- **No skill breaks a wall yet.** Walls change mid-fight through `Fight.SetWall`, which the
+  director forwards -- the test mode's wall-break scenario does exactly that, replicated by
+  `WallCommands`, with every creature on the tile carried to the ground it stood on -- but nothing
+  a creature can do calls it,
   and `Wall.Integrity` is data nothing reads. A breaching skill is a skill kind and one call.
 - **The AI does not seek cover** and does not price a low wall between it and a target beyond the
   hit chance it is handed.

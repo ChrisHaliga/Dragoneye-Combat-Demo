@@ -2,7 +2,7 @@ using Dragoneye.Combat;
 using Dragoneye.Hex;
 using Dragoneye.Hex.Systems;
 
-namespace Dragoneye.Game.Combat
+namespace Dragoneye.Sim
 {
     /// <summary>
     /// Where a creature is looking, on the grid, and what walking past it costs.

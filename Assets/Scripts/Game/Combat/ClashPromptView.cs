@@ -163,7 +163,7 @@ namespace Dragoneye.Game.Combat
             var defender = Defender;
             var pool = defender != null ? defender.Pool : null;
 
-            var held = pool != null && pool.CanSee
+            var held = pool != null && LocalPlayer.Controls(defender)
                 ? pool.Pool[element]
                 : Contains(m_Request.Options, element) ? 1 : 0;
 

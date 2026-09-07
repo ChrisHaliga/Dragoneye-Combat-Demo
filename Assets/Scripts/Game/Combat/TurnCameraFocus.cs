@@ -1,5 +1,6 @@
 using UnityEngine;
 using Dragoneye.CameraControl;
+using Dragoneye.Sim;
 using Dragoneye.Game.Creatures;
 
 namespace Dragoneye.Game.Combat

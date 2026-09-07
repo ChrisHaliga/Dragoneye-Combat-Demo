@@ -8,6 +8,7 @@
         "Dragoneye.Settings",
         "Dragoneye.Hex",
         "Dragoneye.Hex.Systems",
+        "Dragoneye.Sim",
         "Dragoneye.Scenarios",
         "Dragoneye.Hex.Rendering",
         "Dragoneye.Camera",

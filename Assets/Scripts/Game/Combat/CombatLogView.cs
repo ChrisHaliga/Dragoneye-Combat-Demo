@@ -3,6 +3,7 @@ using Dragoneye.Combat;
 using Dragoneye.Data;
 using Dragoneye.Hex;
 using Dragoneye.Multiplayer;
+using Dragoneye.Sim;
 using UnityEngine;
 using UnityEngine.UIElements;
 using Dragoneye.UI;

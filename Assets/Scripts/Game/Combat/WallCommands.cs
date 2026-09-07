@@ -49,8 +49,10 @@ namespace Dragoneye.Game.Combat
     ///
     /// The map is not replicated: each peer builds its own from the same definition, and that is
     /// right for a layout that is fixed for a fight. A wall that comes down mid-fight is the one
-    /// thing about the map that is not fixed, so it travels here -- the server changes its map
-    /// and says so, every client changes its own the same way, and the grids agree again.
+    /// thing about the map that is not fixed, so it travels here -- the fight changes its own
+    /// map, the server says so, every client changes its copy the same way, and the grids agree
+    /// again. The server's map is the fight's, already changed, which is why the message goes to
+    /// everybody but the server.
     ///
     /// This is the fight's board and nobody sees it. The board on screen is changed by the
     /// playback when it reaches the <see cref="CombatEventKind.WallChanged"/> event, which is the
@@ -76,7 +78,7 @@ namespace Dragoneye.Game.Combat
             }
         }
 
-        /// <summary>Server only. Changes a wall everywhere, this machine included.</summary>
+        /// <summary>Server only. Changes a wall on every client. The server's is the fight's, already changed.</summary>
         public void ServerSet(WallSegment segment, Wall wall)
         {
             if (IsServer)
@@ -85,7 +87,7 @@ namespace Dragoneye.Game.Combat
             }
         }
 
-        [Rpc(SendTo.Everyone)]
+        [Rpc(SendTo.NotServer)]
         void ApplyRpc(NetWall change)
         {
             var arena = ArenaContext.Current;

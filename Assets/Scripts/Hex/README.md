@@ -86,7 +86,7 @@ Rays that block movement cut the tile into **areas**. Each area is a cell; a cre
 one; two areas of one tile have no path between them except round the outside, and no bearing
 problem, because bearings come from area centres. Half-edge walls never change the areas, which is
 why a door should be a half-edge: opening it invalidates nobody's position. A ray changing mid-fight
-renumbers the tile; `WallChanged` carries the areas as they were, and `CombatDirector` carries
+renumbers the tile; `WallChanged` carries the areas as they were, and the `Fight` carries
 every creature on the tile to the ground it was standing on with `AreaLayout.Carry`. Walls change
 through `WallCommands`, the one replicated thing about the map, so every machine's grid agrees.
 

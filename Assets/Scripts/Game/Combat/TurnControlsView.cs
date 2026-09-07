@@ -57,7 +57,7 @@ namespace Dragoneye.Game.Combat
                 return;
             }
 
-            m_Board = new ArenaBoard(m_Map, m_Units);
+            m_Board = new ArenaBoard(m_Map, m_Units, m_Input.Creatures);
 
             var root = GetComponent<UIDocument>().rootVisualElement;
 
@@ -227,13 +227,19 @@ namespace Dragoneye.Game.Combat
             return false;
         }
 
-        static string Names(IReadOnlyList<CreatureState> creatures)
+        string Names(IReadOnlyList<uint> ids)
         {
             var text = string.Empty;
+            var registry = m_Input != null ? m_Input.Creatures : null;
 
-            for (var i = 0; i < creatures.Count; i++)
+            foreach (var id in ids)
             {
-                text += (i > 0 ? ", " : string.Empty) + creatures[i].DisplayName;
+                var creature = registry != null ? registry.ByTurnId(id) : null;
+
+                if (creature != null)
+                {
+                    text += (text.Length > 0 ? ", " : string.Empty) + creature.DisplayName;
+                }
             }
 
             return text;

@@ -1,15 +1,9 @@
 using System.Collections.Generic;
 using Dragoneye.Combat;
-using UnityEngine;
-using Dragoneye.Game;
-using Dragoneye.Game.Creatures;
 using Dragoneye.Hex;
-using Dragoneye.Hex.Systems;
 
-namespace Dragoneye.Game.Combat
+namespace Dragoneye.Sim
 {
-    using Hex = Dragoneye.Hex.Hex;
-
     /// <summary>
     /// A move or a skill use that has been asked for and has not happened yet.
     ///
@@ -18,11 +12,11 @@ namespace Dragoneye.Game.Combat
     /// because a skill that walks into range is a walk -- and one that provoked nothing while an
     /// ordinary move did would be a way to leave for free.
     /// </summary>
-    public readonly struct PendingAction
+    readonly struct PendingAction
     {
         public const int NoSkill = int.MinValue;
 
-        public readonly CreatureState Actor;
+        public readonly FightCreature Actor;
 
         /// <summary>Where the move goes, or what the skill is aimed at.</summary>
         public readonly Cell Where;
@@ -36,8 +30,8 @@ namespace Dragoneye.Game.Combat
         /// <summary>Which element the skill was going to arrive as, where that was a choice.</summary>
         public readonly Element Element;
 
-        public PendingAction(CreatureState actor, Cell where, Cell destination, Facing? facing,
-            int skillId, Element element = default)
+        PendingAction(FightCreature actor, Cell where, Cell destination, Facing? facing,
+            int skillId, Element element)
         {
             Actor = actor;
             Where = where;
@@ -47,10 +41,10 @@ namespace Dragoneye.Game.Combat
             Element = element;
         }
 
-        public static PendingAction Move(CreatureState actor, Cell destination, Facing? facing) =>
-            new PendingAction(actor, destination, destination, facing, NoSkill);
+        public static PendingAction Move(FightCreature actor, Cell destination, Facing? facing) =>
+            new PendingAction(actor, destination, destination, facing, NoSkill, default);
 
-        public static PendingAction Skill(CreatureState actor, int skillId, Cell target,
+        public static PendingAction Skill(FightCreature actor, int skillId, Cell target,
             Cell approach, Element element) =>
             new PendingAction(actor, target, approach, null, skillId, element);
 
@@ -60,41 +54,26 @@ namespace Dragoneye.Game.Combat
     }
 
     /// <summary>
-    /// Holds an action back while everybody it would walk away from decides whether to swing.
+    /// The swing at somebody walking past: an action held back while everybody it would walk
+    /// away from decides whether to take one.
     ///
     /// The rule it applies is <see cref="ThreatGeometry.Provokes"/>: leaving a watched tile.
     /// Everything else here is bookkeeping -- who has been asked, who is still to ask, and what
     /// happens once the last of them has answered -- and a queue, because two enemies can both be
-    /// watching the same tile and each gets a swing in turn.
-    ///
-    /// Server only. It never decides a clash: a swing that is taken is handed to the host to open
-    /// as an ordinary attack, and this is told when that attack is over.
+    /// watching the same tile and each gets a swing in turn. A swing that is taken is an ordinary
+    /// attack, opened as a clash like any other.
     /// </summary>
-    public sealed class OpportunityConductor
+    public sealed partial class Fight
     {
-        readonly IOpportunityHost m_Host;
-        readonly CreatureRegistry m_Creatures;
-        readonly Dice m_Dice;
-        readonly ArenaMap m_Map;
-
         PendingAction m_Pending;
-        readonly List<CreatureState> m_Watchers = new List<CreatureState>();
-        CreatureState m_Offered;
+        readonly List<FightCreature> m_Watchers = new List<FightCreature>();
+        FightCreature m_Offered;
 
-        public OpportunityConductor(IOpportunityHost host, CreatureRegistry creatures, Dice dice,
-            ArenaMap map)
-        {
-            m_Host = host;
-            m_Creatures = creatures;
-            m_Dice = dice;
-            m_Map = map;
-        }
+        /// <summary>Who is being offered a swing right now. Zero if nobody.</summary>
+        public uint OfferedWatcher => m_Offered != null ? m_Offered.Id : 0u;
 
-        /// <summary>Whether an action is being held while somebody decides.</summary>
-        public bool IsPending => m_Pending.Exists;
-
-        /// <summary>Who is being offered a swing right now, if anybody.</summary>
-        public CreatureState Offered => m_Offered;
+        /// <summary>Whose action is being held while the watchers decide. Zero if nobody's.</summary>
+        public uint HeldMover => m_Pending.Exists ? m_Pending.Actor.Id : 0u;
 
         /// <summary>
         /// Whether this creature is stood next to that one, looking at it, with nothing it cannot
@@ -103,17 +82,26 @@ namespace Dragoneye.Game.Combat
         /// Position, facing and walls, all of which are on the board for anybody to read. Whether
         /// it can afford the swing is its own business -- that is the whole of DE-005.
         /// </summary>
-        public static bool Watches(ArenaMap map, CreatureState watcher, CreatureState mover) =>
-            AreEnemies(watcher, mover) && map != null
-            && ThreatGeometry.Watches(map.Grid, watcher.Cell, watcher.Facing, mover.Cell);
+        public bool Watches(uint watcherId, uint moverId)
+        {
+            var watcher = Creature(watcherId);
+            var mover = Creature(moverId);
+
+            return AreEnemies(watcher, mover)
+                && ThreatGeometry.Watches(m_Grid, watcher.Cell, watcher.Facing, mover.Cell);
+        }
 
         /// <summary>Whether that creature walking to this cell would give this one a swing.</summary>
-        public static bool Provokes(ArenaMap map, CreatureState watcher, CreatureState mover,
-            Cell destination) =>
-            AreEnemies(watcher, mover) && map != null
-            && ThreatGeometry.Provokes(map.Grid, watcher.Cell, watcher.Facing, mover.Cell, destination);
+        public bool Provokes(uint watcherId, uint moverId, Cell destination)
+        {
+            var watcher = Creature(watcherId);
+            var mover = Creature(moverId);
 
-        static bool AreEnemies(CreatureState a, CreatureState b) =>
+            return AreEnemies(watcher, mover)
+                && ThreatGeometry.Provokes(m_Grid, watcher.Cell, watcher.Facing, mover.Cell, destination);
+        }
+
+        static bool AreEnemies(FightCreature a, FightCreature b) =>
             a != null && b != null && a != b && a.IsAlive && b.IsAlive && a.Party != b.Party;
 
         /// <summary>
@@ -123,16 +111,16 @@ namespace Dragoneye.Game.Combat
         /// through as creatures turn to face each other.
         /// </summary>
         /// <returns>True when the action was suspended and will be run later.</returns>
-        public bool TryInterrupt(PendingAction action)
+        bool TryInterrupt(PendingAction action)
         {
-            if (m_Pending.Exists || !action.Exists || m_Creatures == null)
+            if (m_Pending.Exists || !action.Exists)
             {
                 return false;
             }
 
             m_Watchers.Clear();
 
-            foreach (var creature in m_Creatures.All)
+            foreach (var creature in m_Creatures)
             {
                 if (CanSwing(creature, action.Actor, action.Destination))
                 {
@@ -146,7 +134,7 @@ namespace Dragoneye.Game.Combat
             }
 
             m_Pending = action;
-            OpportunityCommands.Current?.ServerHold(action.Actor);
+            m_Listener.Hold(action.Actor.Id);
             AskNext();
             return true;
         }
@@ -158,76 +146,25 @@ namespace Dragoneye.Game.Combat
         /// swing may have killed the mover, and a creature may have spent its last element
         /// answering one.
         /// </summary>
-        bool CanSwing(CreatureState watcher, CreatureState mover, Cell destination)
+        bool CanSwing(FightCreature watcher, FightCreature mover, Cell destination)
         {
-            if (!Provokes(m_Map, watcher, mover, destination))
+            if (!AreEnemies(watcher, mover)
+                || !ThreatGeometry.Provokes(m_Grid, watcher.Cell, watcher.Facing, mover.Cell, destination))
             {
                 return false;
             }
 
-            var swing = SwingOf(watcher, out _);
-            var pool = watcher.Pool;
+            var swing = Opportunity.From(watcher.Weapon);
 
-            return swing != null && pool != null
-                && SkillRules.TryChooseElement(swing, pool.ServerLedger, out _);
-        }
-
-        /// <summary>
-        /// The attack this creature would swing with, and the authored skill it was made from --
-        /// which is what "seen" is about. Null when it has none.
-        ///
-        /// A built character swings with its weapon and with nothing else; a premade with the
-        /// first attack it was authored holding.
-        /// </summary>
-        static SkillSpec SwingOf(CreatureState watcher, out SkillSpec source)
-        {
-            source = null;
-
-            if (watcher == null)
-            {
-                return null;
-            }
-
-            var characters = PlayerCharacters.Current;
-            var loadout = watcher.IsPlayerCharacter && characters != null
-                ? characters.LoadoutFor(watcher.BuildSlot)
-                : null;
-
-            if (loadout != null)
-            {
-                source = Opportunity.PrimaryOf(loadout);
-                return Opportunity.From(source);
-            }
-
-            var commands = watcher.SkillCommands;
-
-            source = commands != null ? Opportunity.PrimaryOf(commands.Skills) : null;
-            return Opportunity.From(source);
+            return swing != null && SkillRules.TryChooseElement(swing, watcher.Pool.Private, out _);
         }
 
         /// <summary>
         /// Whether this creature has been watched using its weapon, so the swing it is about to
         /// take is one whose element everybody already knows.
         /// </summary>
-        static bool HasShownWeapon(CreatureState watcher, SkillSpec source)
-        {
-            var commands = watcher != null ? watcher.SkillCommands : null;
-
-            if (commands == null || source == null)
-            {
-                return false;
-            }
-
-            foreach (var id in commands.SeenSkillIds)
-            {
-                if (id == source.Id)
-                {
-                    return true;
-                }
-            }
-
-            return false;
-        }
+        static bool HasShownWeapon(FightCreature watcher) =>
+            watcher.Weapon != null && watcher.HasShown(watcher.Weapon.Id);
 
         /// <summary>Puts the offer to the next watcher, or runs the held action when none are left.</summary>
         void AskNext()
@@ -248,29 +185,22 @@ namespace Dragoneye.Game.Combat
 
                 if (watcher.IsComputerControlled)
                 {
-                    Answer(watcher, Takes(watcher, m_Pending.Actor));
+                    AnswerOpportunity(watcher.Id, Takes(watcher));
                     return;
                 }
 
-                if (OpportunityCommands.Current != null)
-                {
-                    OpportunityCommands.Current.ServerOffer(watcher, m_Pending.Actor,
-                        SwingOf(watcher, out _));
-                    return;
-                }
-
-                // No postbox in the arena, so nobody can be asked and nobody swings. Better than
-                // hanging a move on a question that will never be answered.
-                Debug.LogWarning("No opportunity commands in the arena; the swing is skipped.");
-                m_Offered = null;
+                m_Listener.OfferSwing(watcher.Id, m_Pending.Actor.Id, Opportunity.From(watcher.Weapon));
+                return;
             }
 
             RunPending();
         }
 
-        /// <summary>Whether to swing. From the client that was offered it, or from the computer.</summary>
-        public bool Answer(CreatureState watcher, bool swings)
+        /// <summary>Whether to swing. From the person who was offered it, or from the computer.</summary>
+        public bool AnswerOpportunity(uint watcherId, bool swings)
         {
+            var watcher = Creature(watcherId);
+
             if (m_Offered == null || watcher != m_Offered || !m_Pending.Exists)
             {
                 return false;
@@ -279,57 +209,53 @@ namespace Dragoneye.Game.Combat
             var mover = m_Pending.Actor;
             m_Offered = null;
 
-            OpportunityCommands.Current?.ServerClearOffer();
+            m_Listener.CloseOffer(watcher.Id);
 
             if (!swings || !CanSwing(watcher, mover, m_Pending.Destination))
             {
                 // Said out loud. The board warned the mover a swing was coming; when it does not
                 // come, the log has to say who let them go, or the warning reads as a lie.
-                FightRecord.Say(CombatEvent.HeldBackBy(0, watcher.TurnId, mover.TurnId));
+                Say(CombatEvent.HeldBackBy(0, watcher.Id, mover.Id));
                 AskNext();
                 return true;
             }
 
-            var pool = watcher.Pool;
-            var skill = SwingOf(watcher, out var weapon);
-
             // A fist has a choice of elements and nobody to ask, so it takes the first it can pay
             // for -- the same one the prompt showed, because the prompt asked the same question.
-            skill = pool != null ? SkillRules.Settle(skill, null, pool.ServerLedger) : null;
+            var skill = SkillRules.Settle(Opportunity.From(watcher.Weapon), null, watcher.Pool.Private);
 
             // A seen weapon is a known element. The defender is told, and the odds they are shown
             // are worked out against that one element rather than the whole hand.
-            var telegraphed = skill != null && HasShownWeapon(watcher, weapon)
+            var telegraphed = skill != null && HasShownWeapon(watcher)
                 ? skill.Element
                 : (Element?)null;
 
             // Committed, not spent: a swing hides what it is made of until the answer is in, the
             // same as any other attack.
-            if (pool == null || skill == null
-                || !pool.ServerCommit(skill.Element, skill.ElementCost, out _))
+            if (skill == null || !watcher.Pool.Commit(skill.Element, skill.ElementCost, out _))
             {
                 AskNext();
                 return true;
             }
 
             // Turning to swing, like any other attack, which opens the swinger's own back in turn.
-            watcher.ServerFace(ThreatGeometry.Bearing(m_Map.Grid, watcher.Cell, mover.Cell));
+            watcher.Face(ThreatGeometry.Bearing(m_Grid, watcher.Cell, mover.Cell));
 
-            m_Host.BeginClash(watcher, skill, mover, telegraphed);
+            BeginClash(watcher, skill, mover, telegraphed);
             return true;
         }
 
         /// <summary>The one who was offered the swing is gone. It declines.</summary>
-        public void Abandon()
+        public void AbandonOffer()
         {
             if (m_Offered != null)
             {
-                Answer(m_Offered, false);
+                AnswerOpportunity(m_Offered.Id, false);
             }
         }
 
         /// <summary>A swing's clash is over: the next watcher is asked, or the action finally runs.</summary>
-        public void Continue()
+        void ContinueAfterClash()
         {
             if (m_Pending.Exists)
             {
@@ -344,18 +270,13 @@ namespace Dragoneye.Game.Combat
         /// it is coming. The roll that remains is there so the reaction is not a certainty a
         /// player can bank on -- and when it comes up, the log says so.
         /// </summary>
-        bool Takes(CreatureState watcher, CreatureState mover)
+        bool Takes(FightCreature watcher)
         {
-            var swing = SwingOf(watcher, out _);
-            var pool = watcher.Pool;
+            var swing = Opportunity.From(watcher.Weapon);
 
-            if (swing == null || pool == null
-                || !SkillRules.TryChooseElement(swing, pool.ServerLedger, out _))
-            {
-                return false;
-            }
-
-            return Opportunity.Takes(m_Dice.Roll());
+            return swing != null
+                && SkillRules.TryChooseElement(swing, watcher.Pool.Private, out _)
+                && Opportunity.Takes(m_Dice.Roll());
         }
 
         /// <summary>Runs the action everybody has now had their swing at.</summary>
@@ -367,7 +288,7 @@ namespace Dragoneye.Game.Combat
 
             // Released before the action runs, so a client repricing the board on the move it
             // sees does not still read the fight as waiting.
-            OpportunityCommands.Current?.ServerRelease();
+            m_Listener.Release();
 
             if (!pending.Exists || !pending.Actor.IsAlive)
             {
@@ -376,14 +297,15 @@ namespace Dragoneye.Game.Combat
 
             if (pending.IsMove)
             {
-                m_Host.PerformMove(pending.Actor, pending.Where, pending.Facing);
+                PerformMove(pending.Actor, pending.Where, pending.Facing);
                 return;
             }
 
             // Replayed from the top. Everything it checks may have changed while the swings landed
             // -- health, action points, who is standing where -- but it is not asked again whether
             // anybody wants a swing at it: they have all had one.
-            m_Host.ReplaySkill(pending.Actor, pending.SkillId, pending.Where, pending.Element);
+            UseSkill(pending.Actor, pending.SkillId, pending.Where, out _, pending.Element,
+                provoked: true);
         }
     }
 }

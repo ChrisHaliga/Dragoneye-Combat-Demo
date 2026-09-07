@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using Dragoneye.Combat;
 using Dragoneye.Hex;
+using Dragoneye.Sim;
 using UnityEngine;
 using Dragoneye.Game.Combat;
 using Dragoneye.Game.Creatures;
@@ -35,6 +36,16 @@ namespace Dragoneye.Game
     [DisallowMultipleComponent]
     public sealed class UnitView : MonoBehaviour
     {
+        /// <summary>
+        /// The token that draws this creature, or null on a headless server.
+        ///
+        /// Asked from here, on the presentation side, and never from the creature: replicated
+        /// state that could reach its own renderer is state a bug in the fight could reach, and
+        /// one did.
+        /// </summary>
+        public static UnitView Of(CreatureState creature) =>
+            creature != null ? creature.GetComponent<UnitView>() : null;
+
         [SerializeField, Tooltip("The renderer that takes the party colour.")]
         Renderer m_Body;
 

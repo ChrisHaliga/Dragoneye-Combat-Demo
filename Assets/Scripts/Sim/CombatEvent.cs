@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using Dragoneye.Combat;
 using Dragoneye.Hex;
 
-namespace Dragoneye.Game.Combat
+namespace Dragoneye.Sim
 {
     /// <summary>What kind of thing the fight did.</summary>
     public enum CombatEventKind : byte

@@ -1,50 +1,29 @@
 using System.Collections.Generic;
 using Dragoneye.Combat;
-using Dragoneye.Data;
-using UnityEngine;
-using Dragoneye.Game;
-using Dragoneye.Game.Creatures;
-using Dragoneye.Hex;
-using Dragoneye.Hex.Systems;
 
-namespace Dragoneye.Game.Combat
+namespace Dragoneye.Sim
 {
     /// <summary>
-    /// Runs one clash from the swing to the reveal: asks the defender, takes the answer, spends
-    /// what both sides put up, and hands the host whatever is left of the attack.
+    /// The clash: an attack suspended on the defender's answer, from the swing to the reveal.
     ///
     /// What it holds is a <see cref="ClashSequence"/>, which is where every decision about the
-    /// clash is made. This only carries messages to it and applies what it says -- and it is a
-    /// plain class rather than a component, because a clash has no lifecycle of its own beyond
-    /// the fight it is in.
-    ///
-    /// Server only. At most one clash is open at a time: the fight is suspended while it is.
+    /// clash is made. This only carries messages to it and applies what it says. At most one
+    /// clash is open at a time: the fight is suspended while it is.
     /// </summary>
-    public sealed class ClashConductor
+    public sealed partial class Fight
     {
-        readonly IClashHost m_Host;
-        readonly Dice m_Dice;
-        readonly ArenaMap m_Map;
-
         // The attack that is waiting on an answer, and everything needed to finish it.
         ClashSequence m_Clash;
-        CreatureState m_Attacker;
-        CreatureState m_Defender;
-        SkillSpec m_Skill;
+        FightCreature m_Attacker;
+        FightCreature m_Defender;
+        SkillSpec m_ClashSkill;
         bool m_Flanked;
 
-        public ClashConductor(IClashHost host, Dice dice, ArenaMap map)
-        {
-            m_Host = host;
-            m_Dice = dice;
-            m_Map = map;
-        }
-
         /// <summary>Whether an attack is waiting on somebody's answer.</summary>
-        public bool IsPending => m_Clash != null;
+        public bool IsClashPending => m_Clash != null;
 
-        /// <summary>Who is being asked, while somebody is.</summary>
-        public CreatureState Defender => m_Defender;
+        /// <summary>Who is being asked, while somebody is. Zero otherwise.</summary>
+        public uint AskedDefender => m_Defender != null ? m_Defender.Id : 0u;
 
         /// <summary>
         /// Suspends the attack and asks the defender.
@@ -56,43 +35,27 @@ namespace Dragoneye.Game.Combat
         /// The swing is written down here, once for every way a contested attack begins, unless
         /// the caller already wrote it -- a shot that rolled announced itself as a shot.
         /// </summary>
-        public void Begin(CreatureState actor, SkillSpec skill, CreatureState target,
+        void BeginClash(FightCreature actor, SkillSpec skill, FightCreature target,
             Element? telegraphed = null, bool announced = false)
         {
-            var pool = target.Pool;
-
-            if (pool == null)
-            {
-                m_Host.LandUncontested(actor, skill, target);
-                return;
-            }
-
             if (!announced)
             {
-                FightRecord.Say(CombatEvent.SwungAt(0, actor.TurnId, target.TurnId, skill.Id,
-                    actor.Facing.Index, actor.CurrentAp.Units));
+                Say(CombatEvent.SwungAt(0, actor.Id, target.Id, skill.Id, actor.Facing.Index,
+                    actor.Ap.Units));
             }
 
             // Which way the blow arrived, from the defender's point of view.
             var flanked = FacingRules.IsFlank(target.Facing,
-                ThreatGeometry.Bearing(m_Map.Grid, target.Cell, actor.Cell));
+                ThreatGeometry.Bearing(m_Grid, target.Cell, actor.Cell));
 
-            var committed = new List<Element>();
-
-            for (var i = 0; i < skill.ElementCost; i++)
-            {
-                committed.Add(skill.Element);
-            }
-
-            m_Clash = ClashSequence.Begin(committed,
-                new ClashSide((int)actor.TurnId, advantage: actor.HasAdvantage),
-                new ClashSide((int)target.TurnId, advantage: target.HasAdvantage,
-                    disadvantage: flanked),
-                pool.ServerLedger, ElementMatchups.Table, telegraphed);
+            m_Clash = ClashSequence.Begin(Committed(skill),
+                new ClashSide((int)actor.Id, advantage: actor.HasAdvantage),
+                new ClashSide((int)target.Id, advantage: target.HasAdvantage, disadvantage: flanked),
+                target.Pool.Private, m_Matchups, telegraphed);
 
             m_Attacker = actor;
             m_Defender = target;
-            m_Skill = skill;
+            m_ClashSkill = skill;
             m_Flanked = flanked;
 
             Ask(m_Clash.Request, target);
@@ -106,13 +69,13 @@ namespace Dragoneye.Game.Combat
         /// could for want of information a player would not have. That is a property of the
         /// signature rather than of anybody's restraint.
         /// </summary>
-        void Ask(DefenceRequest request, CreatureState defender)
+        void Ask(DefenceRequest request, FightCreature defender)
         {
             if (!request.HasAnswer)
             {
                 // Nothing to answer with. DE-005: the attack resolves unopposed rather than
                 // stopping to ask a question with no answers on it.
-                Settle(null, declined: true);
+                SettleClash(null, declined: true);
                 return;
             }
 
@@ -120,18 +83,11 @@ namespace Dragoneye.Game.Combat
             {
                 // Through the same door a player's answer comes in by, so both halves of the job
                 // -- committing to the sequence and settling -- happen for both kinds of defender.
-                Answer(defender, ChooseDefence(defender, m_Attacker, request), out _);
+                AnswerClash(defender.Id, ChooseDefence(defender, m_Attacker, request), out _);
                 return;
             }
 
-            if (ClashCommands.Current != null)
-            {
-                ClashCommands.Current.ServerAsk(request, defender);
-                return;
-            }
-
-            Debug.LogWarning("No clash commands in the arena; the attack resolves unopposed.");
-            Settle(null, declined: true);
+            m_Listener.AskDefence(defender.Id, request);
         }
 
         /// <summary>
@@ -140,12 +96,12 @@ namespace Dragoneye.Game.Combat
         /// Checked against the sequence rather than trusted: an answer naming elements the defender
         /// does not hold, or more than were asked for, is refused there and the clash stays open.
         /// </summary>
-        public bool Answer(CreatureState defender, IReadOnlyList<Element> answer,
+        public bool AnswerClash(uint defenderId, IReadOnlyList<Element> answer,
             out DefenceRefusal refusal)
         {
             refusal = DefenceRefusal.None;
 
-            if (m_Clash == null || defender != m_Defender)
+            if (m_Clash == null || m_Defender == null || defenderId != m_Defender.Id)
             {
                 refusal = DefenceRefusal.AlreadyResolved;
                 return false;
@@ -153,15 +109,15 @@ namespace Dragoneye.Game.Combat
 
             if (answer == null || answer.Count == 0)
             {
-                Settle(null, declined: true);
+                SettleClash(null, declined: true);
                 return true;
             }
 
-            var pool = defender.Pool;
+            var pool = m_Defender.Pool;
 
             // Committed before anything is spent, so an answer the sequence refuses costs nothing
             // and the clash stays open for a better one.
-            if (pool == null || !m_Clash.TryCommit(answer, pool.ServerLedger, out refusal))
+            if (!m_Clash.TryCommit(answer, pool.Private, out refusal))
             {
                 return false;
             }
@@ -170,15 +126,21 @@ namespace Dragoneye.Game.Combat
             {
                 // Committed, not spent, for the same reason the attacker's was: both are announced
                 // together once neither can be used to work out the other.
-                pool.ServerCommit(element, 1, out _);
+                pool.Commit(element, 1, out _);
             }
 
-            Settle(answer, declined: false);
+            SettleClash(answer, declined: false);
             return true;
         }
 
         /// <summary>The defender is gone. The attack resolves unopposed.</summary>
-        public void Abandon() => Settle(null, declined: true);
+        public void AbandonClash()
+        {
+            if (m_Clash != null)
+            {
+                SettleClash(null, declined: true);
+            }
+        }
 
         /// <summary>
         /// What a computer creature puts up.
@@ -189,15 +151,10 @@ namespace Dragoneye.Game.Combat
         /// somebody has learned the table, and a fight whose right answer never changes has one
         /// turn in it. The dice are the fight's, so the answer can be predicted from the seed.
         /// </summary>
-        IReadOnlyList<Element> ChooseDefence(CreatureState defender, CreatureState attacker,
-            DefenceRequest request)
-        {
-            var pool = defender.Pool;
-            var held = pool != null ? pool.ServerLedger.Pool : ElementCounts.Empty;
-
-            return ClashDefenceOdds.ChooseAnswer(request, CreatureKnowledge.PossibleAttacks(attacker),
-                held, ElementMatchups.Table, m_Dice.Roll);
-        }
+        IReadOnlyList<Element> ChooseDefence(FightCreature defender, FightCreature attacker,
+            DefenceRequest request) =>
+            ClashDefenceOdds.ChooseAnswer(request, PossibleElements.Seen(attacker.Pool.Ledger),
+                defender.Pool.Hand, m_Matchups, m_Dice.Roll);
 
         /// <summary>
         /// Spends what the defender put up, reveals both sides, and applies what is left of the
@@ -207,12 +164,12 @@ namespace Dragoneye.Game.Combat
         /// side's expenditure emitted after that side's own reveal -- and because an answer refused
         /// by the sequence must not have cost anything.
         /// </summary>
-        void Settle(IReadOnlyList<Element> answer, bool declined)
+        void SettleClash(IReadOnlyList<Element> answer, bool declined)
         {
             var clash = m_Clash;
             var attacker = m_Attacker;
             var defender = m_Defender;
-            var skill = m_Skill;
+            var skill = m_ClashSkill;
             var flanked = m_Flanked;
 
             // Cleared before anything else can run: applying the effect can kill a creature, which
@@ -220,7 +177,7 @@ namespace Dragoneye.Game.Combat
             m_Clash = null;
             m_Attacker = null;
             m_Defender = null;
-            m_Skill = null;
+            m_ClashSkill = null;
             m_Flanked = false;
 
             if (clash == null || attacker == null || defender == null || skill == null)
@@ -241,16 +198,15 @@ namespace Dragoneye.Game.Combat
             // In order, and only now. DE-005 asks for each side's expenditure after that side's own
             // reveal, which is what these two calls are -- until this point neither pool has said a
             // word about what left it.
-            attacker.Pool?.ServerAnnounceCommitted();
-            defender.Pool?
-                .ServerAnnounceCommitted(keep: ClashRules.Refunds(reveal.Outcome));
+            attacker.Pool.AnnounceCommitted();
+            defender.Pool.AnnounceCommitted(keep: ClashRules.Refunds(reveal.Outcome));
 
-            attacker.SkillCommands?.ServerRecordUse(skill.Id);
+            attacker.RecordUse(skill.Id);
 
-            FightRecord.Say(CombatEvent.ClashResolvedAs(0, attacker.TurnId, defender.TurnId, skill.Id,
+            Say(CombatEvent.ClashResolvedAs(0, attacker.Id, defender.Id, skill.Id,
                 reveal.Attacker, reveal.Defender, reveal.Outcome));
 
-            m_Host.LandContested(attacker, skill, defender, clash.Scale(skill.Effect));
+            LandContested(attacker, skill, defender, clash.Scale(skill.Effect));
 
             // Caught from behind, a creature turns to face whoever did it. Flanking is worth one
             // attack, not a standing arrangement: without this, one creature could walk round a
@@ -258,14 +214,14 @@ namespace Dragoneye.Game.Combat
             // landed is the one the position bought, and only if there is still somebody to turn.
             if (flanked && defender.IsAlive && attacker.IsAlive)
             {
-                var turned = ThreatGeometry.Bearing(m_Map.Grid, defender.Cell, attacker.Cell);
-                defender.ServerFace(turned);
-                FightRecord.Say(CombatEvent.FacedToward(0, defender.TurnId, turned.Index));
+                var turned = ThreatGeometry.Bearing(m_Grid, defender.Cell, attacker.Cell);
+                defender.Face(turned);
+                Say(CombatEvent.FacedToward(0, defender.Id, turned.Index));
             }
 
             // The attack is over, so whatever the pause was holding up can go on.
-            ClashCommands.Current?.ServerClearPrompt();
-            m_Host.ClashSettled();
+            m_Listener.CloseDefence(defender.Id);
+            ContinueAfterClash();
         }
     }
 }

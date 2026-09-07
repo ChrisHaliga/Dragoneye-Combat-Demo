@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using Dragoneye.Combat;
+using Dragoneye.Sim;
 using Unity.Netcode;
 using UnityEngine;
 using Dragoneye.Game;
@@ -9,15 +10,14 @@ using Dragoneye.Game.Creatures;
 namespace Dragoneye.Game.Combat
 {
     /// <summary>
-    /// Whose turn it is, what round it is, and who is left.
+    /// Whose turn it is, what round it is, and who is left, as every client sees it.
+    ///
+    /// A mirror of the fight's <see cref="TurnQueue"/>, written by <see cref="CombatDirector"/>
+    /// after every order and read by everything on screen. It decides nothing: the queue is
+    /// advanced, wrapped and emptied inside the fight, and what arrives here is the result.
     ///
     /// Server-authoritative in the strict sense: clients read it and never write it. A client
     /// deciding locally that its turn had ended would be a client that could act twice.
-    ///
-    /// The order is replicated as ids rather than rebuilt per peer. Rebuilding would be cheap and
-    /// would agree today, but only because <see cref="TurnOrder"/> is careful; replicating it means
-    /// agreement is a property of the transport rather than of every peer running identical code
-    /// over identically-replicated inputs.
     /// </summary>
     [RequireComponent(typeof(NetworkObject))]
     [DisallowMultipleComponent]
@@ -28,15 +28,10 @@ namespace Dragoneye.Game.Combat
         readonly NetworkVariable<int> m_Index = new NetworkVariable<int>(-1);
         readonly NetworkVariable<int> m_Round = new NetworkVariable<int>(0);
 
-        /// <summary>The fight is still going.</summary>
-        const int Running = -1;
-
-        /// <summary>The fight is finished and nobody won it.</summary>
-        const int NoWinner = -2;
-
         // An int rather than a nullable Party: NetworkVariable needs an unmanaged type, and Party
-        // has no member for either of the two ways a fight is not being won.
-        readonly NetworkVariable<int> m_Outcome = new NetworkVariable<int>(Running);
+        // has no member for either of the two ways a fight is not being won. The two sentinels
+        // are the queue's, so the mirror is a copy and not a translation.
+        readonly NetworkVariable<int> m_Outcome = new NetworkVariable<int>(TurnQueue.Running);
 
         readonly List<uint> m_OrderView = new List<uint>();
 
@@ -56,7 +51,7 @@ namespace Dragoneye.Game.Combat
         /// True once no more turns will be taken, however that came about: a side won, everybody
         /// fell, or the fight was stopped.
         /// </summary>
-        public bool IsOver => m_Outcome.Value != Running;
+        public bool IsOver => m_Outcome.Value != TurnQueue.Running;
 
         /// <summary>
         /// Whether a side actually won it.
@@ -133,110 +128,62 @@ namespace Dragoneye.Game.Combat
         }
 
         /// <summary>
-        /// Server only. Builds the initiative order and starts the first turn.
+        /// Server only. Copies the fight's queue in.
+        ///
+        /// The order is rewritten only when it differs, and the index, round and outcome are
+        /// each written only when they differ, so a mirror after an order that changed nothing
+        /// sends nothing. The order is written before the index: a client that read a new index
+        /// against an old order would name the wrong creature for a frame.
         /// </summary>
-        public void ServerBegin(IReadOnlyList<Combatant> combatants, Func<uint, bool> isActive)
+        public void ServerMirror(IReadOnlyList<uint> order, int index, int round, int outcome)
         {
             if (!IsServer)
             {
                 return;
             }
 
-            m_Order.Clear();
-
-            foreach (var id in TurnOrder.Build(combatants))
+            if (!SameOrder(order))
             {
-                m_Order.Add(id);
+                m_Order.Clear();
+
+                foreach (var id in order)
+                {
+                    m_Order.Add(id);
+                }
             }
 
-            m_Outcome.Value = Running;
-            m_Round.Value = 1;
+            if (m_Round.Value != round)
+            {
+                m_Round.Value = round;
+            }
 
-            m_Index.Value = TurnOrder.TryFirst(m_OrderView, isActive, out var first) ? first : -1;
+            if (m_Outcome.Value != outcome)
+            {
+                m_Outcome.Value = outcome;
+            }
+
+            if (m_Index.Value != index)
+            {
+                m_Index.Value = index;
+            }
         }
 
-        /// <summary>
-        /// Server only. Hands the turn to the next creature that can still act, rolling the round
-        /// over when the order wraps.
-        /// </summary>
-        /// <returns>False when nobody can act, which means the match is over.</returns>
-        public bool ServerAdvance(Func<uint, bool> isActive)
+        bool SameOrder(IReadOnlyList<uint> order)
         {
-            if (!IsServer || IsOver)
+            if (m_Order.Count != order.Count)
             {
                 return false;
             }
 
-            if (!TurnOrder.TryAdvance(m_OrderView, m_Index.Value, isActive, out var next, out var wrapped))
+            for (var i = 0; i < order.Count; i++)
             {
-                m_Index.Value = -1;
-                return false;
+                if (m_Order[i] != order[i])
+                {
+                    return false;
+                }
             }
 
-            if (wrapped)
-            {
-                m_Round.Value++;
-            }
-
-            m_Index.Value = next;
             return true;
-        }
-
-        /// <summary>Server only. Records the winner, which ends the match.</summary>
-        public void ServerDeclareWinner(Party party) => ServerFinish((int)party);
-
-        /// <summary>
-        /// Server only. Ends the match with nobody winning it.
-        ///
-        /// For a fight that stopped rather than was won: everybody fell in the same breath, or a
-        /// test scenario reached the end of its script. Either way no more turns are taken, and
-        /// nothing claims a victory that did not happen.
-        /// </summary>
-        public void ServerEnd() => ServerFinish(NoWinner);
-
-        void ServerFinish(int outcome)
-        {
-            // The first ending stands. A scenario that stops a fight somebody has already won
-            // must not take the win back.
-            if (!IsServer || IsOver)
-            {
-                return;
-            }
-
-            m_Outcome.Value = outcome;
-            m_Index.Value = -1;
-        }
-
-        /// <summary>
-        /// Removes a dead creature from the order.
-        ///
-        /// Kept as a separate call rather than folded into death handling, because the index has to
-        /// be corrected in the same breath: entries before the current one shift everything down,
-        /// and without the adjustment the turn silently passes to whoever moved into the slot.
-        /// </summary>
-        public void ServerRemove(uint turnId)
-        {
-            if (!IsServer)
-            {
-                return;
-            }
-
-            for (var i = 0; i < m_Order.Count; i++)
-            {
-                if (m_Order[i] != turnId)
-                {
-                    continue;
-                }
-
-                m_Order.RemoveAt(i);
-
-                if (i < m_Index.Value)
-                {
-                    m_Index.Value--;
-                }
-
-                return;
-            }
         }
     }
 }

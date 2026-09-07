@@ -7,6 +7,7 @@ using Dragoneye.Hex;
 using Dragoneye.Hex.Systems;
 using Dragoneye.Multiplayer;
 using Dragoneye.Scenarios;
+using Dragoneye.Sim;
 using UnityEngine;
 using Dragoneye.Game.Creatures;
 
@@ -17,9 +18,8 @@ namespace Dragoneye.Game.Combat
     /// the fight, writes down everything the fight reports, and reads the scenario's checks
     /// against the world once the scripts have run out.
     ///
-    /// The fight is the real one -- the same director, conductors, turn runner and announcer a
-    /// match uses -- with a scripted brain in place of the thinking one and the scenario's seed
-    /// in the dice. What this adds is the record: a trace of what was announced, by actor key,
+    /// The fight is the real one -- the same <c>Fight</c>, director and announcer a match uses
+    /// -- with a scripted brain in place of the thinking one and the scenario's seed in the dice. What this adds is the record: a trace of what was announced, by actor key,
     /// and a snapshot of the world for the checks to read. Server only in effect, since only the
     /// host runs scenarios; every machine could read the same announcements.
     /// </summary>

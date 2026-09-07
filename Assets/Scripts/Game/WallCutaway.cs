@@ -49,7 +49,7 @@ namespace Dragoneye.Game
                     continue;
                 }
 
-                var view = creature.View;
+                var view = UnitView.Of(creature);
                 var world = view != null
                     ? view.transform.position + Vector3.up * 0.35f
                     : context.Map.ToWorld(Shown.Cell(creature)) + Vector3.up * 0.6f;

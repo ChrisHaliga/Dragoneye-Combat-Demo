@@ -1,10 +1,8 @@
 using System.Collections.Generic;
 using Dragoneye.Combat;
-using Dragoneye.Game;
-using Dragoneye.Game.Creatures;
 using Dragoneye.Hex;
 
-namespace Dragoneye.Game.Combat
+namespace Dragoneye.Sim
 {
     // Declared inside the namespace, not at file scope: C# resolves names against enclosing
     // namespaces before file-level aliases.
