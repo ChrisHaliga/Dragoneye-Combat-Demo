@@ -88,6 +88,7 @@ namespace Dragoneye.Game.Combat
 
             Close();
             m_Waiting = true;
+            m_WaitingSince = Time.unscaledTime;
         }
 
         /// <summary>
@@ -99,9 +100,20 @@ namespace Dragoneye.Game.Combat
         /// </summary>
         void Update()
         {
-            if (!m_Waiting || !Shown.IsCaughtUp)
+            if (!m_Waiting)
             {
                 return;
+            }
+
+            if (!Shown.IsCaughtUp)
+            {
+                if (Time.unscaledTime - m_WaitingSince < ShowAnyway)
+                {
+                    return;
+                }
+
+                Debug.LogWarning("The playback has not caught up, so the defence is being asked "
+                    + "for anyway. The fight cannot go on until it is answered.", this);
             }
 
             m_Waiting = false;
@@ -109,6 +121,19 @@ namespace Dragoneye.Game.Combat
             m_Guard.Open(m_Panel);
             m_Open = true;
         }
+
+        /// <summary>
+        /// How long a question waits for the screen to catch up before it is asked anyway.
+        ///
+        /// The fight stops on a question, and nothing but an answer restarts it. So a question
+        /// that is never asked stops the match: no prompt, no error, no turn, nothing to press.
+        /// Waiting for the playback is a courtesy -- being asked about a blow you have watched
+        /// land reads better than being asked about one you have not -- and a courtesy is not
+        /// worth a fight that cannot continue.
+        /// </summary>
+        const float ShowAnyway = 5f;
+
+        float m_WaitingSince;
 
         void Close()
         {

@@ -58,13 +58,30 @@ namespace Dragoneye.Game.Combat
                     break;
                 }
 
-                var decision = m_Brain.Decide(ViewOf(actor, includeHand: true),
-                    OtherViews(actor), m_Board);
+                bool acted;
 
-                var acted = decision.Action == BrainAction.UseSkill
-                    ? m_Host.UseSkillOn(actor, decision.SkillId, CreatureFor(decision.TargetId))
-                    : decision.Action == BrainAction.Move
-                        && m_Host.Move(actor, decision.Destination);
+                // A brain that throws must not take the fight with it. An exception out of a
+                // coroutine stops the coroutine and nothing else: Unity logs it, the turn never
+                // ends, and because a turn only ends here the whole match stops with no way
+                // forward and nothing on screen to say why. Ending the turn is always available
+                // and always better than that.
+                try
+                {
+                    var decision = m_Brain.Decide(ViewOf(actor, includeHand: true),
+                        OtherViews(actor), m_Board);
+
+                    acted = decision.Action == BrainAction.UseSkill
+                        ? m_Host.UseSkillOn(actor, decision.SkillId, CreatureFor(decision.TargetId))
+                        : decision.Action == BrainAction.Move
+                            && m_Host.Move(actor, decision.Destination);
+                }
+                catch (System.Exception exception)
+                {
+                    Debug.LogError($"{m_Brain.GetType().Name} threw while deciding for "
+                        + $"{actor.DisplayName}; ending its turn.");
+                    Debug.LogException(exception);
+                    break;
+                }
 
                 if (!acted)
                 {

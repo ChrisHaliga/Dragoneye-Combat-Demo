@@ -59,6 +59,10 @@ namespace Dragoneye.Game.Combat
         BrainTurnRunner m_BrainRunner;
         Coroutine m_BrainTurn;
 
+        // When the turn on the board began, for the watchdog below. Unscaled, because a fight can
+        // be waiting on a menu and a stuck turn is still stuck.
+        float m_TurnBeganAt;
+
         /// <summary>The director for the match in progress, or null outside one.</summary>
         public static CombatDirector Current { get; private set; }
 
@@ -206,10 +210,18 @@ namespace Dragoneye.Game.Combat
 
         void BeginTurn()
         {
+            m_TurnBeganAt = Time.unscaledTime;
+
             var active = ActiveCreature();
 
             if (active == null)
             {
+                // The turn belongs to somebody who is not on the board. Nothing can end a turn but
+                // this director, and nothing here will be asked to -- so say so loudly and let the
+                // watchdog pass it on, rather than sitting on a fight that cannot continue.
+                Debug.LogError("The turn passed to a creature the registry does not have "
+                    + $"(id {(TurnState.Current != null ? TurnState.Current.ActiveId : 0)}). "
+                    + "Skipping it.", this);
                 return;
             }
 
@@ -776,6 +788,8 @@ namespace Dragoneye.Game.Combat
                 return;
             }
 
+            WatchTheTurn();
+
             var defender = m_Clashes.Defender;
 
             if (m_Clashes.IsPending && defender != null && !defender.IsComputerControlled
@@ -792,6 +806,47 @@ namespace Dragoneye.Game.Combat
                 Debug.Log("A creature left while being offered a swing; it declines.", this);
                 m_Opportunities.Abandon();
             }
+        }
+
+        /// <summary>How long a turn nobody is being asked about may sit before it is passed on.</summary>
+        const float TurnPatience = 10f;
+
+        /// <summary>
+        /// Passes on a turn that has stopped.
+        ///
+        /// The rule above -- no clock on a decision -- is about people, and it still holds: this
+        /// never fires while anybody is being asked anything, which is what <see cref="IsBusy"/>
+        /// means. What it catches is the other kind of stopped turn: a computer creature whose
+        /// brain is not going to act, because the coroutine running it died or was never started.
+        /// A computer that has not moved in ten seconds is not thinking it over.
+        ///
+        /// Without this the match simply stops. A turn ends in exactly one place and nothing was
+        /// left alive to reach it, so the board sits there with no error, no prompt and nothing a
+        /// player can press.
+        /// </summary>
+        void WatchTheTurn()
+        {
+            if (TurnState.Current == null || TurnState.Current.IsOver || IsBusy
+                || Time.unscaledTime - m_TurnBeganAt < TurnPatience)
+            {
+                return;
+            }
+
+            var active = ActiveCreature();
+
+            // A person may take as long as they like.
+            if (active != null && !active.IsComputerControlled)
+            {
+                m_TurnBeganAt = Time.unscaledTime;
+                return;
+            }
+
+            Debug.LogError(active != null
+                ? $"{active.DisplayName} has not acted in {TurnPatience:0} seconds and nothing is "
+                  + "waiting on an answer; its brain is not running. Passing the turn on."
+                : "The turn is nobody's and nothing is waiting on an answer. Passing it on.", this);
+
+            ServerEndTurn();
         }
 
         static bool IsStillConnected(CreatureState creature)
