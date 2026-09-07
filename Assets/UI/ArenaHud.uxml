@@ -12,8 +12,6 @@
             <ui:Label name="turn-pace" text="" class="turn-bar__pace is-hidden" />
         </ui:VisualElement>
 
-        <ui:VisualElement name="footer-shade" class="turn-footer__shade" picking-mode="Ignore" />
-
         <!-- The bottom band: what the turn is spent out of over what it is spent on. Points above
              health, End Turn on the right of it, and the bar of actions under the pair. -->
         <ui:VisualElement name="turn-footer" class="turn-footer">

@@ -59,6 +59,11 @@ namespace Dragoneye.Game.Combat
         Button m_Sliver;
         CombatPlayback m_Playback;
 
+        // Whether the record is open, and whether there is anything to say. The sliver is up only
+        // when both answers are no and yes: shut, with something to show.
+        bool m_Open;
+        bool m_Anything;
+
         void Start()
         {
             var document = GetComponent<UIDocument>().rootVisualElement;
@@ -99,8 +104,9 @@ namespace Dragoneye.Game.Combat
                 m_Sliver.text = string.Empty;
                 m_Sliver.tooltip = "Open the log.";
                 m_Sliver.clicked += () => SetOpen(true);
-                m_Sliver.style.display = DisplayStyle.None;
             }
+
+            SetOpen(false);
 
             if (m_Creatures != null)
             {
@@ -339,7 +345,27 @@ namespace Dragoneye.Game.Combat
                 : null;
 
         /// <summary>Open or shut. The lines are kept either way; only what is drawn changes.</summary>
-        void SetOpen(bool open) => m_Panel?.EnableInClassList("combat-log--small", !open);
+        void SetOpen(bool open)
+        {
+            m_Open = open;
+            m_Panel?.EnableInClassList("combat-log--small", !open);
+            RefreshSliver();
+        }
+
+        /// <summary>
+        /// The one line that is up when the record is shut.
+        ///
+        /// Driven from here in both directions rather than from a class in the stylesheet. It has
+        /// two reasons to be hidden -- the log is open, or nothing has happened yet -- and a rule
+        /// for one of them was overriding the other, leaving the sliver under the open record.
+        /// </summary>
+        void RefreshSliver()
+        {
+            if (m_Sliver != null)
+            {
+                m_Sliver.style.display = !m_Open && m_Anything ? DisplayStyle.Flex : DisplayStyle.None;
+            }
+        }
 
         /// <summary>
         /// One line. Lines a player is part of are marked, so their own fight stands out of the
@@ -365,11 +391,14 @@ namespace Dragoneye.Game.Combat
 
             // The same text on the sliver. It is the newest line by construction: this is the only
             // place a line is added, and the newest one goes to the top of both.
+            m_Anything = true;
+
             if (m_Sliver != null)
             {
                 m_Sliver.text = line.text;
-                m_Sliver.style.display = DisplayStyle.Flex;
             }
+
+            RefreshSliver();
 
             while (m_List.childCount > m_MaxLines)
             {

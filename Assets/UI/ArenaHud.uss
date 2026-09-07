@@ -39,8 +39,15 @@
 }
 
 /* Never squeezed to fit. A flex item shrinks by default, and in a column that costs it height the
-   text inside does not give back -- so a full party used to draw its names outside their cards. */
-.portrait-list > *,
+   text inside does not give back -- so a full party used to draw its names outside their cards.
+ *
+ * The items, which live in the content container, and NOT the scroll view's own children. A
+ * ScrollView's direct children are its viewport and its scrollers: telling those not to shrink
+ * pins the viewport open to the full height of everything inside it, so the content never
+ * overflows, so there is nothing to scroll and no scrollbar that does anything -- and the content
+ * draws straight out of the frame over whatever is under it. That one selector is why the combat
+ * log did not scroll, however the wheel was read. */
+.portrait-list .unity-scroll-view__content-container > *,
 .card__stats > * {
     flex-shrink: 0;
 }
@@ -442,17 +449,6 @@
 
 /* The shade under the bar. The gradient is drawn for the top of the screen, so the leaf that
    carries it is turned over; nothing else is. */
-.turn-footer__shade {
-    position: absolute;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    height: 96px;
-    background-image: url("Generated/ui-shade.png");
-    -unity-background-scale-mode: stretch-to-fill;
-    rotate: 180deg;
-}
-
 /* The hand, the points and the button on one line, across the whole width. */
 
 /* The bar and the button that ends the turn, as one row. */
@@ -1309,6 +1305,11 @@
     height: 176px;
     padding: 6px 10px 6px 10px;
     background-color: rgba(4, 5, 8, 0.62);
+
+    /* Clipped at the frame, whatever the list inside it thinks its height is. The log sits above
+       the action bar and must stay there: lines spilling out of the bottom of this box land on
+       the slots, and a bar you cannot read is worse than a log you cannot see. */
+    overflow: hidden;
 }
 
 .combat-log__head {
@@ -1357,9 +1358,8 @@
     display: none;
 }
 
-.combat-log--small .combat-log__sliver {
-    display: flex;
-}
+/* Shown from code: it is hidden while the record is open and hidden before anything has
+   happened, and one rule cannot answer to both. */
 
 
 
@@ -1373,6 +1373,7 @@
     flex-basis: 0;
     min-height: 0;
     max-height: 100%;
+    overflow: hidden;
 }
 
 .combat-log-list .unity-scroll-view__content-viewport {
@@ -1388,8 +1389,9 @@
 }
 
 /* Lines wrap rather than being cut off: half a sentence about an element nobody can read is worse
-   than no line at all. And they never shrink, for the same reason the party column does not. */
-.combat-log-list > * {
+   than no line at all. And they never shrink, for the same reason the party column does not -- the
+   items, in the content container, never the scroll view's own children. */
+.combat-log-list .unity-scroll-view__content-container > * {
     flex-shrink: 0;
 }
 

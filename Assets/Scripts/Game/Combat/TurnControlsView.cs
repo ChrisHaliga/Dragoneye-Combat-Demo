@@ -35,7 +35,6 @@ namespace Dragoneye.Game.Combat
         UnitIndex m_Units;
 
         VisualElement m_Footer;
-        VisualElement m_Shade;
         VisualElement m_Banner;
         VisualElement m_ApPips;
         Label m_ApText;
@@ -63,7 +62,6 @@ namespace Dragoneye.Game.Combat
             var root = GetComponent<UIDocument>().rootVisualElement;
 
             m_Footer = root.Q<VisualElement>("turn-footer");
-            m_Shade = root.Q<VisualElement>("footer-shade");
             m_Banner = root.Q<VisualElement>("outcome-banner");
             m_ApPips = root.Q<VisualElement>("ap-pips");
             m_ApText = root.Q<Label>("ap-text");
@@ -124,7 +122,6 @@ namespace Dragoneye.Game.Combat
             var mine = actor != null;
 
             m_Footer.EnableInClassList("is-hidden", !mine);
-            m_Shade?.EnableInClassList("is-hidden", !mine);
 
             if (!mine)
             {
