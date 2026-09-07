@@ -34,7 +34,7 @@ namespace Dragoneye.Game.Creatures
             if (creature != null && !m_Creatures.Contains(creature))
             {
                 m_Creatures.Add(creature);
-                Changed?.Invoke();
+                Notify.Raise(Changed, this);
             }
         }
 
@@ -42,7 +42,7 @@ namespace Dragoneye.Game.Creatures
         {
             if (m_Creatures.Remove(creature))
             {
-                Changed?.Invoke();
+                Notify.Raise(Changed, this);
             }
         }
 

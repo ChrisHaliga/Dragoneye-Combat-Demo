@@ -75,6 +75,6 @@ namespace Dragoneye.Game
             }
         }
 
-        void OnSlotChanged(int previous, int current) => SlotChanged?.Invoke();
+        void OnSlotChanged(int previous, int current) => Notify.Raise(SlotChanged, this);
     }
 }

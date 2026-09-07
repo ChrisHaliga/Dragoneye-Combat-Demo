@@ -166,7 +166,7 @@ namespace Dragoneye.Game
         void SetHovered(Cell? hex)
         {
             Hovered = hex;
-            HoverChanged?.Invoke(hex);
+            Notify.Raise(HoverChanged, hex, this);
         }
 
         void OnSelectPerformed(InputAction.CallbackContext _)

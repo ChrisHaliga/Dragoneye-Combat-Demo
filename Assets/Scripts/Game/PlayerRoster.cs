@@ -122,7 +122,7 @@ namespace Dragoneye.Game
             }
         }
 
-        void OnListChanged(NetworkListEvent<PlayerEntry> _) => Changed?.Invoke();
+        void OnListChanged(NetworkListEvent<PlayerEntry> _) => Notify.Raise(Changed, this);
 
         void OnClientConnected(ulong clientId) => Register(clientId, string.Empty);
 

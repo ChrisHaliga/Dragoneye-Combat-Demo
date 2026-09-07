@@ -148,16 +148,11 @@ namespace Dragoneye.Game.Combat
             ShowBoardChange(e);
             Showing = e;
 
-            try
-            {
-                Presenting?.Invoke(e);
-                Changed?.Invoke();
-            }
-            catch (Exception exception)
-            {
-                // A view that throws must not stop the fight being shown.
-                Debug.LogException(exception, this);
-            }
+            // A view that throws must not stop the fight being shown, and must not stop the
+            // other views being told either -- which is why every watcher gets its own try
+            // rather than the pair of calls sharing one.
+            Notify.Raise(Presenting, e, this);
+            Notify.Raise(Changed, this);
 
             var tiles = TilesOf(e);
             m_Beat = PresentationPacing.BeatFor(e, IsRanged(e), tiles, IsMine(e));

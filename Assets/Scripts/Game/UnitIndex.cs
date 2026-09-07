@@ -58,7 +58,7 @@ namespace Dragoneye.Game
         public void Register(UnitState unit)
         {
             m_Occupants[unit.Cell] = unit;
-            Changed?.Invoke();
+            Notify.Raise(Changed, this);
         }
 
         public void Unregister(UnitState unit)
@@ -66,7 +66,7 @@ namespace Dragoneye.Game
             if (m_Occupants.TryGetValue(unit.Cell, out var occupant) && occupant == unit)
             {
                 m_Occupants.Remove(unit.Cell);
-                Changed?.Invoke();
+                Notify.Raise(Changed, this);
             }
         }
 
@@ -80,7 +80,7 @@ namespace Dragoneye.Game
             }
 
             m_Occupants[to] = unit;
-            Changed?.Invoke();
+            Notify.Raise(Changed, this);
         }
     }
 }

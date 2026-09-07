@@ -89,7 +89,7 @@ namespace Dragoneye.Game
                 Debug.LogError("UnitState found no unit index; it will be unclickable.", this);
             }
 
-            CellChanged?.Invoke(Cell);
+            Notify.Raise(CellChanged, Cell, this);
         }
 
         public override void OnNetworkDespawn()
@@ -144,7 +144,7 @@ namespace Dragoneye.Game
                 m_Index?.Move(this, previous.ToCell(), current.ToCell());
             }
 
-            CellChanged?.Invoke(current.ToCell());
+            Notify.Raise(CellChanged, current.ToCell(), this);
         }
 
     }

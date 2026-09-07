@@ -261,7 +261,7 @@ namespace Dragoneye.Game.Creatures
                 m_OutstandingView.Add((Element)m_Outstanding[i]);
             }
 
-            Changed?.Invoke();
+            Notify.Raise(Changed, this);
         }
 
         /// <summary>
@@ -323,7 +323,7 @@ namespace Dragoneye.Game.Creatures
                 m_Committed.Add(element);
             }
 
-            Changed?.Invoke();
+            Notify.Raise(Changed, this);
             return true;
         }
 
@@ -423,6 +423,6 @@ namespace Dragoneye.Game.Creatures
             }
         }
 
-        void OnCountsChanged(NetElementCounts previous, NetElementCounts current) => Changed?.Invoke();
+        void OnCountsChanged(NetElementCounts previous, NetElementCounts current) => Notify.Raise(Changed, this);
     }
 }

@@ -250,7 +250,7 @@ namespace Dragoneye.Game.Creatures
                 Debug.LogError("CreatureState found no creature registry; it will not appear in the HUD.", this);
             }
 
-            Changed?.Invoke();
+            Notify.Raise(Changed, this);
         }
 
         public override void OnNetworkDespawn()
@@ -473,11 +473,11 @@ namespace Dragoneye.Game.Creatures
         void OnIdChanged(ushort previous, ushort current)
         {
             m_Definition = null;
-            Changed?.Invoke();
+            Notify.Raise(Changed, this);
         }
 
-        void OnByteChanged(byte previous, byte current) => Changed?.Invoke();
+        void OnByteChanged(byte previous, byte current) => Notify.Raise(Changed, this);
 
-        void OnIntChanged(int previous, int current) => Changed?.Invoke();
+        void OnIntChanged(int previous, int current) => Notify.Raise(Changed, this);
     }
 }

@@ -58,18 +58,29 @@ namespace Dragoneye.Game.Combat
                     break;
                 }
 
-                bool acted;
+                BrainDecision decision;
 
-                // A brain that throws must not take the fight with it. An exception out of a
-                // coroutine stops the coroutine and nothing else: Unity logs it, the turn never
-                // ends, and because a turn only ends here the whole match stops with no way
-                // forward and nothing on screen to say why. Ending the turn is always available
-                // and always better than that.
+                // Deciding and doing are caught apart, because they fail for different reasons and
+                // the message has to say which. An exception out of a coroutine stops the coroutine
+                // and nothing else: Unity logs it, the turn never ends, and because a turn ends in
+                // exactly one place the whole match stops with nothing on screen to say why.
                 try
                 {
-                    var decision = m_Brain.Decide(ViewOf(actor, includeHand: true),
+                    decision = m_Brain.Decide(ViewOf(actor, includeHand: true),
                         OtherViews(actor), m_Board);
+                }
+                catch (System.Exception exception)
+                {
+                    Debug.LogError($"{m_Brain.GetType().Name} threw working out what "
+                        + $"{actor.DisplayName} should do; ending its turn.");
+                    Debug.LogException(exception);
+                    break;
+                }
 
+                bool acted;
+
+                try
+                {
                     acted = decision.Action == BrainAction.UseSkill
                         ? m_Host.UseSkillOn(actor, decision.SkillId, CreatureFor(decision.TargetId))
                         : decision.Action == BrainAction.Move
@@ -77,8 +88,10 @@ namespace Dragoneye.Game.Combat
                 }
                 catch (System.Exception exception)
                 {
-                    Debug.LogError($"{m_Brain.GetType().Name} threw while deciding for "
-                        + $"{actor.DisplayName}; ending its turn.");
+                    // Not the brain: this is the rules carrying out what it asked for, and
+                    // everything that watches the board runs inside that call.
+                    Debug.LogError($"{actor.DisplayName}'s {decision.Action} threw while being "
+                        + "carried out; ending its turn.");
                     Debug.LogException(exception);
                     break;
                 }

@@ -111,7 +111,7 @@ namespace Dragoneye.Game.Combat
 
         void OnOrderChanged(NetworkListEvent<uint> _) => RebuildView();
 
-        void OnIntChanged(int previous, int current) => Changed?.Invoke();
+        void OnIntChanged(int previous, int current) => Notify.Raise(Changed, this);
 
         /// <summary>
         /// Mirrors the NetworkList into a plain list.
@@ -129,7 +129,7 @@ namespace Dragoneye.Game.Combat
                 m_OrderView.Add(m_Order[i]);
             }
 
-            Changed?.Invoke();
+            Notify.Raise(Changed, this);
         }
 
         /// <summary>

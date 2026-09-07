@@ -143,7 +143,7 @@ namespace Dragoneye.Game.Creatures
 
         void OnRosterChanged(NetworkListEvent<RosterEntry> _) => RebuildViews();
 
-        void OnMapChanged(int previous, int current) => Changed?.Invoke();
+        void OnMapChanged(int previous, int current) => Notify.Raise(Changed, this);
 
         void OnChoicesChanged(NetworkListEvent<PartyChoice> _) => RebuildViews();
 
@@ -161,7 +161,7 @@ namespace Dragoneye.Game.Creatures
                 m_ChoiceView.Add(m_PartyChoices[i]);
             }
 
-            Changed?.Invoke();
+            Notify.Raise(Changed, this);
         }
 
         // ---------------------------------------------------------------- queries

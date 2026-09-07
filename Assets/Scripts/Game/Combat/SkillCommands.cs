@@ -74,7 +74,7 @@ namespace Dragoneye.Game.Combat
                 m_SeenView.Add(m_Seen[i]);
             }
 
-            SeenChanged?.Invoke();
+            Notify.Raise(SeenChanged, this);
         }
 
         /// <summary>

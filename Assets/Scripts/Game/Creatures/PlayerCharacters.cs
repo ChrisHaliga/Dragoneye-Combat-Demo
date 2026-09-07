@@ -345,7 +345,7 @@ namespace Dragoneye.Game.Creatures
                 CharacterProgress.Bank(entry.Slot, XpFor((byte)entry.Slot));
             }
 
-            XpChanged?.Invoke();
+            Notify.Raise(XpChanged, this);
         }
 
         /// <summary>Every submitted character, in submission order.</summary>
@@ -418,7 +418,7 @@ namespace Dragoneye.Game.Creatures
                 m_View.Add(m_Builds[i]);
             }
 
-            Changed?.Invoke();
+            Notify.Raise(Changed, this);
         }
 
         public bool TryGet(byte slot, out NetBuild build)

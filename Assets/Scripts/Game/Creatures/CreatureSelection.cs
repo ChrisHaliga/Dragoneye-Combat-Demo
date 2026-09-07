@@ -52,7 +52,7 @@ namespace Dragoneye.Game.Creatures
             }
 
             m_Selected = creature;
-            SelectionChanged?.Invoke(m_Selected);
+            Notify.Raise(SelectionChanged, m_Selected, this);
         }
 
         public void Clear() => Select(null);
@@ -70,7 +70,7 @@ namespace Dragoneye.Game.Creatures
             if (!ReferenceEquals(m_Selected, null) && m_Selected == null)
             {
                 m_Selected = null;
-                SelectionChanged?.Invoke(null);
+                Notify.Raise(SelectionChanged, null, this);
             }
         }
     }

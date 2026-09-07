@@ -164,13 +164,6 @@ namespace Dragoneye.Game
                 CreatureToken.Radius * 2f, CreatureToken.Height, CreatureToken.Radius * 2f);
             bodyTransform.localPosition = new Vector3(0f, baseY + (CreatureToken.Height * 0.5f), 0f);
 
-            // The two rings the prefab used to wear are removed rather than placed. They said
-            // what the token itself now says -- the body is the party's colour -- and being wider
-            // than the token they covered the facing wedge, which is the one thing on a board of
-            // discs that a player cannot work out any other way.
-            Remove("Party Ring");
-            Remove("Player Accent");
-
             m_Portrait = BuildPortrait(baseY);
             m_Pointer = BuildPointer(baseY);
             BuildShadow(baseY);
@@ -288,17 +281,6 @@ namespace Dragoneye.Game
         {
             var existing = target.GetComponent<T>();
             return existing == null ? target.AddComponent<T>() : existing;
-        }
-
-        /// <summary>Takes a child off the token, whatever the prefab still carries.</summary>
-        void Remove(string child)
-        {
-            var found = transform.Find(child);
-
-            if (found != null)
-            {
-                Destroy(found.gameObject);
-            }
         }
 
         /// <summary>
