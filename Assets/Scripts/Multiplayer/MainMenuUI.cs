@@ -289,6 +289,17 @@ namespace Dragoneye.Multiplayer
         /// Both play buttons need the persistent Bootstrap objects. Rather than let them fail on
         /// click, they are disabled up front with the reason attached.
         /// </summary>
+        /// <summary>
+        /// Why every way of playing is dead, when it is.
+        ///
+        /// On the screen and not only in a tooltip. Three greyed buttons with no reason on them
+        /// reads as a broken build, and the one time it came up the reason was in a tooltip that
+        /// could not appear, because the thing that makes tooltips appear is in the scene that
+        /// had not been run.
+        /// </summary>
+        const string NotBooted = "Play from Assets/Scenes/Bootstrap.unity -- the network manager "
+            + "and session runner live there, and nothing can start without them.";
+
         void ApplyAvailability()
         {
             var booted = MatchFlow.Instance != null;
@@ -302,15 +313,12 @@ namespace Dragoneye.Multiplayer
                 return;
             }
 
-            const string reason = "Play from Assets/Scenes/Bootstrap.unity -- "
-                + "the network manager and session runner live there.";
-
-            m_SingleplayerButton.tooltip = reason;
-            m_TestModeButton.tooltip = reason;
-            m_MultiplayerButton.tooltip = reason;
+            m_SingleplayerButton.tooltip = NotBooted;
+            m_TestModeButton.tooltip = NotBooted;
+            m_MultiplayerButton.tooltip = NotBooted;
 
             Debug.LogWarning($"{nameof(MainMenuUI)}: Bootstrap has not run, so no match can start. "
-                + reason, this);
+                + NotBooted, this);
         }
 
         void OnDestroy()
@@ -490,9 +498,13 @@ namespace Dragoneye.Multiplayer
 
                     RefreshPlayingAs();
 
-                SetStatus(m_Session != null && ShowsSessionStatus(m_Screen)
-                    ? SessionScreens.Describe(m_Runner.Phase, m_Runner.Fault, m_Runner.PlayerName)
-                    : string.Empty);
+                // The boot warning outranks anything a session has to say: without it there is
+                // no session to have anything to say about.
+                SetStatus(MatchFlow.Instance == null
+                    ? NotBooted
+                    : m_Session != null && ShowsSessionStatus(m_Screen)
+                        ? SessionScreens.Describe(m_Runner.Phase, m_Runner.Fault, m_Runner.PlayerName)
+                        : string.Empty);
             }
             finally
             {

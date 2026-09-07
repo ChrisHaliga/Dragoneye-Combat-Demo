@@ -558,8 +558,13 @@
     flex-basis: 0;
 }
 
+/* The columns share what the sheet has left, and no more. Without the minimum a flex item is at
+   least as tall as its own content, so a long skill list pushed itself out of the panel rather
+   than scrolling inside it. */
 .sheet__columns {
     flex-direction: row;
+    flex-grow: 1;
+    min-height: 0;
     margin-top: 6px;
 }
 
@@ -567,6 +572,21 @@
     flex-grow: 1;
     flex-basis: 0;
     margin-right: 26px;
+}
+
+.sheet__column--scrolls {
+    min-height: 0;
+}
+
+.sheet__scroll {
+    flex-grow: 1;
+    flex-basis: 0;
+    min-height: 0;
+}
+
+/* Lines wrap and never shrink, so a long description is read rather than squeezed. */
+.sheet__scroll .unity-scroll-view__content-container > * {
+    flex-shrink: 0;
 }
 
 /* ---------- portraits ---------- */

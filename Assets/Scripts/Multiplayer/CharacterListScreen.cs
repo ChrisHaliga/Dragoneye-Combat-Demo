@@ -177,8 +177,10 @@ namespace Dragoneye.Multiplayer
                 CharacterSheet.Pool(pool, character.Build.StartingPool,
                     character.Build.PoolBudget()),
                 "gem-row"));
+            // The one column with no ceiling on it: a character at level six carries species,
+            // class and equipment skills, and the list used to run off the bottom of the panel.
             columns.Add(SheetColumn("SKILLS", skills =>
-                CharacterSheet.Skills(skills, loadout), "group"));
+                CharacterSheet.Skills(skills, loadout), "group", scrolls: true));
             m_Sheet.Add(columns);
 
             if (!BuildValidator.IsValid(character.Build, m_Content))
@@ -191,14 +193,29 @@ namespace Dragoneye.Multiplayer
 
         /// <summary>A titled block in the sheet, filled by whoever knows how to draw it.</summary>
         static VisualElement SheetColumn(string title, System.Action<VisualElement> fill,
-            string bodyClass)
+            string bodyClass, bool scrolls = false)
         {
             var column = new VisualElement();
             column.AddToClassList("sheet__column");
+            column.EnableInClassList("sheet__column--scrolls", scrolls);
 
             var heading = new Label(title);
             heading.AddToClassList("col__title");
             column.Add(heading);
+
+            if (scrolls)
+            {
+                var scroll = new ScrollView(ScrollViewMode.Vertical);
+                scroll.AddToClassList("sheet__scroll");
+
+                var scrolled = new VisualElement();
+                scrolled.AddToClassList(bodyClass);
+                fill(scrolled);
+                scroll.Add(scrolled);
+                column.Add(scroll);
+
+                return column;
+            }
 
             var body = new VisualElement();
             body.AddToClassList(bodyClass);
