@@ -25,7 +25,8 @@
 /* No frame and no heading. The cards are the panel: a box drawn round them said only that a box
    had been drawn, and it took a column of board to say it. */
 .party-column {
-    width: 92px;
+    /* The card, its border, and room for the scroller when the party outgrows the column. */
+    width: 100px;
     padding: 0;
     background-color: rgba(0, 0, 0, 0);
 }
