@@ -1,6 +1,8 @@
 using System.Collections;
+using System.Collections.Generic;
 using System.Net;
 using Dragoneye.Data;
+using Dragoneye.Scenarios;
 using System.Net.Sockets;
 using Unity.Netcode;
 using Unity.Netcode.Transports.UTP;
@@ -38,6 +40,20 @@ namespace Dragoneye.Multiplayer
 
         SessionRunner m_Runner;
         bool m_ReturningToMenu;
+
+        readonly Queue<Scenario> m_Queued = new Queue<Scenario>();
+        readonly Dictionary<string, ScenarioResult> m_Results = new Dictionary<string, ScenarioResult>();
+
+        /// <summary>The scenario the arena is running, or null for an ordinary match.</summary>
+        public Scenario Scenario { get; private set; }
+
+        /// <summary>Scenarios waiting their turn after the one running.</summary>
+        public int QueuedScenarios => m_Queued.Count;
+
+        /// <summary>How every scenario run this session came out, by id.</summary>
+        public IReadOnlyDictionary<string, ScenarioResult> ScenarioResults => m_Results;
+
+        bool m_ShowTestMode;
 
         /// <summary>The persistent flow. Null until Bootstrap has run.</summary>
         public static MatchFlow Instance { get; private set; }
@@ -160,6 +176,84 @@ namespace Dragoneye.Multiplayer
         /// <see cref="SessionRunner.StartMatchAsync"/>, which locks the lobby first.
         /// </summary>
         public void BeginArena() => LoadArena();
+
+        // ---------- scenarios ----------
+
+        /// <summary>Runs one scenario: a solo host, straight into the arena, no draft.</summary>
+        public bool StartScenario(Scenario scenario) => StartScenarios(new[] { scenario });
+
+        /// <summary>
+        /// Runs scenarios one after another. Each gets a fresh arena; the results collect in
+        /// <see cref="ScenarioResults"/>, and the menu shows them when the last one is done.
+        /// </summary>
+        public bool StartScenarios(IEnumerable<Scenario> scenarios)
+        {
+            if (InMatch || scenarios == null)
+            {
+                return false;
+            }
+
+            m_Queued.Clear();
+
+            foreach (var scenario in scenarios)
+            {
+                if (scenario != null)
+                {
+                    m_Queued.Enqueue(scenario);
+                }
+            }
+
+            if (m_Queued.Count == 0)
+            {
+                return false;
+            }
+
+            Scenario = m_Queued.Dequeue();
+
+            if (!StartSoloMatch())
+            {
+                Scenario = null;
+                m_Queued.Clear();
+                return false;
+            }
+
+            BeginArena();
+            return true;
+        }
+
+        /// <summary>The runner read a scenario's checks.</summary>
+        public void ScenarioFinished(ScenarioResult result)
+        {
+            if (result != null)
+            {
+                m_Results[result.Id] = result;
+                m_ShowTestMode = true;
+            }
+        }
+
+        /// <summary>The next queued scenario in a fresh arena, or back to the menu when there is none.</summary>
+        public void ContinueScenarios()
+        {
+            if (m_Queued.Count == 0)
+            {
+                LeaveMatch();
+                return;
+            }
+
+            Scenario = m_Queued.Dequeue();
+            LoadArena();
+        }
+
+        /// <summary>
+        /// Whether the menu should open on the test mode, because a scenario just came back
+        /// with a result. Asked once; the answer is spent by asking.
+        /// </summary>
+        public bool TakeTestModePrompt()
+        {
+            var show = m_ShowTestMode;
+            m_ShowTestMode = false;
+            return show;
+        }
 
         /// <summary>
         /// Ends the match and goes back to the lobby, with the session left standing.
@@ -365,6 +459,8 @@ namespace Dragoneye.Multiplayer
             }
 
             m_ReturningToMenu = false;
+            Scenario = null;
+            m_Queued.Clear();
             m_Runner?.ReturnedToLobby();
         }
     }

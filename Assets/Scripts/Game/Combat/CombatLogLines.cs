@@ -93,6 +93,22 @@ namespace Dragoneye.Game.Combat
         /// The element is the interesting half -- action points come back every turn and elements
         /// do not -- so it leads, and it is the half that gets a colour.
         /// </summary>
+        /// <summary>What happened to a wall, as a line: it fell, it rose, or it changed.</summary>
+        public static string Wall(Dragoneye.Hex.Wall before, Dragoneye.Hex.Wall after)
+        {
+            if (!after.IsSet)
+            {
+                return before.BlocksSight ? "A wall comes down." : "A low wall comes down.";
+            }
+
+            if (!before.IsSet)
+            {
+                return after.BlocksSight ? "A wall goes up." : "A low wall goes up.";
+            }
+
+            return after.BlocksSight ? "A wall is made whole." : "A wall is broken down to waist height.";
+        }
+
         public static string Cost(SkillSpec skill)
         {
             if (skill == null)

@@ -27,6 +27,19 @@ namespace Dragoneye.Hex.Systems
 
         void Awake() => Rebuild();
 
+        /// <summary>
+        /// Builds a different map in place of the one the scene assigned.
+        ///
+        /// For a fight that brings its own board -- a test scenario, one day a chosen map -- and
+        /// wants everything that draws and walks the arena to follow. They all listen for
+        /// <see cref="MapBuilt"/>, so they do.
+        /// </summary>
+        public void Rebuild(HexMapDefinition definition)
+        {
+            m_Definition = definition;
+            Rebuild();
+        }
+
         public void Rebuild()
         {
             if (m_Definition == null)

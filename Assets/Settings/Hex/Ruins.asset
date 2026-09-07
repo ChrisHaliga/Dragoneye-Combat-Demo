@@ -1,0 +1,147 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 92d84c56291734149b0cc48a76908635, type: 3}
+  m_Name: Ruins
+  m_EditorClassIdentifier: Dragoneye.Hex::Dragoneye.Hex.AuthoredMapDefinition
+  m_TileSize: 1
+  m_Radius: 5
+  m_DefaultTerrain: {fileID: 11400000, guid: 9830a486e55c1d743ba2351cff1fd106, type: 2}
+  m_Tiles:
+  - Q: 3
+    R: -3
+    Terrain: {fileID: 11400000, guid: e813c741acfc9c344ba02c2d90e06eac, type: 2}
+  - Q: -2
+    R: -1
+    Terrain: {fileID: 11400000, guid: e813c741acfc9c344ba02c2d90e06eac, type: 2}
+  - Q: 1
+    R: -4
+    Terrain: {fileID: 11400000, guid: e813c741acfc9c344ba02c2d90e06eac, type: 2}
+  - Q: -4
+    R: 3
+    Terrain: {fileID: 11400000, guid: e813c741acfc9c344ba02c2d90e06eac, type: 2}
+  m_Rays:
+  - Q: 0
+    R: 3
+    Ray: 3
+    Flags: 3
+    Integrity: 0
+  - Q: 0
+    R: 3
+    Ray: 6
+    Flags: 3
+    Integrity: 0
+  - Q: 2
+    R: 2
+    Ray: 9
+    Flags: 3
+    Integrity: 0
+  - Q: 2
+    R: 2
+    Ray: 6
+    Flags: 3
+    Integrity: 0
+  - Q: 2
+    R: 1
+    Ray: 0
+    Flags: 3
+    Integrity: 0
+  - Q: 2
+    R: 1
+    Ray: 6
+    Flags: 3
+    Integrity: 0
+  - Q: 2
+    R: 0
+    Ray: 0
+    Flags: 3
+    Integrity: 0
+  - Q: 2
+    R: 0
+    Ray: 9
+    Flags: 3
+    Integrity: 0
+  - Q: 0
+    R: 1
+    Ray: 3
+    Flags: 3
+    Integrity: 0
+  - Q: 0
+    R: 1
+    Ray: 0
+    Flags: 3
+    Integrity: 0
+  - Q: 0
+    R: 2
+    Ray: 0
+    Flags: 3
+    Integrity: 0
+  - Q: 0
+    R: 2
+    Ray: 6
+    Flags: 3
+    Integrity: 0
+  - Q: -3
+    R: 0
+    Ray: 0
+    Flags: 1
+    Integrity: 0
+  - Q: -3
+    R: 0
+    Ray: 6
+    Flags: 1
+    Integrity: 0
+  - Q: -3
+    R: 1
+    Ray: 0
+    Flags: 1
+    Integrity: 0
+  - Q: -3
+    R: 1
+    Ray: 6
+    Flags: 1
+    Integrity: 0
+  - Q: -3
+    R: 2
+    Ray: 0
+    Flags: 1
+    Integrity: 0
+  - Q: -3
+    R: 2
+    Ray: 6
+    Flags: 1
+    Integrity: 0
+  - Q: 3
+    R: -1
+    Ray: 9
+    Flags: 3
+    Integrity: 0
+  m_HalfEdges:
+  - Q: 1
+    R: 2
+    HalfEdge: 11
+    Flags: 3
+    Integrity: 0
+  - Q: 1
+    R: 2
+    HalfEdge: 0
+    Flags: 3
+    Integrity: 0
+  - Q: -1
+    R: -2
+    HalfEdge: 11
+    Flags: 2
+    Integrity: 0
+  - Q: -1
+    R: -2
+    HalfEdge: 0
+    Flags: 2
+    Integrity: 0

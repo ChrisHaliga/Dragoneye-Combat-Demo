@@ -12,6 +12,7 @@ their own subjects:
 | [`Assets/Scripts/Combat/README.md`](Assets/Scripts/Combat/README.md) | The rules layer and why it holds no engine types |
 | [`Assets/Scripts/Data/README.md`](Assets/Scripts/Data/README.md) | Authored content and the seam it sits behind |
 | [`Assets/Scripts/Hex/README.md`](Assets/Scripts/Hex/README.md) | Coordinates, walls and areas, pathfinding, sight, rendering |
+| [`Assets/Scripts/Scenarios/README.md`](Assets/Scripts/Scenarios/README.md) | The test mode's scenarios, the oracle, and the map recipes |
 | [`Assets/Scripts/Multiplayer/README.md`](Assets/Scripts/Multiplayer/README.md) | Sessions, Relay, scenes, the match lifecycle |
 | [`Assets/Art/Portraits/README.md`](Assets/Art/Portraits/README.md) | Adding faces |
 | [`Assets/Art/Elements/README.md`](Assets/Art/Elements/README.md) | The element runes |
@@ -50,7 +51,7 @@ leaves you on Bootstrap when it finishes.
 
 ## The shape of it
 
-Ten assemblies. The boundaries are not documentation — they are separate DLLs, so a layering
+Eleven assemblies. The boundaries are not documentation — they are separate DLLs, so a layering
 mistake is a compile error rather than something a review has to catch.
 
 ```
@@ -59,6 +60,8 @@ mistake is a compile error rather than something a review has to catch.
                     Data          ← authored ScriptableObjects. Answers the questions Combat asks.
                       ↑
    Hex ─→ Hex.Systems ─→ Hex.Rendering
+            ↑
+        Scenarios         ← fights written down, and what they prove. Rules and grid only.
                       ↑
    Settings        Camera
                       ↑
@@ -77,6 +80,7 @@ mistake is a compile error rather than something a review has to catch.
 | `Dragoneye.Hex` | `Scripts/Hex` | nothing but the engine |
 | `Dragoneye.Hex.Systems` | `Scripts/Hex/Systems` | Hex |
 | `Dragoneye.Hex.Rendering` | `Scripts/Hex/Rendering` | Hex |
+| `Dragoneye.Scenarios` | `Scripts/Scenarios` | Combat, Hex, Hex.Systems |
 | `Dragoneye.Camera` | `Scripts/Camera` | Settings, Input System, Cinemachine |
 | `Dragoneye.UI` | `Scripts/UI` | Combat, Data, Input System |
 | `Dragoneye.Multiplayer` | `Scripts/Multiplayer` | Combat, Data, UI, Settings, Hex, Hex.Systems, Netcode, UGS |
@@ -303,6 +307,15 @@ hex grid — the Ruins recipe has helpers for both.
 Put doors and anything that will one day open on half-edges: those never change a tile's areas.
 Movement and sight are separate flags (`WallFlags`), so a hedge and a curtain are both one wall.
 
+### Add a scenario
+
+A scenario is a fight that plays itself in the test mode and checks what happened. They live in
+`Scripts/Scenarios` -- `WallScenarios` and `CombatScenarios` -- and are listed in
+`ScenarioLibrary`. One is a map recipe, actors with orders grouped by turn, optional wall changes
+mid-fight, a seed, and checks. Anything the dice decide is predicted by an `Oracle` that replays
+the rules from the same seed, so a check compares the prediction with the run rather than hoping.
+[`Scripts/Scenarios/README.md`](Assets/Scripts/Scenarios/README.md) walks through writing one.
+
 ### Change the combat maths
 
 All in `Dragoneye.Combat`:
@@ -403,9 +416,9 @@ grant it. Either state means committing *two* elements instead of one — advant
 never free, and the two cancel on the same side. A side required to commit two while holding one
 commits the one.
 
-**Armour** is flat damage reduction: none 0, light 1, medium 2, heavy 4, shield +3. Reduction cannot
-heal — `DamageAfter` floors at zero. The floating combat text shows the arithmetic (`-2 HP (5 - 3
-armour)`) so a player can see why a hit landed as softly as it did.
+**Armour** is a pool above health, not a reduction: none 0, light 4, medium 8, heavy 16, a shield
++4. Every blow wears it down first and it never comes back -- `CombatRules.Absorb` is the one place
+that arithmetic lives. The floating combat text shows what the armour held and what got through.
 
 ---
 
@@ -419,7 +432,15 @@ most of that gap in a few seconds:
 bash scratchpad/build.sh
 ```
 
-It does four things:
+For the game as a whole there is the **test mode** on the main menu: a list of scenarios, each a
+fight that plays itself on a known map with a known seed and reads its own checks -- flanks, shots
+over bodies and hedges, swings at passers-by, armour, healing, a kill, walls coming down under a
+creature, the initiative order, and the opponent left to play both sides. `Run all` plays the lot
+and comes back to the list with every result. A scenario's checks say in advance what the dice
+will do, by replaying the rules from the seed, so a failure is the board disagreeing with the
+rules, and the report's trace says where.
+
+`build.sh` does four things:
 
 1. **Compiles each assembly separately against only the references its own asmdef declares.** The
    reference lists are read out of the asmdef files rather than duplicated in the script — a
@@ -537,11 +558,17 @@ Flagged rather than fixed, deliberately:
 - **`StepsToReach` runs one route query per candidate tile** on hover — 37 of them at reach 3. Cached
   per hover, and fine at arena scale, but it is not a shape that would survive a bigger board.
 - **No host migration.** Host leaves, match over, everyone back to the lobby.
-- **Nothing changes a wall mid-fight yet.** The seam is there — `HexMap.SetRay`/`SetHalfEdge`,
-  `WallChanged` with the areas as they were, `AreaLayout.Carry` to move a creature with a renumbered
-  tile, `Wall.Integrity` — and nobody calls it. Doors and destructibles land through it.
+- **No skill breaks a wall yet.** Walls change mid-fight through `CombatDirector.ServerSetWall`
+  -- the test mode's wall-break scenario does exactly that, replicated by `WallCommands`, with every
+  creature on the tile carried to the ground it stood on -- but nothing a creature can do calls it,
+  and `Wall.Integrity` is data nothing reads. A breaching skill is a skill kind and one call.
 - **The AI does not seek cover** and does not price a low wall between it and a target beyond the
   hit chance it is handed.
+- **Running all scenarios reloads the arena between them through the network scene manager.** A
+  reload of the scene that is already loaded is a path no match takes; if NGO refuses it, run the
+  scenarios one at a time until it is seen working.
+- **A scenario spectates.** Nobody controls an actor, so the HUD shows every turn as somebody
+  else's, and the outcome banner has no return to make: the report is the way out.
 - **The cutaway shader has not been seen in a running editor.** It is plain URP forward code with a
   depth pass; if it fails to compile the wall material falls back to lit stone and walls hide
   creatures behind them.

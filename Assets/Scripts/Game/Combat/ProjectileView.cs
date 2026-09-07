@@ -37,22 +37,28 @@ namespace Dragoneye.Game.Combat
         void Start()
         {
             ClashCommands.Resolved += OnResolved;
-            CombatAnnouncer.Missed += OnMissed;
+            CombatAnnouncer.Shot += OnShot;
             CombatAnnouncer.Acted += OnActed;
         }
 
         void OnDestroy()
         {
             ClashCommands.Resolved -= OnResolved;
-            CombatAnnouncer.Missed -= OnMissed;
+            CombatAnnouncer.Shot -= OnShot;
             CombatAnnouncer.Acted -= OnActed;
         }
 
         void OnResolved(ClashReport report) =>
             Fire(report.AttackerId, report.DefenderId, report.SkillId, missed: false);
 
-        void OnMissed(MissReport report) =>
-            Fire(report.AttackerId, report.TargetId, report.SkillId, missed: true);
+        // A shot that landed is drawn by the clash it opened; only the miss is drawn here.
+        void OnShot(ShotReport report)
+        {
+            if (!report.Landed)
+            {
+                Fire(report.AttackerId, report.TargetId, report.SkillId, missed: true);
+            }
+        }
 
         void OnActed(ActionReport report)
         {

@@ -31,6 +31,9 @@ namespace Dragoneye.Multiplayer
         Settings,
 
         /// <summary>The rules. Reachable from here and from the pause menu in a match.</summary>
-        Help
+        Help,
+
+        /// <summary>Scenarios that play themselves and check what happened.</summary>
+        TestMode
     }
 }

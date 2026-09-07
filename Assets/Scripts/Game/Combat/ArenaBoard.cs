@@ -124,7 +124,9 @@ namespace Dragoneye.Game.Combat
         ///
         /// Where the creature already is, if that will do. Otherwise every cell within the reach
         /// of the target -- every area of every tile, since a split tile is two places to stand --
-        /// that has a line to the target and nobody on it, priced by the route there.
+        /// that has a line to the target and nobody on it, priced by the route there. One search
+        /// prices every candidate: the whole board is reachable from the start in one Dijkstra,
+        /// and asking it thirty times for thirty candidates was the cost of the old cursor.
         /// </summary>
         public bool TryTileInReach(Cell from, Cell target, int reach, out Cell tile, out int steps)
         {
@@ -143,6 +145,8 @@ namespace Dragoneye.Game.Combat
                 return false;
             }
 
+            Reachable(from, int.MaxValue, m_Reach);
+
             foreach (var hex in Hex.Range(target.Tile, reach))
             {
                 m_Cells.Clear();
@@ -151,15 +155,10 @@ namespace Dragoneye.Game.Combat
                 foreach (var candidate in m_Cells)
                 {
                     if (candidate == target || m_Units.IsOccupied(candidate)
+                        || !m_Reach.TryGetValue(candidate, out var cost)
+                        || (steps >= 0 && cost >= steps)
                         || !CombatRules.InRange(Cell.Distance(candidate, target), reach)
                         || !HasLine(candidate, target))
-                    {
-                        continue;
-                    }
-
-                    var cost = CostTo(from, candidate);
-
-                    if (cost < 0 || (steps >= 0 && cost >= steps))
                     {
                         continue;
                     }

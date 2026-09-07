@@ -13,6 +13,7 @@ MonoBehaviour:
   m_Name: Stone
   m_EditorClassIdentifier: Dragoneye.Hex::Dragoneye.Hex.TerrainType
   m_DisplayName: Stone
-  m_Color: {r: 0.30, g: 0.305, b: 0.335, a: 1}
+  m_Color: {r: 0.3, g: 0.305, b: 0.335, a: 1}
   m_IsWalkable: 0
   m_MoveCost: 1
+  m_BlocksSight: 1

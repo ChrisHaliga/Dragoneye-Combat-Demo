@@ -81,16 +81,6 @@ namespace Dragoneye.Game.Combat
         readonly List<CreatureState> m_Watchers = new List<CreatureState>();
         CreatureState m_Offered;
 
-        /// <summary>
-        /// How often a computer creature keeps an element it could have swung with.
-        ///
-        /// A plain roll and nothing cleverer. An earlier cut also declined when the element was the
-        /// last of its kind and the odds were poor -- and a level-one premade holds exactly one
-        /// element, so it declined nearly every swing the board had just warned about. A warning
-        /// that is usually wrong is worse than none, and the reason it was wrong was invisible.
-        /// </summary>
-        const float HoldsBack = 0.15f;
-
         public OpportunityConductor(IOpportunityHost host, CreatureRegistry creatures, Dice dice,
             ArenaMap map)
         {
@@ -365,7 +355,7 @@ namespace Dragoneye.Game.Combat
                 return false;
             }
 
-            return m_Dice.Roll() > HoldsBack;
+            return Opportunity.Takes(m_Dice.Roll());
         }
 
         /// <summary>Runs the action everybody has now had their swing at.</summary>

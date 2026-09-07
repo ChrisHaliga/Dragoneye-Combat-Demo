@@ -38,6 +38,19 @@ namespace Dragoneye.Combat
         public const int Range = 1;
 
         /// <summary>
+        /// How often a computer creature keeps an element it could have swung with.
+        ///
+        /// A plain roll and nothing cleverer. An earlier cut also declined when the element was the
+        /// last of its kind and the odds were poor -- and a level-one premade holds exactly one
+        /// element, so it declined nearly every swing the board had just warned about. A warning
+        /// that is usually wrong is worse than none, and the reason it was wrong was invisible.
+        /// </summary>
+        public const float HoldsBack = 0.15f;
+
+        /// <summary>Whether a computer creature offered a swing takes it, on this roll in [0, 1).</summary>
+        public static bool Takes(float roll) => roll > HoldsBack;
+
+        /// <summary>
         /// The swing itself, made from the attack this creature already carries.
         ///
         /// A real <see cref="SkillSpec"/> rather than a special case threaded through the resolver:

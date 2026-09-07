@@ -362,8 +362,7 @@ namespace Dragoneye.Game.Combat
 
             if (hovered.HasValue && hovered.Value != PendingMove.Value)
             {
-                PendingFacing = Facing.Of(
-                    (int)AreaGeometry.Direction(m_Map.Map, PendingMove.Value, hovered.Value));
+                PendingFacing = ThreatGeometry.Bearing(m_Map.Grid, PendingMove.Value, hovered.Value);
             }
         }
 
@@ -397,8 +396,7 @@ namespace Dragoneye.Game.Combat
                 ? tile
                 : actor.Cell;
 
-            return FacingRules.IsFlank(target.Facing,
-                Facing.Of((int)AreaGeometry.Direction(m_Map.Map, target.Cell, from)));
+            return FacingRules.IsFlank(target.Facing, ThreatGeometry.Bearing(m_Map.Grid, target.Cell, from));
         }
 
         /// <summary>
@@ -630,7 +628,7 @@ namespace Dragoneye.Game.Combat
                 // means almost every time -- so a player who does not care can click twice in the
                 // same place and get exactly what they used to get.
                 PendingMove = hex;
-                PendingFacing = Facing.Of((int)AreaGeometry.Direction(m_Map.Map, actor.Cell, hex));
+                PendingFacing = ThreatGeometry.Bearing(m_Map.Grid, actor.Cell, hex);
             }
         }
     }

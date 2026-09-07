@@ -4,27 +4,24 @@ using Dragoneye.Game.Combat;
 using Dragoneye.Hex;
 using Dragoneye.Hex.Rendering;
 using Dragoneye.Hex.Systems;
+using Dragoneye.Scenarios;
 using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
 
 namespace Dragoneye.MultiplayerEditor
 {
-    // Declared inside the namespace: out here the bare name Hex would bind to the Dragoneye.Hex
-    // namespace rather than the type.
-    using Hex = Dragoneye.Hex.Hex;
-
     /// <summary>
-    /// Authors the arena's map -- a hexagon of grass with ruins on it -- and wires what draws it.
+    /// Authors the arena's map -- the Ruins -- and wires what draws it.
     ///
-    /// The map is an <see cref="AuthoredMapDefinition"/>: ground, a few boulders, and walls as
-    /// rays and half-edges. The walls here are written by two small helpers that know how a
-    /// straight line lies on a hex grid, so a rectangular room comes out as the rays and edges the
-    /// rules read. A painting tool would write the same records; until there is one, this is the
-    /// authoring surface, and it is a page of numbers with names on them.
+    /// The map is <see cref="Maps.Ruins"/>, a recipe, written into an <see cref="AuthoredMapDefinition"/>
+    /// with the terrain names bound to the terrain assets. The recipe is the authoring surface:
+    /// the scenarios stand on the same one, and the harness builds it to check the room is
+    /// closed. A painting tool would write the same records.
     ///
     /// Safe to re-run. The asset is updated in place, the scene's map component is pointed at it,
-    /// and the wall renderer, the see-through driver and the reach overlay are ensured.
+    /// and the wall renderer, the see-through driver, the reach overlay and the scenario runner
+    /// are ensured.
     /// </summary>
     static class ArenaMapSetup
     {
@@ -33,10 +30,6 @@ namespace Dragoneye.MultiplayerEditor
         const string k_Grass = "Assets/Settings/Hex/Grass.asset";
         const string k_Stone = "Assets/Settings/Hex/Stone.asset";
         const string k_ArenaScene = "Assets/Scenes/Arena.unity";
-
-        static readonly Wall Solid = new Wall(WallFlags.Solid);
-        static readonly Wall Low = new Wall(WallFlags.BlocksMovement);
-        static readonly Wall Curtain = new Wall(WallFlags.BlocksSight);
 
         internal static void Run()
         {
@@ -59,108 +52,13 @@ namespace Dragoneye.MultiplayerEditor
             var map = AuthorRuins(grass, stone);
             var material = WallMaterial();
 
-            WireScene(map, material);
+            WireScene(map, material, grass, stone);
         }
 
         // ---------- the map ----------
 
-        sealed class Draft
-        {
-            public readonly List<(int q, int r, TerrainType terrain)> Tiles = new List<(int, int, TerrainType)>();
-            public readonly List<(int q, int r, int ray, Wall wall)> Rays = new List<(int, int, int, Wall)>();
-            public readonly List<(int q, int r, int half, Wall wall)> HalfEdges = new List<(int, int, int, Wall)>();
-
-            public void Ray(Hex hex, int ray, Wall wall) => Rays.Add((hex.Q, hex.R, ray, wall));
-
-            public void Edge(Hex hex, HexDirection edge, Wall wall)
-            {
-                TileGeometry.HalvesOf(edge, out var first, out var second);
-                HalfEdges.Add((hex.Q, hex.R, first, wall));
-                HalfEdges.Add((hex.Q, hex.R, second, wall));
-            }
-
-            /// <summary>
-            /// A vertical wall up a column of tiles, midpoint to midpoint: rays 0 and 6 on each.
-            /// The north midpoint of one tile is the south midpoint of the next, so the line is
-            /// continuous.
-            /// </summary>
-            public void Vertical(Hex bottom, int tiles, Wall wall)
-            {
-                for (var i = 0; i < tiles; i++)
-                {
-                    var hex = new Hex(bottom.Q, bottom.R + i);
-                    Ray(hex, 0, wall);
-                    Ray(hex, 6, wall);
-                }
-            }
-
-            /// <summary>
-            /// A horizontal wall eastward from a tile's centre: corner to corner through the tile
-            /// (rays 3 and 9), then along the flat north edge of the tile below-right, then through
-            /// the next tile on the row, and so on. Each piece of the alternation is one unit of
-            /// length, so a run of 2n pieces spans n tiles of the row.
-            /// </summary>
-            public void Horizontal(Hex start, int pieces, Wall wall)
-            {
-                for (var i = 0; i < pieces; i++)
-                {
-                    var hex = new Hex(start.Q + i, start.R - (i + 1) / 2);
-
-                    if (i % 2 == 0)
-                    {
-                        Ray(hex, 3, wall);
-                        Ray(hex, 9, wall);
-                    }
-                    else
-                    {
-                        Edge(hex, HexDirection.North, wall);
-                    }
-                }
-            }
-        }
-
         static AuthoredMapDefinition AuthorRuins(TerrainType grass, TerrainType stone)
         {
-            var draft = new Draft();
-
-            // Boulders. Something to stand behind, and something the line stops at.
-            draft.Tiles.Add((3, -3, stone));
-            draft.Tiles.Add((-2, -1, stone));
-            draft.Tiles.Add((1, -4, stone));
-            draft.Tiles.Add((-4, 3, stone));
-
-            // A roofless room to the north-east, two tiles wide, with its door on the south side.
-            //
-            // Its corners are quarter-cut tiles and its long sides run through the middles of
-            // tiles, so it is the whole of what this feature is for in one place: standing on the
-            // inside half of a cut tile, and not being able to reach the outside half of it.
-            var a = new Hex(0, 3);   // north-west corner: the room lies to its south-east
-            var b = new Hex(2, 2);   // north-east corner
-            var c = new Hex(2, 0);   // south-east corner
-            var d = new Hex(0, 1);   // south-west corner
-
-            draft.Ray(a, 3, Solid);
-            draft.Ray(a, 6, Solid);
-            draft.Edge(new Hex(1, 2), HexDirection.North, Solid);   // the top, between the corners
-            draft.Ray(b, 9, Solid);
-            draft.Ray(b, 6, Solid);
-            draft.Vertical(new Hex(2, 1), 1, Solid);                 // the east side
-            draft.Ray(c, 0, Solid);
-            draft.Ray(c, 9, Solid);
-            // The bottom would run along the north edge of (1, 0). Left open: that is the door.
-            draft.Ray(d, 3, Solid);
-            draft.Ray(d, 0, Solid);
-            draft.Vertical(new Hex(0, 2), 1, Solid);                 // the west side
-
-            // A hedge to the west: waist high, three tiles long. Feet stop, eyes and arrows do not.
-            draft.Vertical(new Hex(-3, 0), 3, Low);
-
-            // A hanging cloth across one edge to the south: eyes stop, feet do not.
-            draft.Edge(new Hex(-1, -2), HexDirection.North, Curtain);
-
-            // A stub of fallen wall, alone. It splits nothing; it is just in the way of a line.
-            draft.Ray(new Hex(3, -1), 9, Solid);
-
             var asset = AssetDatabase.LoadAssetAtPath<AuthoredMapDefinition>(k_Map);
 
             if (asset == null)
@@ -169,56 +67,23 @@ namespace Dragoneye.MultiplayerEditor
                 AssetDatabase.CreateAsset(asset, k_Map);
             }
 
-            var serialized = new SerializedObject(asset);
-            serialized.FindProperty("m_TileSize").floatValue = 1f;
-            serialized.FindProperty("m_Radius").intValue = 5;
-            serialized.FindProperty("m_DefaultTerrain").objectReferenceValue = grass;
+            var recipe = Maps.Ruins();
 
-            var tiles = serialized.FindProperty("m_Tiles");
-            tiles.arraySize = draft.Tiles.Count;
-
-            for (var i = 0; i < draft.Tiles.Count; i++)
-            {
-                var entry = tiles.GetArrayElementAtIndex(i);
-                entry.FindPropertyRelative("Q").intValue = draft.Tiles[i].q;
-                entry.FindPropertyRelative("R").intValue = draft.Tiles[i].r;
-                entry.FindPropertyRelative("Terrain").objectReferenceValue = draft.Tiles[i].terrain;
-            }
-
-            var rays = serialized.FindProperty("m_Rays");
-            rays.arraySize = draft.Rays.Count;
-
-            for (var i = 0; i < draft.Rays.Count; i++)
-            {
-                var entry = rays.GetArrayElementAtIndex(i);
-                entry.FindPropertyRelative("Q").intValue = draft.Rays[i].q;
-                entry.FindPropertyRelative("R").intValue = draft.Rays[i].r;
-                entry.FindPropertyRelative("Ray").intValue = draft.Rays[i].ray;
-                entry.FindPropertyRelative("Flags").intValue = (int)draft.Rays[i].wall.Flags;
-                entry.FindPropertyRelative("Integrity").intValue = draft.Rays[i].wall.Integrity;
-            }
-
-            var halves = serialized.FindProperty("m_HalfEdges");
-            halves.arraySize = draft.HalfEdges.Count;
-
-            for (var i = 0; i < draft.HalfEdges.Count; i++)
-            {
-                var entry = halves.GetArrayElementAtIndex(i);
-                entry.FindPropertyRelative("Q").intValue = draft.HalfEdges[i].q;
-                entry.FindPropertyRelative("R").intValue = draft.HalfEdges[i].r;
-                entry.FindPropertyRelative("HalfEdge").intValue = draft.HalfEdges[i].half;
-                entry.FindPropertyRelative("Flags").intValue = (int)draft.HalfEdges[i].wall.Flags;
-                entry.FindPropertyRelative("Integrity").intValue = draft.HalfEdges[i].wall.Integrity;
-            }
-
-            serialized.ApplyModifiedPropertiesWithoutUndo();
+            asset.Author(recipe, Palette(grass, stone));
             EditorUtility.SetDirty(asset);
 
-            Debug.Log($"Authored {k_Map}: {draft.Tiles.Count} special tiles, {draft.Rays.Count} ray "
-                + $"walls, {draft.HalfEdges.Count} half-edge walls.");
+            Debug.Log($"Authored {k_Map}: {recipe.Tiles.Count} special tiles, {recipe.Walls.Count} wall segments.");
 
             return asset;
         }
+
+        /// <summary>What the recipes' terrain names mean, in assets.</summary>
+        static List<AuthoredMapDefinition.TerrainEntry> Palette(TerrainType grass, TerrainType stone) =>
+            new List<AuthoredMapDefinition.TerrainEntry>
+            {
+                new AuthoredMapDefinition.TerrainEntry { Name = Ground.Grass, Terrain = grass },
+                new AuthoredMapDefinition.TerrainEntry { Name = Ground.Stone, Terrain = stone }
+            };
 
         // ---------- the material ----------
 
@@ -260,7 +125,8 @@ namespace Dragoneye.MultiplayerEditor
 
         // ---------- the scene ----------
 
-        static void WireScene(AuthoredMapDefinition map, Material wallMaterial)
+        static void WireScene(AuthoredMapDefinition map, Material wallMaterial, TerrainType grass,
+            TerrainType stone)
         {
             var scene = EditorSceneManager.OpenScene(k_ArenaScene, OpenSceneMode.Single);
             var context = Object.FindAnyObjectByType<ArenaContext>();
@@ -288,11 +154,16 @@ namespace Dragoneye.MultiplayerEditor
                 Assign(reach, ("m_Input", input));
             }
 
+            // The scenario runner brings its own maps, written against the same terrain names.
+            var scenarios = Ensure<ScenarioRunner>(host);
+            Assign(scenarios, ("m_Grass", grass), ("m_Stone", stone));
+            Assign(context, ("m_Scenarios", scenarios));
+
             EditorSceneManager.MarkSceneDirty(scene);
             EditorSceneManager.SaveScene(scene);
             AssetDatabase.SaveAssets();
 
-            Debug.Log("Arena map wired: Ruins, walls drawn, see-through and reach overlay ensured.");
+            Debug.Log("Arena map wired: Ruins, walls drawn, see-through, reach overlay and scenario runner ensured.");
         }
 
         static T Ensure<T>(GameObject target) where T : Component

@@ -37,6 +37,16 @@
              the layer is a full-screen canvas with nothing of its own in it. -->
         <ui:VisualElement name="floating-text" class="floating-layer" picking-mode="Ignore" />
 
+        <ui:VisualElement name="scenario-report" class="scenario-report is-hidden">
+            <ui:Label name="scenario-title" text="" class="scenario-report__title" />
+            <ui:Label name="scenario-status" text="" class="scenario-report__status" />
+            <ui:ScrollView name="scenario-checks" class="scenario-report__checks" />
+            <ui:VisualElement class="scenario-report__buttons">
+                <ui:Button name="scenario-next-button" text="Next scenario" class="button" />
+                <ui:Button name="scenario-back-button" text="Back to test mode" class="button" />
+            </ui:VisualElement>
+        </ui:VisualElement>
+
         <ui:VisualElement name="outcome-banner" class="outcome is-hidden">
             <ui:Label name="outcome-title" text="" class="outcome__title" />
             <ui:Label name="outcome-note" text="Returning to the menu..." class="outcome__note" />

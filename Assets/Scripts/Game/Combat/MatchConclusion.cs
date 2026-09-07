@@ -27,6 +27,13 @@ namespace Dragoneye.Game.Combat
 
         void Update()
         {
+            // A scenario reads its checks when the fight ends and shows them; the player leaves
+            // when they have read them. Closing on the outcome would take the report away.
+            if (MatchFlow.Instance != null && MatchFlow.Instance.Scenario != null)
+            {
+                return;
+            }
+
             var turns = TurnState.Current;
 
             if (turns == null || !turns.IsOver || m_Closing)

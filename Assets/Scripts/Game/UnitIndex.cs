@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using Dragoneye.Hex;
 using UnityEngine;
@@ -15,6 +16,9 @@ namespace Dragoneye.Game
     public sealed class UnitIndex : MonoBehaviour
     {
         readonly Dictionary<Cell, UnitState> m_Occupants = new Dictionary<Cell, UnitState>();
+
+        /// <summary>Somebody arrived, left or moved. Anything that drew the board's occupancy redraws.</summary>
+        public event Action Changed;
 
         public bool TryGet(Cell cell, out UnitState unit) => m_Occupants.TryGetValue(cell, out unit);
 
@@ -51,13 +55,18 @@ namespace Dragoneye.Game
             }
         }
 
-        public void Register(UnitState unit) => m_Occupants[unit.Cell] = unit;
+        public void Register(UnitState unit)
+        {
+            m_Occupants[unit.Cell] = unit;
+            Changed?.Invoke();
+        }
 
         public void Unregister(UnitState unit)
         {
             if (m_Occupants.TryGetValue(unit.Cell, out var occupant) && occupant == unit)
             {
                 m_Occupants.Remove(unit.Cell);
+                Changed?.Invoke();
             }
         }
 
@@ -71,6 +80,7 @@ namespace Dragoneye.Game
             }
 
             m_Occupants[to] = unit;
+            Changed?.Invoke();
         }
     }
 }

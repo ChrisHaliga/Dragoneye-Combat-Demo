@@ -273,6 +273,8 @@ GameObject:
   - component: {fileID: 261654067}
   - component: {fileID: 261654070}
   - component: {fileID: 261654069}
+  - component: {fileID: 261654072}
+  - component: {fileID: 261654071}
   m_Layer: 0
   m_Name: Arena Context
   m_TagString: Untagged
@@ -536,6 +538,33 @@ MonoBehaviour:
   m_Input: {fileID: 261654062}
   m_Samples: 24
   m_Opacity: 0.8
+--- !u!114 &261654071
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 261654050}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: eb397dcf1cd022b459717c34bc198a75, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Dragoneye.Game::Dragoneye.Game.Combat.ReachPreview
+  m_Input: {fileID: 261654062}
+  m_Opacity: 0.16
+  m_Lift: 0.025
+--- !u!114 &261654072
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 261654050}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d5cc1a40347dc2145b19d6edbe28826a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Dragoneye.Game::Dragoneye.Game.WallCutaway
 --- !u!1 &454632036
 GameObject:
   m_ObjectHideFlags: 0
@@ -1563,6 +1592,7 @@ GameObject:
   - component: {fileID: 1461267523}
   - component: {fileID: 1461267522}
   - component: {fileID: 1461267525}
+  - component: {fileID: 1461267526}
   m_Layer: 0
   m_Name: Hex Map
   m_TagString: Untagged
@@ -1601,7 +1631,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f79c36cfc0364ac4c97b6f8d01f8155a, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Dragoneye.Hex.Systems::Dragoneye.Hex.Systems.ArenaMap
-  m_Definition: {fileID: 11400000, guid: 7143e322e9887d545bbd74cc08f0a04c, type: 2}
+  m_Definition: {fileID: 11400000, guid: 33efb06da0914444dacb65c5054af1b8, type: 2}
   m_Seed: 0
 --- !u!4 &1461267524
 Transform:
@@ -1633,6 +1663,23 @@ MonoBehaviour:
   m_Arena: {fileID: 1461267523}
   m_Focus: {fileID: 0}
   m_Margin: 2
+--- !u!114 &1461267526
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1461267521}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0e094623166a9f342b7b6bc374748a3a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Dragoneye.Hex.Rendering::Dragoneye.Hex.Rendering.WallRenderer
+  m_WallMaterial: {fileID: 2100000, guid: fe1af022555c4ec49841d06c4166f0fd, type: 2}
+  m_TallHeight: 0.9
+  m_LowHeight: 0.32
+  m_Thickness: 0.1
+  m_FallbackColour: {r: 0.36, g: 0.34, b: 0.32, a: 1}
 --- !u!43 &1532971857
 Mesh:
   m_ObjectHideFlags: 0

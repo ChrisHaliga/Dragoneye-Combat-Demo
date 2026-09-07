@@ -135,6 +135,22 @@ namespace Dragoneye.Hex
             SetHalfEdge(hex, second, wall);
         }
 
+        /// <summary>What stands on a segment, wherever the record is kept.</summary>
+        public Wall WallAt(WallSegment segment) =>
+            segment.IsRay ? Ray(segment.Tile, segment.Index) : HalfEdge(segment.Tile, segment.Index);
+
+        public void SetWall(WallSegment segment, Wall wall)
+        {
+            if (segment.IsRay)
+            {
+                SetRay(segment.Tile, segment.Index, wall);
+            }
+            else
+            {
+                SetHalfEdge(segment.Tile, segment.Index, wall);
+            }
+        }
+
         // ---------- picking ----------
 
         /// <summary>

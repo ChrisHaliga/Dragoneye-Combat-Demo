@@ -35,7 +35,33 @@ namespace Dragoneye.Game.Combat
         uint m_ForCreature;
         int m_ForAp = -1;
         Cell m_ForCell;
-        int m_ForFrame = -1;
+
+        // Occupancy changed under a still actor. The index says so; nothing here polls for it.
+        bool m_BoardChanged = true;
+        UnitIndex m_Units;
+
+        void OnEnable()
+        {
+            m_Units = m_Input != null ? m_Input.Units : null;
+
+            if (m_Units != null)
+            {
+                m_Units.Changed += OnBoardChanged;
+            }
+        }
+
+        void OnDisable()
+        {
+            if (m_Units != null)
+            {
+                m_Units.Changed -= OnBoardChanged;
+                m_Units = null;
+            }
+
+            Hide();
+        }
+
+        void OnBoardChanged() => m_BoardChanged = true;
 
         void Update()
         {
@@ -54,10 +80,8 @@ namespace Dragoneye.Game.Combat
                 return;
             }
 
-            // Occupancy can change under a still actor, so the overlay is refreshed on a slow
-            // cadence as well as on every change that is cheap to notice.
-            var stale = m_ForCreature != actor.TurnId || m_ForAp != actor.CurrentAp.Units
-                || m_ForCell != actor.Cell || Time.frameCount - m_ForFrame > 20;
+            var stale = m_BoardChanged || m_ForCreature != actor.TurnId
+                || m_ForAp != actor.CurrentAp.Units || m_ForCell != actor.Cell;
 
             if (!stale)
             {
@@ -67,7 +91,7 @@ namespace Dragoneye.Game.Combat
             m_ForCreature = actor.TurnId;
             m_ForAp = actor.CurrentAp.Units;
             m_ForCell = actor.Cell;
-            m_ForFrame = Time.frameCount;
+            m_BoardChanged = false;
 
             var budget = CombatRules.StepsAffordable(actor.CurrentAp, actor.StepCost);
             m_Input.Board.Reachable(actor.Cell, budget, m_Reach);

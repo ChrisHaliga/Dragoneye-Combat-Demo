@@ -1,13 +1,11 @@
-using Dragoneye.Game;
-using Dragoneye.Game.Combat;
-
-namespace Dragoneye.Game.Creatures
+namespace Dragoneye.Combat
 {
     /// <summary>
     /// Which side a creature fights for.
     ///
     /// Not an authored property of a creature: the same definition can be a guard in one match and a
-    /// bandit in the next, so party is draft state and lives on <see cref="RosterEntry"/>.
+    /// bandit in the next, so party is draft state. A rules concept, because whether an attack is
+    /// contested and whether a match is over are both questions about sides.
     /// </summary>
     public enum Party : byte
     {

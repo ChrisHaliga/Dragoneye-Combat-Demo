@@ -65,11 +65,12 @@ namespace Dragoneye.Hex
         /// <summary>
         /// Which of the six directions one cell lies in from another.
         ///
-        /// For two whole tiles this is exactly <see cref="Hex.DirectionTo"/>, kept so nothing that
-        /// worked before a tile could be split answers differently now. Once an area is involved the
-        /// answer comes from the two centres, quantised by <see cref="TileGeometry.Bearing"/> -- and
-        /// its tiebreak: a bearing exactly on a boundary belongs to the lower-numbered direction.
-        /// A cell has no direction to itself; that answers North, as it always has.
+        /// For two tiles no wall runs through this is exactly <see cref="Hex.DirectionTo"/>, kept
+        /// so nothing that worked before a tile could be split answers differently now. Once a
+        /// split tile is involved -- either end, whichever area -- the answer comes from the two
+        /// centres, quantised by <see cref="TileGeometry.Bearing"/>, and its tiebreak: a bearing
+        /// exactly on a boundary belongs to the lower-numbered direction. A cell has no direction
+        /// to itself; that answers North, as it always has.
         /// </summary>
         public static HexDirection Direction(HexMap map, Cell from, Cell to)
         {
@@ -78,7 +79,7 @@ namespace Dragoneye.Hex
                 return HexDirection.North;
             }
 
-            if (from.Area == 0 && to.Area == 0)
+            if (IsWhole(map, from.Tile) && IsWhole(map, to.Tile))
             {
                 return Hex.DirectionTo(from.Tile, to.Tile);
             }
@@ -91,5 +92,9 @@ namespace Dragoneye.Hex
 
             return dx == 0 && dz == 0 ? HexDirection.North : TileGeometry.Bearing(dx, dz);
         }
+
+        /// <summary>Whether no wall runs through this tile, so its one area's centre is its own.</summary>
+        static bool IsWhole(HexMap map, Hex hex) =>
+            map == null || !map.TryGetTile(hex, out var tile) || tile.MovementRayMask == 0;
     }
 }

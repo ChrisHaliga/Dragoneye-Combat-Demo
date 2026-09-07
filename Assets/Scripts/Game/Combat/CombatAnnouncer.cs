@@ -33,22 +33,25 @@ namespace Dragoneye.Game.Combat
         }
     }
 
-    /// <summary>A shot that rolled and did not land.</summary>
-    public readonly struct MissReport
+    /// <summary>A shot that rolled: what the chance was, and whether it landed.</summary>
+    public readonly struct ShotReport
     {
         public readonly uint AttackerId;
         public readonly int SkillId;
         public readonly uint TargetId;
 
-        /// <summary>What the chance was, so the log can say how unlucky it was.</summary>
+        /// <summary>The percent chance, so the log can say how lucky or unlucky it was.</summary>
         public readonly int Chance;
 
-        public MissReport(uint attackerId, int skillId, uint targetId, int chance)
+        public readonly bool Landed;
+
+        public ShotReport(uint attackerId, int skillId, uint targetId, int chance, bool landed)
         {
             AttackerId = attackerId;
             SkillId = skillId;
             TargetId = targetId;
             Chance = chance;
+            Landed = landed;
         }
     }
 
@@ -86,7 +89,7 @@ namespace Dragoneye.Game.Combat
         public static event Action<uint, uint> HeldBack;
 
         /// <summary>A shot rolled and missed.</summary>
-        public static event Action<MissReport> Missed;
+        public static event Action<ShotReport> Shot;
 
         /// <summary>Health came back at the start of a turn: (creature, amount).</summary>
         public static event Action<uint, int> Recovered;
@@ -138,12 +141,12 @@ namespace Dragoneye.Game.Combat
         [Rpc(SendTo.Everyone)]
         void HeldBackRpc(uint watcherId, uint moverId) => HeldBack?.Invoke(watcherId, moverId);
 
-        /// <summary>Server only. A shot rolled and did not land.</summary>
-        public void ServerMissed(uint attackerId, int skillId, uint targetId, int chance)
+        /// <summary>Server only. A shot rolled, and this is how it went.</summary>
+        public void ServerShot(uint attackerId, int skillId, uint targetId, int chance, bool landed)
         {
             if (IsServer)
             {
-                MissedRpc(attackerId, skillId, targetId, chance);
+                ShotRpc(attackerId, skillId, targetId, chance, landed);
             }
         }
 
@@ -185,8 +188,8 @@ namespace Dragoneye.Game.Combat
         void RecoveredRpc(uint creatureId, int amount) => Recovered?.Invoke(creatureId, amount);
 
         [Rpc(SendTo.Everyone)]
-        void MissedRpc(uint attackerId, int skillId, uint targetId, int chance) =>
-            Missed?.Invoke(new MissReport(attackerId, skillId, targetId, chance));
+        void ShotRpc(uint attackerId, int skillId, uint targetId, int chance, bool landed) =>
+            Shot?.Invoke(new ShotReport(attackerId, skillId, targetId, chance, landed));
 
         [Rpc(SendTo.Everyone)]
         void ActedRpc(uint actorId, int skillId, uint targetId, bool hasTarget, byte[] returned) =>

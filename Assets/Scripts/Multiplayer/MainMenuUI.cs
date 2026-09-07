@@ -36,7 +36,9 @@ namespace Dragoneye.Multiplayer
         CharacterListScreen m_Characters;
         CharacterCreatorScreen m_Creator;
         LevelUpScreen m_LevelUp;
+        TestModeScreen m_Tests;
         Button m_LevelUpButton;
+        Button m_TestModeButton;
         Label m_Status;
         Label m_PlayingAs;
         VisualElement m_HeroBody;
@@ -84,6 +86,14 @@ namespace Dragoneye.Multiplayer
             SettingsPanel.Build(root.Q<VisualElement>("settings-body"));
             HelpBook.Build(root.Q<ScrollView>("help-body"));
 
+            m_Tests = new TestModeScreen(root, () => Show(MenuScreen.Home));
+            if (!m_Tests.IsBound)
+            {
+                Debug.LogError("Main menu markup is missing the test mode; check SessionMenu.uxml.", this);
+                enabled = false;
+                return;
+            }
+
             m_Settings = new SettingsScreen(root, () => Show(MenuScreen.Home));
             if (!m_Settings.IsBound)
             {
@@ -126,6 +136,14 @@ namespace Dragoneye.Multiplayer
             // its own -- the draft board covers whichever screen is showing.
             if (ShowLevelUpIfWaiting())
             {
+                return;
+            }
+
+            // A scenario that just came back with a result reopens the test mode, so the result
+            // is the first thing seen.
+            if (MatchFlow.Instance != null && MatchFlow.Instance.TakeTestModePrompt())
+            {
+                Show(MenuScreen.TestMode);
                 return;
             }
 
@@ -271,6 +289,7 @@ namespace Dragoneye.Multiplayer
             var booted = MatchFlow.Instance != null;
 
             m_SingleplayerButton.SetEnabled(booted);
+            m_TestModeButton.SetEnabled(booted);
             m_MultiplayerButton.SetEnabled(booted && m_Session != null);
 
             if (booted && m_Session != null)
@@ -282,6 +301,7 @@ namespace Dragoneye.Multiplayer
                 + "the network manager and session runner live there.";
 
             m_SingleplayerButton.tooltip = reason;
+            m_TestModeButton.tooltip = reason;
             m_MultiplayerButton.tooltip = reason;
 
             Debug.LogWarning($"{nameof(MainMenuUI)}: Bootstrap has not run, so no match can start. "
@@ -312,6 +332,7 @@ namespace Dragoneye.Multiplayer
             m_Panels[MenuScreen.Join] = root.Q<VisualElement>("join-panel");
             m_Panels[MenuScreen.Settings] = root.Q<VisualElement>("settings-panel");
             m_Panels[MenuScreen.Help] = root.Q<VisualElement>("help-panel");
+            m_Panels[MenuScreen.TestMode] = root.Q<VisualElement>("test-panel");
 
             foreach (var pair in m_Panels)
             {
@@ -352,6 +373,7 @@ namespace Dragoneye.Multiplayer
 
             m_SingleplayerButton = singleplayer;
             m_MultiplayerButton = multiplayer;
+            m_TestModeButton = testMode;
 
             singleplayer.clicked += OnSingleplayerClicked;
             multiplayer.clicked += () => Show(MenuScreen.Multiplayer);
@@ -366,9 +388,7 @@ namespace Dragoneye.Multiplayer
             hostBack.clicked += () => Show(MenuScreen.Multiplayer);
             joinBack.clicked += () => Show(MenuScreen.Multiplayer);
 
-            // Not yet a thing. Hidden rather than greyed: a disabled entry on a title screen
-            // is a feature being advertised as broken, and testers file it as one.
-            testMode.style.display = DisplayStyle.None;
+            testMode.clicked += () => Show(MenuScreen.TestMode);
 
             return true;
         }
@@ -429,6 +449,11 @@ namespace Dragoneye.Multiplayer
             if (screen == MenuScreen.Settings)
             {
                 m_Settings.Refresh();
+            }
+
+            if (screen == MenuScreen.TestMode)
+            {
+                m_Tests.Refresh();
             }
 
             Refresh();

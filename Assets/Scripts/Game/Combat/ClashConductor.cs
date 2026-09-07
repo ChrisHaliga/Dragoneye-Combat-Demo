@@ -175,51 +175,19 @@ namespace Dragoneye.Game.Combat
         /// What a computer creature puts up.
         ///
         /// Weighed against exactly what a player is shown -- what the attacker has been proven to
-        /// hold -- and then rolled for. A defender that always answered optimally is a defender who
-        /// can be hard-countered every time once somebody has learned the table, and a fight whose
-        /// right answer never changes has one turn in it.
-        ///
-        /// The randomness lives here rather than in the rules, because the rules have to be able to
-        /// give the same answer twice and this deliberately does not.
+        /// hold -- and then rolled for, by <see cref="ClashDefenceOdds.ChooseAnswer"/>. A defender
+        /// that always answered optimally is a defender who can be hard-countered every time once
+        /// somebody has learned the table, and a fight whose right answer never changes has one
+        /// turn in it. The dice are the fight's, so the answer can be predicted from the seed.
         /// </summary>
         IReadOnlyList<Element> ChooseDefence(CreatureState defender, CreatureState attacker,
             DefenceRequest request)
         {
-            var answer = new List<Element>();
-            var options = new List<Element>(request.Options);
-            var attack = CreatureKnowledge.PossibleAttacks(attacker);
-
             var pool = defender.Pool;
             var held = pool != null ? pool.ServerLedger.Pool : ElementCounts.Empty;
 
-            while (answer.Count < request.Required && options.Count > 0)
-            {
-                if (!ClashDefenceOdds.TryChoose(options, attack, ElementMatchups.Table,
-                        m_Dice.Roll(), out var pick))
-                {
-                    break;
-                }
-
-                answer.Add(pick);
-
-                // Only offered again if another one is actually held.
-                var taken = 0;
-
-                foreach (var chosen in answer)
-                {
-                    if (chosen == pick)
-                    {
-                        taken++;
-                    }
-                }
-
-                if (held[pick] <= taken)
-                {
-                    options.Remove(pick);
-                }
-            }
-
-            return answer;
+            return ClashDefenceOdds.ChooseAnswer(request, CreatureKnowledge.PossibleAttacks(attacker),
+                held, ElementMatchups.Table, m_Dice.Roll);
         }
 
         /// <summary>

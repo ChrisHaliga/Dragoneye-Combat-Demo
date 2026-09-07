@@ -321,6 +321,49 @@ namespace Dragoneye.Combat
     public static class ClashDefenceOdds
     {
         /// <summary>
+        /// The whole of what a computer defender puts up.
+        ///
+        /// One pick per element the request asks for, each weighed against what the attacker has
+        /// been proven to hold and rolled for, and an element offered again only while another of
+        /// it is actually held. The server runs this to answer for a computer creature; a test
+        /// runs it to say in advance what the answer will be. One procedure, so they agree.
+        /// </summary>
+        /// <param name="roll">A fresh roll in [0, 1) each time it is asked. The caller owns the dice.</param>
+        public static List<Element> ChooseAnswer(DefenceRequest request, PossibleElements attack,
+            ElementCounts held, IElementMatchup matchup, Func<float> roll)
+        {
+            var answer = new List<Element>();
+            var options = new List<Element>(request.Options);
+
+            while (answer.Count < request.Required && options.Count > 0)
+            {
+                if (!TryChoose(options, attack, matchup, roll(), out var pick))
+                {
+                    break;
+                }
+
+                answer.Add(pick);
+
+                var taken = 0;
+
+                foreach (var chosen in answer)
+                {
+                    if (chosen == pick)
+                    {
+                        taken++;
+                    }
+                }
+
+                if (held[pick] <= taken)
+                {
+                    options.Remove(pick);
+                }
+            }
+
+            return answer;
+        }
+
+        /// <summary>
         /// How sharply the better answer is favoured.
         ///
         /// Cubed, so an answer that beats everything is about eight times likelier than an even one.

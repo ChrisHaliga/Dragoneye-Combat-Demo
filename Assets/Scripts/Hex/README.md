@@ -24,6 +24,13 @@ If someone tries, the build breaks rather than the review catching it.
   of cells. Two areas of one tile are distance one apart; whole tiles keep `Hex.Distance`.
 - **`Wall`** — what stands on a ray or a half-edge: `WallFlags.BlocksMovement`, `BlocksSight`, or
   both (`Solid`), plus an `Integrity` for the day something knocks one down.
+- **`WallSegment`** — the address of one: a tile and a ray, or a tile and a half-edge. A half-edge
+  named from either side is the same wall. What a recipe writes, what the map is asked about, and
+  what crosses the wire when one changes.
+- **`MapRecipe`** — a map written down: a radius of ground, tiles by terrain *name*, and walls by
+  segment, with `Vertical` and `Horizontal` helpers that know how a straight line lies on a hex
+  grid. Terrain is named rather than referenced so a recipe is pure; `Build` takes what the names
+  mean. The one builder: the asset, the editor step and every test go through it.
 - **`TileGeometry`** — the twelve rays of a tile, clockwise from North, and the integer frame every
   bearing is measured in. Even rays end at edge midpoints, odd ones at corners; half-edge *i* closes
   the wedge between rays *i* and *i + 1*. Vertical walls run rays 0 and 6, horizontal ones rays 3
@@ -48,8 +55,8 @@ If someone tries, the build breaks rather than the review catching it.
 - **`HexMapDefinition`** — abstract ScriptableObject with `Build(int seed)`. This is the seam that
   keeps arena shape out of the upper layers: they hold a definition reference and never learn which
   subclass it is. `GeneratedMapDefinition` (hexagon or rectangle) and `AuthoredMapDefinition` (a
-  radius, a default terrain, tile overrides and the walls, by ray and by half-edge) are the two
-  concrete ones; `ArenaMapSetup` writes the Ruins as the latter.
+  `MapRecipe` with a palette binding its terrain names to assets) are the two concrete ones;
+  `ArenaMapSetup` writes the Ruins into the latter from `Maps.Ruins()` in the scenarios assembly.
 
 The `seed` parameter is threaded through from the start and currently ignored. Adding a procedural
 definition later touches only the definition.
@@ -77,8 +84,9 @@ Rays that block movement cut the tile into **areas**. Each area is a cell; a cre
 one; two areas of one tile have no path between them except round the outside, and no bearing
 problem, because bearings come from area centres. Half-edge walls never change the areas, which is
 why a door should be a half-edge: opening it invalidates nobody's position. A ray changing mid-fight
-renumbers the tile, and `AreaLayout.Carry` plus the `WallChanged` event are the seam for moving
-creatures with it; nothing calls it yet, because nothing changes walls mid-fight yet.
+renumbers the tile; `WallChanged` carries the areas as they were, and `CombatDirector` carries
+every creature on the tile to the ground it was standing on with `AreaLayout.Carry`. Walls change
+through `WallCommands`, the one replicated thing about the map, so every machine's grid agrees.
 
 Sight and movement are independent flags on the same wall. A **low wall** (movement only) is
 stepped round and shot over at a cost; a **curtain** (sight only) is walked through and not seen

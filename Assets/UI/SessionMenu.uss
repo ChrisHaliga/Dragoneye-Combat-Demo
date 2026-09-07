@@ -1285,3 +1285,64 @@
 .start__prompt--dim {
     opacity: 0.35;
 }
+
+/* ---------- test mode ---------- */
+
+.test-list {
+    padding: 8px 12px;
+    background-image: url("Generated/ui-well.png");
+    -unity-slice-left: 22;
+    -unity-slice-right: 22;
+    -unity-slice-top: 22;
+    -unity-slice-bottom: 22;
+    -unity-slice-scale: 0.5;
+}
+
+.test-row {
+    flex-direction: row;
+    align-items: center;
+    padding: 10px 8px;
+    border-bottom-width: 1px;
+    border-bottom-color: rgba(139, 147, 165, 0.22);
+}
+
+.test-row__text {
+    flex-grow: 1;
+    flex-shrink: 1;
+    margin-right: 16px;
+}
+
+.test-row__title {
+    font-size: 15px;
+    -unity-font-style: bold;
+    letter-spacing: 1px;
+    color: rgb(232, 226, 214);
+}
+
+.test-row__summary {
+    margin-top: 2px;
+    font-size: 12px;
+    white-space: normal;
+    color: rgb(139, 147, 165);
+}
+
+.test-row__status {
+    margin-top: 4px;
+    font-size: 11px;
+    letter-spacing: 1px;
+}
+
+.test-row__status--pass {
+    color: rgb(126, 196, 138);
+}
+
+.test-row__status--fail {
+    color: rgb(214, 96, 84);
+}
+
+.test-row__failure {
+    margin-top: 2px;
+    font-size: 11px;
+    white-space: normal;
+    color: rgb(214, 96, 84);
+}

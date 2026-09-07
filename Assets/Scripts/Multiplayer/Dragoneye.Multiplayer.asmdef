@@ -8,6 +8,7 @@
         "Dragoneye.Settings",
         "Dragoneye.Hex",
         "Dragoneye.Hex.Systems",
+        "Dragoneye.Scenarios",
         "Unity.Netcode.Runtime",
         "Unity.Services.Multiplayer",
         "Unity.Services.Authentication",

@@ -97,8 +97,9 @@ namespace Dragoneye.Game.Combat
             CombatAnnouncer.Acted += OnActed;
             CombatAnnouncer.Fell += OnFell;
             CombatAnnouncer.HeldBack += OnHeldBack;
-            CombatAnnouncer.Missed += OnMissed;
+            CombatAnnouncer.Shot += OnShot;
             CombatAnnouncer.Recovered += OnRecovered;
+            WallCommands.Changed += OnWallChanged;
         }
 
         void OnDestroy()
@@ -112,8 +113,9 @@ namespace Dragoneye.Game.Combat
             CombatAnnouncer.Acted -= OnActed;
             CombatAnnouncer.Fell -= OnFell;
             CombatAnnouncer.HeldBack -= OnHeldBack;
-            CombatAnnouncer.Missed -= OnMissed;
+            CombatAnnouncer.Shot -= OnShot;
             CombatAnnouncer.Recovered -= OnRecovered;
+            WallCommands.Changed -= OnWallChanged;
         }
 
         /// <summary>
@@ -201,6 +203,15 @@ namespace Dragoneye.Game.Combat
 
         bool IsMine(uint turnId) => Lookup(turnId).Mine;
 
+        /// <summary>
+        /// A wall came down, or went up. Nobody's line, so nobody's colour: the board changed
+        /// under everyone alike.
+        /// </summary>
+        void OnWallChanged(Dragoneye.Hex.WallSegment segment, Dragoneye.Hex.Wall before, Dragoneye.Hex.Wall after)
+        {
+            Add(CombatLogLines.Wall(before, after), mine: false);
+        }
+
         void OnActed(ActionReport report)
         {
             var skill = SkillOf(report.SkillId);
@@ -275,7 +286,12 @@ namespace Dragoneye.Game.Combat
 
         // The swing that was warned about and did not come. Without this line the warning on the
         // cursor reads as wrong, when what happened is that somebody chose not to.
-        void OnMissed(MissReport report)
+        /// <summary>
+        /// A shot, however it went. The chance is said either way: a hit at thirty percent and a
+        /// miss at ninety are both worth knowing about, and the clash line that follows a hit
+        /// does not say what the arrow had to get past.
+        /// </summary>
+        void OnShot(ShotReport report)
         {
             var skill = SkillOf(report.SkillId);
 
@@ -285,7 +301,8 @@ namespace Dragoneye.Game.Combat
             }
 
             Add($"{NameOf(report.AttackerId)} loosed <b>{skill.Name}</b> "
-                + $"({CombatLogLines.Cost(skill)}) at {NameOf(report.TargetId)} and missed "
+                + $"({CombatLogLines.Cost(skill)}) at {NameOf(report.TargetId)} and "
+                + (report.Landed ? "it flew true " : "missed ")
                 + CombatLogLines.Tint("#8B93A5", $"({report.Chance}% to hit)"),
                 IsMine(report.AttackerId) || IsMine(report.TargetId));
         }

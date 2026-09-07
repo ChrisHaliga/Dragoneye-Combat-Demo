@@ -43,6 +43,9 @@ namespace Dragoneye.Game
         [SerializeField, Tooltip("Every creature on the board. Answers \"who is in my party\".")]
         CreatureRegistry m_Creatures;
 
+        [SerializeField, Tooltip("Runs test scenarios on this board. Optional: an arena without one plays matches only.")]
+        ScenarioRunner m_Scenarios;
+
         /// <summary>The context for the arena currently loaded, or null outside a match.</summary>
         public static ArenaContext Current { get; private set; }
 
@@ -57,6 +60,9 @@ namespace Dragoneye.Game
         public UnitIndex Units => m_Units;
 
         public CreatureRegistry Creatures => m_Creatures;
+
+        /// <summary>The scenario runner, or null when the arena has none wired.</summary>
+        public ScenarioRunner Scenarios => m_Scenarios;
 
         void OnEnable()
         {

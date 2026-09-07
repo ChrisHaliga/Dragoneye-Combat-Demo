@@ -140,6 +140,23 @@ namespace Dragoneye.Game
 
             var slots = RegisterPlayers();
 
+            // A scenario brings its own board and its own creatures, and reads its own checks.
+            // The draft is left alone: nothing was drafted, and nothing should be dealt.
+            var scenario = MatchFlow.Instance != null ? MatchFlow.Instance.Scenario : null;
+
+            if (scenario != null)
+            {
+                if (context.Scenarios == null)
+                {
+                    Debug.LogError("No ScenarioRunner in the arena; run ClaudeCode > Set Up Everything.", this);
+                    return;
+                }
+
+                context.Scenarios.Begin(scenario, this);
+                SpawnFocusPoints(arena);
+                return;
+            }
+
             // Whatever the lobby did or did not do, everyone ends up on a side holding their share.
             // An untouched draft also gets a starting roster dealt to it.
             draft.ServerPrepareForMatch(m_SeedCreaturesPerParty, slots);
@@ -424,17 +441,30 @@ namespace Dragoneye.Game
         }
 
         /// <summary>
-        /// Spawns one creature. Ownership goes to the claiming player so their client may command
-        /// it; an unclaimed creature stays owned by the server, which is what "computer-controlled"
-        /// means for now.
+        /// Spawns one drafted creature. Ownership goes to the claiming player so their client may
+        /// command it; an unclaimed creature stays owned by the server, which is what
+        /// "computer-controlled" means for now.
         /// </summary>
         void SpawnUnit(RosterEntry entry, Cell cell, byte buildSlot = PartyInfo.Unclaimed,
-            Facing facing = default, int ordinal = 0)
+            Facing facing = default, int ordinal = 0) =>
+            Spawn(entry.CreatureId, entry.Party, entry.ClaimedBySlot, buildSlot, entry.Level, cell,
+                facing, ordinal);
+
+        /// <summary>
+        /// Server only. Spawns a premade nobody drafted, run by the computer, for a scenario.
+        /// </summary>
+        /// <returns>The creature, or null when the prefab is missing or the spawn failed.</returns>
+        public CreatureState SpawnCreature(ushort creatureId, Party party, int level, Cell cell,
+            Facing facing, int ordinal = 0) =>
+            Spawn(creatureId, party, PartyInfo.Unclaimed, PartyInfo.Unclaimed, level, cell, facing, ordinal);
+
+        CreatureState Spawn(ushort creatureId, Party party, byte claimedBySlot, byte buildSlot,
+            int level, Cell cell, Facing facing, int ordinal)
         {
             if (m_UnitPrefab == null)
             {
                 Debug.LogError("MatchSpawner has no unit prefab assigned.", this);
-                return;
+                return null;
             }
 
             try
@@ -445,10 +475,10 @@ namespace Dragoneye.Game
                 {
                     Debug.LogError("Unit prefab has no NetworkObject.", m_UnitPrefab);
                     Destroy(instance);
-                    return;
+                    return null;
                 }
 
-                var owner = OwnerClientFor(entry.ClaimedBySlot);
+                var owner = OwnerClientFor(claimedBySlot);
 
                 // Configure, then spawn. Both components publish what they were given from inside
                 // OnNetworkSpawn, which the server runs before the spawn message goes out -- so the
@@ -456,8 +486,7 @@ namespace Dragoneye.Game
                 instance.GetComponent<UnitState>().ServerPlaceAt(cell);
                 var creature = instance.GetComponent<CreatureState>();
 
-                creature.ServerConfigure(entry.CreatureId, entry.Party, entry.ClaimedBySlot,
-                    buildSlot, entry.Level, ordinal);
+                creature.ServerConfigure(creatureId, party, claimedBySlot, buildSlot, level, ordinal);
 
                 // The starting pool is authored on the premade definition. A built character will
                 // bring its own from the creator; both arrive here before the spawn so the owning
@@ -467,8 +496,7 @@ namespace Dragoneye.Game
                 if (pool != null)
                 {
                     pool.ServerConfigure(
-                        CreatureState.ProfileFor(buildSlot, entry.CreatureId, entry.Level)
-                            .StartingPool);
+                        CreatureState.ProfileFor(buildSlot, creatureId, level).StartingPool);
                 }
 
                 // Destroyed with the arena, which is the whole of a unit's life. Left at the
@@ -487,10 +515,12 @@ namespace Dragoneye.Game
                 // After the spawn, because ServerFace writes a NetworkVariable and one written
                 // before there is a spawned object to carry it goes nowhere.
                 creature.ServerFace(facing);
+                return creature;
             }
             catch (Exception e)
             {
-                Debug.LogError($"Unit spawn failed for creature {entry.CreatureId}: {e}", this);
+                Debug.LogError($"Unit spawn failed for creature {creatureId}: {e}", this);
+                return null;
             }
         }
 

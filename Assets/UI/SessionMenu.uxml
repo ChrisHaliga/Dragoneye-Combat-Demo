@@ -175,6 +175,24 @@
             </ui:VisualElement>
         </ui:VisualElement>
 
+        <!-- TEST MODE. Scenarios that play themselves; TestModeScreen fills the list. -->
+
+        <ui:VisualElement name="test-panel" class="screen stage is-hidden">
+            <ui:VisualElement class="stage__head">
+                <ui:Label text="TEST MODE" class="stage__title" />
+                <ui:Label name="test-note" text="" class="stage__note" />
+            </ui:VisualElement>
+            <ui:VisualElement class="rule rule--head" />
+
+            <ui:ScrollView name="test-list" class="stage__body test-list" />
+
+            <ui:VisualElement class="stage__foot">
+                <ui:Button name="test-back-button" text="Back" class="btn btn--ghost" />
+                <ui:VisualElement class="spacer" />
+                <ui:Button name="test-run-all-button" text="Run all" class="btn btn--primary btn--wide" />
+            </ui:VisualElement>
+        </ui:VisualElement>
+
         <!-- SETTINGS -->
 
         <ui:VisualElement name="settings-panel" class="screen stage is-hidden">

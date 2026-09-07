@@ -274,6 +274,10 @@ namespace Dragoneye.MultiplayerEditor
             // walking past. Its own postbox, because it asks the opposite end of an exchange.
             Ensure<OpportunityCommands>(host);
 
+            // Walls that change mid-fight, told to every machine. The map itself is not
+            // replicated; this is the one thing about it that can change.
+            Ensure<WallCommands>(host);
+
             EditorUtility.SetDirty(host);
         }
 
@@ -380,6 +384,9 @@ namespace Dragoneye.MultiplayerEditor
             // Two words across the screen when the turn changes hands.
             var banner = Ensure<TurnBannerView>(hud);
             Assign(banner, ("m_Creatures", creatures));
+
+            // What a test scenario is doing, and what it came to.
+            Ensure<ScenarioReportView>(hud);
         }
 
         /// <summary>

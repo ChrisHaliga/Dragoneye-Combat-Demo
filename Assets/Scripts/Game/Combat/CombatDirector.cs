@@ -72,28 +72,18 @@ namespace Dragoneye.Game.Combat
         /// <summary>What this fight rolls from.</summary>
         public Dice Dice => m_Dice;
 
+        HexMap m_Watched;
+
         void Awake()
         {
             Current = this;
             m_Board = new ArenaBoard(m_Map, m_Units);
-
-            // Every roll the fight makes comes from here. Logged, so a fight that went wrong can be
-            // rolled again with the same seed.
-            m_Dice = new Dice(m_Seed != 0 ? m_Seed : unchecked((int)System.DateTime.UtcNow.Ticks));
-            Debug.Log($"[CombatDirector] Fight seed {m_Dice.Seed}.", this);
-
-            m_Clashes = new ClashConductor(this, m_Dice, m_Map);
-            m_Opportunities = new OpportunityConductor(this, m_Creatures, m_Dice, m_Map);
-
-            // Swapped wholesale to change the opponent. Not serialised: brains are code, not
-            // assets, and a ScriptableObject wrapper would be indirection for a choice nobody is
-            // authoring yet.
-            m_BrainRunner = new BrainTurnRunner(this, new BasicBrain(), m_Creatures, m_Board,
-                m_BrainActionDelay, m_BrainSkillDwell, m_BrainSecondsPerTile);
         }
 
         void OnDestroy()
         {
+            WatchWalls(null);
+
             if (Current == this)
             {
                 Current = null;
@@ -125,13 +115,38 @@ namespace Dragoneye.Game.Combat
 
         // ---------- the match ----------
 
-        /// <summary>Server only. Opens the fight once every creature is on the board.</summary>
-        public void ServerBeginMatch()
+        /// <summary>
+        /// Server only. Opens the fight once every creature is on the board.
+        ///
+        /// The dice and the opponent are chosen here, at the one moment a fight begins, rather
+        /// than in Awake: a scripted fight brings its own seed and its own brain, and an ordinary
+        /// one takes the inspector's seed or a fresh one. Every roll the fight makes comes from
+        /// the dice, and the seed is logged so a fight that went wrong can be rolled again.
+        /// </summary>
+        /// <param name="seed">Zero for the inspector's seed, or a fresh one when that is zero too.</param>
+        /// <param name="brain">What runs the computer's creatures. The basic opponent when null.</param>
+        public void ServerBeginMatch(int seed = 0, ICreatureBrain brain = null)
         {
             if (!IsServer || TurnState.Current == null || m_Creatures == null)
             {
                 return;
             }
+
+            var chosen = seed != 0 ? seed : m_Seed != 0 ? m_Seed : unchecked((int)System.DateTime.UtcNow.Ticks);
+
+            m_Dice = new Dice(chosen);
+            Debug.Log($"[CombatDirector] Fight seed {m_Dice.Seed}.", this);
+
+            m_Clashes = new ClashConductor(this, m_Dice, m_Map);
+            m_Opportunities = new OpportunityConductor(this, m_Creatures, m_Dice, m_Map);
+
+            // Swapped wholesale to change the opponent. Not serialised: brains are code, not
+            // assets, and a ScriptableObject wrapper would be indirection for a choice nobody is
+            // authoring yet.
+            m_BrainRunner = new BrainTurnRunner(this, brain ?? new BasicBrain(), m_Creatures, m_Board,
+                m_BrainActionDelay, m_BrainSkillDwell, m_BrainSecondsPerTile);
+
+            WatchWalls(m_Map != null ? m_Map.Map : null);
 
             var combatants = new List<Combatant>();
 
@@ -428,13 +443,14 @@ namespace Dragoneye.Game.Combat
                 var distance = Cell.Distance(actor.Cell, target);
                 var cover = LineOfFire.Trace(m_Map.Grid, m_Units, actor.Cell, target).Cover;
                 var chance = SkillRules.HitChance(skill, distance, cover);
+                var landed = SkillRules.Hits(skill, distance, cover, m_Dice.Roll());
 
-                if (!SkillRules.Hits(skill, distance, cover, m_Dice.Roll()))
+                CombatAnnouncer.Current?.ServerShot(actor.TurnId, skill.Id, occupant.TurnId, chance, landed);
+
+                if (!landed)
                 {
                     pool.ServerAnnounceCommitted();
                     commands.ServerRecordUse(skill.Id);
-                    CombatAnnouncer.Current?.ServerMissed(actor.TurnId, skill.Id, occupant.TurnId,
-                        chance);
                     return true;
                 }
             }
@@ -560,12 +576,12 @@ namespace Dragoneye.Game.Combat
             out DefenceRefusal refusal)
         {
             refusal = DefenceRefusal.AlreadyResolved;
-            return IsServer && m_Clashes.Answer(defender, answer, out refusal);
+            return IsServer && m_Clashes != null && m_Clashes.Answer(defender, answer, out refusal);
         }
 
         /// <summary>Server only. Whether the creature offered a swing takes it.</summary>
         public bool ServerAnswerOpportunity(CreatureState watcher, bool swings) =>
-            IsServer && m_Opportunities.Answer(watcher, swings);
+            IsServer && m_Opportunities != null && m_Opportunities.Answer(watcher, swings);
 
         /// <summary>Applies whatever the clash left of the attack.</summary>
         public void LandContested(CreatureState attacker, SkillSpec skill, CreatureState defender,
@@ -632,7 +648,7 @@ namespace Dragoneye.Game.Combat
         }
 
         /// <summary>A clash is over. A swing taken mid-move lets the move go on.</summary>
-        public void ClashSettled() => m_Opportunities.Continue();
+        public void ClashSettled() => m_Opportunities?.Continue();
 
         // The brain's door into the fight is the same one a player uses.
         public bool Move(CreatureState actor, Cell destination) => ServerMove(actor, destination);
@@ -676,7 +692,7 @@ namespace Dragoneye.Game.Combat
         /// </summary>
         void Update()
         {
-            if (!IsServer)
+            if (!IsServer || m_Clashes == null)
             {
                 return;
             }
@@ -705,6 +721,101 @@ namespace Dragoneye.Game.Combat
 
             return manager != null
                 && manager.ConnectedClients.ContainsKey(creature.OwnerClientId);
+        }
+
+        // ---------- the walls ----------
+
+        /// <summary>
+        /// Server only. Changes a wall mid-fight: a breach, a door, a barricade going up.
+        ///
+        /// Through the wall postbox, so every machine's map changes the same way. Whoever was
+        /// standing on a tile whose areas the change renumbered is carried to the ground they
+        /// were on, by <see cref="OnWallChanged"/>, before anything else reads their position.
+        /// </summary>
+        public bool ServerSetWall(WallSegment segment, Wall wall)
+        {
+            if (!IsServer || m_Map == null || m_Map.Map == null || !m_Map.Map.Contains(segment.Tile))
+            {
+                return false;
+            }
+
+            if (WallCommands.Current != null)
+            {
+                WallCommands.Current.ServerSet(segment, wall);
+            }
+            else
+            {
+                m_Map.Map.SetWall(segment, wall);
+            }
+
+            return true;
+        }
+
+        void WatchWalls(HexMap map)
+        {
+            if (m_Watched != null)
+            {
+                m_Watched.WallChanged -= OnWallChanged;
+            }
+
+            m_Watched = map;
+
+            if (m_Watched != null)
+            {
+                m_Watched.WallChanged += OnWallChanged;
+            }
+        }
+
+        /// <summary>
+        /// Keeps every creature on a tile standing on the ground it was standing on when the
+        /// tile's areas were renumbered.
+        ///
+        /// A ray coming down merges two areas; one going up splits an area, or leaves a sliver
+        /// nobody can stand in. <see cref="AreaLayout.Carry"/> says where each creature's ground
+        /// went; a creature whose ground went nowhere, or whose new cell somebody else already
+        /// holds, takes the nearest free cell instead. Destinations are claimed in turn so two
+        /// creatures on one tile cannot be carried onto the same cell.
+        /// </summary>
+        void OnWallChanged(HexTile tile, AreaLayout before)
+        {
+            if (!IsServer || m_Units == null || before == tile.Areas)
+            {
+                return;
+            }
+
+            var occupants = new List<UnitState>();
+            m_Units.OccupantsOf(tile.Coordinates, occupants);
+
+            if (occupants.Count == 0)
+            {
+                return;
+            }
+
+            var taken = new HashSet<Cell>();
+            m_Units.CopyOccupiedTo(taken, default);
+
+            foreach (var occupant in occupants)
+            {
+                taken.Remove(occupant.Cell);
+            }
+
+            foreach (var occupant in occupants)
+            {
+                var area = before.Carry(occupant.Cell.Area, tile.Areas);
+                var cell = new Cell(tile.Coordinates, area);
+
+                if (area == AreaLayout.Dead || taken.Contains(cell) || !m_Map.Grid.IsWalkable(cell))
+                {
+                    cell = HexSpawnPlacement.FindNearestFree(m_Map.Grid, Cell.Whole(tile.Coordinates), taken);
+                }
+
+                taken.Add(cell);
+
+                if (cell != occupant.Cell)
+                {
+                    occupant.ServerSetCell(cell);
+                }
+            }
         }
 
         // ---------- the board ----------
