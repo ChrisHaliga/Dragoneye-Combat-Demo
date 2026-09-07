@@ -26,8 +26,16 @@ the recipe, spawns the actors in order (which is the order initiative ties break
 director the scenario's seed and a `ScriptedBrain`, and listens to everything the fight announces.
 The fight is the real one: the same director, conductors, turn runner, announcer and HUD a match
 uses. When every script has run out -- or the match ends, or the rounds allowed run out -- the
-runner reads the checks against the world and shows them on the HUD. `Run all` queues the library
-and reloads the arena between scenarios.
+runner stops the fight where it stands and reads the checks against the world a frame later. The
+fight is stopped rather than left running: every turn after the last order is a creature with
+nothing to do passing to the next, and a board still playing behind a finished report is worse
+than no report. Stopping is not winning, so nothing claims a victory that did not happen --
+`TurnState.HasWinner` is what a check asks about a side actually winning.
+
+The report shows on the HUD. `Run all` queues the library and, three seconds after each report,
+loads the next one by itself; the last one in a run stays up until it is dismissed. **Copy report**
+on the test mode screen puts the whole run on the clipboard: a line per scenario, and for anything
+that failed, its failing checks and the trace of what the fight announced.
 
 ## Prediction and the actual run
 

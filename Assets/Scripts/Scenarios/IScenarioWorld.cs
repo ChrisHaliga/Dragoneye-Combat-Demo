@@ -160,8 +160,14 @@ namespace Dragoneye.Scenarios
 
         IElementMatchup Matchups { get; }
 
-        /// <summary>Whether the match ended with a winner, and which side.</summary>
-        bool IsOver { get; }
+        /// <summary>
+        /// Whether a side won the fight, and which.
+        ///
+        /// Not merely whether the fight stopped: a scenario stops as soon as its script runs
+        /// out, and that is not a victory. A check that wants "the match ended because a side
+        /// was wiped out" wants this.
+        /// </summary>
+        bool IsWon { get; }
 
         Party Winner { get; }
 

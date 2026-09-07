@@ -115,6 +115,56 @@ namespace Dragoneye.Hex.Tests
         }
     }
 
+    /// <summary>The copied report: what it says about a run, and what it leaves out.</summary>
+    public class ScenarioReportTests
+    {
+        static Scenario Passing => ScenarioLibrary.All[0];
+
+        static Scenario Failing => ScenarioLibrary.All[1];
+
+        static Dictionary<string, ScenarioResult> Run() =>
+            new Dictionary<string, ScenarioResult>
+            {
+                [Passing.Id] = new ScenarioResult(Passing,
+                    new[] { ScenarioCheck.That("it held", true) }, new[] { "R1 archer's turn" }),
+                [Failing.Id] = new ScenarioResult(Failing,
+                    new[] { ScenarioCheck.That("it held", true), ScenarioCheck.Equal("the count", 2, 3) },
+                    new[] { "R1 ogre's turn", "R1 ogre moved" })
+            };
+
+        [Test]
+        public void ItOpensWithTheTallyAndNamesEveryScenario()
+        {
+            var text = ScenarioReport.Compose(ScenarioLibrary.All, Run());
+
+            StringAssert.Contains($"1 passed, 1 failed, {ScenarioLibrary.All.Count - 2} not run", text);
+            StringAssert.Contains($"[PASS] {Passing.Id}", text);
+            StringAssert.Contains($"[FAIL] {Failing.Id}", text);
+            StringAssert.Contains("[not run]", text);
+        }
+
+        [Test]
+        public void AFailureCarriesItsChecksAndItsTraceAndAPassCarriesNeither()
+        {
+            var text = ScenarioReport.Compose(ScenarioLibrary.All, Run());
+
+            StringAssert.Contains("FAILED: the count", text);
+            StringAssert.Contains("expected 2, got 3", text);
+            StringAssert.Contains("R1 ogre moved", text);
+
+            Assert.IsFalse(text.Contains("FAILED: it held"), "a check that held is not a failure");
+            Assert.IsFalse(text.Contains("R1 archer's turn"), "a passing scenario does not carry its trace");
+        }
+
+        [Test]
+        public void NothingRunIsAReportToo()
+        {
+            var text = ScenarioReport.Compose(ScenarioLibrary.All, null);
+
+            StringAssert.Contains($"0 passed, 0 failed, {ScenarioLibrary.All.Count} not run", text);
+        }
+    }
+
     /// <summary>The scripted brain: one turn's orders per turn, and a refusal skips the rest of that turn.</summary>
     public class ScriptedBrainTests
     {

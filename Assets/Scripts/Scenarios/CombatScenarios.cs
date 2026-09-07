@@ -319,7 +319,7 @@ namespace Dragoneye.Scenarios
                     {
                         Equal("the goblin is alive or dead as the oracle said", !dead, world.IsAlive("goblin")),
                         Equal("a fallen goblin was announced as fallen", dead ? 1 : 0, Reading.Count(world, TraceKind.Fell, "goblin")),
-                        Equal("the match is over exactly when somebody is dead", dead, world.IsOver),
+                        Equal("a side won exactly when somebody is dead", dead, world.IsWon),
                         That("and the monsters won it", !dead || world.Winner == Party.Monsters),
                         Equal("the ogre's health agrees with the oracle", oracle.HpOf("ogre"), world.HpOf("ogre")),
                         That("the goblin's health agrees with the oracle", dead || oracle.HpOf("goblin") == world.HpOf("goblin"),
@@ -385,7 +385,7 @@ namespace Dragoneye.Scenarios
                     {
                         That("somebody walked", Reading.Count(world, TraceKind.Moved) > 0),
                         That("somebody attacked", Reading.Count(world, TraceKind.Clash) + Reading.Count(world, TraceKind.Shot) > 0),
-                        Equal("the match is over exactly when a side is gone", oneSideGone, world.IsOver),
+                        Equal("a side won exactly when a side is gone", oneSideGone, world.IsWon),
                         That("nobody's health went below zero or above its maximum",
                             (!world.IsAlive("sergeant") || (world.HpOf("sergeant") > 0 && world.HpOf("sergeant") <= world.MaxHpOf("sergeant")))
                             && (!world.IsAlive("goblin") || (world.HpOf("goblin") > 0 && world.HpOf("goblin") <= world.MaxHpOf("goblin")))),

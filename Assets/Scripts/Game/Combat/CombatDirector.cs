@@ -225,6 +225,24 @@ namespace Dragoneye.Game.Combat
             }
         }
 
+        /// <summary>
+        /// Server only. Stops the fight where it stands, with nobody winning it.
+        ///
+        /// What a test scenario calls when its script runs out. Without it the board keeps
+        /// taking turns nobody has anything left to do with, and creatures pass back and forth
+        /// behind the report of a fight that is finished.
+        /// </summary>
+        public void ServerFinish()
+        {
+            if (!IsServer)
+            {
+                return;
+            }
+
+            StopBrainTurn();
+            TurnState.Current?.ServerEnd();
+        }
+
         void StopBrainTurn()
         {
             if (m_BrainTurn != null)
@@ -920,9 +938,6 @@ namespace Dragoneye.Game.Combat
                 }
             }
 
-            // Zero survivors is a draw with nobody to award it to; treating it as "not over" would
-            // hang the match, so the last party to hold the field is close enough for an MVP and the
-            // case is reachable only if a creature could kill itself.
             if (survivors.Count == 1)
             {
                 StopBrainTurn();
@@ -930,8 +945,9 @@ namespace Dragoneye.Game.Combat
             }
             else if (survivors.Count == 0)
             {
-                StopBrainTurn();
-                TurnState.Current.ServerDeclareWinner(Party.Heroes);
+                // Nobody left to award it to. The fight ends and says so, rather than handing the
+                // win to whichever party happens to be first in the enum.
+                ServerFinish();
             }
         }
 

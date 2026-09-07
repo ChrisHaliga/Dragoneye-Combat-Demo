@@ -1,5 +1,6 @@
 using System;
 using Dragoneye.Scenarios;
+using UnityEngine;
 using UnityEngine.UIElements;
 
 namespace Dragoneye.Multiplayer
@@ -17,16 +18,19 @@ namespace Dragoneye.Multiplayer
         readonly ScrollView m_List;
         readonly Label m_Note;
         readonly Button m_RunAll;
+        readonly Button m_Copy;
 
         public TestModeScreen(VisualElement root, Action back)
         {
             m_List = root.Q<ScrollView>("test-list");
             m_Note = root.Q<Label>("test-note");
             m_RunAll = root.Q<Button>("test-run-all-button");
+            m_Copy = root.Q<Button>("test-copy-button");
 
             var backButton = root.Q<Button>("test-back-button");
 
-            IsBound = m_List != null && m_Note != null && m_RunAll != null && backButton != null;
+            IsBound = m_List != null && m_Note != null && m_RunAll != null && m_Copy != null
+                && backButton != null;
 
             if (!IsBound)
             {
@@ -35,6 +39,7 @@ namespace Dragoneye.Multiplayer
 
             backButton.clicked += back;
             m_RunAll.clicked += () => MatchFlow.Instance?.StartScenarios(ScenarioLibrary.All);
+            m_Copy.clicked += CopyReport;
         }
 
         public bool IsBound { get; }
@@ -67,9 +72,29 @@ namespace Dragoneye.Multiplayer
             }
 
             m_RunAll.SetEnabled(flow != null);
+
+            // Nothing to copy until something has run.
+            m_Copy.SetEnabled(results != null && results.Count > 0);
+
             m_Note.text = results == null || results.Count == 0
                 ? $"{ScenarioLibrary.All.Count} scenarios. Each plays a fight by itself and checks what happened."
                 : $"{passed} passed, {failed} failed, {ScenarioLibrary.All.Count - passed - failed} not run";
+        }
+
+        /// <summary>
+        /// The whole run on the clipboard: every verdict, and for anything that failed, its
+        /// failing checks and the trace of what the fight announced.
+        ///
+        /// Composed by <see cref="ScenarioReport"/>, which is where the wording lives, so what is
+        /// copied and what could be written to a file are the same text.
+        /// </summary>
+        void CopyReport()
+        {
+            var flow = MatchFlow.Instance;
+            var report = ScenarioReport.Compose(ScenarioLibrary.All, flow?.ScenarioResults);
+
+            GUIUtility.systemCopyBuffer = report;
+            m_Note.text = "Report copied to the clipboard.";
         }
 
         static VisualElement Row(Scenario scenario, ScenarioResult result, MatchFlow flow)

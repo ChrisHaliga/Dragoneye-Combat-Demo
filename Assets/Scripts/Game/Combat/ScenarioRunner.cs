@@ -32,6 +32,10 @@ namespace Dragoneye.Game.Combat
         [SerializeField, Tooltip("What the recipes' 'stone' means.")]
         TerrainType m_Stone;
 
+        [SerializeField, Min(0f), Tooltip("Seconds a finished scenario's report is left up before "
+             + "the next queued one begins. The last one in a run stays up until it is dismissed.")]
+        float m_NextDelay = 3f;
+
         /// <summary>The runner in the loaded arena, or null.</summary>
         public static ScenarioRunner Current { get; private set; }
 
@@ -68,6 +72,12 @@ namespace Dragoneye.Game.Combat
         public bool IsRunning => m_Scenario != null && !m_Finished;
 
         public ScenarioResult Result { get; private set; }
+
+        /// <summary>
+        /// Seconds until the next queued scenario begins, or a negative number when none is
+        /// waiting. What the report counts down.
+        /// </summary>
+        public float SecondsToNext { get; private set; } = -1f;
 
         void Awake() => Current = this;
 
@@ -340,7 +350,14 @@ namespace Dragoneye.Game.Combat
 
         // ---------- the end ----------
 
-        /// <summary>A frame later, so the announcements of whatever ended it have all arrived.</summary>
+        /// <summary>
+        /// Stops the fight, then reads the checks a frame later.
+        ///
+        /// Stopped first, and immediately: the scripts are spent, so every turn after this one
+        /// is a creature with nothing to do passing to the next, and a board still playing
+        /// behind a finished report is worse than no report. A frame then passes so the
+        /// announcements of whatever ended it have all arrived before the checks read them.
+        /// </summary>
         IEnumerator FinishSoon()
         {
             if (m_Finished)
@@ -349,6 +366,8 @@ namespace Dragoneye.Game.Combat
             }
 
             m_Finished = true;
+            CombatDirector.Current?.ServerFinish();
+
             yield return null;
             Finish();
         }
@@ -380,6 +399,32 @@ namespace Dragoneye.Game.Combat
             Log(result);
             MatchFlow.Instance?.ScenarioFinished(result);
             Finished?.Invoke(result);
+
+            if (MatchFlow.Instance != null && MatchFlow.Instance.QueuedScenarios > 0)
+            {
+                StartCoroutine(NextSoon());
+            }
+        }
+
+        /// <summary>
+        /// Long enough to read the result, then on to the next one.
+        ///
+        /// A run of scenarios plays itself: stopping at every report to ask for a click makes
+        /// twelve fights into twelve interruptions. The last one in a run has nothing to go on
+        /// to, so it stays up until it is dismissed.
+        /// </summary>
+        IEnumerator NextSoon()
+        {
+            SecondsToNext = m_NextDelay;
+
+            while (SecondsToNext > 0f)
+            {
+                yield return null;
+                SecondsToNext -= Time.unscaledDeltaTime;
+            }
+
+            SecondsToNext = -1f;
+            MatchFlow.Instance?.ContinueScenarios();
         }
 
         static void Log(ScenarioResult result)
@@ -479,7 +524,7 @@ namespace Dragoneye.Game.Combat
 
             public IElementMatchup Matchups => ElementMatchups.Table;
 
-            public bool IsOver => TurnState.Current != null && TurnState.Current.IsOver;
+            public bool IsWon => TurnState.Current != null && TurnState.Current.HasWinner;
 
             public Party Winner => TurnState.Current != null ? TurnState.Current.Winner : Party.Heroes;
 

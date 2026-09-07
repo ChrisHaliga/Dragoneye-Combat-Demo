@@ -435,8 +435,9 @@ bash scratchpad/build.sh
 For the game as a whole there is the **test mode** on the main menu: a list of scenarios, each a
 fight that plays itself on a known map with a known seed and reads its own checks -- flanks, shots
 over bodies and hedges, swings at passers-by, armour, healing, a kill, walls coming down under a
-creature, the initiative order, and the opponent left to play both sides. `Run all` plays the lot
-and comes back to the list with every result. A scenario's checks say in advance what the dice
+creature, the initiative order, and the opponent left to play both sides. `Run all` plays the lot, moving on three
+seconds after each report, and comes back to the list with every result -- **Copy report** puts
+that whole run on the clipboard, failing checks and traces included. A scenario's checks say in advance what the dice
 will do, by replaying the rules from the seed, so a failure is the board disagreeing with the
 rules, and the report's trace says where.
 

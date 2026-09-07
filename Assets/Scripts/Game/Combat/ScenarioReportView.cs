@@ -24,6 +24,7 @@ namespace Dragoneye.Game.Combat
         Button m_Next;
         Button m_Back;
         int m_Round = -1;
+        int m_NextIn = -1;
         bool m_Shown;
 
         void Start()
@@ -76,6 +77,17 @@ namespace Dragoneye.Game.Combat
 
             if (runner.Result != null)
             {
+                // Counted down on the button rather than in the verdict: the verdict is what the
+                // reader came for, and it should not be changing while they read it.
+                var waiting = runner.SecondsToNext;
+                var seconds = waiting >= 0f ? Mathf.CeilToInt(waiting) : -1;
+
+                if (seconds >= 0 && seconds != m_NextIn)
+                {
+                    m_NextIn = seconds;
+                    m_Next.text = $"Next scenario in {seconds}";
+                }
+
                 return;
             }
 
@@ -111,8 +123,10 @@ namespace Dragoneye.Game.Combat
             var flow = MatchFlow.Instance;
             var more = flow != null && flow.QueuedScenarios > 0;
 
+            // The next one comes on its own; the button is there to skip the wait.
             m_Next.text = more ? $"Next scenario ({flow.QueuedScenarios} left)" : "Next scenario";
             m_Next.EnableInClassList("is-hidden", !more);
+            m_Back.text = more ? "Stop here" : "Back to test mode";
             m_Back.EnableInClassList("is-hidden", false);
         }
     }

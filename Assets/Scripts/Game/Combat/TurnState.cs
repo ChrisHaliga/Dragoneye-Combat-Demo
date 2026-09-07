@@ -28,9 +28,15 @@ namespace Dragoneye.Game.Combat
         readonly NetworkVariable<int> m_Index = new NetworkVariable<int>(-1);
         readonly NetworkVariable<int> m_Round = new NetworkVariable<int>(0);
 
-        // -1 rather than a nullable: NetworkVariable needs an unmanaged type, and Party has no
-        // "nobody has won" member that would not also be a legal party.
-        readonly NetworkVariable<int> m_Winner = new NetworkVariable<int>(-1);
+        /// <summary>The fight is still going.</summary>
+        const int Running = -1;
+
+        /// <summary>The fight is finished and nobody won it.</summary>
+        const int NoWinner = -2;
+
+        // An int rather than a nullable Party: NetworkVariable needs an unmanaged type, and Party
+        // has no member for either of the two ways a fight is not being won.
+        readonly NetworkVariable<int> m_Outcome = new NetworkVariable<int>(Running);
 
         readonly List<uint> m_OrderView = new List<uint>();
 
@@ -46,11 +52,23 @@ namespace Dragoneye.Game.Combat
         /// <summary>Rounds completed plus one. Zero before the match starts.</summary>
         public int Round => m_Round.Value;
 
-        /// <summary>True once one side is all that remains.</summary>
-        public bool IsOver => m_Winner.Value >= 0;
+        /// <summary>
+        /// True once no more turns will be taken, however that came about: a side won, everybody
+        /// fell, or the fight was stopped.
+        /// </summary>
+        public bool IsOver => m_Outcome.Value != Running;
 
-        /// <summary>The winning party. Only meaningful when <see cref="IsOver"/>.</summary>
-        public Party Winner => (Party)Mathf.Max(0, m_Winner.Value);
+        /// <summary>
+        /// Whether a side actually won it.
+        ///
+        /// Separate from <see cref="IsOver"/> because a fight can end with nobody standing, and
+        /// because a test scenario stops the fight the moment its script runs out -- neither is
+        /// a victory, and awarding one would put a lie on the screen.
+        /// </summary>
+        public bool HasWinner => m_Outcome.Value >= 0;
+
+        /// <summary>The winning party. Only meaningful when <see cref="HasWinner"/>.</summary>
+        public Party Winner => (Party)Mathf.Max(0, m_Outcome.Value);
 
         /// <summary>The creature whose turn it is, or 0 if there is none.</summary>
         public uint ActiveId =>
@@ -73,7 +91,7 @@ namespace Dragoneye.Game.Combat
             m_Order.OnListChanged += OnOrderChanged;
             m_Index.OnValueChanged += OnIntChanged;
             m_Round.OnValueChanged += OnIntChanged;
-            m_Winner.OnValueChanged += OnIntChanged;
+            m_Outcome.OnValueChanged += OnIntChanged;
 
             RebuildView();
         }
@@ -83,7 +101,7 @@ namespace Dragoneye.Game.Combat
             m_Order.OnListChanged -= OnOrderChanged;
             m_Index.OnValueChanged -= OnIntChanged;
             m_Round.OnValueChanged -= OnIntChanged;
-            m_Winner.OnValueChanged -= OnIntChanged;
+            m_Outcome.OnValueChanged -= OnIntChanged;
 
             if (Current == this)
             {
@@ -131,7 +149,7 @@ namespace Dragoneye.Game.Combat
                 m_Order.Add(id);
             }
 
-            m_Winner.Value = -1;
+            m_Outcome.Value = Running;
             m_Round.Value = 1;
 
             m_Index.Value = TurnOrder.TryFirst(m_OrderView, isActive, out var first) ? first : -1;
@@ -165,13 +183,28 @@ namespace Dragoneye.Game.Combat
         }
 
         /// <summary>Server only. Records the winner, which ends the match.</summary>
-        public void ServerDeclareWinner(Party party)
+        public void ServerDeclareWinner(Party party) => ServerFinish((int)party);
+
+        /// <summary>
+        /// Server only. Ends the match with nobody winning it.
+        ///
+        /// For a fight that stopped rather than was won: everybody fell in the same breath, or a
+        /// test scenario reached the end of its script. Either way no more turns are taken, and
+        /// nothing claims a victory that did not happen.
+        /// </summary>
+        public void ServerEnd() => ServerFinish(NoWinner);
+
+        void ServerFinish(int outcome)
         {
-            if (IsServer)
+            // The first ending stands. A scenario that stops a fight somebody has already won
+            // must not take the win back.
+            if (!IsServer || IsOver)
             {
-                m_Winner.Value = (int)party;
-                m_Index.Value = -1;
+                return;
             }
+
+            m_Outcome.Value = outcome;
+            m_Index.Value = -1;
         }
 
         /// <summary>

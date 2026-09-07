@@ -36,7 +36,6 @@ namespace Dragoneye.Game.Combat
 
         VisualElement m_Footer;
         VisualElement m_Banner;
-        Label m_OutcomeNote;
         VisualElement m_ApPips;
         Label m_ApText;
         Label m_Cursor;
@@ -64,7 +63,6 @@ namespace Dragoneye.Game.Combat
             m_ApText = root.Q<Label>("ap-text");
             m_Cursor = root.Q<Label>("cursor-action");
             m_OutcomeTitle = root.Q<Label>("outcome-title");
-            m_OutcomeNote = root.Q<Label>("outcome-note");
             m_EndTurn = root.Q<Button>("end-turn-button");
 
             if (m_Footer == null || m_Banner == null || m_ApPips == null || m_ApText == null
@@ -287,17 +285,18 @@ namespace Dragoneye.Game.Combat
         void RefreshOutcome()
         {
             var turns = TurnState.Current;
-            var over = turns != null && turns.IsOver;
+
+            // A scenario's outcome is its report, and this banner would cover it.
+            var scenario = ScenarioRunner.Current != null && ScenarioRunner.Current.Scenario != null;
+            var over = turns != null && turns.IsOver && !scenario;
 
             m_Banner.EnableInClassList("is-hidden", !over);
 
-            // A scenario stays on its report; the note about returning would be a lie.
-            m_OutcomeNote?.EnableInClassList("is-hidden",
-                ScenarioRunner.Current != null && ScenarioRunner.Current.Scenario != null);
-
             if (over)
             {
-                m_OutcomeTitle.text = $"{PartyPalette.NameOf(turns.Winner)} win";
+                m_OutcomeTitle.text = turns.HasWinner
+                    ? $"{PartyPalette.NameOf(turns.Winner)} win"
+                    : "Nobody is left standing";
             }
         }
 

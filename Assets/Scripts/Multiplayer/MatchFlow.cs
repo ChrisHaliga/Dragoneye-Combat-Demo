@@ -293,6 +293,9 @@ namespace Dragoneye.Multiplayer
         /// </summary>
         public void LeaveMatch()
         {
+            // Leaving ends a run of scenarios, whatever is counting down to the next one.
+            m_Queued.Clear();
+
             if (m_Runner != null && m_Runner.IsInSession)
             {
                 if (!m_Runner.IsBusy)
