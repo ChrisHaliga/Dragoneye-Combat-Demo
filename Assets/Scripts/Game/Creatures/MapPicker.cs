@@ -18,8 +18,6 @@ namespace Dragoneye.Game.Creatures
         readonly DropdownField m_Field;
         readonly Label m_Summary;
 
-        DraftState m_Draft;
-
         /// <summary>True when the markup had the controls. False means the UXML and this disagree.</summary>
         public bool IsBound { get; }
 
@@ -54,8 +52,6 @@ namespace Dragoneye.Game.Creatures
                 return;
             }
 
-            m_Draft = draft;
-
             var index = draft != null ? draft.MapIndex : 0;
             var choice = MapLibrary.At(index);
             var manager = NetworkManager.Singleton;
@@ -66,9 +62,16 @@ namespace Dragoneye.Game.Creatures
             m_Summary.text = choice.Summary;
         }
 
+        /// <summary>
+        /// Offers the pick to the draft. Read at the moment of the click rather than from a draft
+        /// remembered at the last repaint: a picker built before the draft spawned used to hold a
+        /// null and drop every pick on the floor, with the dropdown showing the new name anyway.
+        /// </summary>
         void OnPicked(string title)
         {
-            if (m_Draft == null)
+            var draft = DraftState.Current;
+
+            if (draft == null)
             {
                 return;
             }
@@ -77,7 +80,7 @@ namespace Dragoneye.Game.Creatures
             {
                 if (MapLibrary.All[i].Title == title)
                 {
-                    m_Draft.SetMapRpc(i);
+                    draft.SetMapRpc(i);
                     return;
                 }
             }

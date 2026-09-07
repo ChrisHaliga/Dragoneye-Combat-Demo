@@ -67,8 +67,31 @@ namespace Dragoneye.Hex.Systems
 
         void Awake()
         {
-            m_Authored = m_Definition as AuthoredMapDefinition;
-            Rebuild();
+            EnsureAuthored();
+
+            // Unless something has built one already. The arena is told which map the host picked
+            // from another object's OnEnable, and Unity does not order Awake and OnEnable across
+            // GameObjects -- so that pick can arrive before this runs, and it must not then be
+            // overwritten by the map the scene happens to ship with.
+            if (Map == null)
+            {
+                Rebuild();
+            }
+        }
+
+        /// <summary>
+        /// Remembers the map the scene assigned, which is where a recipe's terrain names are bound.
+        ///
+        /// Not left to Awake for the reason above: a recipe that arrived first found no palette,
+        /// was refused, and left the match on the scene's own map -- whichever map had been picked.
+        /// Once set it is kept, so a rebuild cannot lose the palette by replacing the definition.
+        /// </summary>
+        void EnsureAuthored()
+        {
+            if (m_Authored == null)
+            {
+                m_Authored = m_Definition as AuthoredMapDefinition;
+            }
         }
 
         void OnDestroy() => DropRuntime();
@@ -97,6 +120,8 @@ namespace Dragoneye.Hex.Systems
             {
                 return;
             }
+
+            EnsureAuthored();
 
             if (m_Authored == null)
             {

@@ -143,6 +143,34 @@ namespace Dragoneye.Hex.Tests
         }
 
         [Test]
+        public void ARecipeCanBeBuiltBeforeAwakeHasRun()
+        {
+            // The arena is told which map the host picked from another object's OnEnable, and Unity
+            // does not order Awake and OnEnable across GameObjects. When this failed, the recipe was
+            // refused for want of a palette and every match played on the map the scene ships with,
+            // whichever map had been picked.
+            var scene = ScriptableObject.CreateInstance<AuthoredMapDefinition>();
+            scene.Author(new MapRecipe(2, "grass"),
+                new[] { new AuthoredMapDefinition.TerrainEntry { Name = "grass" } });
+
+            var host = new GameObject("Arena");
+            host.SetActive(false);
+            var arena = host.AddComponent<ArenaMap>();
+            Set(arena, "m_Definition", scene);
+
+            var recipe = new MapRecipe(2, "grass");
+            recipe.Wall(North, Solid);
+            arena.Rebuild(recipe);
+
+            Assert.NotNull(arena.Map, "the recipe was built");
+            Assert.IsTrue(arena.Map.WallAt(North).IsSet, "with its walls on the fight's board");
+            Assert.IsTrue(arena.Shown.WallAt(North).IsSet, "and on the drawn one");
+
+            Object.DestroyImmediate(host);
+            Object.DestroyImmediate(scene);
+        }
+
+        [Test]
         public void RebuildingGivesBothBoardsBack()
         {
             m_Arena.Map.SetWall(North, Solid);

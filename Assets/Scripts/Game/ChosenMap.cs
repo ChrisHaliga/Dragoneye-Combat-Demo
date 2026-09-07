@@ -1,5 +1,6 @@
 using Dragoneye.Hex.Systems;
 using Dragoneye.Scenarios;
+using UnityEngine;
 using Dragoneye.Game.Creatures;
 
 namespace Dragoneye.Game
@@ -20,10 +21,23 @@ namespace Dragoneye.Game
         /// <summary>Rebuilds the arena onto the chosen map.</summary>
         public static void Apply(ArenaMap arena)
         {
-            if (arena != null)
+            if (arena == null)
             {
-                arena.Rebuild(Current.Build());
+                return;
             }
+
+            // Loud, both ways. A match on the wrong map is a bug that looks like a level design
+            // decision, and the last one hid for a whole build because nothing said which map the
+            // arena had been built on or that the pick had been lost on the way.
+            if (DraftState.Current == null)
+            {
+                Debug.LogWarning("The arena was built with no draft to read the map from; "
+                    + $"playing on {MapLibrary.Default.Title}.");
+            }
+
+            var choice = Current;
+            arena.Rebuild(choice.Build());
+            Debug.Log($"Arena built on {choice.Title}.");
         }
     }
 }
