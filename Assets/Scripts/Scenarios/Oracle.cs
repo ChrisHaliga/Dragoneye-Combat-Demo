@@ -104,7 +104,9 @@ namespace Dragoneye.Scenarios
                 {
                     Cell = actor.Cell,
                     Facing = actor.Facing,
-                    Hp = world.MaxHpOf(actor.Key),
+                    Hp = actor.StartHp > 0 && actor.StartHp < world.MaxHpOf(actor.Key)
+                        ? actor.StartHp
+                        : world.MaxHpOf(actor.Key),
                     Armour = world.MaxArmourOf(actor.Key),
                     Party = actor.Party,
                     Advantage = world.HasAdvantage(actor.Key),

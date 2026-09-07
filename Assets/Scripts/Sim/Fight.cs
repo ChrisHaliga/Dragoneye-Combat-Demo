@@ -447,21 +447,23 @@ namespace Dragoneye.Sim
                 var chance = SkillRules.HitChance(skill, distance, cover);
                 var landed = SkillRules.Hits(skill, distance, cover, m_Dice.Roll());
 
+                var shot = CombatEvent.ShotAt(0, actor.Id, occupant.Id, skill.Id, chance, landed,
+                    faced, actor.Ap.Units, landed ? null : Committed(skill));
+
+                // A miss has nobody to answer it, so there is nothing left to conceal: the arrow
+                // is named at once, and what it cost with it.
                 if (!landed)
                 {
                     pool.AnnounceCommitted();
                     actor.RecordUse(skill.Id);
-                }
-
-                Say(CombatEvent.ShotAt(0, actor.Id, occupant.Id, skill.Id, chance, landed, faced,
-                    actor.Ap.Units, landed ? null : Committed(skill)));
-
-                if (!landed)
-                {
+                    Say(shot);
                     return true;
                 }
 
-                BeginClash(actor, skill, occupant, announced: true);
+                // A hit opens a clash, and this event names the skill -- so saying it now would
+                // tell the defender exactly which element is on its way. It is held and said at
+                // the reveal, where everything else about the attack is said.
+                BeginClash(actor, skill, occupant, held: shot);
                 return true;
             }
 

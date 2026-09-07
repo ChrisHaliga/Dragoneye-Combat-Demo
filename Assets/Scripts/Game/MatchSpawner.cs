@@ -478,11 +478,12 @@ namespace Dragoneye.Game
         /// </summary>
         /// <returns>The creature, or null when the prefab is missing or the spawn failed.</returns>
         public CreatureState SpawnCreature(ushort creatureId, Party party, int level, Cell cell,
-            Facing facing, int ordinal = 0) =>
-            Spawn(creatureId, party, PartyInfo.Unclaimed, PartyInfo.Unclaimed, level, cell, facing, ordinal);
+            Facing facing, int ordinal = 0, int startHp = 0) =>
+            Spawn(creatureId, party, PartyInfo.Unclaimed, PartyInfo.Unclaimed, level, cell, facing,
+                ordinal, startHp);
 
         CreatureState Spawn(ushort creatureId, Party party, byte claimedBySlot, byte buildSlot,
-            int level, Cell cell, Facing facing, int ordinal)
+            int level, Cell cell, Facing facing, int ordinal, int startHp = 0)
         {
             if (m_UnitPrefab == null)
             {
@@ -509,7 +510,7 @@ namespace Dragoneye.Game
                 instance.GetComponent<UnitState>().ServerPlaceAt(cell);
                 var creature = instance.GetComponent<CreatureState>();
 
-                creature.ServerConfigure(creatureId, party, claimedBySlot, buildSlot, level, ordinal, facing);
+                creature.ServerConfigure(creatureId, party, claimedBySlot, buildSlot, level, ordinal, facing, startHp);
 
                 // The starting pool is authored on the premade definition. A built character will
                 // bring its own from the creator; both arrive here before the spawn so the owning

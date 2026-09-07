@@ -58,6 +58,9 @@ namespace Dragoneye.Game.Combat
 
         int m_Selected = NoSkill;
 
+        // Whose turn the walk was last armed for. See where it is read.
+        uint m_ArmedFor;
+
         // Which element the armed skill will arrive as, for the few that offer a choice. Null for
         // everything else, and for a skill still waiting to be told.
         Element? m_SelectedElement;
@@ -252,9 +255,19 @@ namespace Dragoneye.Game.Combat
             // A turn starts ready to walk. Moving is what a player does most of, and making the
             // common case the one that needs a click first is backwards. Pressing 1 again puts it
             // away, and with nothing armed a stray click on the board costs nothing.
-            if (m_DrawnFor != actor.TurnId && yours)
+            //
+            // Kept apart from what was last drawn, because the bar stopped emptying between turns:
+            // it now draws your own creature greyed while somebody else acts, so the creature it
+            // was drawn for never changes and the edge into your own turn stopped arriving with
+            // it. This tracks that edge itself.
+            if (yours && m_ArmedFor != actor.TurnId)
             {
+                m_ArmedFor = actor.TurnId;
                 m_Selected = MoveSkill;
+            }
+            else if (!yours)
+            {
+                m_ArmedFor = 0;
             }
 
             if (yours)

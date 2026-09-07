@@ -187,11 +187,20 @@ namespace Dragoneye.Sim
         public static CombatEvent FacedToward(int round, uint actor, int facing) =>
             new CombatEvent { Kind = CombatEventKind.Faced, Round = round, Actor = actor, Facing = facing };
 
-        public static CombatEvent SwungAt(int round, uint actor, uint target, int skill, int facing,
+        /// <summary>
+        /// An attack is coming, from whom, at whom -- and deliberately not what it is made of.
+        ///
+        /// There is no skill on it, and that is the whole point: this goes to everybody the
+        /// moment the attack is thrown, while the defender is still deciding what to put up.
+        /// A skill names its element, and every peer can resolve a skill id through the catalog,
+        /// so an event that carried one would hand the defender the answer. What it was is said
+        /// by <see cref="ClashResolvedAs"/>, once the answer is in and it can no longer help.
+        /// </summary>
+        public static CombatEvent SwungAt(int round, uint actor, uint target, int facing,
             int apUnits) =>
             new CombatEvent
             {
-                Kind = CombatEventKind.Swung, Round = round, Actor = actor, Target = target, Skill = skill,
+                Kind = CombatEventKind.Swung, Round = round, Actor = actor, Target = target,
                 Facing = facing, ApUnits = apUnits
             };
 

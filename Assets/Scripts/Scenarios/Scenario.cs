@@ -89,8 +89,25 @@ namespace Dragoneye.Scenarios
 
         public int Level { get; }
 
+        /// <summary>
+        /// The health this actor comes onto the board with, or zero for whole.
+        ///
+        /// A fixture, not a rule. A scenario about healing needs something to heal, and it cannot
+        /// arrange that through play: whether a blow lands is up to what the defender puts up and
+        /// the dice, so a fight written to wound somebody first proves nothing on the runs where
+        /// they answer it. Starting wounded makes the thing under test happen every time.
+        /// </summary>
+        public int StartHp { get; private set; }
+
         /// <summary>Whether the game's own opponent decides for this actor instead of a script.</summary>
         public bool Thinks { get; private set; }
+
+        /// <summary>Puts this actor on the board already hurt. See <see cref="StartHp"/>.</summary>
+        public Actor Wounded(int hp)
+        {
+            StartHp = hp < 1 ? 1 : hp;
+            return this;
+        }
 
         /// <summary>The script: one list of orders per turn, in the order the turns come.</summary>
         public IReadOnlyList<IReadOnlyList<Order>> Turns => m_Turns;

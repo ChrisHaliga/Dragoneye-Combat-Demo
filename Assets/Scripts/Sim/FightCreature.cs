@@ -38,7 +38,8 @@ namespace Dragoneye.Sim
         public FightCreature(uint id, Party party, byte controllerSlot, int level,
             bool isPlayerCharacter, Cell cell, Facing facing, int maxHp, int maxArmour, Ap maxAp,
             int regen, Ap stepCost, int speed, bool advantage, IReadOnlyList<SkillSpec> skills,
-            SkillSpec weapon, ElementCounts startingPool)
+            SkillSpec weapon, ElementCounts startingPool, int startingHp = 0,
+            int startingArmour = -1)
         {
             Id = id;
             Party = party;
@@ -58,8 +59,10 @@ namespace Dragoneye.Sim
             Weapon = weapon;
             StartingPool = startingPool;
 
-            Hp = MaxHp;
-            Armour = MaxArmour;
+            // Whole unless the caller says otherwise. A fight begins from where the board is,
+            // which is how a scenario can put a wounded creature on it and watch it be healed.
+            Hp = startingHp > 0 && startingHp < MaxHp ? startingHp : MaxHp;
+            Armour = startingArmour >= 0 && startingArmour < MaxArmour ? startingArmour : MaxArmour;
             Ap = MaxAp;
             OnBoard = true;
             Pool = new ElementPool(startingPool);

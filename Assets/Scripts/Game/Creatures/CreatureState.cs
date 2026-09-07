@@ -69,6 +69,7 @@ namespace Dragoneye.Game.Creatures
         int m_StartLevel = Progression.FirstLevel;
         byte m_StartOrdinal;
         Facing m_StartFacing;
+        int m_StartHp;
 
         CreatureDefinition m_Definition;
         CreatureRegistry m_Registry;
@@ -212,7 +213,9 @@ namespace Dragoneye.Game.Creatures
                 m_PartyId.Value = (byte)m_StartParty;
                 m_ControllerSlot.Value = m_StartControllerSlot;
                 m_Facing.Value = (byte)m_StartFacing.Index;
-                m_CurrentHp.Value = profile.MaxHealth;
+                m_CurrentHp.Value = m_StartHp > 0 && m_StartHp < profile.MaxHealth
+                    ? m_StartHp
+                    : profile.MaxHealth;
                 m_CurrentArmour.Value = profile.Armour;
                 m_CurrentApUnits.Value = profile.MaxAp.Units;
             }
@@ -271,9 +274,14 @@ namespace Dragoneye.Game.Creatures
         /// resolve locally, so passing one in would invite a caller to hand over a definition that
         /// disagrees with the id being replicated.
         /// </summary>
+        /// <param name="startHp">
+        /// The health to come into the fight on, or zero for whole. A scenario testing healing
+        /// needs something to heal, and arranging that through play cannot be made to happen on
+        /// purpose: whether a blow lands is up to the defender and the dice.
+        /// </param>
         public void ServerConfigure(ushort creatureId, Party party, byte controllerSlot,
             byte buildSlot = PartyInfo.Unclaimed, int level = Progression.FirstLevel,
-            int ordinal = 0, Facing facing = default)
+            int ordinal = 0, Facing facing = default, int startHp = 0)
         {
             m_StartCreatureId = creatureId;
             m_StartParty = party;
@@ -282,6 +290,7 @@ namespace Dragoneye.Game.Creatures
             m_StartLevel = level;
             m_StartOrdinal = (byte)(ordinal < 0 ? 0 : ordinal > byte.MaxValue ? 0 : ordinal);
             m_StartFacing = facing;
+            m_StartHp = startHp;
         }
 
         /// <summary>

@@ -19,6 +19,10 @@ namespace Dragoneye.Sim
         SkillSpec m_ClashSkill;
         bool m_Flanked;
 
+        // A shot that landed, waiting for the reveal. It names the skill, so it cannot be said
+        // while the defender is still choosing.
+        CombatEvent m_Shot;
+
         /// <summary>Whether an attack is waiting on somebody's answer.</summary>
         public bool IsClashPending => m_Clash != null;
 
@@ -32,17 +36,18 @@ namespace Dragoneye.Sim
         /// commitment before anybody is asked anything, so an attack cannot be taken back once the
         /// defender has been made to think about it.
         ///
-        /// The swing is written down here, once for every way a contested attack begins, unless
-        /// the caller already wrote it -- a shot that rolled announced itself as a shot.
+        /// One event goes out now, for every way a contested attack begins: an attack is coming,
+        /// from whom, at whom. It does not name the skill, so there is nothing on the wire the
+        /// defender could read the answer off while they are still choosing.
         /// </summary>
+        /// <param name="held">
+        /// A shot's own event, which does name the skill. Said at the reveal instead of now.
+        /// </param>
         void BeginClash(FightCreature actor, SkillSpec skill, FightCreature target,
-            Element? telegraphed = null, bool announced = false)
+            Element? telegraphed = null, CombatEvent held = null)
         {
-            if (!announced)
-            {
-                Say(CombatEvent.SwungAt(0, actor.Id, target.Id, skill.Id, actor.Facing.Index,
-                    actor.Ap.Units));
-            }
+            Say(CombatEvent.SwungAt(0, actor.Id, target.Id, actor.Facing.Index, actor.Ap.Units));
+            m_Shot = held;
 
             // Which way the blow arrived, from the defender's point of view.
             var flanked = FacingRules.IsFlank(target.Facing,
@@ -171,6 +176,7 @@ namespace Dragoneye.Sim
             var defender = m_Defender;
             var skill = m_ClashSkill;
             var flanked = m_Flanked;
+            var shot = m_Shot;
 
             // Cleared before anything else can run: applying the effect can kill a creature, which
             // ends the match, and a clash still standing at that point would suspend the next one.
@@ -179,6 +185,7 @@ namespace Dragoneye.Sim
             m_Defender = null;
             m_ClashSkill = null;
             m_Flanked = false;
+            m_Shot = null;
 
             if (clash == null || attacker == null || defender == null || skill == null)
             {
@@ -202,6 +209,12 @@ namespace Dragoneye.Sim
             defender.Pool.AnnounceCommitted(keep: ClashRules.Refunds(reveal.Outcome));
 
             attacker.RecordUse(skill.Id);
+
+            // The arrow, now that naming it can no longer help the person it was aimed at.
+            if (shot != null)
+            {
+                Say(shot);
+            }
 
             Say(CombatEvent.ClashResolvedAs(0, attacker.Id, defender.Id, skill.Id,
                 reveal.Attacker, reveal.Defender, reveal.Outcome));

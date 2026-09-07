@@ -172,14 +172,15 @@ namespace Dragoneye.Scenarios
             var wolfCell = Cell.Whole(new Hex(0, -1));
 
             return new Scenario("armour-and-regen", "Armour and regeneration",
-                    "A wolf bites and mauls an ogre. The ogre's armour pool soaks what it can and "
-                    + "does not come back; its toughness heals a point at the start of its turn; "
-                    + "then it mauls the wolf.",
+                    "A wolf bites and mauls an ogre that starts hurt. The ogre's armour pool soaks "
+                    + "what it can and does not come back; its toughness heals it at the start of "
+                    + "its turn; then it mauls the wolf.",
                     8809, Maps.Open())
                 .With(new Actor("wolf", Premade.Wolf, Party.Monsters, wolfCell, North)
                     .Then(Order.Use(Skills.Bite, "ogre"))
                     .Then(Order.Use(Skills.Maul, "ogre")))
                 .With(new Actor("ogre", Premade.Ogre, Party.Guards, ogreCell, South, 3)
+                    .Wounded(StartingHealth)
                     .Then(Order.Use(Skills.Maul, "wolf")))
                 .Expecting(world =>
                 {
@@ -200,8 +201,17 @@ namespace Dragoneye.Scenarios
                         Equal("the maul came out as the oracle said", maul.Outcome, clashes.Count > 1 ? clashes[1].Outcome : default),
                         Equal("the ogre's armour soaked what the oracle said", oracle.ArmourOf("ogre"), world.ArmourOf("ogre")),
                         Equal("the ogre's health agrees", oracle.HpOf("ogre"), world.HpOf("ogre")),
+                        // The ogre starts wounded so that this cannot pass by describing nothing.
+                        // It used to stand at full health, where toughness has nothing to put back
+                        // and "healed by what the oracle said" is zero equals zero.
+                        That("toughness actually healed the ogre, which is what it starts hurt for",
+                            healed > 0 && (recovered?.Amount ?? 0) > 0,
+                            $"oracle {healed}, fight {recovered?.Amount ?? 0}"),
                         Equal("toughness healed the ogre at the start of its turn by what the oracle said",
                             healed, recovered?.Amount ?? 0),
+                        Equal("the regeneration is the ogre's authored toughness, no more",
+                            world.RegenOf("ogre"), recovered?.Amount ?? 0),
+                        That("armour only ever went down", world.ArmourOf("ogre") <= world.MaxArmourOf("ogre")),
                         Equal("the ogre's maul came out as the oracle said", back.Outcome, clashes.Count > 2 ? clashes[2].Outcome : default),
                         Equal("the wolf's health agrees", oracle.HpOf("wolf"), world.HpOf("wolf")),
                         Equal("the wolf has no armour to lose", 0, world.ArmourOf("wolf"))
@@ -209,58 +219,92 @@ namespace Dragoneye.Scenarios
                 });
         }
 
-        /// <summary>A cleric bitten by a wolf recovers: health back, an element gone.</summary>
+        /// <summary>
+        /// A cleric that starts hurt heals itself, turn after turn, until it runs out of Hydro or
+        /// room.
+        ///
+        /// **It starts wounded on purpose.** The first cut of this had a wolf bite it first, and
+        /// on the shipped seed the cleric answered both bites and took nothing -- so it healed
+        /// nothing, and every check about healing passed by describing a heal that did no work.
+        /// Whether a blow lands is up to what the defender puts up and the dice, so a fight
+        /// written to wound somebody cannot be relied on to wound them. Six health missing at the
+        /// start can.
+        ///
+        /// The wolf is across the field with no orders, because a fight needs two sides to keep
+        /// taking turns and this one has nothing to do with it.
+        /// </summary>
         public static Scenario Recovery()
         {
             var clericCell = Cell.Whole(Hex.Zero);
-            var wolfCell = Cell.Whole(new Hex(0, -1));
+            var wolfCell = Cell.Whole(new Hex(0, -4));
 
             return new Scenario("recovery", "Healing",
-                    "A wolf bites and mauls a cleric, who uses Recover: six health back, never past "
-                    + "the maximum, for one Hydro and one action point.",
+                    "A cleric at six health uses Recover on three of its own turns: six health "
+                    + "back each time and never past the maximum, for one Hydro and one action "
+                    + "point apiece, until the Hydro runs out.",
                     9901, Maps.Open())
-                .With(new Actor("wolf", Premade.Wolf, Party.Monsters, wolfCell, North)
-                    .Then(Order.Use(Skills.Bite, "cleric"))
-                    .Then(Order.Use(Skills.Maul, "cleric")))
+                .With(new Actor("wolf", Premade.Wolf, Party.Monsters, wolfCell, North))
                 .With(new Actor("cleric", Premade.Cleric, Party.Guards, clericCell, South, 3)
+                    .Wounded(StartingHealth)
+                    .Then(Order.Use(Skills.Recover, "cleric"))
+                    .NextTurn()
+                    .Then(Order.Use(Skills.Recover, "cleric"))
+                    .NextTurn()
                     .Then(Order.Use(Skills.Recover, "cleric")))
+                .Lasting(4)
                 .Expecting(world =>
                 {
-                    var oracle = new Oracle(Recovery(), world);
-                    oracle.Use("wolf", Skills.Bite, "cleric");
-                    oracle.Use("wolf", Skills.Maul, "cleric");
-                    var hurt = oracle.HpOf("cleric");
+                    var max = world.MaxHpOf("cleric");
+                    var recover = world.SkillOf("cleric", Skills.Recover);
+                    var perHeal = recover != null ? recover.Effect.Amount : 0;
+                    var heals = Reading.Count(world, TraceKind.Acted, "cleric", 0, Skills.Recover);
 
-                    // The cleric may have put its Hydro up against the bites; then Recover is
-                    // refused, and the oracle skips it as the fight does.
-                    var canHeal = oracle.CanPay("cleric", Skills.Recover);
+                    // What the rules say this must come to, from the numbers on the skill itself
+                    // rather than from a figure written down here that a retune would make a lie.
+                    var expected = StartingHealth + perHeal * heals;
+                    var capped = expected > max ? max : expected;
 
-                    if (canHeal)
-                    {
-                        oracle.Use("cleric", Skills.Recover, "cleric");
-                    }
+                    var ledger = world.LedgerOf("cleric");
+                    var pool = world.PoolOf("cleric");
+                    var start = world.StartingPoolOf("cleric");
 
                     return new[]
                     {
-                        Equal("the cleric used Recover exactly when it still held the Hydro for it",
-                            canHeal, Reading.Has(world, TraceKind.Acted, "cleric", 0, Skills.Recover)),
-                        Equal("its health is what the oracle worked out: the bites, then six back, capped",
-                            oracle.HpOf("cleric"), world.HpOf("cleric")),
-                        That("healing never passes the maximum", world.HpOf("cleric") <= world.MaxHpOf("cleric")),
-                        Equal("the cleric's pool agrees with the oracle: the Hydro Recover cost, and what the clashes took",
-                            oracle.PoolOf("cleric"), world.PoolOf("cleric")),
-                        That("the heal was worth having, or there was nothing to heal, or nothing to pay with",
-                            !canHeal || hurt == world.MaxHpOf("cleric") || world.HpOf("cleric") > hurt),
+                        That("the cleric came into the fight hurt, so there was something to heal",
+                            StartingHealth < max, $"{StartingHealth} of {max}"),
+                        That("it healed at least once", heals >= 1, $"{heals} heals"),
+                        Equal($"each Recover put {perHeal} back, and the maximum capped the rest",
+                            capped, world.HpOf("cleric")),
+                        That("healing never passed the maximum", world.HpOf("cleric") <= max),
+                        That("it healed on every turn it was told to, or ran out of Hydro or room",
+                            heals == HealOrders || pool[Element.Hydro] == 0 || world.HpOf("cleric") == max,
+                            $"{heals} heals, {world.HpOf("cleric")} of {max}, {pool[Element.Hydro]} Hydro left"),
+                        Equal("one Hydro left the pool for each heal",
+                            start[Element.Hydro] - heals, pool[Element.Hydro]),
                         // A heal has nobody to answer it, and a spend nobody answers used to stay
                         // unannounced until the next clash: the table watched the Hydro leave the
                         // pool and was never told what it was.
-                        That("everybody was told the Hydro the heal cost, the moment it was spent",
-                            !canHeal || world.LedgerOf("cleric").Revealed[Element.Hydro] >= 1),
-                        That("nothing the cleric spent is still waiting to be announced",
-                            world.LedgerOf("cleric").Outstanding.Count == 0)
+                        Equal("everybody was told about every Hydro the heals cost, as each was spent",
+                            heals, ledger.Revealed[Element.Hydro]),
+                        // What "spent" and "shown" mean is one subtraction, and it has to hold at
+                        // rest. A commitment the fight forgot to announce would leave the pool
+                        // short of what the record accounts for.
+                        Equal("the pool and the graveyard between them account for every element",
+                            ledger.Total, pool.Total + ledger.Outstanding.Count)
                     };
                 });
         }
+
+        /// <summary>
+        /// The health a scenario puts a creature on the board with when it wants something to heal.
+        ///
+        /// Low enough that no shipped creature's maximum is near it, so the wound is real whatever
+        /// the content does next.
+        /// </summary>
+        const int StartingHealth = 6;
+
+        /// <summary>How many turns the healing scenario tells its cleric to heal on.</summary>
+        const int HealOrders = 3;
 
         /// <summary>
         /// A goblin in front of an ogre. The ogre mauls and torches it, twice over if it has to;

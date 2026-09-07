@@ -55,6 +55,14 @@ namespace Dragoneye.Game.Combat
         /// <summary>What this fight rolls from. Null before the match begins.</summary>
         public Dice Dice => m_Fight != null ? m_Fight.Dice : null;
 
+        /// <summary>
+        /// The round the fight is on, from the fight itself.
+        ///
+        /// Not from <see cref="TurnState"/>, which is a copy written after the fight has already
+        /// acted: anything asking between an order and its mirror would get the round before last.
+        /// </summary>
+        public int Round => m_Fight != null ? m_Fight.Round : 0;
+
         void Awake() => Current = this;
 
         void OnDestroy()
@@ -159,11 +167,14 @@ namespace Dragoneye.Game.Combat
 
             var weapon = loadout != null ? Opportunity.PrimaryOf(loadout) : Opportunity.PrimaryOf(skills);
 
+            // Health and armour as they stand rather than as the profile says, so a creature put
+            // on the board already wounded -- which is how a scenario tests healing -- is wounded
+            // in the fight too.
             return new FightCreature(creature.TurnId, creature.Party, creature.ControllerSlot,
                 creature.Level, creature.IsPlayerCharacter, creature.Cell, creature.Facing,
                 creature.MaxHp, creature.MaxArmour, creature.MaxAp, creature.Regen,
                 creature.StepCost, creature.Speed, creature.HasAdvantage, skills, weapon,
-                creature.StartingPool);
+                creature.StartingPool, creature.CurrentHp, creature.CurrentArmour);
         }
 
         /// <summary>Server only. Ends the active creature's turn and passes play on.</summary>

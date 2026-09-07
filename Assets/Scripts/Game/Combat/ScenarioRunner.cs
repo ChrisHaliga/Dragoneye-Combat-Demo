@@ -116,7 +116,7 @@ namespace Dragoneye.Game.Combat
 
             context.Map.Rebuild(scenario.Map);
 
-            m_Brain = new ScriptedBrain(IdOf, () => TurnState.Current != null ? TurnState.Current.Round : 0);
+            m_Brain = new ScriptedBrain(IdOf, () => CombatDirector.Current != null ? CombatDirector.Current.Round : 0);
             m_Brain.Ordered += OnOrdered;
 
             Listen();
@@ -140,7 +140,7 @@ namespace Dragoneye.Game.Combat
                 }
 
                 var creature = spawner.SpawnCreature(id, actor.Party, actor.Level, actor.Cell, actor.Facing,
-                    OrdinalOf(scenario, actor));
+                    OrdinalOf(scenario, actor), actor.StartHp);
 
                 if (creature == null)
                 {
@@ -199,7 +199,7 @@ namespace Dragoneye.Game.Combat
 
         string KeyOf(uint turnId) => m_KeyOf.TryGetValue(turnId, out var key) ? key : $"#{turnId}";
 
-        int Round => TurnState.Current != null ? TurnState.Current.Round : 0;
+        int Round => CombatDirector.Current != null ? CombatDirector.Current.Round : 0;
 
         // ---------- listening ----------
 
@@ -253,7 +253,7 @@ namespace Dragoneye.Game.Combat
             switch (e.Kind)
             {
                 case CombatEventKind.TurnBegan:
-                    OnTurnBegan(e.Actor);
+                    OnTurnBegan(e.Actor, e.Round);
                     break;
 
                 case CombatEventKind.Moved:
@@ -309,10 +309,9 @@ namespace Dragoneye.Game.Combat
         /// A turn began: the world's events for it happen now, before the actor decides, and
         /// the fight is read once every script has run out or the rounds have run out.
         /// </summary>
-        void OnTurnBegan(uint id)
+        void OnTurnBegan(uint id, int round)
         {
             var key = KeyOf(id);
-            var round = Round;
 
             m_Trace.Add(new TraceEntry(TraceKind.TurnBegan, round, key));
 
