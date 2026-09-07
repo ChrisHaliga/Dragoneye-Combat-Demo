@@ -588,6 +588,24 @@
     min-height: 0;
 }
 
+/* The pool never grows past seven runes, so it takes what it needs and gives the rest away. */
+.sheet__column--narrow {
+    flex-grow: 0;
+    flex-basis: auto;
+    width: 96px;
+    margin-right: 18px;
+}
+
+.pool-grid {
+    flex-direction: row;
+    flex-wrap: wrap;
+}
+
+.pool-grid > .element-chip {
+    width: 44px;
+    margin: 0 2px 6px 0;
+}
+
 .sheet__scroll {
     flex-grow: 1;
     flex-basis: 0;
@@ -998,15 +1016,13 @@
    label-and-value lines indistinguishable from the settings screen. */
 .statline {
     flex-direction: row;
-    margin: 12px 0 4px 0;
+    margin: 10px 0 2px 0;
 }
 
 .stat {
-    flex-grow: 1;
-    flex-basis: 0;
+    width: 52px;
     margin-right: 6px;
-    padding: 4px 2px 5px 2px;
-    max-height: 54px;
+    padding: 5px 2px 8px 2px;
     align-items: center;
     background-image: url("Generated/ui-well.png");
     -unity-slice-left: 22;
@@ -1023,11 +1039,15 @@
     color: rgb(139, 147, 165);
 }
 
+/* Room under the number. A 20px face in a box sized to 20px puts the tail of a digit on the
+   frame, which reads as a box that is too small rather than as a number that fits. */
 .stat__value {
-    margin-top: 0;
+    margin-top: 1px;
+    min-height: 26px;
     font-size: 20px;
     -unity-font-style: bold;
     color: rgb(236, 231, 219);
+    -unity-text-align: middle-center;
 }
 
 /* ---------- experience ---------- */
@@ -1046,7 +1066,7 @@
 
 .xp-fill {
     height: 100%;
-    background-color: rgb(120, 148, 200);
+    background-color: rgb(198, 158, 88);
 }
 
 /* Enough to level. Gold, because it is the same "there is a decision waiting" the menu uses
@@ -1075,7 +1095,7 @@
 .attr-grid {
     flex-direction: row;
     flex-wrap: wrap;
-    margin-top: 4px;
+    margin: 2px 0 4px 0;
 }
 
 .attr {

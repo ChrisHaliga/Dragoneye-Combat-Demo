@@ -182,6 +182,15 @@ namespace Dragoneye.Multiplayer
             CharacterSheet.Stats(stats, loadout);
             titles.Add(stats);
 
+            // The seven attributes, under the four stats and over the experience bar, with no
+            // heading over them. Three letters and a number is its own label, and the row of
+            // headed tiles this replaced took a third of the sheet to say the same fourteen
+            // things.
+            var grid = new VisualElement();
+            grid.AddToClassList("attr-grid");
+            CharacterSheet.Attributes(grid, loadout.Attributes, character.Build.Attributes);
+            titles.Add(grid);
+
             var xp = new VisualElement();
             xp.AddToClassList("xp");
             CharacterSheet.Experience(xp, character.Build.Level, character.Build.Xp);
@@ -190,21 +199,14 @@ namespace Dragoneye.Multiplayer
             head.Add(titles);
             m_Sheet.Add(head);
 
-            var attributes = new Label("ATTRIBUTES");
-            attributes.AddToClassList("col__title");
-            attributes.AddToClassList("col__title--spaced");
-            m_Sheet.Add(attributes);
-
-            var grid = new VisualElement();
-            grid.AddToClassList("attr-grid");
-            CharacterSheet.Attributes(grid, loadout.Attributes, character.Build.Attributes);
-            m_Sheet.Add(grid);
-
+            // The pool is seven runes and never more, so it takes a fixed strip on the left and
+            // the two lists that can run to any length share everything else.
             var columns = new VisualElement();
             columns.AddToClassList("sheet__columns");
-            columns.Add(SheetColumn("POOL", pool =>
-                CharacterSheet.Pool(pool, character.Build.StartingPool, character.Build.PoolBudget()),
-                "gem-row"));
+            columns.Add(SheetColumn(null, pool =>
+                CharacterSheet.Pool(pool, character.Build.StartingPool, character.Build.PoolBudget(),
+                    showEmpty: true),
+                "pool-grid", narrow: true));
             columns.Add(SheetColumn("EQUIPMENT", kit => CharacterSheet.Kit(kit, loadout), "group",
                 scrolls: true));
             columns.Add(SheetColumn("SKILLS", skills => CharacterSheet.Skills(skills, loadout), "group",
@@ -219,17 +221,27 @@ namespace Dragoneye.Multiplayer
             }
         }
 
-        /// <summary>A titled block in the sheet, filled by whoever knows how to draw it.</summary>
+        /// <summary>
+        /// A block in the sheet, filled by whoever knows how to draw it.
+        ///
+        /// The title is optional: a column of seven runes does not need the word POOL over it any
+        /// more than a number needs the word NUMBER, and the heading was costing a line of a panel
+        /// that has two lists in it fighting for room.
+        /// </summary>
         static VisualElement SheetColumn(string title, Action<VisualElement> fill,
-            string bodyClass, bool scrolls = false)
+            string bodyClass, bool scrolls = false, bool narrow = false)
         {
             var column = new VisualElement();
             column.AddToClassList("sheet__column");
             column.EnableInClassList("sheet__column--scrolls", scrolls);
+            column.EnableInClassList("sheet__column--narrow", narrow);
 
-            var heading = new Label(title);
-            heading.AddToClassList("col__title");
-            column.Add(heading);
+            if (!string.IsNullOrEmpty(title))
+            {
+                var heading = new Label(title);
+                heading.AddToClassList("col__title");
+                column.Add(heading);
+            }
 
             if (scrolls)
             {

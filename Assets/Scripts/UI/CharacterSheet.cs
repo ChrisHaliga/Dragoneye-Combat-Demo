@@ -259,7 +259,13 @@ namespace Dragoneye.UI
         /// level. Drawing empty slots would imply a fixed number of picks, which is exactly what a
         /// pool is not.
         /// </summary>
-        public static void Pool(VisualElement into, ElementCounts pool, int budget)
+        /// <param name="showEmpty">
+        /// Whether to draw the elements the character has none of, dimmed. True where there is a
+        /// grid to fill and the shape of a pool is worth seeing at a glance; false where the pool
+        /// is one line among many and the empties would be six of its seven.
+        /// </param>
+        public static void Pool(VisualElement into, ElementCounts pool, int budget,
+            bool showEmpty = false)
         {
             into.Clear();
 
@@ -267,12 +273,12 @@ namespace Dragoneye.UI
             {
                 var held = pool[element];
 
-                if (held <= 0)
+                if (held <= 0 && !showEmpty)
                 {
                     continue;
                 }
 
-                var chip = ElementChip(element, held);
+                var chip = ElementChip(element, held, dim: held <= 0);
                 chip.tooltip = $"{ElementPricing.CostOf(element)} point"
                     + (ElementPricing.CostOf(element) == 1 ? string.Empty : "s") + " each"
                     + "\n\n" + ElementLore.Describe(element);

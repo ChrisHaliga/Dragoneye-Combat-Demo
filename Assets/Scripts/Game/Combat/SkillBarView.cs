@@ -720,9 +720,25 @@ namespace Dragoneye.Game.Combat
             m_SlotMenu.Add(menu);
             m_Root.Add(m_SlotMenu);
 
+            // Upwards from the pointer, not down from it. The slots are along the bottom edge of
+            // the screen, so a menu that grows downwards grows off it -- today it holds one line
+            // and just fits, which is the kind of "just fits" that stops being true.
             var point = m_SlotMenu.WorldToLocal(position);
             menu.style.left = point.x;
             menu.style.top = point.y;
+
+            menu.RegisterCallback<GeometryChangedEvent>(_ =>
+            {
+                var size = menu.layout;
+
+                if (float.IsNaN(size.height) || size.height <= 0f)
+                {
+                    return;
+                }
+
+                menu.style.left = Mathf.Max(0f, point.x);
+                menu.style.top = Mathf.Max(0f, point.y - size.height - 6f);
+            });
 
             menu.schedule.Execute(() => menu.AddToClassList("context-menu--in"));
         }
