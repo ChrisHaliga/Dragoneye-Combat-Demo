@@ -10,39 +10,16 @@ using Dragoneye.Game.Creatures;
 
 namespace Dragoneye.Game.Combat
 {
-    /// <summary>What happened in a clash, once everybody is allowed to know.</summary>
-    public readonly struct ClashReport
-    {
-        public readonly uint AttackerId;
-        public readonly uint DefenderId;
-        public readonly int SkillId;
-        public readonly IReadOnlyList<Element> Attacker;
-        public readonly IReadOnlyList<Element> Defender;
-        public readonly ClashOutcome Outcome;
-
-        public ClashReport(uint attackerId, uint defenderId, int skillId,
-            IReadOnlyList<Element> attacker, IReadOnlyList<Element> defender, ClashOutcome outcome)
-        {
-            AttackerId = attackerId;
-            DefenderId = defenderId;
-            SkillId = skillId;
-            Attacker = attacker ?? System.Array.Empty<Element>();
-            Defender = defender ?? System.Array.Empty<Element>();
-            Outcome = outcome;
-        }
-    }
-
     /// <summary>
     /// The exchange, in one line, where everybody can read it.
     ///
     /// This replaced three separate numbers floating off two different heads at the same moment.
     /// A clash is one event with two halves and an answer, and splitting it across the board meant
-    /// reading three things in three places in the second before they faded -- which came to
-    /// "something happened and I do not know what", especially against a computer creature whose
-    /// answer was the thing you most wanted to see.
+    /// reading three things in three places in the second before they faded.
     ///
-    /// The damage itself still rises off the defender, where it belongs: that is a fact about them,
-    /// and it is announced separately for its own reasons.
+    /// Shown when the clash is shown to resolve -- after the swing has been seen and before the
+    /// blow lands -- which is the beat the playback leaves for it. The damage itself still rises
+    /// off the defender, where it belongs.
     /// </summary>
     [RequireComponent(typeof(UIDocument))]
     [DisallowMultipleComponent]
@@ -60,6 +37,7 @@ namespace Dragoneye.Game.Combat
         VisualElement m_Root;
         VisualElement m_Strip;
         float m_Shown;
+        CombatPlayback m_Playback;
 
         void Start()
         {
@@ -67,20 +45,39 @@ namespace Dragoneye.Game.Combat
 
             // The template root, not the document root: the stylesheet is attached inside it.
             m_Root = document.Q<VisualElement>("root") ?? document;
-
-            ClashCommands.Resolved += OnResolved;
         }
 
-        void OnDestroy() => ClashCommands.Resolved -= OnResolved;
+        void OnDestroy()
+        {
+            if (m_Playback != null)
+            {
+                m_Playback.Presenting -= OnPresenting;
+            }
+        }
 
         void Update()
         {
+            if (m_Playback != CombatPlayback.Current)
+            {
+                if (m_Playback != null)
+                {
+                    m_Playback.Presenting -= OnPresenting;
+                }
+
+                m_Playback = CombatPlayback.Current;
+
+                if (m_Playback != null)
+                {
+                    m_Playback.Presenting += OnPresenting;
+                }
+            }
+
             if (m_Strip == null)
             {
                 return;
             }
 
-            m_Shown += Time.unscaledDeltaTime;
+            m_Shown += Time.unscaledDeltaTime * (m_Playback != null ? m_Playback.Speed : 1f);
 
             if (m_Shown < m_Dwell)
             {
@@ -98,8 +95,13 @@ namespace Dragoneye.Game.Combat
             m_Strip.style.opacity = 1f - gone;
         }
 
-        void OnResolved(ClashReport report)
+        void OnPresenting(CombatEvent e)
         {
+            if (e.Kind != CombatEventKind.ClashResolved)
+            {
+                return;
+            }
+
             Clear();
 
             m_Strip = new VisualElement();
@@ -107,10 +109,10 @@ namespace Dragoneye.Game.Combat
             m_Strip.pickingMode = PickingMode.Ignore;
 
             // A swing belongs to no catalogue, so it names itself.
-            var skill = report.SkillId == Opportunity.SkillId
+            var skill = e.Skill == Opportunity.SkillId
                 ? Opportunity.Name
                 : SkillCatalog.Current != null
-                    && SkillCatalog.Current.TryGetSkill(report.SkillId, out var spec)
+                    && SkillCatalog.Current.TryGetSkill(e.Skill, out var spec)
                     ? spec.Name
                     : "Attack";
 
@@ -121,13 +123,13 @@ namespace Dragoneye.Game.Combat
             var exchange = new VisualElement();
             exchange.AddToClassList("clash-result__exchange");
 
-            exchange.Add(Side(report.Attacker, "clash-result__attacker"));
+            exchange.Add(Side(e.Elements, "clash-result__attacker"));
 
             var versus = new Label("vs");
             versus.AddToClassList("clash-result__versus");
             exchange.Add(versus);
 
-            exchange.Add(Side(report.Defender, "clash-result__defender"));
+            exchange.Add(Side(e.Answer, "clash-result__defender"));
 
             m_Strip.Add(exchange);
 
@@ -136,14 +138,14 @@ namespace Dragoneye.Game.Combat
             // words for it; a bystander reads it from the defender's side, which is where the
             // decision was made.
             var attacker = m_Input != null && m_Input.Creatures != null
-                ? m_Input.Creatures.ByTurnId(report.AttackerId)
+                ? m_Input.Creatures.ByTurnId(e.Actor)
                 : null;
 
             var mine = attacker != null && LocalPlayer.Controls(attacker);
 
-            var outcome = new Label(ClashLabels.Describe(report.Outcome, mine));
+            var outcome = new Label(ClashLabels.Describe(e.Outcome, mine));
             outcome.AddToClassList("clash-result__outcome");
-            outcome.style.color = Tint(ClashLabels.ColourOf(report.Outcome, mine));
+            outcome.style.color = Tint(ClashLabels.ColourOf(e.Outcome, mine));
             m_Strip.Add(outcome);
 
             m_Root.Add(m_Strip);

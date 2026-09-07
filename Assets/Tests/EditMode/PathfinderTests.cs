@@ -216,6 +216,7 @@ namespace Dragoneye.Hex.Tests
             public void CellsOf(Hex tile, List<Cell> into) => m_Inner.CellsOf(tile, into);
             public Wall HalfEdge(Hex tile, int halfEdge) => m_Inner.HalfEdge(tile, halfEdge);
             public Wall Ray(Hex tile, int ray) => m_Inner.Ray(tile, ray);
+            public bool TryCrossing(Cell from, Cell to, out int halfEdge) => m_Inner.TryCrossing(from, to, out halfEdge);
         }
 
         /// <summary>A grid on which the only step is North.</summary>
@@ -232,6 +233,7 @@ namespace Dragoneye.Hex.Tests
             public void CellsOf(Hex tile, List<Cell> into) => m_Inner.CellsOf(tile, into);
             public Wall HalfEdge(Hex tile, int halfEdge) => Wall.None;
             public Wall Ray(Hex tile, int ray) => Wall.None;
+            public bool TryCrossing(Cell from, Cell to, out int halfEdge) => m_Inner.TryCrossing(from, to, out halfEdge);
 
             public void Neighbours(Cell from, List<Cell> into)
             {

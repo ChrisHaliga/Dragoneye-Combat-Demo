@@ -15,8 +15,8 @@ namespace Dragoneye.Game.Combat
     /// frame from the creature it belongs to -- which is also the point: a creature that walks away
     /// takes its number with it, rather than leaving it hanging over empty ground.
     ///
-    /// Presentation only. It is driven by an announcement from the server and holds no state that
-    /// anything else reads, so a client that misses one has missed a number and not a rule.
+    /// Presentation only. It is driven by the record as it is shown, and by the few local
+    /// notices -- a miss arriving -- that a view raises about a moment of its own.
     /// </summary>
     [RequireComponent(typeof(UIDocument))]
     [DisallowMultipleComponent]
@@ -54,6 +54,7 @@ namespace Dragoneye.Game.Combat
         readonly List<Note> m_Notes = new List<Note>();
 
         VisualElement m_Layer;
+        CombatPlayback m_Playback;
 
         void Start()
         {
@@ -67,43 +68,85 @@ namespace Dragoneye.Game.Combat
                 return;
             }
 
-            // A static channel rather than a spawned object's event: notes come from creatures and
-            // from the match, both of which appear and vanish on their own schedule, and a view
-            // that had to chase each source would miss the ones raised before it caught up.
             CombatNotices.Raised += OnNotice;
-
-            // Two things that happen to a creature and leave no number behind: an attack its
-            // answer turned aside, and a shot that never arrived. Both are read off announcements
-            // every machine already gets, so neither needs anything sent for it.
-            ClashCommands.Resolved += OnClash;
-            CombatAnnouncer.Shot += OnShot;
+            Listen();
         }
 
         void OnDestroy()
         {
             CombatNotices.Raised -= OnNotice;
-            ClashCommands.Resolved -= OnClash;
-            CombatAnnouncer.Shot -= OnShot;
-        }
 
-        void OnClash(ClashReport report)
-        {
-            if (report.Outcome != ClashOutcome.AttackerWins)
+            if (m_Playback != null)
             {
-                CombatNotices.Raise(report.DefenderId, string.Empty, NoticeTone.Gain,
-                    NoticeMark.Guard);
+                m_Playback.Presenting -= OnPresenting;
             }
         }
 
-        void OnShot(ShotReport report)
+        void Listen()
         {
-            if (!report.Landed)
+            var playback = CombatPlayback.Current;
+
+            if (playback == null || playback == m_Playback)
             {
-                CombatNotices.Raise(report.TargetId, string.Empty, NoticeTone.Gain, NoticeMark.Guard);
+                return;
+            }
+
+            if (m_Playback != null)
+            {
+                m_Playback.Presenting -= OnPresenting;
+            }
+
+            m_Playback = playback;
+            m_Playback.Presenting += OnPresenting;
+        }
+
+        /// <summary>What the record says, as it is shown, where it leaves a number or a mark.</summary>
+        void OnPresenting(CombatEvent e)
+        {
+            switch (e.Kind)
+            {
+                case CombatEventKind.Damaged:
+                    OnNotice(e.Target, CombatNotices.Damage(e.Amount, e.Absorbed), NoticeTone.Loss,
+                        e.Amount > 0 ? NoticeMark.Hit : NoticeMark.Guard);
+                    break;
+
+                case CombatEventKind.Healed:
+                case CombatEventKind.Recovered:
+                    if (e.Amount > 0)
+                    {
+                        OnNotice(e.Actor, $"+{e.Amount} HP", NoticeTone.Gain, NoticeMark.None);
+                    }
+
+                    break;
+
+                case CombatEventKind.ApRestored:
+                    OnNotice(e.Actor, $"+{e.Amount} AP", NoticeTone.Gain, NoticeMark.None);
+                    break;
+
+                // Turned aside by an answer: nothing to count, so the mark is the whole note.
+                case CombatEventKind.ClashResolved:
+                    if (e.Outcome != ClashOutcome.AttackerWins)
+                    {
+                        OnNotice(e.Target, string.Empty, NoticeTone.Gain, NoticeMark.Guard);
+                    }
+
+                    break;
+
+                case CombatEventKind.Fell:
+                    if (e.Amount > 0 && e.Target != 0)
+                    {
+                        OnNotice(e.Target, $"+{e.Amount} XP", NoticeTone.Gain, NoticeMark.None);
+                    }
+
+                    break;
             }
         }
 
-        void Update() => Advance(Time.deltaTime);
+        void Update()
+        {
+            Listen();
+            Advance(Time.deltaTime);
+        }
 
         void OnNotice(uint turnId, string text, NoticeTone tone, NoticeMark mark)
         {
@@ -159,9 +202,8 @@ namespace Dragoneye.Game.Combat
         /// <summary>
         /// Moves every note to where its creature is, lifts it, fades it, and drops the expired.
         ///
-        /// A note whose creature has gone -- killed in the same exchange that paid for it -- keeps
-        /// its last position rather than vanishing, because the number is about what happened and
-        /// the creature is only where it happened.
+        /// A note whose creature has gone keeps its last position rather than vanishing, because
+        /// the number is about what happened and the creature is only where it happened.
         /// </summary>
         void Advance(float deltaTime)
         {

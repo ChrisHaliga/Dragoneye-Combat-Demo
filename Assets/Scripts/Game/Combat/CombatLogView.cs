@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using Dragoneye.Combat;
 using Dragoneye.Data;
+using Dragoneye.Hex;
 using Dragoneye.Multiplayer;
 using UnityEngine;
 using UnityEngine.UIElements;
@@ -11,21 +12,17 @@ using Dragoneye.Game.Creatures;
 namespace Dragoneye.Game.Combat
 {
     /// <summary>
-    /// A running account of the fight, bottom-left, newest at the bottom.
+    /// A running account of the fight, bottom-left, newest at the top.
     ///
     /// Everything else on the HUD shows a state: how much health, whose turn, what is in a hand
     /// right now. None of it shows a *change*, and a fight is made of changes -- so a creature that
     /// caught its breath and got an element back did something invisible, and a player who looked
-    /// away for a second had no way to find out what had happened. Knowing an opponent spent a turn
-    /// recovering is not a nicety; it is most of what there is to read in an element game.
+    /// away for a second had no way to find out what had happened.
     ///
-    /// It listens and never asks. The clash half arrives on <see cref="ClashCommands.Resolved"/>
-    /// and everything else on <see cref="CombatAnnouncer"/>, both of which are broadcast to every
-    /// peer, so this draws the same log on every machine without knowing which machine it is on.
-    /// The one thing it reads directly is the round number, which is already replicated.
-    ///
-    /// Names are read live and kept as they are read, because the most interesting line in the log
-    /// is about a creature that has just stopped existing.
+    /// It reads the record as it is shown, one event at a time, so a line appears at the moment
+    /// the thing it describes is on the board and never a turn early. Names are read live and
+    /// kept as they are read, because the most interesting line in the log is about a creature
+    /// that has just fallen.
     /// </summary>
     [RequireComponent(typeof(UIDocument))]
     [DisallowMultipleComponent]
@@ -54,7 +51,7 @@ namespace Dragoneye.Game.Combat
 
         ScrollView m_List;
         VisualElement m_Panel;
-        int m_Round;
+        CombatPlayback m_Playback;
 
         void Start()
         {
@@ -62,24 +59,6 @@ namespace Dragoneye.Game.Combat
 
             m_List = document.Q<ScrollView>("combat-log-list");
             m_Panel = document.Q<VisualElement>("combat-log");
-
-            if (m_List != null)
-            {
-                // Said here rather than trusted to the markup. The list is a fixed-height frame
-                // with more in it than fits, and a scroller that only appears when the layout
-                // agrees it is needed has, in practice, not appeared.
-                m_List.mode = ScrollViewMode.Vertical;
-                m_List.verticalScrollerVisibility = ScrollerVisibility.AlwaysVisible;
-                m_List.horizontalScrollerVisibility = ScrollerVisibility.Hidden;
-
-                // The wheel, handled here by one path. See WheelScroll for the history.
-                WheelScroll.Attach(m_List);
-
-                // And two buttons, because a click is the one input this HUD has never dropped.
-                // Newest is at the top, so "older" is further down.
-                m_List.parent.Insert(m_List.parent.IndexOf(m_List), Navigation());
-            }
-            m_Panel?.AddToClassList("combat-log--empty");
 
             if (m_List == null)
             {
@@ -89,19 +68,29 @@ namespace Dragoneye.Game.Combat
                 return;
             }
 
+            // Said here rather than trusted to the markup. The list is a fixed-height frame
+            // with more in it than fits, and a scroller that only appears when the layout
+            // agrees it is needed has, in practice, not appeared.
+            m_List.mode = ScrollViewMode.Vertical;
+            m_List.verticalScrollerVisibility = ScrollerVisibility.AlwaysVisible;
+            m_List.horizontalScrollerVisibility = ScrollerVisibility.Hidden;
+
+            // The wheel, handled here by one path. See WheelScroll for the history.
+            WheelScroll.Attach(m_List);
+
+            // And two buttons, because a click is the one input this HUD has never dropped.
+            // Newest is at the top, so "older" is further down.
+            m_List.parent.Insert(m_List.parent.IndexOf(m_List), Navigation());
+
+            m_Panel?.AddToClassList("combat-log--empty");
+
             if (m_Creatures != null)
             {
                 m_Creatures.Changed += Remember;
                 Remember();
             }
 
-            ClashCommands.Resolved += OnClash;
-            CombatAnnouncer.Acted += OnActed;
-            CombatAnnouncer.Fell += OnFell;
-            CombatAnnouncer.HeldBack += OnHeldBack;
-            CombatAnnouncer.Shot += OnShot;
-            CombatAnnouncer.Recovered += OnRecovered;
-            WallCommands.Changed += OnWallChanged;
+            Listen();
         }
 
         void OnDestroy()
@@ -111,38 +100,30 @@ namespace Dragoneye.Game.Combat
                 m_Creatures.Changed -= Remember;
             }
 
-            ClashCommands.Resolved -= OnClash;
-            CombatAnnouncer.Acted -= OnActed;
-            CombatAnnouncer.Fell -= OnFell;
-            CombatAnnouncer.HeldBack -= OnHeldBack;
-            CombatAnnouncer.Shot -= OnShot;
-            CombatAnnouncer.Recovered -= OnRecovered;
-            WallCommands.Changed -= OnWallChanged;
+            if (m_Playback != null)
+            {
+                m_Playback.Presenting -= OnPresenting;
+            }
         }
 
-        /// <summary>
-        /// Watches the round over, since nothing announces it.
-        ///
-        /// The number is on <see cref="TurnState"/> and replicated to everybody, so reading it is
-        /// cheaper and more honest than a message that would say the same thing a frame later and
-        /// could disagree with it.
-        /// </summary>
-        void Update()
-        {
-            var turns = TurnState.Current;
-            var round = turns != null && !turns.IsOver ? turns.Round : 0;
+        void Update() => Listen();
 
-            if (round == m_Round)
+        void Listen()
+        {
+            var playback = CombatPlayback.Current;
+
+            if (playback == null || playback == m_Playback)
             {
                 return;
             }
 
-            m_Round = round;
-
-            if (round > 0)
+            if (m_Playback != null)
             {
-                AddRound($"ROUND {round}");
+                m_Playback.Presenting -= OnPresenting;
             }
+
+            m_Playback = playback;
+            m_Playback.Presenting += OnPresenting;
         }
 
         /// <summary>Notes down how every creature on the board should be referred to.</summary>
@@ -162,30 +143,17 @@ namespace Dragoneye.Game.Combat
             }
         }
 
-        /// <summary>
-        /// What to call a creature, in its party colour.
-        ///
-        /// A creature somebody is playing is named with them -- "Kaya&apos;s Ranger" -- because the
-        /// two facts a reader wants from the front of a line are which creature acted and whether a
-        /// person chose it. A premade is just itself; there is nobody to credit.
-        /// </summary>
-        static Known Describe(CreatureState creature)
-        {
-            // The creature, and only the creature. Who is running it is on the turn bar and on
-            // the card; putting it in front of every line as well made each one longer than the
-            // thing it was reporting, and creatures are what a player points at.
-            return new Known(
+        /// <summary>What to call a creature, in its party colour.</summary>
+        static Known Describe(CreatureState creature) =>
+            new Known(
                 CombatLogLines.Tint(PartyPalette.ForParty(creature.Party), creature.DisplayName),
                 LocalPlayer.Controls(creature));
-        }
 
         /// <summary>
         /// What is known about a creature right now, falling back to what was known last.
         ///
         /// Asked fresh while the creature is still on the board, because the roster fills in as
-        /// clients connect and a name cached at spawn can still be "Player 2". The cache is there
-        /// for the one case a live lookup cannot serve: a creature that has just been despawned,
-        /// which is exactly what the line about it is reporting.
+        /// clients connect and a name cached at spawn can still be "Player 2".
         /// </summary>
         Known Lookup(uint turnId)
         {
@@ -203,34 +171,82 @@ namespace Dragoneye.Game.Combat
 
         string NameOf(uint turnId) => Lookup(turnId).Label;
 
-        bool IsMine(uint turnId) => Lookup(turnId).Mine;
+        bool IsMine(uint turnId) => turnId != 0 && Lookup(turnId).Mine;
 
-        /// <summary>
-        /// A wall came down, or went up. Nobody's line, so nobody's colour: the board changed
-        /// under everyone alike.
-        /// </summary>
-        void OnWallChanged(Dragoneye.Hex.WallSegment segment, Dragoneye.Hex.Wall before, Dragoneye.Hex.Wall after)
+        void OnPresenting(CombatEvent e)
         {
-            Add(CombatLogLines.Wall(before, after), mine: false);
+            switch (e.Kind)
+            {
+                case CombatEventKind.RoundBegan:
+                    AddRound($"ROUND {e.Round}");
+                    break;
+
+                case CombatEventKind.Recovered:
+                    Add($"{NameOf(e.Actor)} recovers {e.Amount} HP.", IsMine(e.Actor));
+                    break;
+
+                case CombatEventKind.Shot:
+                    OnShot(e);
+                    break;
+
+                case CombatEventKind.Acted:
+                    OnActed(e);
+                    break;
+
+                case CombatEventKind.ClashResolved:
+                    OnClash(e);
+                    break;
+
+                case CombatEventKind.Damaged:
+                    Add($"{NameOf(e.Target)} takes {CombatLogLines.Blow(e.Amount, e.Absorbed)}.",
+                        IsMine(e.Target) || IsMine(e.Actor));
+                    break;
+
+                case CombatEventKind.Healed:
+                    Add($"{NameOf(e.Actor)} heals {e.Amount} HP.", IsMine(e.Actor));
+                    break;
+
+                case CombatEventKind.HeldBack:
+                    Add($"{NameOf(e.Actor)} lets {NameOf(e.Target)} go.", IsMine(e.Actor) || IsMine(e.Target));
+                    break;
+
+                case CombatEventKind.Fell:
+                    Add(e.Amount > 0
+                            ? $"{NameOf(e.Actor)} falls. {NameOf(e.Target)} earns {e.Amount} XP."
+                            : $"{NameOf(e.Actor)} falls.",
+                        IsMine(e.Actor) || IsMine(e.Target));
+                    break;
+
+                case CombatEventKind.WallChanged:
+                    // Nobody's line, so nobody's colour: the board changed under everyone alike.
+                    Add(CombatLogLines.Wall(new Wall(e.WallBefore), new Wall(e.WallAfter)), mine: false);
+                    break;
+
+                case CombatEventKind.Ended:
+                    Add(e.HasWinner
+                            ? $"<b>{PartyPalette.NameOf(e.Winner)} win.</b>"
+                            : "<b>Nobody is left standing.</b>",
+                        mine: false);
+                    break;
+            }
         }
 
-        void OnActed(ActionReport report)
+        void OnActed(CombatEvent e)
         {
-            var skill = SkillOf(report.SkillId);
+            var skill = SkillOf(e.Skill);
 
             if (skill == null)
             {
                 return;
             }
 
-            var line = $"{NameOf(report.ActorId)} used <b>{skill.Name}</b> "
-                + $"({CombatLogLines.Cost(skill)})";
+            var line = $"{NameOf(e.Actor)} used <b>{skill.Name}</b> ({CombatLogLines.Cost(skill)})";
 
             switch (skill.Effect.Kind)
             {
                 case SkillEffectKind.ReturnElement:
-                    line += report.Returned.Count > 0
-                        ? $" and regained {CombatLogLines.Runes(report.Returned)}"
+                    line += e.Returned.Count > 0
+                        ? $" and regained {CombatLogLines.Runes(e.Returned)}"
                         : " and got nothing back";
                     break;
 
@@ -239,83 +255,69 @@ namespace Dragoneye.Game.Combat
                     break;
 
                 case SkillEffectKind.Heal:
-                    line += $" and healed {skill.Effect.Amount} HP";
+                    line += " to heal";
                     break;
 
                 case SkillEffectKind.Damage:
                     // Uncontested damage: a tile, or somebody on the same side. Anything thrown at
                     // an enemy became a clash and is reported as one.
-                    line += report.HasTarget ? $" on {NameOf(report.TargetId)}" : string.Empty;
+                    line += e.HasTarget ? $" on {NameOf(e.Target)}" : string.Empty;
                     break;
             }
 
-            Add(line, IsMine(report.ActorId));
+            Add(line + ".", IsMine(e.Actor));
         }
 
-        void OnClash(ClashReport report)
+        void OnClash(CombatEvent e)
         {
-            var skill = SkillOf(report.SkillId);
-            var attacker = NameOf(report.AttackerId);
-            var defender = NameOf(report.DefenderId);
+            var skill = SkillOf(e.Skill);
+            var attacker = NameOf(e.Actor);
+            var defender = NameOf(e.Target);
 
-            var reader = IsMine(report.AttackerId)
+            var reader = IsMine(e.Actor)
                 ? LogSide.Attacker
-                : IsMine(report.DefenderId)
+                : IsMine(e.Target)
                     ? LogSide.Defender
                     : LogSide.Neither;
 
-            // A swing belongs to nobody catalogue, so it is assembled from whichever element
-            // was put up -- which the report carries, because by now both sides are revealed.
-            var opportunity = report.SkillId == Opportunity.SkillId;
+            // A swing belongs to no catalogue, so it is assembled from whichever element was put
+            // up -- which the record carries, because by now both sides are revealed.
+            var opportunity = e.Skill == Opportunity.SkillId;
 
             var name = opportunity ? Opportunity.Name : skill != null ? skill.Name : "an attack";
 
             var cost = opportunity
-                ? $" ({CombatLogLines.Runes(report.Attacker)})"
+                ? $" ({CombatLogLines.Runes(e.Elements)})"
                 : skill != null ? $" ({CombatLogLines.Cost(skill)})" : string.Empty;
 
-            var answer = report.Defender.Count > 0
-                ? $"answered {CombatLogLines.Runes(report.Defender)}"
+            var answer = e.Answer.Count > 0
+                ? $"answered {CombatLogLines.Runes(e.Answer)}"
                 : "did not answer";
 
             Add($"{attacker} used <b>{name}</b>{cost} on {defender}, who {answer} — "
-                + CombatLogLines.Verdict(report.Outcome, attacker, defender, reader),
+                + CombatLogLines.Verdict(e.Outcome, attacker, defender, reader),
                 reader != LogSide.Neither);
         }
 
-        void OnFell(uint creatureId) =>
-            Add($"{NameOf(creatureId)} falls.", IsMine(creatureId));
-
-        // The swing that was warned about and did not come. Without this line the warning on the
-        // cursor reads as wrong, when what happened is that somebody chose not to.
         /// <summary>
         /// A shot, however it went. The chance is said either way: a hit at thirty percent and a
-        /// miss at ninety are both worth knowing about, and the clash line that follows a hit
-        /// does not say what the arrow had to get past.
+        /// miss at ninety are both worth knowing about.
         /// </summary>
-        void OnShot(ShotReport report)
+        void OnShot(CombatEvent e)
         {
-            var skill = SkillOf(report.SkillId);
+            var skill = SkillOf(e.Skill);
 
             if (skill == null)
             {
                 return;
             }
 
-            Add($"{NameOf(report.AttackerId)} loosed <b>{skill.Name}</b> "
-                + $"({CombatLogLines.Cost(skill)}) at {NameOf(report.TargetId)} and "
-                + (report.Landed ? "it flew true " : "missed ")
-                + CombatLogLines.Tint("#8B93A5", $"({report.Chance}% to hit)"),
-                IsMine(report.AttackerId) || IsMine(report.TargetId));
+            Add($"{NameOf(e.Actor)} loosed <b>{skill.Name}</b> "
+                + $"({CombatLogLines.Cost(skill)}) at {NameOf(e.Target)} and "
+                + (e.Landed ? "it flew true " : "missed ")
+                + CombatLogLines.Tint("#8B93A5", $"({e.Amount}% to hit)"),
+                IsMine(e.Actor) || IsMine(e.Target));
         }
-
-        // Toughness, at the top of a turn. Without a line the bar moves and nothing says why.
-        void OnRecovered(uint creatureId, int amount) =>
-            Add($"{NameOf(creatureId)} recovers {amount} HP.", IsMine(creatureId));
-
-        void OnHeldBack(uint watcherId, uint moverId) =>
-            Add($"{NameOf(watcherId)} lets {NameOf(moverId)} go.",
-                IsMine(watcherId) || IsMine(moverId));
 
         static SkillSpec SkillOf(int skillId) =>
             SkillCatalog.Current != null && SkillCatalog.Current.TryGetSkill(skillId, out var spec)
@@ -362,9 +364,7 @@ namespace Dragoneye.Game.Combat
         /// Puts a line at the top and drops the oldest off the bottom.
         ///
         /// A stack, not a transcript. The thing that just happened is the thing being read, and a
-        /// log that grows downwards makes the newest line the one that keeps moving -- so either it
-        /// scrolls itself and steals the line you were reading, or it does not and the newest line
-        /// is off screen. Newest at a fixed place solves both.
+        /// log that grows downwards makes the newest line the one that keeps moving.
         /// </summary>
         void Append(VisualElement line)
         {

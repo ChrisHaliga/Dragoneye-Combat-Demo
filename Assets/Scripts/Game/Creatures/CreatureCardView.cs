@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using Dragoneye.Combat;
 using Dragoneye.Data;
 using Dragoneye.Multiplayer;
@@ -51,6 +52,7 @@ namespace Dragoneye.Game.Creatures
         CreatureState m_Observed;
         CreaturePool m_ObservedPool;
         SkillCommands m_ObservedSkills;
+        CombatPlayback m_Playback;
 
         void Start()
         {
@@ -101,7 +103,33 @@ namespace Dragoneye.Game.Creatures
                 m_Selection.SelectionChanged -= OnSelectionChanged;
             }
 
+            if (m_Playback != null)
+            {
+                m_Playback.Changed -= Redraw;
+            }
+
             Observe(null);
+        }
+
+        // The vitals on the card are the shown ones, so the card redraws as the fight is shown.
+        void Update()
+        {
+            if (m_Playback == CombatPlayback.Current)
+            {
+                return;
+            }
+
+            if (m_Playback != null)
+            {
+                m_Playback.Changed -= Redraw;
+            }
+
+            m_Playback = CombatPlayback.Current;
+
+            if (m_Playback != null)
+            {
+                m_Playback.Changed += Redraw;
+            }
         }
 
         void OnSelectionChanged(CreatureState creature)
@@ -206,17 +234,20 @@ namespace Dragoneye.Game.Creatures
                 : CreatureDisplay.ControllerName(creature);
 
             m_Controller.EnableInClassList("is-hidden", creature.IsComputerControlled);
-            m_Hp.text = $"{creature.CurrentHp} / {creature.MaxHp}";
+
+            // The shown numbers, not the live ones: the card is read, and what is read should be
+            // what has been watched happen.
+            m_Hp.text = $"{Shown.Hp(creature)} / {creature.MaxHp}";
 
             // Always shown, even at nothing. Armour is one of the four numbers a creature is, and
             // a row that comes and goes is a row the player cannot learn the position of.
             if (m_Armour != null && m_ArmourRow != null)
             {
-                m_Armour.text = $"{creature.CurrentArmour} / {creature.MaxArmour}";
+                m_Armour.text = $"{Shown.Armour(creature)} / {creature.MaxArmour}";
                 m_ArmourRow.tooltip = StatLore.Armour(creature.MaxArmour);
             }
 
-            m_Ap.text = $"{creature.CurrentAp} / {creature.MaxAp}";
+            m_Ap.text = $"{Shown.Ap(creature)} / {creature.MaxAp}";
             m_Speed.text = creature.Speed.ToString();
 
             // What each number does, on the row. The card is where a player goes to understand a
@@ -237,7 +268,7 @@ namespace Dragoneye.Game.Creatures
             }
             m_Description.text = definition != null ? definition.Description : string.Empty;
 
-            BuildPips(creature.CurrentAp, creature.MaxAp);
+            BuildPips(Shown.Ap(creature), creature.MaxAp);
             BuildExperience(creature);
             BuildElements();
             BuildSkills();
@@ -283,7 +314,9 @@ namespace Dragoneye.Game.Creatures
                 return;
             }
 
-            var seen = m_ObservedSkills.SeenSkillIds;
+            // What has been *shown* used. The replicated list is a turn ahead of the screen.
+            var shown = Shown.Of(m_Observed);
+            var seen = shown != null ? (IReadOnlyList<int>)shown.Seen : m_ObservedSkills.SeenSkillIds;
             m_SkillsTitle.text = "SEEN USING " + Bullet + " " + seen.Count;
 
             foreach (var id in seen)
@@ -427,9 +460,9 @@ namespace Dragoneye.Game.Creatures
                 return;
             }
 
-            var guess = PossibleElements.Seen(m_ObservedPool.Ledger);
+            var guess = PossibleElements.Seen(ShownLedger());
 
-            m_ElementsTitle.text = $"THEIR HAND  ·  {m_ObservedPool.InHand} "
+            m_ElementsTitle.text = $"THEIR HAND  ·  {ShownInHand()} "
                 + $"OF {m_ObservedPool.Total}";
 
             foreach (var element in ElementInfo.All)
@@ -487,17 +520,49 @@ namespace Dragoneye.Game.Creatures
             }
         }
 
-        /// <summary>What is currently spent, per element. Everybody watched all of it.</summary>
+        /// <summary>What is currently spent, per element, as it has been shown spent.</summary>
         ElementCounts SpentCounts()
         {
             var spent = ElementCounts.Empty;
 
-            foreach (var element in m_ObservedPool.Outstanding)
+            foreach (var element in ShownOutstanding())
             {
                 spent = spent.Plus(element, 1);
             }
 
             return spent;
+        }
+
+        /// <summary>
+        /// The public half of this creature's elements, as the watcher has been shown it.
+        ///
+        /// Before the fight opens there is nothing to have shown, and the replicated record --
+        /// which is empty then -- is the answer. After it, the record is a turn ahead of the
+        /// screen and the shown fight is what the card reads.
+        /// </summary>
+        ElementLedger ShownLedger()
+        {
+            var shown = Shown.Of(m_Observed);
+
+            if (shown == null)
+            {
+                return m_ObservedPool.Ledger;
+            }
+
+            return new ElementLedger(ElementCounts.Empty, shown.Revealed, shown.Outstanding,
+                m_ObservedPool.Total, shown.Identified);
+        }
+
+        IReadOnlyList<Element> ShownOutstanding()
+        {
+            var shown = Shown.Of(m_Observed);
+            return shown != null ? shown.Outstanding : m_ObservedPool.Outstanding;
+        }
+
+        int ShownInHand()
+        {
+            var left = m_ObservedPool.Total - ShownOutstanding().Count;
+            return left < 0 ? 0 : left;
         }
 
         static Label Note(string text)

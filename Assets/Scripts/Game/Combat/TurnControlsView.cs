@@ -284,18 +284,16 @@ namespace Dragoneye.Game.Combat
 
         void RefreshOutcome()
         {
-            var turns = TurnState.Current;
-
             // A scenario's outcome is its report, and this banner would cover it.
             var scenario = ScenarioRunner.Current != null && ScenarioRunner.Current.Scenario != null;
-            var over = turns != null && turns.IsOver && !scenario;
+            var over = Shown.IsOver && !scenario;
 
             m_Banner.EnableInClassList("is-hidden", !over);
 
             if (over)
             {
-                m_OutcomeTitle.text = turns.HasWinner
-                    ? $"{PartyPalette.NameOf(turns.Winner)} win"
+                m_OutcomeTitle.text = Shown.HasWinner
+                    ? $"{PartyPalette.NameOf(Shown.Winner)} win"
                     : "Nobody is left standing";
             }
         }

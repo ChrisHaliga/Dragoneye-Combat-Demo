@@ -11,12 +11,11 @@ namespace Dragoneye.Game.Combat
     ///
     /// The turn bar says whose turn it is; this says *where* they are. On a board of eight tokens
     /// the eye goes to the one that is lit, and a ring that breathes is lit in a way a static one is
-    /// not -- motion is what the eye is built to find, and one moving thing on a still board is found
-    /// before it is looked for.
+    /// not.
     ///
-    /// Purely presentation, and read entirely from replicated state: which creature is active and
-    /// where its token is standing. It follows the token's transform rather than its cell, so it
-    /// walks with a creature that is still being drawn arriving somewhere.
+    /// Purely presentation, and read entirely from the shown fight: which creature's turn is being
+    /// watched, and where its token is standing. It follows the token's transform rather than its
+    /// cell, so it walks with a creature that is still being drawn arriving somewhere.
     /// </summary>
     [DisallowMultipleComponent]
     public sealed class ActiveCreatureMarker : MonoBehaviour
@@ -47,9 +46,9 @@ namespace Dragoneye.Game.Combat
         {
             MarkSelection();
 
-            var turns = TurnState.Current;
-            var active = turns != null && !turns.IsOver && m_Creatures != null
-                ? m_Creatures.ByTurnId(turns.ActiveId)
+            var fight = Shown.Fight;
+            var active = fight != null && fight.Began && !fight.IsOver && m_Creatures != null
+                ? m_Creatures.ByTurnId(fight.ActiveId)
                 : null;
 
             if (active == null)
@@ -83,12 +82,7 @@ namespace Dragoneye.Game.Combat
             m_Material.SetColor("_BaseColor", tintNow);
         }
 
-        /// <summary>
-        /// How high the token sits above its tile, so the ring can be put on the tile itself.
-        ///
-        /// Read from the token rather than assumed, for the same reason the token positions its own
-        /// parts against the prefab's offset: the number lives there.
-        /// </summary>
+        /// <summary>How high the token sits above its tile, so the ring can be put on the tile itself.</summary>
         static float GroundOf(CreatureState creature)
         {
             var view = creature.View;
@@ -107,15 +101,13 @@ namespace Dragoneye.Game.Combat
 
         /// <summary>
         /// The ring under whatever is selected. Still and pale, so it is obviously not the turn
-        /// marker: one says "acting", the other says "being read", and the card in the corner is
-        /// about the second one. A player who clicks an enemy and then loses track of which enemy
-        /// they clicked has been asked to hold a thing in their head that the board can hold.
+        /// marker: one says "acting", the other says "being read".
         /// </summary>
         void MarkSelection()
         {
             var picked = m_Selection != null ? m_Selection.Selected : null;
 
-            if (picked == null)
+            if (picked == null || !Shown.IsAlive(picked))
             {
                 if (m_Picked != null)
                 {

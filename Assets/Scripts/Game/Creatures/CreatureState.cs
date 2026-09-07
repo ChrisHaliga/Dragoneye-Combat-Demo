@@ -8,6 +8,25 @@ using Dragoneye.Game.Combat;
 
 namespace Dragoneye.Game.Creatures
 {
+    /// <summary>What a blow came to: what got through, what the armour held, what is left.</summary>
+    public readonly struct DamageResult
+    {
+        public readonly int Landed;
+        public readonly int Absorbed;
+        public readonly int HpAfter;
+        public readonly int ArmourAfter;
+        public readonly bool Killed;
+
+        public DamageResult(int landed, int absorbed, int hpAfter, int armourAfter, bool killed)
+        {
+            Landed = landed;
+            Absorbed = absorbed;
+            HpAfter = hpAfter;
+            ArmourAfter = armourAfter;
+            Killed = killed;
+        }
+    }
+
     /// <summary>
     /// A unit's identity and vitals. <see cref="UnitState"/> keeps where it stands; this keeps what
     /// it is. One prefab, two NetworkBehaviours, one responsibility each.
@@ -392,19 +411,8 @@ namespace Dragoneye.Game.Creatures
             m_CurrentHp.Value = SkillRules.Apply(
                 new SkillEffect(SkillEffectKind.Heal, amount), before, MaxHp);
 
-            var healed = m_CurrentHp.Value - before;
-
-            if (healed > 0)
-            {
-                ShowHealRpc(healed);
-            }
-
-            return healed;
+            return m_CurrentHp.Value - before;
         }
-
-        [Rpc(SendTo.Everyone)]
-        void ShowHealRpc(int healed) =>
-            CombatNotices.Raise(TurnId, $"+{healed} HP", NoticeTone.Gain);
 
         /// <summary>Server only. Restores action points, never past the maximum.</summary>
         public void ServerRestoreAp(Ap amount)
@@ -427,39 +435,40 @@ namespace Dragoneye.Game.Creatures
         }
 
         /// <summary>
-        /// Server only. Applies damage.
+        /// Server only. Applies damage: armour first, health second.
+        ///
+        /// Both here rather than in the caller, so what lands and what is written down cannot
+        /// disagree: one subtraction, one set of numbers, handed back for the record.
         /// </summary>
-        /// <returns>True if this killed the creature, so the caller can clear it off the board.</returns>
-        public bool ServerApplyDamage(int damage)
+        public DamageResult ServerApplyDamage(int damage)
         {
             if (!IsServer || !IsAlive)
             {
-                return false;
+                return new DamageResult(0, 0, m_CurrentHp.Value, m_CurrentArmour.Value, false);
             }
 
-            // Armour first, health second, and both here rather than in the caller, so what lands
-            // and what is announced cannot disagree: one subtraction, one pair of numbers, told to
-            // everybody.
             var through = CombatRules.Absorb(damage, m_CurrentArmour.Value, out var armourLeft);
             var absorbed = m_CurrentArmour.Value - armourLeft;
 
             m_CurrentArmour.Value = armourLeft;
             m_CurrentHp.Value = CombatRules.Damaged(m_CurrentHp.Value, through);
-            ShowDamageRpc(through, absorbed);
 
-            return !IsAlive;
+            return new DamageResult(through, absorbed, m_CurrentHp.Value, m_CurrentArmour.Value, !IsAlive);
         }
 
         /// <summary>
-        /// Tells every peer what this creature just took, and how much of it the armour held.
+        /// Server only. Takes a dead creature off the board without despawning it.
         ///
-        /// The numbers cross the wire, not the sentence: each client words it for itself, so the
-        /// rules never carry English and a translation later changes one file.
+        /// It gives up its cell, so nothing walks round a body, and stays as an object so a
+        /// watcher behind the fight can still be shown it fall. It goes with the arena.
         /// </summary>
-        [Rpc(SendTo.Everyone)]
-        void ShowDamageRpc(int landed, int absorbed) =>
-            CombatNotices.Raise(TurnId, CombatNotices.Damage(landed, absorbed), NoticeTone.Loss,
-                landed > 0 ? NoticeMark.Hit : NoticeMark.Guard);
+        public void ServerLeaveBoard()
+        {
+            if (IsServer)
+            {
+                Unit?.ServerLeaveBoard();
+            }
+        }
 
         void OnIdChanged(ushort previous, ushort current)
         {

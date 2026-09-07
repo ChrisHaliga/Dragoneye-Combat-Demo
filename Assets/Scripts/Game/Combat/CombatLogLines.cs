@@ -109,6 +109,19 @@ namespace Dragoneye.Game.Combat
             return after.BlocksSight ? "A wall is made whole." : "A wall is broken down to waist height.";
         }
 
+        /// <summary>"3 damage", or "3 damage (2 on armour)", or "nothing: 5 on armour".</summary>
+        public static string Blow(int landed, int absorbed)
+        {
+            if (absorbed <= 0)
+            {
+                return $"{landed} damage";
+            }
+
+            return landed > 0
+                ? $"{landed} damage ({absorbed} on armour)"
+                : $"nothing: {absorbed} on armour";
+        }
+
         public static string Cost(SkillSpec skill)
         {
             if (skill == null)

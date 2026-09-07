@@ -85,6 +85,33 @@ namespace Dragoneye.Hex.Systems
             return transform.TransformPoint(local);
         }
 
+        /// <summary>
+        /// The middle of the gap a step from one cell to the next goes through, in the world.
+        ///
+        /// For a token drawing a walk. The straight line between two cell centres can cut through
+        /// the very wall the step went round -- on a cut tile the centre of a piece sits well to
+        /// one side of the gap -- so a walk is drawn centre, gap, centre.
+        /// </summary>
+        public bool TryCrossingPoint(Cell from, Cell to, out Vector3 world)
+        {
+            world = ToWorld(to);
+
+            if (Map == null || Grid == null || !Grid.TryCrossing(from, to, out var halfEdge))
+            {
+                return false;
+            }
+
+            TileGeometry.RayEnd(halfEdge, out var ax, out var az);
+            TileGeometry.RayEnd(halfEdge + 1, out var bx, out var bz);
+
+            var scale = Map.Layout.Size / TileGeometry.Scale;
+            var local = Map.Layout.ToWorld(from.Tile)
+                + new Vector3((float)((ax + bx) * 0.5 * scale), 0f, (float)((az + bz) * 0.5 * scale));
+
+            world = transform.TransformPoint(local);
+            return true;
+        }
+
         public Hex FromWorld(Vector3 world) =>
             Map == null ? Hex.Zero : Map.Layout.FromWorld(transform.InverseTransformPoint(world));
 

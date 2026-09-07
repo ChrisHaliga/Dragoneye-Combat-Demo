@@ -285,7 +285,7 @@ namespace Dragoneye.Game.Combat
             {
                 // Said out loud. The board warned the mover a swing was coming; when it does not
                 // come, the log has to say who let them go, or the warning reads as a lie.
-                CombatAnnouncer.Current?.ServerHeldBack(watcher.TurnId, mover.TurnId);
+                FightRecord.Say(CombatEvent.HeldBackBy(0, watcher.TurnId, mover.TurnId));
                 AskNext();
                 return true;
             }

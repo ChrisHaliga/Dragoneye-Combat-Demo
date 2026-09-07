@@ -153,22 +153,29 @@ namespace Dragoneye.Game.Combat
         public void CancelPendingMove() => PendingMove = null;
 
         /// <summary>
-        /// The creature the local player is acting with: the active one, if they control it.
+        /// The creature the local player is acting with: the one whose turn is being shown, if
+        /// they control it.
         ///
         /// Not the selection. A player may click an enemy to read its card without giving up their
         /// turn, so what is selected and what is acting are different questions.
+        ///
+        /// The shown turn, not the replicated one. The simulation waits for a person, so when it
+        /// is this player's turn the two agree -- but the playback may still be showing the turns
+        /// before it, and a board that offered orders then would be offering them for a turn the
+        /// player has not yet been shown reaching.
         /// </summary>
         public CreatureState Actor
         {
             get
             {
-                var turns = TurnState.Current;
-                if (turns == null || turns.IsOver || m_Creatures == null)
+                var fight = Shown.Fight;
+
+                if (fight == null || !fight.Began || fight.IsOver || m_Creatures == null)
                 {
                     return null;
                 }
 
-                var active = m_Creatures.ByTurnId(turns.ActiveId);
+                var active = m_Creatures.ByTurnId(fight.ActiveId);
                 return active != null && LocalPlayer.Controls(active) ? active : null;
             }
         }

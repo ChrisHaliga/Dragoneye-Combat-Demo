@@ -92,8 +92,7 @@ namespace Dragoneye.Game.Combat
                 return;
             }
 
-            var turns = TurnState.Current;
-            var round = turns != null ? turns.Round : 0;
+            var round = Shown.Round;
 
             if (round != m_Round)
             {

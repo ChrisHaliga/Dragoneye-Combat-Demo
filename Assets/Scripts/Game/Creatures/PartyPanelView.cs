@@ -15,8 +15,9 @@ namespace Dragoneye.Game.Creatures
     /// teammates are fielding. Which of them are yours is carried by the border colour, because that
     /// is the question a shared party raises and colour answers it without costing a row of text.
     ///
-    /// Split from the summary card: they are two views with different data and different redraw
-    /// triggers, and one class doing both was doing two jobs.
+    /// Health is read from the shown fight, so a bar falls when the blow is shown to land. A
+    /// creature that has fallen stays in the column, dimmed: the party is still the party, and a
+    /// row that vanished said less than one that is plainly gone.
     ///
     /// Rebuilt wholesale on change rather than diffed. A party is a handful of rows that change only
     /// when a creature spawns, dies or takes damage; pooling here would be machinery with nothing
@@ -38,6 +39,7 @@ namespace Dragoneye.Game.Creatures
         readonly List<CreatureState> m_Observed = new List<CreatureState>();
 
         VisualElement m_Column;
+        CombatPlayback m_Playback;
 
         void Start()
         {
@@ -75,13 +77,28 @@ namespace Dragoneye.Game.Creatures
         }
 
         /// <summary>
-        /// Stands aside while a test scenario is running.
+        /// Stands aside while a test scenario is running, and follows the playback.
         ///
         /// A scenario is watched rather than played -- nobody's party is anybody's -- and the
         /// report of what it proved wants the column this would otherwise be holding.
         /// </summary>
         void Update()
         {
+            if (m_Playback != CombatPlayback.Current)
+            {
+                if (m_Playback != null)
+                {
+                    m_Playback.Changed -= Rebuild;
+                }
+
+                m_Playback = CombatPlayback.Current;
+
+                if (m_Playback != null)
+                {
+                    m_Playback.Changed += Rebuild;
+                }
+            }
+
             if (m_Column == null)
             {
                 return;
@@ -101,6 +118,11 @@ namespace Dragoneye.Game.Creatures
             if (m_Selection != null)
             {
                 m_Selection.SelectionChanged -= OnSelectionChanged;
+            }
+
+            if (m_Playback != null)
+            {
+                m_Playback.Changed -= Rebuild;
             }
 
             Unobserve();
@@ -150,6 +172,7 @@ namespace Dragoneye.Game.Creatures
 
             foreach (var creature in m_Creatures.InParty(party.Value))
             {
+                // Identity still comes from the creature: a name filled in as a client connects.
                 creature.Changed += Rebuild;
                 m_Observed.Add(creature);
                 m_List.Add(BuildPortrait(creature));
@@ -158,12 +181,6 @@ namespace Dragoneye.Game.Creatures
 
         /// <summary>
         /// The side the local player chose, read from the draft.
-        ///
-        /// This used to be inferred from a creature the player happened to control, which was a view
-        /// reconstructing a fact the draft already owns -- and it was wrong exactly when it mattered:
-        /// a player whose teammates claimed everything, or whose claims were released by
-        /// <c>EnforceCaps</c>, controls nothing, so the inference fell through to "the first party
-        /// present" and showed them the enemy column.
         ///
         /// Null means no party, which is a real state -- a spectator, or a player who has not picked
         /// yet -- and the caller shows an empty column for it rather than guessing.
@@ -190,6 +207,7 @@ namespace Dragoneye.Game.Creatures
         {
             var row = new VisualElement();
             row.AddToClassList("portrait");
+            row.EnableInClassList("portrait--fallen", !Shown.IsAlive(creature));
 
             if (m_Selection.Selected == creature)
             {

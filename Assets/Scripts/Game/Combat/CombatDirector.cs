@@ -20,13 +20,19 @@ namespace Dragoneye.Game.Combat
     /// Every rule it applies lives somewhere pure -- <see cref="CombatRules"/>,
     /// <see cref="ActionResolver"/>, <see cref="TurnOrder"/>, <see cref="HexPathfinder"/>,
     /// <see cref="ICreatureBrain"/>. This is the part that cannot be pure: it touches replicated
-    /// state, spawns and despawns, and paces the computer's turns so they can be watched.
+    /// state and it waits on people.
     ///
-    /// Three things it used to do itself are done by collaborators now, each behind an interface
-    /// that names exactly what it needs from here: <see cref="ClashConductor"/> runs a clash from
-    /// swing to reveal, <see cref="OpportunityConductor"/> holds an action back while the creatures
-    /// it walks away from decide whether to swing, and <see cref="BrainTurnRunner"/> paces a
-    /// computer creature's turn. What is left is what happens on the board.
+    /// **It has no clock.** The fight resolves as fast as it is decided; the only thing it ever
+    /// waits for is a person's answer. What everybody watches is the record it writes through
+    /// <see cref="FightRecord"/> -- one <see cref="CombatEvent"/> per thing that happened --
+    /// played back by <see cref="CombatPlayback"/> at a pace a person can follow. So the
+    /// simulation and the presentation are two things, and the simulation is never the one that
+    /// waits on a token to finish walking.
+    ///
+    /// Three collaborators, each behind an interface naming what it needs from here:
+    /// <see cref="ClashConductor"/> runs a clash from swing to reveal, <see cref="OpportunityConductor"/>
+    /// holds an action back while the creatures it walks away from decide whether to swing, and
+    /// <see cref="BrainTurnRunner"/> sequences a computer creature's turn.
     ///
     /// Server only. Clients ask for actions through <see cref="UnitCommands"/> and read the result.
     /// </summary>
@@ -41,27 +47,6 @@ namespace Dragoneye.Game.Combat
 
         [SerializeField, Tooltip("The arena being fought over.")]
         ArenaMap m_Map;
-
-        [SerializeField, Min(0f), Tooltip("Pause between a computer creature's actions, so a turn "
-             + "can be followed rather than resolving in a single frame.")]
-        float m_BrainActionDelay = 0.45f;
-
-        [SerializeField, Min(0f), Tooltip("Extra pause after a computer creature uses a skill, so "
-             + "what it did can be read before the next thing happens.")]
-        float m_BrainSkillDwell = 1.6f;
-
-        [SerializeField, Min(0f), Tooltip("Seconds a computer creature's turn allows per tile it "
-             + "walks, so the walk can be watched. A pacing choice made by the rules; the fight "
-             + "never waits on a view.")]
-        float m_BrainSecondsPerTile = 0.3f;
-
-        [SerializeField, Min(0f), Tooltip("Pause after an exchange settles, before whatever was "
-             + "waiting on it carries on. What separates two swings at somebody walking past.")]
-        float m_ClashSettleDelay = 0.9f;
-
-        [SerializeField, Min(0f), Tooltip("Pause between one turn ending and the next creature "
-             + "acting. What stops a computer turn beginning in the same breath the last one ended.")]
-        float m_TurnLeadIn = 0.7f;
 
         [SerializeField, Tooltip("Seed for every roll this fight makes. Zero picks one and logs "
              + "it, so any fight can be rolled again.")]
@@ -110,12 +95,7 @@ namespace Dragoneye.Game.Combat
         /// offered there is no clash open, and a creature that read only the clash would take that
         /// gap as its turn resuming -- and act in the middle of its own interrupted move.
         /// </summary>
-        public bool IsBusy =>
-            IsClashPending || m_Settling || (m_Opportunities != null && m_Opportunities.IsPending);
-
-        // The beat after an exchange. Counted as busy, so nothing -- the computer's next action,
-        // the next swing owed, a player's click -- lands inside it.
-        bool m_Settling;
+        public bool IsBusy => IsClashPending || (m_Opportunities != null && m_Opportunities.IsPending);
 
         /// <summary>Whether this creature is stood next to that one and looking at it.</summary>
         public static bool Watches(CreatureState watcher, CreatureState mover) =>
@@ -135,6 +115,9 @@ namespace Dragoneye.Game.Combat
         /// than in Awake: a scripted fight brings its own seed and its own brain, and an ordinary
         /// one takes the inspector's seed or a fresh one. Every roll the fight makes comes from
         /// the dice, and the seed is logged so a fight that went wrong can be rolled again.
+        ///
+        /// The first thing written down is everybody, and where they stood: the record is
+        /// complete on its own, and a watcher reads nothing off the live board.
         /// </summary>
         /// <param name="seed">Zero for the inspector's seed, or a fresh one when that is zero too.</param>
         /// <param name="brain">What runs the computer's creatures. The basic opponent when null.</param>
@@ -156,22 +139,28 @@ namespace Dragoneye.Game.Combat
             // Swapped wholesale to change the opponent. Not serialised: brains are code, not
             // assets, and a ScriptableObject wrapper would be indirection for a choice nobody is
             // authoring yet.
-            m_BrainRunner = new BrainTurnRunner(this, brain ?? new BasicBrain(), m_Creatures, m_Board,
-                m_BrainActionDelay, m_BrainSkillDwell, m_BrainSecondsPerTile);
+            m_BrainRunner = new BrainTurnRunner(this, brain ?? new BasicBrain(), m_Creatures, m_Board);
 
             WatchWalls(m_Map != null ? m_Map.Map : null);
 
             var combatants = new List<Combatant>();
+            var starts = new List<CreatureStart>();
 
             foreach (var creature in m_Creatures.All)
             {
                 if (creature != null && creature.IsAlive)
                 {
                     combatants.Add(new Combatant(creature.TurnId, creature.Speed));
+                    starts.Add(new CreatureStart(creature.TurnId, creature.Cell, creature.Facing.Index,
+                        creature.CurrentHp, creature.CurrentArmour, creature.CurrentAp.Units));
                 }
             }
 
             TurnState.Current.ServerBegin(combatants, IsStillFighting);
+
+            FightRecord.Say(CombatEvent.BeganWith(0, new List<uint>(TurnState.Current.Order), starts));
+            FightRecord.Say(CombatEvent.RoundBeganAt(0));
+
             BeginTurn();
         }
 
@@ -199,10 +188,17 @@ namespace Dragoneye.Game.Combat
 
             StopBrainTurn();
 
+            var round = TurnState.Current.Round;
+
             if (!TurnState.Current.ServerAdvance(IsStillFighting))
             {
                 ResolveOutcome();
                 return;
+            }
+
+            if (TurnState.Current.Round != round)
+            {
+                FightRecord.Say(CombatEvent.RoundBeganAt(0));
             }
 
             BeginTurn();
@@ -218,7 +214,7 @@ namespace Dragoneye.Game.Combat
             }
 
             active.ServerRefillAp();
-            CombatAnnouncer.Current?.ServerTurnBegan(active.TurnId);
+            FightRecord.Say(CombatEvent.TurnBeganFor(0, active.TurnId, active.CurrentAp.Units));
 
             // Toughness. Health comes back a little every turn and armour never does, which is
             // the whole difference between the two bars.
@@ -228,15 +224,13 @@ namespace Dragoneye.Game.Combat
 
                 if (healed > 0)
                 {
-                    CombatAnnouncer.Current?.ServerRecovered(active.TurnId, healed);
+                    FightRecord.Say(CombatEvent.RecoveredBy(0, active.TurnId, healed, active.CurrentHp));
                 }
             }
 
             if (active.IsComputerControlled)
             {
-                // A beat before it moves. The banner is up, the log has the last exchange in it,
-                // and a turn that began the instant the last one ended gave the player neither.
-                m_BrainTurn = StartCoroutine(RunBrainAfterLeadIn(active));
+                m_BrainTurn = StartCoroutine(m_BrainRunner.Run(active));
             }
         }
 
@@ -249,28 +243,14 @@ namespace Dragoneye.Game.Combat
         /// </summary>
         public void ServerFinish()
         {
-            if (!IsServer)
+            if (!IsServer || TurnState.Current == null || TurnState.Current.IsOver)
             {
                 return;
             }
 
             StopBrainTurn();
-            TurnState.Current?.ServerEnd();
-        }
-
-        System.Collections.IEnumerator RunBrainAfterLeadIn(CreatureState actor)
-        {
-            if (m_TurnLeadIn > 0f)
-            {
-                yield return new WaitForSeconds(m_TurnLeadIn);
-            }
-
-            // Anything could have happened in that beat: the creature could have been killed by a
-            // swing it was owed, or the match could be over.
-            if (CanAct(actor))
-            {
-                yield return m_BrainRunner.Run(actor);
-            }
+            TurnState.Current.ServerEnd();
+            FightRecord.Say(CombatEvent.EndedWith(0, CombatEvent.NoWinner));
         }
 
         void StopBrainTurn()
@@ -338,6 +318,10 @@ namespace Dragoneye.Game.Combat
         ///
         /// Re-costs the route rather than trusting the requested destination, so a client that asks
         /// for a hex it cannot afford is refused with the same arithmetic the cursor showed it.
+        ///
+        /// The route walked is written into the record: it was priced here, against the board as
+        /// it was at this instant, and a token drawing any other route would be drawing a move
+        /// that did not happen.
         /// </summary>
         public bool PerformMove(CreatureState actor, Cell destination, Facing? facing)
         {
@@ -346,6 +330,7 @@ namespace Dragoneye.Game.Combat
                 return false;
             }
 
+            var route = m_Board.PathTo(actor.Cell, destination, destination);
             var cost = m_Board.CostTo(actor.Cell, destination);
 
             var plan = ActionResolver.Resolve(true, true, actor.CurrentAp,
@@ -364,11 +349,13 @@ namespace Dragoneye.Game.Combat
             // Read before the move, because afterwards the two hexes are the same one and the
             // bearing between them is meaningless.
             var travelled = ThreatGeometry.Bearing(m_Map.Grid, actor.Cell, destination);
-            var from = actor.Cell;
+            var turned = facing ?? travelled;
 
             actor.Unit.ServerSetCell(destination);
-            actor.ServerFace(facing ?? travelled);
-            CombatAnnouncer.Current?.ServerMoved(actor.TurnId, from, destination);
+            actor.ServerFace(turned);
+
+            FightRecord.Say(CombatEvent.MovedAlong(0, actor.TurnId, route, turned.Index,
+                actor.CurrentAp.Units));
             return true;
         }
 
@@ -478,9 +465,13 @@ namespace Dragoneye.Game.Combat
 
             // Turning to strike is part of striking. DE-006: the attacker ends up facing whoever
             // they swung at, which opens their own flank to everybody they did not.
+            var faced = CombatEvent.NoFacing;
+
             if (occupant != null && occupant != actor)
             {
-                actor.ServerFace(ThreatGeometry.Bearing(m_Map.Grid, actor.Cell, target));
+                var turned = ThreatGeometry.Bearing(m_Map.Grid, actor.Cell, target);
+                actor.ServerFace(turned);
+                faced = turned.Index;
             }
 
             // A shot rolls before anybody answers it. The element is committed already -- the
@@ -493,14 +484,22 @@ namespace Dragoneye.Game.Combat
                 var chance = SkillRules.HitChance(skill, distance, cover);
                 var landed = SkillRules.Hits(skill, distance, cover, m_Dice.Roll());
 
-                CombatAnnouncer.Current?.ServerShot(actor.TurnId, skill.Id, occupant.TurnId, chance, landed);
-
                 if (!landed)
                 {
                     pool.ServerAnnounceCommitted();
                     commands.ServerRecordUse(skill.Id);
+                }
+
+                FightRecord.Say(CombatEvent.ShotAt(0, actor.TurnId, occupant.TurnId, skill.Id, chance,
+                    landed, faced, actor.CurrentAp.Units, landed ? null : Committed(skill)));
+
+                if (!landed)
+                {
                     return true;
                 }
+
+                m_Clashes.Begin(actor, skill, occupant, announced: true);
+                return true;
             }
 
             if (IsContested(skill, actor, occupant))
@@ -511,6 +510,19 @@ namespace Dragoneye.Game.Combat
 
             LandUncontested(actor, skill, occupant);
             return true;
+        }
+
+        /// <summary>The elements a skill commits, listed one per unit, for the record.</summary>
+        static List<Element> Committed(SkillSpec skill)
+        {
+            var elements = new List<Element>();
+
+            for (var i = 0; i < skill.ElementCost; i++)
+            {
+                elements.Add(skill.Element);
+            }
+
+            return elements;
         }
 
         /// <summary>
@@ -635,16 +647,12 @@ namespace Dragoneye.Game.Combat
         public void LandContested(CreatureState attacker, SkillSpec skill, CreatureState defender,
             SkillEffect effect)
         {
-            if (effect.Amount <= 0)
+            if (effect.Amount <= 0 || skill.Effect.Kind != SkillEffectKind.Damage)
             {
                 return;
             }
 
-            if (skill.Effect.Kind == SkillEffectKind.Damage
-                && defender.ServerApplyDamage(effect.Amount))
-            {
-                Kill(defender, attacker);
-            }
+            Damage(attacker, defender, effect.Amount);
         }
 
         /// <summary>
@@ -656,37 +664,43 @@ namespace Dragoneye.Game.Combat
         /// </summary>
         public void LandUncontested(CreatureState actor, SkillSpec skill, CreatureState target)
         {
-            // Uncontested, so there is no window to keep empty: it was used in the open.
+            // Uncontested, so there is no window to keep empty: it was used in the open, and what
+            // it cost is said now. The commitment used to stay unannounced here until the next
+            // clash happened to publish it, which left a heal's element missing from the record.
+            actor.Pool?.ServerAnnounceCommitted();
             actor.SkillCommands?.ServerRecordUse(skill.Id);
 
-            // Returning elements is settled first because the announcement has to name the ones
-            // that actually came back -- "regained PYR" is the whole content of the message, and
-            // the pool decides how many there were.
+            // Returning elements is settled first because the record has to name the ones that
+            // actually came back -- "regained PYR" is the whole content of the message, and the
+            // pool decides how many there were.
             var returned = skill.Effect.Kind == SkillEffectKind.ReturnElement
                 ? ReturnElements(actor, skill.Effect.Amount)
                 : null;
 
-            // Announced before the effect lands, so a blow that kills reads in the order it
+            // Written before the effect lands, so a blow that kills reads in the order it
             // happened: the swing, and then the body.
-            CombatAnnouncer.Current?.ServerActed(actor.TurnId, skill.Id,
-                target != null ? target.TurnId : 0u, target != null && target != actor, returned);
+            FightRecord.Say(CombatEvent.ActedWith(0, actor.TurnId, target != null ? target.TurnId : 0u,
+                skill.Id, actor.Facing.Index, actor.CurrentAp.Units, Committed(skill), returned));
 
             switch (skill.Effect.Kind)
             {
                 case SkillEffectKind.Damage:
-                    if (target != null && target.ServerApplyDamage(skill.Effect.Amount))
+                    if (target != null)
                     {
-                        Kill(target, actor);
+                        Damage(actor, target, skill.Effect.Amount);
                     }
 
                     break;
 
                 case SkillEffectKind.Heal:
-                    actor.ServerHeal(skill.Effect.Amount);
+                    var healed = actor.ServerHeal(skill.Effect.Amount);
+                    FightRecord.Say(CombatEvent.HealedBy(0, actor.TurnId, healed, actor.CurrentHp));
                     break;
 
                 case SkillEffectKind.RestoreAp:
                     actor.ServerRestoreAp(Ap.FromWhole(skill.Effect.Amount));
+                    FightRecord.Say(CombatEvent.ApRestoredTo(0, actor.TurnId, skill.Effect.Amount,
+                        actor.CurrentAp.Units));
                     break;
 
                 case SkillEffectKind.ReturnElement:
@@ -696,25 +710,24 @@ namespace Dragoneye.Game.Combat
         }
 
         /// <summary>
-        /// A clash is over. A swing taken mid-move lets the move go on -- after a beat.
-        ///
-        /// The beat is the whole point. Two enemies owed a swing at one walk used to take them in
-        /// the same frame: two attacks, two answers and two results, none of which anybody could
-        /// read. The fight stays busy while it waits, so nothing else starts either.
+        /// A blow: armour first, health second, written down as one event, and the body taken off
+        /// the board if it killed.
         /// </summary>
-        public void ClashSettled() => StartCoroutine(SettleThenContinue());
-
-        System.Collections.IEnumerator SettleThenContinue()
+        void Damage(CreatureState attacker, CreatureState target, int amount)
         {
-            if (m_ClashSettleDelay > 0f)
-            {
-                m_Settling = true;
-                yield return new WaitForSeconds(m_ClashSettleDelay);
-                m_Settling = false;
-            }
+            var blow = target.ServerApplyDamage(amount);
 
-            m_Opportunities?.Continue();
+            FightRecord.Say(CombatEvent.DamagedBy(0, attacker.TurnId, target.TurnId, blow.Landed,
+                blow.Absorbed, blow.HpAfter, blow.ArmourAfter));
+
+            if (blow.Killed)
+            {
+                Kill(target, attacker);
+            }
         }
+
+        /// <summary>A clash is over. A swing taken mid-move lets the move go on.</summary>
+        public void ClashSettled() => m_Opportunities?.Continue();
 
         // The brain's door into the fight is the same one a player uses.
         public bool Move(CreatureState actor, Cell destination) => ServerMove(actor, destination);
@@ -805,6 +818,8 @@ namespace Dragoneye.Game.Combat
                 return false;
             }
 
+            var before = m_Map.Map.WallAt(segment);
+
             if (WallCommands.Current != null)
             {
                 WallCommands.Current.ServerSet(segment, wall);
@@ -814,6 +829,7 @@ namespace Dragoneye.Game.Combat
                 m_Map.Map.SetWall(segment, wall);
             }
 
+            FightRecord.Say(CombatEvent.WallChangedAt(0, segment, before.Flags, wall.Flags));
             return true;
         }
 
@@ -841,6 +857,9 @@ namespace Dragoneye.Game.Combat
         /// went; a creature whose ground went nowhere, or whose new cell somebody else already
         /// holds, takes the nearest free cell instead. Destinations are claimed in turn so two
         /// creatures on one tile cannot be carried onto the same cell.
+        ///
+        /// A carry is written down as a walk of one cell, so the token follows and the shown
+        /// board agrees with the real one.
         /// </summary>
         void OnWallChanged(HexTile tile, AreaLayout before)
         {
@@ -880,6 +899,14 @@ namespace Dragoneye.Game.Combat
                 if (cell != occupant.Cell)
                 {
                     occupant.ServerSetCell(cell);
+
+                    var creature = occupant.GetComponent<CreatureState>();
+
+                    if (creature != null)
+                    {
+                        FightRecord.Say(CombatEvent.MovedAlong(0, creature.TurnId, new[] { cell },
+                            creature.Facing.Index, creature.CurrentAp.Units));
+                    }
                 }
             }
         }
@@ -932,40 +959,39 @@ namespace Dragoneye.Game.Combat
         ///
         /// The killer earns the victim's level, and only a character its owner brought can keep it:
         /// a premade somebody claimed for the afternoon is not theirs to level. Removed from the
-        /// order before despawning, because the despawn tears down the component the order would
-        /// otherwise be asked about.
+        /// order before anything else reads it.
+        ///
+        /// The body is not despawned. It leaves the board -- it holds no cell and takes no turn --
+        /// but the object stays until the arena does, because a watcher some way behind the fight
+        /// still has to be shown it fall, and a token that vanished a turn before its death was
+        /// shown was the most confusing thing on the screen.
         /// </summary>
         void Kill(CreatureState creature, CreatureState killer)
         {
-            AwardXp(killer, creature);
-
-            // Before the despawn, which takes the name with it.
-            CombatAnnouncer.Current?.ServerFell(creature.TurnId);
+            var xp = AwardXp(killer, creature);
 
             TurnState.Current?.ServerRemove(creature.TurnId);
+            creature.ServerLeaveBoard();
 
-            var networkObject = creature.GetComponent<NetworkObject>();
-
-            if (networkObject != null && networkObject.IsSpawned)
-            {
-                networkObject.Despawn();
-            }
+            FightRecord.Say(CombatEvent.FellTo(0, creature.TurnId, killer != null ? killer.TurnId : 0u, xp));
 
             ResolveOutcome();
         }
 
-        static void AwardXp(CreatureState killer, CreatureState victim)
+        /// <summary>The experience the kill was worth to the killer, or zero when it kept none.</summary>
+        static int AwardXp(CreatureState killer, CreatureState victim)
         {
             var characters = PlayerCharacters.Current;
 
             if (killer == null || victim == null || characters == null
                 || !killer.IsPlayerCharacter || killer.Party == victim.Party)
             {
-                return;
+                return 0;
             }
 
-            characters.ServerAwardXp(killer.BuildSlot, Progression.XpForKill(victim.Level),
-                killer.TurnId);
+            var xp = Progression.XpForKill(victim.Level);
+            characters.ServerAwardXp(killer.BuildSlot, xp);
+            return xp;
         }
 
         /// <summary>Ends the match when only one side is left standing.</summary>
@@ -990,6 +1016,7 @@ namespace Dragoneye.Game.Combat
             {
                 StopBrainTurn();
                 TurnState.Current.ServerDeclareWinner(survivors[0]);
+                FightRecord.Say(CombatEvent.EndedWith(0, (int)survivors[0]));
             }
             else if (survivors.Count == 0)
             {

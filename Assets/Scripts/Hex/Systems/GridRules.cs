@@ -36,6 +36,12 @@ namespace Dragoneye.Hex.Systems
 
         /// <summary>The map the rules are read from. For geometry that needs its layouts.</summary>
         HexMap Map { get; }
+
+        /// <summary>
+        /// The half-edge of <paramref name="from"/>'s tile that a step to <paramref name="to"/>
+        /// passes through: the gap in the wall, for anything drawing the step.
+        /// </summary>
+        bool TryCrossing(Cell from, Cell to, out int halfEdge);
     }
 
     /// <summary>
@@ -77,6 +83,38 @@ namespace Dragoneye.Hex.Systems
             {
                 into.Add(cell);
             }
+        }
+
+        /// <summary>
+        /// The first open half-edge of the area that leads onto the far cell. The same walk
+        /// <see cref="Neighbours"/> makes, stopped at the one that matters, so what is drawn is
+        /// the gap the rules stepped through.
+        /// </summary>
+        public bool TryCrossing(Cell from, Cell to, out int halfEdge)
+        {
+            halfEdge = -1;
+
+            if (Map == null || !Map.TryGetTile(from.Tile, out var tile) || from.Area >= tile.Areas.Count
+                || !Map.TryGetTile(to.Tile, out var far))
+            {
+                return false;
+            }
+
+            for (var wedge = 0; wedge < TileGeometry.Wedges; wedge++)
+            {
+                if (tile.Areas.AreaOf(wedge) != from.Area
+                    || Map.HalfEdge(from.Tile, wedge).BlocksMovement
+                    || from.Tile.Neighbor(TileGeometry.EdgeOf(wedge)) != to.Tile
+                    || far.Areas.AreaOf(TileGeometry.Twin(wedge)) != to.Area)
+                {
+                    continue;
+                }
+
+                halfEdge = wedge;
+                return true;
+            }
+
+            return false;
         }
 
         /// <summary>

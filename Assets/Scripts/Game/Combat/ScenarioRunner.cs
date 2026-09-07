@@ -118,6 +118,7 @@ namespace Dragoneye.Game.Combat
             m_Scenario = scenario;
             m_Finished = false;
             m_Trace.Clear();
+            m_LastCell.Clear();
             m_KeyOf.Clear();
             m_Creatures.Clear();
             m_Facts.Clear();
@@ -162,6 +163,7 @@ namespace Dragoneye.Game.Combat
                 }
 
                 m_KeyOf[creature.TurnId] = actor.Key;
+                m_LastCell[creature.TurnId] = actor.Cell;
                 m_Creatures[actor.Key] = creature;
                 m_Facts[actor.Key] = new Facts
                 {
@@ -230,15 +232,7 @@ namespace Dragoneye.Game.Combat
             }
 
             m_Listening = true;
-            CombatAnnouncer.TurnBegan += OnTurnBegan;
-            CombatAnnouncer.Moved += OnMoved;
-            CombatAnnouncer.Acted += OnActed;
-            CombatAnnouncer.Shot += OnShot;
-            CombatAnnouncer.Fell += OnFell;
-            CombatAnnouncer.HeldBack += OnHeldBack;
-            CombatAnnouncer.Recovered += OnRecovered;
-            ClashCommands.Resolved += OnClash;
-            WallCommands.Changed += OnWall;
+            CombatAnnouncer.Received += OnEvent;
 
             if (TurnState.Current != null)
             {
@@ -254,15 +248,7 @@ namespace Dragoneye.Game.Combat
             }
 
             m_Listening = false;
-            CombatAnnouncer.TurnBegan -= OnTurnBegan;
-            CombatAnnouncer.Moved -= OnMoved;
-            CombatAnnouncer.Acted -= OnActed;
-            CombatAnnouncer.Shot -= OnShot;
-            CombatAnnouncer.Fell -= OnFell;
-            CombatAnnouncer.HeldBack -= OnHeldBack;
-            CombatAnnouncer.Recovered -= OnRecovered;
-            ClashCommands.Resolved -= OnClash;
-            WallCommands.Changed -= OnWall;
+            CombatAnnouncer.Received -= OnEvent;
 
             if (TurnState.Current != null)
             {
@@ -277,6 +263,68 @@ namespace Dragoneye.Game.Combat
 
         void OnOrdered(uint id, Order order) =>
             m_Trace.Add(new TraceEntry(TraceKind.Ordered, Round, KeyOf(id), order: order));
+
+        /// <summary>
+        /// The record, as the fight writes it. On the host it arrives the instant it is written,
+        /// which is what a trace of the simulation wants; what the screen shows is the playback's
+        /// business, and the checks do not wait on it.
+        /// </summary>
+        void OnEvent(CombatEvent e)
+        {
+            switch (e.Kind)
+            {
+                case CombatEventKind.TurnBegan:
+                    OnTurnBegan(e.Actor);
+                    break;
+
+                case CombatEventKind.Moved:
+                    if (e.Path.Count > 0)
+                    {
+                        var from = m_LastCell.TryGetValue(e.Actor, out var last) ? last : default;
+                        m_Trace.Add(new TraceEntry(TraceKind.Moved, e.Round, KeyOf(e.Actor), from: from,
+                            to: e.Path[e.Path.Count - 1]));
+                        m_LastCell[e.Actor] = e.Path[e.Path.Count - 1];
+                    }
+
+                    break;
+
+                case CombatEventKind.Acted:
+                    m_Trace.Add(new TraceEntry(TraceKind.Acted, e.Round, KeyOf(e.Actor),
+                        e.HasTarget ? KeyOf(e.Target) : null, e.Skill));
+                    break;
+
+                case CombatEventKind.Shot:
+                    m_Trace.Add(new TraceEntry(TraceKind.Shot, e.Round, KeyOf(e.Actor), KeyOf(e.Target),
+                        e.Skill, amount: e.Amount, landed: e.Landed));
+                    break;
+
+                case CombatEventKind.ClashResolved:
+                    m_Trace.Add(new TraceEntry(TraceKind.Clash, e.Round, KeyOf(e.Actor), KeyOf(e.Target),
+                        e.Skill, outcome: e.Outcome, attackerElements: e.Elements,
+                        defenderElements: e.Answer));
+                    break;
+
+                case CombatEventKind.Fell:
+                    m_Trace.Add(new TraceEntry(TraceKind.Fell, e.Round, KeyOf(e.Actor)));
+                    break;
+
+                case CombatEventKind.HeldBack:
+                    m_Trace.Add(new TraceEntry(TraceKind.HeldBack, e.Round, KeyOf(e.Actor), KeyOf(e.Target)));
+                    break;
+
+                case CombatEventKind.Recovered:
+                    m_Trace.Add(new TraceEntry(TraceKind.Recovered, e.Round, KeyOf(e.Actor), amount: e.Amount));
+                    break;
+
+                case CombatEventKind.WallChanged:
+                    m_Trace.Add(new TraceEntry(TraceKind.Wall, e.Round, segment: e.Segment,
+                        wallAfter: new Wall(e.WallAfter)));
+                    break;
+            }
+        }
+
+        // Where each actor was last written down standing, so a move can say where it left.
+        readonly Dictionary<uint, Cell> m_LastCell = new Dictionary<uint, Cell>();
 
         /// <summary>
         /// A turn began: the world's events for it happen now, before the actor decides, and
@@ -324,42 +372,15 @@ namespace Dragoneye.Game.Combat
             }
         }
 
-        void OnMoved(uint id, Cell from, Cell to) =>
-            m_Trace.Add(new TraceEntry(TraceKind.Moved, Round, KeyOf(id), from: from, to: to));
-
-        void OnActed(ActionReport report) =>
-            m_Trace.Add(new TraceEntry(TraceKind.Acted, Round, KeyOf(report.ActorId),
-                report.HasTarget ? KeyOf(report.TargetId) : null, report.SkillId));
-
-        void OnShot(ShotReport report) =>
-            m_Trace.Add(new TraceEntry(TraceKind.Shot, Round, KeyOf(report.AttackerId), KeyOf(report.TargetId),
-                report.SkillId, amount: report.Chance, landed: report.Landed));
-
-        void OnFell(uint id) => m_Trace.Add(new TraceEntry(TraceKind.Fell, Round, KeyOf(id)));
-
-        void OnHeldBack(uint watcher, uint mover) =>
-            m_Trace.Add(new TraceEntry(TraceKind.HeldBack, Round, KeyOf(watcher), KeyOf(mover)));
-
-        void OnRecovered(uint id, int amount) =>
-            m_Trace.Add(new TraceEntry(TraceKind.Recovered, Round, KeyOf(id), amount: amount));
-
-        void OnClash(ClashReport report) =>
-            m_Trace.Add(new TraceEntry(TraceKind.Clash, Round, KeyOf(report.AttackerId), KeyOf(report.DefenderId),
-                report.SkillId, outcome: report.Outcome, attackerElements: report.Attacker,
-                defenderElements: report.Defender));
-
-        void OnWall(WallSegment segment, Wall before, Wall after) =>
-            m_Trace.Add(new TraceEntry(TraceKind.Wall, Round, segment: segment, wallAfter: after));
-
         // ---------- the end ----------
 
         /// <summary>
-        /// Stops the fight, then reads the checks a frame later.
+        /// Stops the fight, then reads the checks once the fight has been shown to the end.
         ///
         /// Stopped first, and immediately: the scripts are spent, so every turn after this one
-        /// is a creature with nothing to do passing to the next, and a board still playing
-        /// behind a finished report is worse than no report. A frame then passes so the
-        /// announcements of whatever ended it have all arrived before the checks read them.
+        /// is a creature with nothing to do passing to the next. The checks read the simulation,
+        /// which is finished; the report waits for the playback, because a verdict on a fight
+        /// the watcher has not yet seen end is a verdict on nothing they can check.
         /// </summary>
         IEnumerator FinishSoon()
         {
@@ -372,6 +393,7 @@ namespace Dragoneye.Game.Combat
             CombatDirector.Current?.ServerFinish();
 
             yield return null;
+            yield return new WaitUntil(() => Shown.IsCaughtUp);
             Finish();
         }
 

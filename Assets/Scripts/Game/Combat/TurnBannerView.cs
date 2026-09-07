@@ -12,12 +12,11 @@ namespace Dragoneye.Game.Combat
     ///
     /// The turn bar records whose turn it is, permanently and quietly, at the top of the screen. It
     /// does not *announce* it -- and a player who has been watching an ogre for twenty seconds needs
-    /// to be told, not merely informed, that it is now their go. Every tactics game with a
-    /// reputation for feel does exactly this: a banner, a beat, and then out of the way.
+    /// to be told, not merely informed, that it is now their go.
     ///
-    /// Built into the HUD document from code rather than authored in the markup, because it is
-    /// transient. It exists for a second and a half and is torn down; a permanent element that is
-    /// hidden ninety-eight per cent of the time is a permanent thing to lay out around.
+    /// Driven by the record as it is shown, so the banner goes up when the turn is shown to begin
+    /// and not when the server got to it. Built into the HUD document from code rather than
+    /// authored in the markup, because it is transient.
     /// </summary>
     [RequireComponent(typeof(UIDocument))]
     [DisallowMultipleComponent]
@@ -31,9 +30,8 @@ namespace Dragoneye.Game.Combat
 
         VisualElement m_Root;
         VisualElement m_Banner;
-        uint m_Announced;
-        int m_AnnouncedRound;
         float m_Shown;
+        CombatPlayback m_Playback;
 
         void Start()
         {
@@ -43,28 +41,47 @@ namespace Dragoneye.Game.Combat
             m_Root = document.Q<VisualElement>("root") ?? document;
         }
 
+        void OnDestroy()
+        {
+            if (m_Playback != null)
+            {
+                m_Playback.Presenting -= OnPresenting;
+            }
+        }
+
         void Update()
         {
-            var turns = TurnState.Current;
-
-            if (turns == null || turns.IsOver || m_Creatures == null)
+            if (m_Playback != CombatPlayback.Current)
             {
-                m_Announced = 0;
-                return;
-            }
+                if (m_Playback != null)
+                {
+                    m_Playback.Presenting -= OnPresenting;
+                }
 
-            var active = m_Creatures.ByTurnId(turns.ActiveId);
+                m_Playback = CombatPlayback.Current;
 
-            // The same creature acting twice in a row -- a solo match with one fighter -- is still a
-            // new turn if the round moved on.
-            if (active != null && (active.TurnId != m_Announced || turns.Round != m_AnnouncedRound))
-            {
-                m_Announced = active.TurnId;
-                m_AnnouncedRound = turns.Round;
-                Show(active, turns.Round);
+                if (m_Playback != null)
+                {
+                    m_Playback.Presenting += OnPresenting;
+                }
             }
 
             Advance();
+        }
+
+        void OnPresenting(CombatEvent e)
+        {
+            if (e.Kind != CombatEventKind.TurnBegan || m_Creatures == null)
+            {
+                return;
+            }
+
+            var active = m_Creatures.ByTurnId(e.Actor);
+
+            if (active != null)
+            {
+                Show(active, e.Round);
+            }
         }
 
         void Show(CreatureState active, int round)

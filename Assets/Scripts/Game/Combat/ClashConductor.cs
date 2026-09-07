@@ -52,9 +52,12 @@ namespace Dragoneye.Game.Combat
         /// The attacker's element has already left their pool by now -- DE-005 spends the
         /// commitment before anybody is asked anything, so an attack cannot be taken back once the
         /// defender has been made to think about it.
+        ///
+        /// The swing is written down here, once for every way a contested attack begins, unless
+        /// the caller already wrote it -- a shot that rolled announced itself as a shot.
         /// </summary>
         public void Begin(CreatureState actor, SkillSpec skill, CreatureState target,
-            Element? telegraphed = null)
+            Element? telegraphed = null, bool announced = false)
         {
             var pool = target.Pool;
 
@@ -62,6 +65,12 @@ namespace Dragoneye.Game.Combat
             {
                 m_Host.LandUncontested(actor, skill, target);
                 return;
+            }
+
+            if (!announced)
+            {
+                FightRecord.Say(CombatEvent.SwungAt(0, actor.TurnId, target.TurnId, skill.Id,
+                    actor.Facing.Index, actor.CurrentAp.Units));
             }
 
             // Which way the blow arrived, from the defender's point of view.
@@ -238,8 +247,8 @@ namespace Dragoneye.Game.Combat
 
             attacker.SkillCommands?.ServerRecordUse(skill.Id);
 
-            ClashCommands.Current?.ServerAnnounce(attacker.TurnId, defender.TurnId, skill.Id,
-                reveal.Attacker, reveal.Defender, reveal.Outcome);
+            FightRecord.Say(CombatEvent.ClashResolvedAs(0, attacker.TurnId, defender.TurnId, skill.Id,
+                reveal.Attacker, reveal.Defender, reveal.Outcome));
 
             m_Host.LandContested(attacker, skill, defender, clash.Scale(skill.Effect));
 
@@ -249,7 +258,9 @@ namespace Dragoneye.Game.Combat
             // landed is the one the position bought, and only if there is still somebody to turn.
             if (flanked && defender.IsAlive && attacker.IsAlive)
             {
-                defender.ServerFace(ThreatGeometry.Bearing(m_Map.Grid, defender.Cell, attacker.Cell));
+                var turned = ThreatGeometry.Bearing(m_Map.Grid, defender.Cell, attacker.Cell);
+                defender.ServerFace(turned);
+                FightRecord.Say(CombatEvent.FacedToward(0, defender.TurnId, turned.Index));
             }
 
             // The attack is over, so whatever the pause was holding up can go on.

@@ -65,6 +65,12 @@ namespace Dragoneye.Game
         public ScenarioRunner Scenarios => m_Scenarios;
 
         /// <summary>
+        /// What plays the fight back at a watchable pace. Made here, at the one moment the arena
+        /// is known to have a registry, so it needs no scene wiring and cannot be forgotten.
+        /// </summary>
+        public CombatPlayback Playback { get; private set; }
+
+        /// <summary>
         /// The local player's focus point: what the camera is pointed at, and what panning moves.
         ///
         /// Spawned rather than placed, so it is not a serialised reference -- it arrives here when
@@ -89,6 +95,7 @@ namespace Dragoneye.Game
             }
 
             Current = this;
+            Playback = CombatPlayback.Ensure(gameObject, m_Creatures);
 
             // The wheel over a panel is the panel's. The camera cannot hit-test the UI itself,
             // so the arena, which can, tells it.

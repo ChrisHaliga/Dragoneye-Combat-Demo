@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using Dragoneye.Combat;
 using Dragoneye.Hex;
 using UnityEngine;
@@ -12,25 +13,23 @@ namespace Dragoneye.Game
     using Hex = Dragoneye.Hex.Hex;
 
     /// <summary>
-    /// Draws a unit and walks it toward the cell it occupies.
+    /// Draws a unit, and walks it where the record says it walked.
     ///
-    /// The contract this class exists to keep, and which is the thing most likely to get broken by
-    /// a later change:
+    /// The contract this class exists to keep:
     ///
-    /// - <b>Data never waits.</b> <see cref="UnitState.Cell"/> is authoritative the instant the
-    ///   server writes it. Nothing here is ever read back by gameplay.
-    /// - <b>The view may be arbitrarily behind.</b> Clicking again mid-walk retargets. Never queue
-    ///   waypoints and never snap to catch up.
+    /// - <b>The token draws the shown fight, never the live one.</b> Where the rules have put the
+    ///   creature is nobody's business here; where the playback has shown it going is. A walk
+    ///   starts when the walk is shown, along the route the server priced, corner by corner,
+    ///   through the gap in the wall it actually went through.
     /// - <b>Gameplay reads the cell, never this transform.</b> Range, occupancy and targeting are
     ///   all cell-space questions.
-    /// - <b>Spawning teleports; changes animate.</b> Otherwise every unit slides in from the origin
-    ///   on join.
+    /// - <b>Spawning teleports; the record animates.</b> Otherwise every unit slides in from the
+    ///   origin on join.
+    /// - <b>The playback waits for the walk.</b> <see cref="IsMoving"/> is what it waits on, so a
+    ///   token is never asked to start a second walk before it has finished the first -- which is
+    ///   what used to send one straight through a wall.
     ///
-    /// Scaled <c>Time.deltaTime</c>, unlike the camera: this is gameplay and should respect pause
-    /// and hit-stop.
-    ///
-    /// This slice slides in a straight line and walks through anything in the way. That is a
-    /// property of the slice, not a bug -- pathing belongs with A* over the map later.
+    /// Scaled <c>Time.deltaTime</c>, unlike the camera: this is gameplay and should respect pause.
     /// </summary>
     [RequireComponent(typeof(UnitState))]
     [DisallowMultipleComponent]
@@ -63,29 +62,29 @@ namespace Dragoneye.Game
         static readonly int k_BaseMap = Shader.PropertyToID("_BaseMap");
         static readonly int k_BaseMapSt = Shader.PropertyToID("_BaseMap_ST");
 
-        Vector3 m_Target;
         bool m_Placed;
+        bool m_Fallen;
 
-        // The last health this token drew, and how much of a hit-flash is left to play. A number
-        // rising off a creature says what happened; the creature itself going white for a tenth of
-        // a second says where, which is the half the eye actually uses.
-        int m_LastHp = -1;
+        // How much of a hit-flash is left to play. A number rising off a creature says what
+        // happened; the creature itself going white for a tenth of a second says where, which is
+        // the half the eye actually uses.
         float m_Flash;
         Color m_BodyColour = Color.white;
 
-        // Where the token still has to go, tile by tile, and which leg it is on. A move is one
-        // instant to the rules and a walk to everybody watching.
-        readonly System.Collections.Generic.List<Vector3> m_Route =
-            new System.Collections.Generic.List<Vector3>();
-
+        // Where the token still has to go, corner by corner, and which leg it is on. A move is
+        // one instant to the rules and a walk to everybody watching.
+        readonly List<Vector3> m_Route = new List<Vector3>();
         int m_Leg;
+
+        // The cell the token has been shown standing on. Where the next walk starts from.
         Cell m_Cell;
 
         Transform m_Pointer;
+        CombatPlayback m_Playback;
 
         // The lean toward whatever this creature just swung at, and where its parts sit when it
         // is standing still. The offset rides on the token's parts rather than on the object
-        // itself, because the object's position is where the rules say the creature is and a
+        // itself, because the object's position is where the token has been shown to be and a
         // flourish has no business writing to that.
         Vector3 m_LungeDirection;
         float m_LungeAge = -1f;
@@ -106,15 +105,8 @@ namespace Dragoneye.Game
         /// <summary>How high the token sits above its tile. Anything drawn on the tile under it needs it.</summary>
         public float GroundOffset => m_GroundOffset;
 
-        /// <summary>
-        /// Whether this unit is still walking to where it already is, as far as the rules go.
-        ///
-        /// The data never waits for the view -- a creature occupies its new cell the instant the
-        /// server says so. This is for pacing only: something that wants a turn to be watchable can
-        /// ask whether the last move has finished being drawn before starting the next one.
-        /// </summary>
-        public bool IsMoving =>
-            m_Placed && (transform.position - m_Target).sqrMagnitude > 0.0004f;
+        /// <summary>Whether this token is still walking a route it was shown. The playback waits on it.</summary>
+        public bool IsMoving => m_Placed && m_Leg < m_Route.Count;
 
         void Awake()
         {
@@ -152,10 +144,6 @@ namespace Dragoneye.Game
         /// about who is standing there. A flat disc reads as a piece on a board, and the face is the
         /// part a player recognises.
         ///
-        /// Done here rather than baked into the prefab because a shape a unit is made of is what a
-        /// unit *is*, and because the editor step that used to do it failed silently -- leaving the
-        /// meshes on disk, the prefab untouched, and capsules on the board with nothing to say why.
-        ///
         /// Everything is positioned against the ground offset rather than assuming it, so the
         /// token's base lands on the tile whatever the prefab happens to say.
         /// </summary>
@@ -189,12 +177,9 @@ namespace Dragoneye.Game
         /// <summary>
         /// The soft dark disc under the token that makes it a thing standing on a tile.
         ///
-        /// The directional light casts a real shadow too, but from a low sun it falls sideways off
-        /// the tile and reads as belonging to somebody else. A contact shadow directly underneath
-        /// is what the eye uses to decide whether an object is resting on a surface or floating a
-        /// little above it, and every token was floating a little above it.
-        ///
-        /// Under the rings, above the tile: it is the lowest thing the token owns.
+        /// A contact shadow directly underneath is what the eye uses to decide whether an object
+        /// is resting on a surface or floating a little above it. Under the rings, above the tile:
+        /// it is the lowest thing the token owns.
         /// </summary>
         void BuildShadow(float baseY)
         {
@@ -269,11 +254,7 @@ namespace Dragoneye.Game
             return pointer;
         }
 
-        /// <summary>
-        /// One material for every facing mark in the arena.
-        ///
-        /// Shared, because a material per creature is a draw call per creature for a triangle.
-        /// </summary>
+        /// <summary>One material for every facing mark in the arena.</summary>
         static Material FacingMaterial
         {
             get
@@ -297,12 +278,9 @@ namespace Dragoneye.Game
         /// <summary>
         /// The component, adding it if it is not there.
         ///
-        /// Written out rather than done with <c>??</c>, which is the trap this whole thing fell
-        /// into: a Unity object that has been destroyed, or was never really there, is not
-        /// reference-null even though <c>== null</c> says it is. The null-coalescing operator does
-        /// not go through that operator, so it happily hands back an object that then throws the
-        /// moment it is touched -- which is what left the board empty, and, before that, silently
-        /// stopped the editor step that was meant to build these in the first place.
+        /// Written out rather than done with <c>??</c>: a Unity object that has been destroyed, or
+        /// was never really there, is not reference-null even though <c>== null</c> says it is, and
+        /// the null-coalescing operator does not go through that operator.
         /// </summary>
         static T Ensure<T>(GameObject target) where T : Component
         {
@@ -322,8 +300,7 @@ namespace Dragoneye.Game
         /// The disc that wears the face.
         ///
         /// It borrows the body's material rather than finding a shader of its own: a shader looked
-        /// up by name is a shader that can be stripped out of a build for not being referenced, and
-        /// the disc faces the light anyway so lit and unlit look the same on it.
+        /// up by name is a shader that can be stripped out of a build for not being referenced.
         /// </summary>
         Renderer BuildPortrait(float baseY)
         {
@@ -359,6 +336,7 @@ namespace Dragoneye.Game
                 m_Creature.Changed += Repaint;
             }
 
+            Listen();
             Repaint();
         }
 
@@ -370,31 +348,127 @@ namespace Dragoneye.Game
             {
                 m_Creature.Changed -= Repaint;
             }
+
+            Unlisten();
         }
 
-        void Update()
+        void Listen()
         {
-            if (!m_Placed)
+            var playback = CombatPlayback.Current;
+
+            if (playback == null || playback == m_Playback)
             {
                 return;
             }
 
-            Walk(Time.deltaTime);
+            Unlisten();
+            m_Playback = playback;
+            m_Playback.Presenting += OnPresenting;
+        }
+
+        void Unlisten()
+        {
+            if (m_Playback != null)
+            {
+                m_Playback.Presenting -= OnPresenting;
+                m_Playback = null;
+            }
+        }
+
+        void Update()
+        {
+            // The playback is made when the arena wakes, before any unit spawns; this is for a
+            // unit that somehow came first.
+            if (m_Playback == null)
+            {
+                Listen();
+            }
+
+            if (!m_Placed || m_Fallen)
+            {
+                return;
+            }
+
+            Walk(Time.deltaTime * (m_Playback != null ? m_Playback.Speed : 1f));
             PointTheWay();
             Flash(Time.deltaTime);
             Lean(Time.deltaTime);
         }
 
+        /// <summary>What the record says this token did, as it is shown.</summary>
+        void OnPresenting(CombatEvent e)
+        {
+            if (m_Creature == null)
+            {
+                return;
+            }
+
+            var id = m_Creature.TurnId;
+
+            switch (e.Kind)
+            {
+                case CombatEventKind.Began:
+                    SnapToShown();
+                    break;
+
+                case CombatEventKind.Moved when e.Actor == id:
+                    WalkAlong(e.Path);
+                    break;
+
+                case CombatEventKind.Damaged when e.Target == id && e.Amount > 0:
+                    m_Flash = 1f;
+                    break;
+
+                case CombatEventKind.Swung when e.Actor == id:
+                case CombatEventKind.Shot when e.Actor == id:
+                    LungeAt(e.Target);
+                    break;
+
+                case CombatEventKind.Acted when e.Actor == id && e.HasTarget:
+                    LungeAt(e.Target);
+                    break;
+
+                case CombatEventKind.Fell when e.Actor == id:
+                    Fall();
+                    break;
+            }
+        }
+
+        /// <summary>Where the record says this token stands, taken at the opening.</summary>
+        void SnapToShown()
+        {
+            var context = ArenaContext.Current;
+            var shown = Shown.Of(m_Creature);
+
+            if (context == null || context.Map == null || shown == null)
+            {
+                return;
+            }
+
+            m_Cell = shown.Cell;
+            m_Route.Clear();
+            m_Leg = 0;
+            transform.position = context.Map.ToWorld(m_Cell) + Vector3.up * m_GroundOffset;
+            m_Placed = true;
+        }
+
         /// <summary>
         /// Throws the token a little way toward something and brings it back.
         ///
-        /// Called when this creature attacks, on every machine. Direction only: how far it leans
-        /// is the same whether the target is next to it or four tiles away, because the lean says
-        /// who acted and which way, not how far the blow reached.
+        /// Direction only: how far it leans is the same whether the target is next to it or four
+        /// tiles away, because the lean says who acted and which way, not how far the blow reached.
         /// </summary>
-        public void Lunge(Vector3 towards)
+        void LungeAt(uint targetId)
         {
-            var gap = towards - transform.position;
+            var context = ArenaContext.Current;
+            var target = Shown.Of(targetId);
+
+            if (context == null || context.Map == null || target == null || targetId == m_Creature.TurnId)
+            {
+                return;
+            }
+
+            var gap = context.Map.ToWorld(target.Cell) - transform.position;
             gap.y = 0f;
 
             if (gap.sqrMagnitude < 1e-4f)
@@ -407,11 +481,23 @@ namespace Dragoneye.Game
         }
 
         /// <summary>
+        /// The body leaves the board. Hidden rather than destroyed: the object lives as long as
+        /// the arena does, so the fall could be shown at all.
+        /// </summary>
+        void Fall()
+        {
+            m_Fallen = true;
+            m_Route.Clear();
+            m_Leg = 0;
+
+            foreach (var renderer in GetComponentsInChildren<Renderer>(true))
+            {
+                renderer.enabled = false;
+            }
+        }
+
+        /// <summary>
         /// One frame of the lean: out fast, back slower, and nothing at all when it is over.
-        ///
-        /// The rest positions are read the first time round rather than at build time, because the
-        /// parts are assembled across two methods and a rest position captured before the last of
-        /// them had moved would put the token back together wrongly.
         /// </summary>
         void Lean(float deltaTime)
         {
@@ -485,20 +571,13 @@ namespace Dragoneye.Game
         }
 
         /// <summary>
-        /// Turns the facing mark to match the creature.
-        ///
-        /// The token itself does not turn. It used to swing round to look where it was walking,
-        /// which spun the portrait on its face and, now that facing is a rule rather than a
-        /// flourish, showed a direction that had nothing to do with the one the rules use.
+        /// Turns the facing mark to match the creature as it has been shown.
         ///
         /// **After it has landed, not while it is walking.** A move reads as three beats -- go,
-        /// arrive, turn -- and turning on the way there loses the third one entirely: the creature
-        /// simply appears somewhere already facing a new way, and the player never sees the choice
-        /// they just made happen.
+        /// arrive, turn -- and turning on the way there loses the third one entirely.
         ///
-        /// Eased rather than snapped, and quickly. The rule is already true the moment the server
-        /// says so; this is only the mark catching up, and a quarter of a second of it is the
-        /// difference between a piece being moved and a piece teleporting.
+        /// Eased rather than snapped, and quickly: this is only the mark catching up, and a quarter
+        /// of a second of it is the difference between a piece being moved and a piece teleporting.
         /// </summary>
         void PointTheWay()
         {
@@ -509,24 +588,15 @@ namespace Dragoneye.Game
 
             // The hex directions run clockwise from north, which is exactly what a Y rotation of
             // sixty degrees a step describes -- but north is the arena's north, not the world's.
-            // Taken from the map rather than assumed, so a board laid down at an angle keeps its
-            // bearings instead of pointing every creature somewhere plausible and wrong.
             var arena = ArenaContext.Current != null ? ArenaContext.Current.Map : null;
             var basis = arena != null ? arena.transform.rotation : Quaternion.identity;
-            var wanted = basis * Quaternion.Euler(0f, m_Creature.Facing.Index * 60f, 0f);
+            var wanted = basis * Quaternion.Euler(0f, Shown.Facing(m_Creature).Index * 60f, 0f);
 
             m_Pointer.rotation = Quaternion.RotateTowards(m_Pointer.rotation, wanted,
                 m_FacingTurnSpeed * Time.deltaTime);
         }
 
-        /// <summary>
-        /// One frame of walking, along the route rather than through it.
-        ///
-        /// A creature used to slide from where it was to where it ended up in a straight line,
-        /// which took it clean through anybody standing between the two -- and the route the rules
-        /// costed had already gone round them. The pathfinder was right all along; the token was
-        /// drawing a different move from the one that happened.
-        /// </summary>
+        /// <summary>One frame of walking, corner to corner along the route.</summary>
         void Walk(float deltaTime)
         {
             while (m_Leg < m_Route.Count)
@@ -543,105 +613,90 @@ namespace Dragoneye.Game
                 // one, so a fast token is not held to one tile per frame.
                 m_Leg++;
             }
-
-            transform.position = Step(transform.position, m_Target, m_Speed, deltaTime);
         }
 
         /// <summary>
         /// One frame of movement. Extracted as a pure function so the animation contract -- constant
         /// speed, never overshoot, always arrive -- can be asserted without a scene.
-        ///
-        /// MoveTowards rather than SmoothDamp: constant speed keeps "a tile takes N seconds"
-        /// predictable, which eased movement does not.
         /// </summary>
         public static Vector3 Step(Vector3 current, Vector3 target, float speed, float deltaTime) =>
             Vector3.MoveTowards(current, target, Mathf.Max(0f, speed) * Mathf.Max(0f, deltaTime));
 
+        /// <summary>
+        /// The cell the rules put this unit on. Only the first placement is drawn from it; every
+        /// later move is drawn from the record, when it is shown.
+        /// </summary>
         void OnCellChanged(Cell cell)
         {
             var context = ArenaContext.Current;
+
             if (context == null || context.Map == null)
             {
-                // Silent here meant the unit sat on the origin forever with nothing logged. This is
-                // the failure mode ArenaContext exists to eliminate, so it says so.
+                // Silent here meant the unit sat on the origin forever with nothing logged.
                 Debug.LogError("UnitView has no arena context; the unit cannot be placed.", this);
                 return;
             }
 
-            var previous = m_Cell;
-            m_Cell = cell;
-
-            m_Target = context.Map.ToWorld(cell) + Vector3.up * m_GroundOffset;
-            m_Route.Clear();
-            m_Leg = 0;
-
-            if (!m_Placed)
+            if (m_Placed && Shown.Began)
             {
-                // First placement is a teleport; only later changes animate.
-                transform.position = m_Target;
-                m_Placed = true;
                 return;
             }
 
-            BuildRoute(context, previous, cell);
+            m_Cell = cell;
+            m_Route.Clear();
+            m_Leg = 0;
+            transform.position = context.Map.ToWorld(cell) + Vector3.up * m_GroundOffset;
+            m_Placed = true;
         }
 
         /// <summary>
-        /// The corners the token turns on its way, from the same search that priced the move.
+        /// The corners the token turns on its way: for every step, the gap in the wall it goes
+        /// through and then the middle of the cell beyond.
         ///
-        /// Worked out here rather than sent from the server: every peer has the map and the
-        /// occupancy, so the route is derivable, and a move that already fits in one small message
-        /// should not grow a list of hexes.
-        ///
-        /// Both ends are excluded from what blocks it -- the tile behind, because it is being left,
-        /// and the tile ahead, because this creature is already standing on it as far as the index
-        /// is concerned. Anything left in between is somebody else, and the walk goes round.
-        ///
-        /// An empty route means there is no walkable way there, which is what a spawn or a despawn
-        /// looks like. The straight line stands in for it; there is nothing better to draw.
+        /// The route is the server's, priced against the board as it was, so the token draws the
+        /// move that happened. A straight line between two cell centres used to be enough; on a
+        /// tile cut by a wall the centre of a piece can be well to one side of the gap the step
+        /// went through, and the straight line went through the wall instead.
         /// </summary>
-        void BuildRoute(ArenaContext context, Cell from, Cell to)
+        void WalkAlong(IReadOnlyList<Cell> path)
         {
-            if (context.Units == null || from == to)
+            var context = ArenaContext.Current;
+
+            if (context == null || context.Map == null || path == null || path.Count == 0)
             {
                 return;
             }
 
-            var board = new ArenaBoard(context.Map, context.Units);
-            var path = board.PathTo(from, to, to);
+            // A walk shown while the last is still being drawn does not happen: the playback waits
+            // for IsMoving. But a second Began, or a carry, can arrive on a token mid-step, so the
+            // route restarts from wherever the token is rather than snapping.
+            m_Route.Clear();
+            m_Leg = 0;
 
-            // One step is a straight line already, and anything longer only needs its corners.
-            for (var i = 0; i + 1 < path.Count; i++)
+            var from = m_Cell;
+            var lift = Vector3.up * m_GroundOffset;
+
+            foreach (var cell in path)
             {
-                m_Route.Add(context.Map.ToWorld(path[i]) + Vector3.up * m_GroundOffset);
+                if (context.Map.TryCrossingPoint(from, cell, out var gap))
+                {
+                    m_Route.Add(gap + lift);
+                }
+
+                m_Route.Add(context.Map.ToWorld(cell) + lift);
+                from = cell;
             }
+
+            m_Cell = from;
         }
 
         void Repaint()
         {
             // Party, not player. Friend-or-foe is the read a player makes constantly, and it gets
             // the largest surface; which specific player controls a creature is the ring's inner
-            // accent. This used to colour by a UnitState.OwnerSlot that nothing ever wrote, so every
-            // body rendered as slot -1 -- the first palette entry, for every unit on the board.
+            // accent.
             m_BodyColour = m_Creature != null ? PartyPalette.ForParty(m_Creature.Party) : Color.white;
-
-            // Health going down is a hit. Detected here rather than announced, because the number
-            // is replicated to everybody already and a second message saying the same thing would
-            // be a second thing to keep in step.
-            if (m_Creature != null)
-            {
-                var hp = m_Creature.CurrentHp;
-
-                if (m_LastHp >= 0 && hp < m_LastHp)
-                {
-                    m_Flash = 1f;
-                }
-
-                m_LastHp = hp;
-            }
-
             ApplyBodyColour(m_Flash > 0f ? Color.white : m_BodyColour);
-
             RepaintPortrait();
         }
 
@@ -650,13 +705,10 @@ namespace Dragoneye.Game
         ///
         /// The disc is hidden rather than blanked when there is no picture: an empty white circle
         /// on top of a coloured checker reads as a bug, and the bare top of the token does not.
-        ///
-        /// Set through a property block for the same reason the body colour is -- one material for
-        /// every token on the board, and no instance leaked per creature.
         /// </summary>
         void RepaintPortrait()
         {
-            if (m_Portrait == null || m_Creature == null)
+            if (m_Portrait == null || m_Creature == null || m_Fallen)
             {
                 return;
             }

@@ -34,6 +34,10 @@ namespace Dragoneye.Game
         readonly NetworkVariable<NetCell> m_Cell = new NetworkVariable<NetCell>(
             default, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Server);
 
+        // Whether this unit holds a cell at all. A dead creature gives its cell up and stays as
+        // an object, so a watcher behind the fight can still be shown it fall.
+        readonly NetworkVariable<bool> m_OnBoard = new NetworkVariable<bool>(true);
+
         // Where the spawner wants this unit, held until there is a NetworkVariable to put it in.
         NetCell m_StartCell;
 
@@ -44,6 +48,9 @@ namespace Dragoneye.Game
 
         /// <summary>Raised on every client when the unit's cell changes.</summary>
         public event Action<Cell> CellChanged;
+
+        /// <summary>Whether this unit still holds a cell. False once it has fallen.</summary>
+        public bool OnBoard => m_OnBoard.Value;
 
         /// <summary>
         /// Server only, and only before <c>Spawn()</c>. Sets where the unit comes into existence.
@@ -66,11 +73,12 @@ namespace Dragoneye.Game
             }
 
             m_Cell.OnValueChanged += OnCellChanged;
+            m_OnBoard.OnValueChanged += OnBoardChanged;
 
             var context = ArenaContext.Current;
             m_Index = context != null ? context.Units : null;
 
-            if (m_Index != null)
+            if (m_Index != null && m_OnBoard.Value)
             {
                 m_Index.Register(this);
             }
@@ -87,6 +95,7 @@ namespace Dragoneye.Game
         public override void OnNetworkDespawn()
         {
             m_Cell.OnValueChanged -= OnCellChanged;
+            m_OnBoard.OnValueChanged -= OnBoardChanged;
 
             if (m_Index != null)
             {
@@ -111,9 +120,30 @@ namespace Dragoneye.Game
             m_Cell.Value = new NetCell(cell);
         }
 
+        /// <summary>Server only. Gives up the cell. The object stays; the board forgets it.</summary>
+        public void ServerLeaveBoard()
+        {
+            if (IsServer)
+            {
+                m_OnBoard.Value = false;
+            }
+        }
+
+        void OnBoardChanged(bool previous, bool current)
+        {
+            if (!current)
+            {
+                m_Index?.Unregister(this);
+            }
+        }
+
         void OnCellChanged(NetCell previous, NetCell current)
         {
-            m_Index?.Move(this, previous.ToCell(), current.ToCell());
+            if (m_OnBoard.Value)
+            {
+                m_Index?.Move(this, previous.ToCell(), current.ToCell());
+            }
+
             CellChanged?.Invoke(current.ToCell());
         }
 

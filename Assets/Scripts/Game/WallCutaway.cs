@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using Dragoneye.Game.Combat;
 using Dragoneye.Game.Creatures;
 using UnityEngine;
 
@@ -9,8 +10,8 @@ namespace Dragoneye.Game
     /// open a tunnel to it.
     ///
     /// The shader does the fading; this only feeds it. Positions are the tokens' own, a little
-    /// above their feet so the tunnel centres on the body, and only living creatures on the board
-    /// are handed over.
+    /// above their feet so the tunnel centres on the body, and only creatures the watcher has
+    /// been shown standing are handed over.
     /// </summary>
     [DisallowMultipleComponent]
     public sealed class WallCutaway : MonoBehaviour
@@ -43,7 +44,7 @@ namespace Dragoneye.Game
 
             foreach (var creature in creatures.All)
             {
-                if (creature == null || !creature.IsAlive || count >= MaxCuts)
+                if (creature == null || !Shown.IsAlive(creature) || count >= MaxCuts)
                 {
                     continue;
                 }
@@ -51,7 +52,7 @@ namespace Dragoneye.Game
                 var view = creature.View;
                 var world = view != null
                     ? view.transform.position + Vector3.up * 0.35f
-                    : context.Map.ToWorld(creature.Cell) + Vector3.up * 0.6f;
+                    : context.Map.ToWorld(Shown.Cell(creature)) + Vector3.up * 0.6f;
 
                 var viewport = camera.WorldToViewportPoint(world);
 

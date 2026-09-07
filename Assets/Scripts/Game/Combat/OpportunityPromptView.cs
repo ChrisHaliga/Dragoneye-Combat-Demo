@@ -32,6 +32,9 @@ namespace Dragoneye.Game.Combat
 
         OpportunityOffer m_Offer;
 
+        // An offer that has arrived and is waiting for the fight to be shown up to it.
+        bool m_Waiting;
+
         void Start()
         {
             if (m_Input == null)
@@ -64,6 +67,18 @@ namespace Dragoneye.Game.Combat
         {
             m_Offer = offer;
             Close();
+            m_Waiting = true;
+        }
+
+        /// <summary>Opens the offer once everything before it has been shown.</summary>
+        void Update()
+        {
+            if (!m_Waiting || !Shown.IsCaughtUp)
+            {
+                return;
+            }
+
+            m_Waiting = false;
             Build();
 
             if (m_Panel != null)
@@ -76,6 +91,7 @@ namespace Dragoneye.Game.Combat
         {
             m_Panel?.RemoveFromHierarchy();
             m_Panel = null;
+            m_Waiting = false;
         }
 
         CreatureState CreatureFor(uint turnId) =>

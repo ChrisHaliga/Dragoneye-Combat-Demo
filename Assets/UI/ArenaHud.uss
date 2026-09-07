@@ -81,6 +81,12 @@
     -unity-background-image-tint-color: rgb(160, 170, 195);
 }
 
+/* Fallen. Still in the column, because the party is still the party; dimmed, because it is
+   plainly gone. */
+.portrait--fallen {
+    opacity: 0.38;
+}
+
 .portrait--selected {
     border-top-color: rgb(226, 191, 122);
     border-right-color: rgb(226, 191, 122);

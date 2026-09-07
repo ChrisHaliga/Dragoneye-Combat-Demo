@@ -46,13 +46,15 @@ namespace Dragoneye.Game.Creatures
             return $"Player {creature.ControllerSlot + 1}";
         }
 
+        /// <summary>How full a bar is, from the shown fight.</summary>
         public static float HealthFraction(CreatureState creature) =>
-            creature.MaxHp <= 0 ? 0f : Mathf.Clamp01((float)creature.CurrentHp / creature.MaxHp);
+            Fraction(Shown.Hp(creature), creature.MaxHp);
 
         public static float ArmourFraction(CreatureState creature) =>
-            creature.MaxArmour <= 0
-                ? 0f
-                : Mathf.Clamp01((float)creature.CurrentArmour / creature.MaxArmour);
+            Fraction(Shown.Armour(creature), creature.MaxArmour);
+
+        public static float Fraction(int current, int max) =>
+            max <= 0 ? 0f : Mathf.Clamp01((float)current / max);
 
         /// <summary>
         /// Draws a creature's face into an element, or its initial when there is no face to draw.

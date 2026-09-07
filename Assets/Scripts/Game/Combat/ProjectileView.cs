@@ -12,59 +12,62 @@ namespace Dragoneye.Game.Combat
     /// The thing that flies when a ranged skill is used.
     ///
     /// A placeholder, deliberately: a glowing bead in the element's colour, along the same arc
-    /// the preview drew, with a short trail. It listens to the same announcements the log does
-    /// -- a clash resolved, a shot missed, a skill landing uncontested -- and flies only for
-    /// skills that roll to hit, which is what "ranged" means to the rules. A miss carries on
+    /// the preview drew, with a short trail. It flies when the shot is shown, for exactly the
+    /// time the playback leaves for it -- both read <see cref="PresentationPacing.Flight"/>, so
+    /// the result of the shot is never on screen before the arrow has arrived. A miss carries on
     /// past the target and fades, and says so where it lands.
     ///
-    /// Nothing here decides anything. The server has already resolved the shot by the time this
-    /// hears about it; the bead is the reveal, not the roll.
+    /// Nothing here decides anything. The server resolved the shot long before this heard about
+    /// it; the bead is the reveal, not the roll.
     /// </summary>
     [DisallowMultipleComponent]
     public sealed class ProjectileView : MonoBehaviour
     {
-        [SerializeField, Min(0.05f), Tooltip("Seconds a shot takes per tile of distance.")]
-        float m_SecondsPerTile = 0.07f;
-
-        [SerializeField, Min(0.05f), Tooltip("Seconds a shot takes before distance is counted.")]
-        float m_BaseSeconds = 0.14f;
-
         [SerializeField, Min(0.02f)]
         float m_BeadSize = 0.16f;
 
         Mesh m_Bead;
-
-        void Start()
-        {
-            ClashCommands.Resolved += OnResolved;
-            CombatAnnouncer.Shot += OnShot;
-            CombatAnnouncer.Acted += OnActed;
-        }
+        CombatPlayback m_Playback;
 
         void OnDestroy()
         {
-            ClashCommands.Resolved -= OnResolved;
-            CombatAnnouncer.Shot -= OnShot;
-            CombatAnnouncer.Acted -= OnActed;
-        }
-
-        void OnResolved(ClashReport report) =>
-            Fire(report.AttackerId, report.DefenderId, report.SkillId, missed: false);
-
-        // A shot that landed is drawn by the clash it opened; only the miss is drawn here.
-        void OnShot(ShotReport report)
-        {
-            if (!report.Landed)
+            if (m_Playback != null)
             {
-                Fire(report.AttackerId, report.TargetId, report.SkillId, missed: true);
+                m_Playback.Presenting -= OnPresenting;
             }
         }
 
-        void OnActed(ActionReport report)
+        void Update()
         {
-            if (report.HasTarget && report.TargetId != report.ActorId)
+            if (m_Playback == CombatPlayback.Current)
             {
-                Fire(report.ActorId, report.TargetId, report.SkillId, missed: false);
+                return;
+            }
+
+            if (m_Playback != null)
+            {
+                m_Playback.Presenting -= OnPresenting;
+            }
+
+            m_Playback = CombatPlayback.Current;
+
+            if (m_Playback != null)
+            {
+                m_Playback.Presenting += OnPresenting;
+            }
+        }
+
+        void OnPresenting(CombatEvent e)
+        {
+            switch (e.Kind)
+            {
+                case CombatEventKind.Shot:
+                    Fire(e.Actor, e.Target, e.Skill, missed: !e.Landed);
+                    break;
+
+                case CombatEventKind.Acted when e.HasTarget:
+                    Fire(e.Actor, e.Target, e.Skill, missed: false);
+                    break;
             }
         }
 
@@ -79,24 +82,27 @@ namespace Dragoneye.Game.Combat
                 return;
             }
 
-            var attacker = arena.Creatures != null ? arena.Creatures.ByTurnId(attackerId) : null;
-            var target = arena.Creatures != null ? arena.Creatures.ByTurnId(targetId) : null;
+            var attacker = Shown.Of(attackerId);
+            var target = Shown.Of(targetId);
 
             if (attacker == null || target == null)
             {
                 return;
             }
 
-            var from = arena.Map.ToWorld(attacker.Cell) + Vector3.up * Lift(attacker);
-            var to = arena.Map.ToWorld(target.Cell) + Vector3.up * Lift(target);
+            var from = arena.Map.ToWorld(attacker.Cell) + Vector3.up * Lift(attackerId);
+            var to = arena.Map.ToWorld(target.Cell) + Vector3.up * Lift(targetId);
             var tiles = Cell.Distance(attacker.Cell, target.Cell);
 
             StartCoroutine(Fly(from, to, tiles, ElementPalette.ForElement(skill.Element),
                 missed, targetId));
         }
 
-        static float Lift(CreatureState creature)
+        static float Lift(uint id)
         {
+            var creature = ArenaContext.Current != null && ArenaContext.Current.Creatures != null
+                ? ArenaContext.Current.Creatures.ByTurnId(id)
+                : null;
             var view = creature != null ? creature.View : null;
             return view != null ? view.GroundOffset + 0.15f : 0.65f;
         }
@@ -107,7 +113,7 @@ namespace Dragoneye.Game.Combat
             var bead = Bead(tint);
             var trail = bead.GetComponent<TrailRenderer>();
             var height = ShotArc.Height(tiles);
-            var seconds = m_BaseSeconds + m_SecondsPerTile * tiles;
+            var seconds = PresentationPacing.Flight(tiles);
 
             // A miss keeps going. The arc is stretched a little past the target and the bead
             // fades along the extra, so what the player sees is a shot that did not stop.
@@ -116,7 +122,7 @@ namespace Dragoneye.Game.Combat
 
             while (elapsed < seconds * end)
             {
-                elapsed += Time.deltaTime;
+                elapsed += Time.deltaTime * (m_Playback != null ? m_Playback.Speed : 1f);
                 var t = Mathf.Min(end, elapsed / seconds);
 
                 bead.transform.position = ShotArc.Point(from, to, t, height);

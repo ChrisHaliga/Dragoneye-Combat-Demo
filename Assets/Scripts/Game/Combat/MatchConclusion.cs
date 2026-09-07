@@ -11,8 +11,11 @@ namespace Dragoneye.Game.Combat
     ///
     /// Its own component rather than a few lines in the HUD, because tearing netcode down and
     /// returning to the menu is match lifecycle, not presentation. A view that could do it would be
-    /// a view that decides when the game ends -- and it would put a dependency on
-    /// <see cref="MatchFlow"/> inside a class whose job is drawing a banner.
+    /// a view that decides when the game ends.
+    ///
+    /// Counted from the moment the ending is *shown*, not from when the server reached it: the
+    /// last blow may still be a few seconds from the screen, and a menu that arrived before it
+    /// would take the ending away.
     ///
     /// This is also the only file in the combat slice that knows the multiplayer assembly exists.
     /// </summary>
@@ -34,15 +37,8 @@ namespace Dragoneye.Game.Combat
                 return;
             }
 
-            var turns = TurnState.Current;
-
-            if (turns == null || !turns.IsOver || m_Closing)
+            if (!Shown.IsOver || m_Closing)
             {
-                // Counted from the moment the fight actually ended, not from the first frame this
-                // component happened to look. TurnState outlives a match -- it rides the draft
-                // object from lobby to arena and back -- so a fresh arena sees the *previous*
-                // match's result for the few frames before this one is begun, and a dwell that
-                // kept accumulating across that would be a dwell measuring the wrong match.
                 m_Elapsed = 0f;
                 return;
             }
@@ -62,11 +58,8 @@ namespace Dragoneye.Game.Combat
         /// Every peer closes itself.
         ///
         /// Back to the lobby rather than out of the session: a fight ending is not a player leaving.
-        /// The party is still assembled and the next roster is about to be argued over, so the
-        /// board they argue over it on should still be there.
-        ///
-        /// The outcome is replicated, so each peer reaches this independently. Only the host
-        /// actually drives the scene change; the rest follow it.
+        /// The outcome is in the record every peer plays, so each reaches this independently. Only
+        /// the host actually drives the scene change; the rest follow it.
         /// </summary>
         void Close()
         {

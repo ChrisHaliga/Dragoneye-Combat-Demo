@@ -42,6 +42,11 @@ namespace Dragoneye.Game.Combat
         bool m_Open;
         bool m_Declined;
 
+        // A question that has arrived and is waiting for the fight to be shown up to it. The
+        // simulation asked the moment the swing was decided; the player is asked once they have
+        // seen it thrown.
+        bool m_Waiting;
+
         readonly List<Element> m_Staged = new List<Element>();
 
         void Start()
@@ -82,6 +87,24 @@ namespace Dragoneye.Game.Combat
             m_Declined = false;
 
             Close();
+            m_Waiting = true;
+        }
+
+        /// <summary>
+        /// Opens the question once everything before it has been shown.
+        ///
+        /// The simulation stops on this question, so by the time the playback has caught up the
+        /// shown fight and the real one are the same fight -- and the attack the player is being
+        /// asked about is the one they just watched begin.
+        /// </summary>
+        void Update()
+        {
+            if (!m_Waiting || !Shown.IsCaughtUp)
+            {
+                return;
+            }
+
+            m_Waiting = false;
             Build();
             m_Guard.Open(m_Panel);
             m_Open = true;
@@ -92,6 +115,7 @@ namespace Dragoneye.Game.Combat
             m_Panel?.RemoveFromHierarchy();
             m_Panel = null;
             m_Open = false;
+            m_Waiting = false;
         }
 
         CreatureState Defender => Creature((uint)m_Request.DefenderId);

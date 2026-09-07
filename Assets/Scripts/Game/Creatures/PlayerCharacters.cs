@@ -301,21 +301,13 @@ namespace Dragoneye.Game.Creatures
         /// Only a character its owner brought earns anything. A premade somebody claimed for the
         /// afternoon is not theirs to level, and the computer has nowhere to put it.
         /// </summary>
-        /// <param name="shownOver">
-        /// The creature to float the number over. Presentation, and deliberately part of the same
-        /// call: one thing happened, and splitting it into an award and an announcement would let
-        /// the two drift apart.
-        /// </param>
-        public void ServerAwardXp(byte slot, int amount, uint shownOver = 0)
+        /// The number is not shown from here. It rides on the record of the kill that earned it,
+        /// so it appears over the killer when the kill is shown and not a turn before.
+        public void ServerAwardXp(byte slot, int amount)
         {
             if (!IsServer || slot == PartyInfo.Unclaimed || amount <= 0)
             {
                 return;
-            }
-
-            if (shownOver != 0)
-            {
-                ShowXpRpc(shownOver, amount);
             }
 
             for (var i = 0; i < m_Xp.Count; i++)
@@ -341,10 +333,6 @@ namespace Dragoneye.Game.Creatures
         /// last kill lands: the arena's HUD dies with the scene and the menu has not loaded yet.
         /// This object outlives both.
         /// </summary>
-        [Rpc(SendTo.Everyone)]
-        void ShowXpRpc(uint turnId, int amount) =>
-            CombatNotices.Raise(turnId, $"+{amount} XP", NoticeTone.Gain);
-
         void OnXpChanged(NetworkListEvent<XpAward> _)
         {
             var roster = PlayerRoster.Current;
