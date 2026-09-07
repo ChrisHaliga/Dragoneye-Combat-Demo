@@ -43,7 +43,10 @@ namespace Dragoneye.Scenarios
             CombatScenarios.Recovery(),
             CombatScenarios.Kill(),
             CombatScenarios.Initiative(),
-            CombatScenarios.BrainDuel()
+            CombatScenarios.BrainDuel(),
+            MapScenarios.MansionHall(),
+            MapScenarios.IslandsBridge(),
+            MapScenarios.IslandsArrows()
         };
     }
 

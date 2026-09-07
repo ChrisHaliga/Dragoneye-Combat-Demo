@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace Dragoneye.Hex.Systems
@@ -16,6 +17,13 @@ namespace Dragoneye.Hex.Systems
         [SerializeField, Tooltip("Reserved for procedural definitions. Ignored by fixed maps.")]
         int m_Seed;
 
+        // The definition the scene assigned, kept because it carries the palette: every recipe
+        // built here binds its terrain names through it.
+        AuthoredMapDefinition m_Authored;
+
+        // A definition made for a recipe, replaced -- and destroyed -- by the next.
+        AuthoredMapDefinition m_Runtime;
+
         public HexMap Map { get; private set; }
 
         /// <summary>Movement and sight, as this map has them. Rebuilt with the map.</summary>
@@ -25,19 +33,67 @@ namespace Dragoneye.Hex.Systems
 
         public HexMapDefinition Definition => m_Definition;
 
-        void Awake() => Rebuild();
+        /// <summary>What each terrain name means on this arena: the scene's authored palette.</summary>
+        public IReadOnlyList<AuthoredMapDefinition.TerrainEntry> Palette =>
+            m_Authored != null ? m_Authored.Palette : Array.Empty<AuthoredMapDefinition.TerrainEntry>();
+
+        /// <summary>The asset a terrain name means here, or null when the palette does not say.</summary>
+        public TerrainType TerrainNamed(string name) => m_Authored != null ? m_Authored.TerrainNamed(name) : null;
+
+        void Awake()
+        {
+            m_Authored = m_Definition as AuthoredMapDefinition;
+            Rebuild();
+        }
+
+        void OnDestroy() => DropRuntime();
 
         /// <summary>
         /// Builds a different map in place of the one the scene assigned.
         ///
-        /// For a fight that brings its own board -- a test scenario, one day a chosen map -- and
-        /// wants everything that draws and walks the arena to follow. They all listen for
+        /// For a fight that brings its own board -- a test scenario, the map the host picked --
+        /// and wants everything that draws and walks the arena to follow. They all listen for
         /// <see cref="MapBuilt"/>, so they do.
         /// </summary>
         public void Rebuild(HexMapDefinition definition)
         {
             m_Definition = definition;
             Rebuild();
+        }
+
+        /// <summary>
+        /// Builds a recipe onto this arena, with its terrain names bound through the scene's
+        /// palette. The one way a recipe becomes a board, so a scenario and a picked map cannot
+        /// bind "grass" differently.
+        /// </summary>
+        public void Rebuild(MapRecipe recipe)
+        {
+            if (recipe == null)
+            {
+                return;
+            }
+
+            if (m_Authored == null)
+            {
+                Debug.LogError($"{nameof(ArenaMap)} has no authored map assigned, so it has no palette "
+                    + "to build a recipe with.", this);
+                return;
+            }
+
+            DropRuntime();
+
+            m_Runtime = ScriptableObject.CreateInstance<AuthoredMapDefinition>();
+            m_Runtime.Author(recipe, m_Authored.Palette);
+            Rebuild(m_Runtime);
+        }
+
+        void DropRuntime()
+        {
+            if (m_Runtime != null)
+            {
+                Destroy(m_Runtime);
+                m_Runtime = null;
+            }
         }
 
         public void Rebuild()

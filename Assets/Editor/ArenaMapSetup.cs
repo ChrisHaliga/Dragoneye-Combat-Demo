@@ -12,53 +12,48 @@ using UnityEngine;
 namespace Dragoneye.MultiplayerEditor
 {
     /// <summary>
-    /// Authors the arena's map -- the Ruins -- and wires what draws it.
+    /// Authors the arena's terrain and map, and wires what draws it.
     ///
-    /// The map is <see cref="Maps.Ruins"/>, a recipe, written into an <see cref="AuthoredMapDefinition"/>
-    /// with the terrain names bound to the terrain assets. The recipe is the authoring surface:
-    /// the scenarios stand on the same one, and the harness builds it to check the room is
-    /// closed. A painting tool would write the same records.
+    /// The terrains are written from <see cref="ShippedTerrain"/>, so the assets and the harness
+    /// agree on what grass, stone and water are. The map is <see cref="Maps.Ruins"/>, a recipe,
+    /// written into an <see cref="AuthoredMapDefinition"/> with every shipped terrain bound --
+    /// which is the palette the arena uses for whichever map the host picks.
     ///
-    /// Safe to re-run. The asset is updated in place, the scene's map component is pointed at it,
-    /// and the wall renderer, the see-through driver, the reach overlay and the scenario runner
-    /// are ensured.
+    /// Safe to re-run. The assets are updated in place, the scene's map component is pointed at
+    /// the authored map, and the wall renderer, the see-through driver, the reach overlay and
+    /// the scenario runner are ensured.
     /// </summary>
     static class ArenaMapSetup
     {
         const string k_Map = "Assets/Settings/Hex/Ruins.asset";
         const string k_WallMaterial = "Assets/Settings/Hex/Wall.mat";
-        const string k_Grass = "Assets/Settings/Hex/Grass.asset";
-        const string k_Stone = "Assets/Settings/Hex/Stone.asset";
+        const string k_TerrainFolder = "Assets/Settings/Hex";
         const string k_ArenaScene = "Assets/Scenes/Arena.unity";
 
         internal static void Run()
         {
-            var grass = AssetDatabase.LoadAssetAtPath<TerrainType>(k_Grass);
-            var stone = AssetDatabase.LoadAssetAtPath<TerrainType>(k_Stone);
+            var map = AuthorTerrainAndMap();
 
-            if (grass == null || stone == null)
+            if (map == null)
             {
-                Debug.LogWarning("Grass or Stone terrain is missing; the arena map was not authored.");
                 return;
             }
 
-            // A boulder is something a line stops at, not only something feet do.
-            var stoneSerialized = new SerializedObject(stone);
-            stoneSerialized.FindProperty("m_BlocksSight").boolValue = true;
-            stoneSerialized.FindProperty("m_IsWalkable").boolValue = false;
-            stoneSerialized.ApplyModifiedPropertiesWithoutUndo();
-            EditorUtility.SetDirty(stone);
-
-            var map = AuthorRuins(grass, stone);
-            var material = WallMaterial();
-
-            WireScene(map, material, grass, stone);
+            WireScene(map, WallMaterial());
         }
 
-        // ---------- the map ----------
+        // ---------- the terrain and the map ----------
 
-        static AuthoredMapDefinition AuthorRuins(TerrainType grass, TerrainType stone)
+        /// <summary>Every shipped terrain as an asset, and the arena's map bound to all of them.</summary>
+        internal static AuthoredMapDefinition AuthorTerrainAndMap()
         {
+            var palette = new List<AuthoredMapDefinition.TerrainEntry>();
+
+            foreach (var spec in ShippedTerrain.All)
+            {
+                palette.Add(new AuthoredMapDefinition.TerrainEntry { Name = spec.Name, Terrain = Terrain(spec) });
+            }
+
             var asset = AssetDatabase.LoadAssetAtPath<AuthoredMapDefinition>(k_Map);
 
             if (asset == null)
@@ -69,21 +64,32 @@ namespace Dragoneye.MultiplayerEditor
 
             var recipe = Maps.Ruins();
 
-            asset.Author(recipe, Palette(grass, stone));
+            asset.Author(recipe, palette);
             EditorUtility.SetDirty(asset);
+            AssetDatabase.SaveAssets();
 
-            Debug.Log($"Authored {k_Map}: {recipe.Tiles.Count} special tiles, {recipe.Walls.Count} wall segments.");
+            Debug.Log($"Authored {k_Map}: {recipe.Tiles.Count} special tiles, {recipe.Walls.Count} wall "
+                + $"segments, {palette.Count} terrains bound.");
 
             return asset;
         }
 
-        /// <summary>What the recipes' terrain names mean, in assets.</summary>
-        static List<AuthoredMapDefinition.TerrainEntry> Palette(TerrainType grass, TerrainType stone) =>
-            new List<AuthoredMapDefinition.TerrainEntry>
+        /// <summary>The asset for a terrain, written from its spec whether or not it existed.</summary>
+        static TerrainType Terrain(TerrainSpec spec)
+        {
+            var path = $"{k_TerrainFolder}/{spec.DisplayName}.asset";
+            var terrain = AssetDatabase.LoadAssetAtPath<TerrainType>(path);
+
+            if (terrain == null)
             {
-                new AuthoredMapDefinition.TerrainEntry { Name = Ground.Grass, Terrain = grass },
-                new AuthoredMapDefinition.TerrainEntry { Name = Ground.Stone, Terrain = stone }
-            };
+                terrain = ScriptableObject.CreateInstance<TerrainType>();
+                AssetDatabase.CreateAsset(terrain, path);
+            }
+
+            terrain.Apply(spec);
+            EditorUtility.SetDirty(terrain);
+            return terrain;
+        }
 
         // ---------- the material ----------
 
@@ -125,8 +131,7 @@ namespace Dragoneye.MultiplayerEditor
 
         // ---------- the scene ----------
 
-        static void WireScene(AuthoredMapDefinition map, Material wallMaterial, TerrainType grass,
-            TerrainType stone)
+        static void WireScene(AuthoredMapDefinition map, Material wallMaterial)
         {
             var scene = EditorSceneManager.OpenScene(k_ArenaScene, OpenSceneMode.Single);
             var context = Object.FindAnyObjectByType<ArenaContext>();
@@ -156,7 +161,6 @@ namespace Dragoneye.MultiplayerEditor
 
             // The scenario runner brings its own maps, written against the same terrain names.
             var scenarios = Ensure<ScenarioRunner>(host);
-            Assign(scenarios, ("m_Grass", grass), ("m_Stone", stone));
             Assign(context, ("m_Scenarios", scenarios));
 
             EditorSceneManager.MarkSceneDirty(scene);

@@ -97,6 +97,10 @@ namespace Dragoneye.Game
             Current = this;
             Playback = CombatPlayback.Ensure(gameObject, m_Creatures);
 
+            // Onto the map the host picked, before anything is placed on it. Every machine does
+            // this from the same replicated index, so every machine builds the same board.
+            ChosenMap.Apply(m_Map);
+
             // The wheel over a panel is the panel's. The camera cannot hit-test the UI itself,
             // so the arena, which can, tells it.
             CameraRigInput.ZoomSuppressed = PointerIsOverUi;

@@ -22,6 +22,16 @@
             <ui:VisualElement class="draft__sides">
                 <ui:Label text="YOUR SIDE" class="draft__eyebrow" />
                 <ui:VisualElement name="team-buttons" class="team-row" />
+
+                <!-- The map. The host picks; everybody reads. -->
+                <ui:VisualElement name="setup-map" class="map-card">
+                    <ui:Label text="MAP" class="draft__eyebrow" />
+                    <ui:VisualElement class="map-card__body">
+                        <ui:DropdownField name="setup-map-field" class="dropdown map-card__field" />
+                        <ui:Label name="setup-map-summary" text="" class="map-card__summary" />
+                    </ui:VisualElement>
+                </ui:VisualElement>
+
                 <ui:VisualElement class="spacer" />
 
                 <ui:VisualElement name="setup-code" class="code-card">

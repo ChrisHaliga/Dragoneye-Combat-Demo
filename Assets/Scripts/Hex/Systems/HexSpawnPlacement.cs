@@ -120,17 +120,24 @@ namespace Dragoneye.Hex.Systems
         /// and its members fill outward from it.
         /// </summary>
         public static IReadOnlyList<Cell> PlaceGrouped(IGridRules grid, IReadOnlyList<int> groupOfItem,
-            int groupCount)
+            int groupCount) =>
+            PlaceGrouped(grid, groupOfItem, grid != null ? ChooseSpawns(grid, Mathf.Max(1, groupCount)) : null);
+
+        /// <summary>
+        /// A cell for every item, grouped, from anchors the map chose: one per group, in group
+        /// order. A map with a shape says where each side starts; this fills outward from there.
+        /// </summary>
+        public static IReadOnlyList<Cell> PlaceGrouped(IGridRules grid, IReadOnlyList<int> groupOfItem,
+            IReadOnlyList<Cell> anchors)
         {
             var cells = new List<Cell>();
 
-            if (groupOfItem == null || grid == null)
+            if (groupOfItem == null || grid == null || anchors == null)
             {
                 return cells;
             }
 
             var playable = Playable(grid);
-            var anchors = ChooseSpawns(grid, Mathf.Max(1, groupCount));
             var taken = new HashSet<Cell>();
 
             foreach (var group in groupOfItem)

@@ -26,12 +26,6 @@ namespace Dragoneye.Game.Combat
     [DisallowMultipleComponent]
     public sealed class ScenarioRunner : MonoBehaviour
     {
-        [SerializeField, Tooltip("What the recipes' 'grass' means.")]
-        TerrainType m_Grass;
-
-        [SerializeField, Tooltip("What the recipes' 'stone' means.")]
-        TerrainType m_Stone;
-
         [SerializeField, Min(0f), Tooltip("Seconds a finished scenario's report is left up before "
              + "the next queued one begins. The last one in a run stays up until it is dismissed.")]
         float m_NextDelay = 3f;
@@ -51,7 +45,6 @@ namespace Dragoneye.Game.Combat
 
         Scenario m_Scenario;
         ScriptedBrain m_Brain;
-        AuthoredMapDefinition m_Definition;
         bool m_Listening;
         bool m_Finished;
 
@@ -84,11 +77,6 @@ namespace Dragoneye.Game.Combat
         void OnDestroy()
         {
             Unlisten();
-
-            if (m_Definition != null)
-            {
-                Destroy(m_Definition);
-            }
 
             if (Current == this)
             {
@@ -126,9 +114,7 @@ namespace Dragoneye.Game.Combat
             m_Pending.Clear();
             m_Pending.AddRange(scenario.Events);
 
-            m_Definition = ScriptableObject.CreateInstance<AuthoredMapDefinition>();
-            m_Definition.Author(scenario.Map, Palette());
-            context.Map.Rebuild(m_Definition);
+            context.Map.Rebuild(scenario.Map);
 
             m_Brain = new ScriptedBrain(IdOf, () => TurnState.Current != null ? TurnState.Current.Round : 0);
             m_Brain.Ordered += OnOrdered;
@@ -183,13 +169,6 @@ namespace Dragoneye.Game.Combat
 
             director.ServerBeginMatch(scenario.Seed, m_Brain);
         }
-
-        List<AuthoredMapDefinition.TerrainEntry> Palette() =>
-            new List<AuthoredMapDefinition.TerrainEntry>
-            {
-                new AuthoredMapDefinition.TerrainEntry { Name = Ground.Grass, Terrain = m_Grass },
-                new AuthoredMapDefinition.TerrainEntry { Name = Ground.Stone, Terrain = m_Stone }
-            };
 
         /// <summary>Which of its kind an actor is, so two goblins read as Goblin 1 and Goblin 2.</summary>
         static int OrdinalOf(Scenario scenario, Actor actor)
@@ -543,7 +522,7 @@ namespace Dragoneye.Game.Combat
             public int RegenOf(string actor) => FactsOf(actor).Regen;
 
             public TerrainType TerrainNamed(string name) =>
-                name == Ground.Stone ? m_Runner.m_Stone : name == Ground.Grass ? m_Runner.m_Grass : null;
+                ArenaContext.Current != null ? ArenaContext.Current.Map.TerrainNamed(name) : null;
 
             public IGridRules Grid => ArenaContext.Current != null ? ArenaContext.Current.Map.Grid : null;
 

@@ -79,6 +79,31 @@
     margin-bottom: 14px;
 }
 
+/* The map, between the sides and the join code. The host's dropdown, and under it what the
+   map is, so a guest who cannot change it can still read it. */
+.map-card {
+    flex-direction: row;
+    align-items: flex-start;
+    margin-left: 26px;
+    max-width: 440px;
+}
+
+.map-card__body {
+    flex-grow: 1;
+    flex-shrink: 1;
+}
+
+.map-card__field {
+    width: 220px;
+}
+
+.map-card__summary {
+    margin-top: 4px;
+    font-size: 11px;
+    white-space: normal;
+    color: rgb(150, 158, 176);
+}
+
 .code-card {
     flex-direction: row;
     align-items: center;

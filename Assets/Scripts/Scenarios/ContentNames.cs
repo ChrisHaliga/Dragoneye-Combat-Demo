@@ -1,3 +1,5 @@
+using Dragoneye.Hex;
+
 namespace Dragoneye.Scenarios
 {
     /// <summary>
@@ -8,8 +10,9 @@ namespace Dragoneye.Scenarios
     /// </summary>
     public static class Ground
     {
-        public const string Grass = "grass";
-        public const string Stone = "stone";
+        public const string Grass = ShippedTerrain.GrassName;
+        public const string Stone = ShippedTerrain.StoneName;
+        public const string Water = ShippedTerrain.WaterName;
     }
 
     public static class Premade

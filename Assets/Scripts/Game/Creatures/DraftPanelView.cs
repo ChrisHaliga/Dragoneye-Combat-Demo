@@ -55,6 +55,7 @@ namespace Dragoneye.Game.Creatures
         VisualElement m_PartyColumns;
         Label m_CapLabel;
         MatchSetupBar m_Setup;
+        MapPicker m_MapPicker;
         bool m_Live;
 
         readonly Dictionary<Party, Column> m_Columns = new Dictionary<Party, Column>();
@@ -80,9 +81,10 @@ namespace Dragoneye.Game.Creatures
             m_CapLabel = m_Root.Q<Label>("cap-label");
 
             m_Setup = new MatchSetupBar(m_Root);
+            m_MapPicker = new MapPicker(m_Root);
 
             if (m_Panel == null || m_TeamButtons == null || m_PartyColumns == null
-                || m_CapLabel == null || !m_Setup.IsBound)
+                || m_CapLabel == null || !m_Setup.IsBound || !m_MapPicker.IsBound)
             {
                 // A missing element used to throw here, which left the root at its default picking
                 // mode and blocked the menu below with no visible cause.
@@ -348,6 +350,7 @@ namespace Dragoneye.Game.Creatures
             }
 
             m_Setup.Refresh();
+            m_MapPicker.Refresh(m_Draft);
 
             if (m_Draft == null)
             {

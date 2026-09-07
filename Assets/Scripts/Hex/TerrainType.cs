@@ -39,5 +39,27 @@ namespace Dragoneye.Hex
         public int StepsToEnter => Mathf.Max(1, Mathf.RoundToInt(m_MoveCost));
 
         public bool BlocksSight => m_BlocksSight;
+
+        /// <summary>
+        /// A terrain from its spec. What the editor step writes to disk and what a test builds
+        /// in memory, from the same numbers.
+        /// </summary>
+        public static TerrainType Create(TerrainSpec spec)
+        {
+            var terrain = CreateInstance<TerrainType>();
+            terrain.Apply(spec);
+            return terrain;
+        }
+
+        /// <summary>Writes a spec over this terrain. For the editor step keeping an asset current.</summary>
+        public void Apply(TerrainSpec spec)
+        {
+            name = spec.DisplayName;
+            m_DisplayName = spec.DisplayName;
+            m_Color = spec.Color;
+            m_IsWalkable = spec.IsWalkable;
+            m_MoveCost = spec.MoveCost;
+            m_BlocksSight = spec.BlocksSight;
+        }
     }
 }

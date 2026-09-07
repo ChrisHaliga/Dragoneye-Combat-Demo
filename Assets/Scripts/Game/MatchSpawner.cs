@@ -328,7 +328,7 @@ namespace Dragoneye.Game
                 groups.Add(Mathf.Max(0, parties.IndexOf(placement.Entry.Party)));
             }
 
-            var cells = HexSpawnPlacement.PlaceGrouped(arena.Grid, groups, parties.Count);
+            var cells = HexSpawnPlacement.PlaceGrouped(arena.Grid, groups, Anchors(parties, arena));
 
             // Everybody starts looking inward. Facing defaults to north, and a board where every
             // creature faces north is a board where whoever spawned to the north is flanked before
@@ -340,6 +340,29 @@ namespace Dragoneye.Game
                 SpawnUnit(placements[i].Entry, cells[i], placements[i].BuildSlot,
                     Facing.Of((int)Hex.DirectionTo(cells[i].Tile, middle)), placements[i].Ordinal);
             }
+        }
+
+        /// <summary>
+        /// Where each side starts: the map's own anchors when it has one for every side present,
+        /// otherwise the rim, spread evenly. A map that names a side's ground names it for a
+        /// reason -- the islands would be no fight with both sides dealt onto one shore.
+        /// </summary>
+        static IReadOnlyList<Cell> Anchors(IReadOnlyList<Party> parties, ArenaMap arena)
+        {
+            var choice = ChosenMap.Current;
+            var anchors = new List<Cell>(parties.Count);
+
+            foreach (var party in parties)
+            {
+                if (!choice.TryAnchor(party, out var hex))
+                {
+                    return HexSpawnPlacement.ChooseSpawns(arena.Grid, Mathf.Max(1, parties.Count));
+                }
+
+                anchors.Add(Cell.Whole(hex));
+            }
+
+            return anchors;
         }
 
         /// <summary>

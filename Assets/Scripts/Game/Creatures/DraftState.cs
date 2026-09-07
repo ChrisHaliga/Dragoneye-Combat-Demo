@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using Dragoneye.Combat;
+using Dragoneye.Scenarios;
 using Unity.Netcode;
 using UnityEngine;
 using Dragoneye.Game;
@@ -36,6 +37,10 @@ namespace Dragoneye.Game.Creatures
         readonly NetworkList<RosterEntry> m_Roster = new NetworkList<RosterEntry>();
         readonly NetworkList<PartyChoice> m_PartyChoices = new NetworkList<PartyChoice>();
 
+        // Which map the fight is on, as an index into the library. The host's to change; the
+        // arena every machine builds is read from here.
+        readonly NetworkVariable<int> m_Map = new NetworkVariable<int>();
+
         readonly List<RosterEntry> m_RosterView = new List<RosterEntry>();
         readonly List<PartyChoice> m_ChoiceView = new List<PartyChoice>();
 
@@ -64,6 +69,9 @@ namespace Dragoneye.Game.Creatures
 
         public IReadOnlyList<PartyChoice> Choices => m_ChoiceView;
 
+        /// <summary>The map the host picked, as an index into <see cref="MapLibrary.All"/>.</summary>
+        public int MapIndex => m_Map.Value;
+
         /// <summary>Raised whenever the roster or party choices change.</summary>
         public event Action Changed;
 
@@ -80,6 +88,7 @@ namespace Dragoneye.Game.Creatures
 
             m_Roster.OnListChanged += OnRosterChanged;
             m_PartyChoices.OnListChanged += OnChoicesChanged;
+            m_Map.OnValueChanged += OnMapChanged;
             RebuildViews();
         }
 
@@ -87,6 +96,7 @@ namespace Dragoneye.Game.Creatures
         {
             m_Roster.OnListChanged -= OnRosterChanged;
             m_PartyChoices.OnListChanged -= OnChoicesChanged;
+            m_Map.OnValueChanged -= OnMapChanged;
 
             if (Current == this)
             {
@@ -132,6 +142,8 @@ namespace Dragoneye.Game.Creatures
         }
 
         void OnRosterChanged(NetworkListEvent<RosterEntry> _) => RebuildViews();
+
+        void OnMapChanged(int previous, int current) => Changed?.Invoke();
 
         void OnChoicesChanged(NetworkListEvent<PartyChoice> _) => RebuildViews();
 
@@ -179,6 +191,16 @@ namespace Dragoneye.Game.Creatures
             DraftQueries.CanClaim(m_RosterView, m_ChoiceView, slot, entryId);
 
         // ---------------------------------------------------------------- commands
+
+        /// <summary>The host picking the map. Clamped here rather than trusted from the message.</summary>
+        [Rpc(SendTo.Server, InvokePermission = RpcInvokePermission.Everyone)]
+        public void SetMapRpc(int index, RpcParams rpc = default)
+        {
+            if (IsFromHost(rpc))
+            {
+                m_Map.Value = MapLibrary.Clamp(index);
+            }
+        }
 
         [Rpc(SendTo.Server, InvokePermission = RpcInvokePermission.Everyone)]
         public void AddCreatureRpc(ushort creatureId, byte partyId, RpcParams rpc = default)
