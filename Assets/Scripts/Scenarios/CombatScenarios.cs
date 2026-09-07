@@ -230,18 +230,27 @@ namespace Dragoneye.Scenarios
                     oracle.Use("wolf", Skills.Bite, "cleric");
                     oracle.Use("wolf", Skills.Maul, "cleric");
                     var hurt = oracle.HpOf("cleric");
-                    oracle.Use("cleric", Skills.Recover, "cleric");
+
+                    // The cleric may have put its Hydro up against the bites; then Recover is
+                    // refused, and the oracle skips it as the fight does.
+                    var canHeal = oracle.CanPay("cleric", Skills.Recover);
+
+                    if (canHeal)
+                    {
+                        oracle.Use("cleric", Skills.Recover, "cleric");
+                    }
 
                     return new[]
                     {
-                        That("the cleric used Recover", Reading.Has(world, TraceKind.Acted, "cleric", 0, Skills.Recover)),
+                        Equal("the cleric used Recover exactly when it still held the Hydro for it",
+                            canHeal, Reading.Has(world, TraceKind.Acted, "cleric", 0, Skills.Recover)),
                         Equal("its health is what the oracle worked out: the bites, then six back, capped",
                             oracle.HpOf("cleric"), world.HpOf("cleric")),
                         That("healing never passes the maximum", world.HpOf("cleric") <= world.MaxHpOf("cleric")),
                         Equal("the cleric's pool agrees with the oracle: the Hydro Recover cost, and what the clashes took",
                             oracle.PoolOf("cleric"), world.PoolOf("cleric")),
-                        That("the heal was worth having, or there was nothing to heal",
-                            hurt == world.MaxHpOf("cleric") || world.HpOf("cleric") > hurt)
+                        That("the heal was worth having, or there was nothing to heal, or nothing to pay with",
+                            !canHeal || hurt == world.MaxHpOf("cleric") || world.HpOf("cleric") > hurt)
                     };
                 });
         }
@@ -277,19 +286,31 @@ namespace Dragoneye.Scenarios
 
                     // Two rounds, goblin first (speed 10 to 5), each actor two orders a round,
                     // until somebody is down.
+                    // An order the fight refuses for want of an element is skipped here too.
                     for (var round = 1; round <= 2 && oracle.IsAlive("goblin") && oracle.IsAlive("ogre"); round++)
                     {
                         oracle.BeginTurn("goblin");
-                        oracle.Use("goblin", Skills.Jab, "ogre");
+
+                        if (oracle.CanPay("goblin", Skills.Jab))
+                        {
+                            oracle.Use("goblin", Skills.Jab, "ogre");
+                        }
 
                         if (!oracle.IsAlive("ogre")) break;
 
                         oracle.BeginTurn("ogre");
-                        oracle.Use("ogre", Skills.Maul, "goblin");
+
+                        if (oracle.CanPay("ogre", Skills.Maul))
+                        {
+                            oracle.Use("ogre", Skills.Maul, "goblin");
+                        }
 
                         if (!oracle.IsAlive("goblin")) break;
 
-                        oracle.Use("ogre", Skills.Torch, "goblin");
+                        if (oracle.CanPay("ogre", Skills.Torch))
+                        {
+                            oracle.Use("ogre", Skills.Torch, "goblin");
+                        }
                     }
 
                     var dead = !oracle.IsAlive("goblin");
