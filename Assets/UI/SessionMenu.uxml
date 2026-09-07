@@ -151,7 +151,7 @@
                             <ui:VisualElement class="sheet__column">
                                 <ui:Label text="POOL" class="col__title" />
                                 <ui:VisualElement name="create-pool" class="gem-row" />
-                                <ui:Label text="CARRIES" class="col__title col__title--spaced" />
+                                <ui:Label text="EQUIPMENT" class="col__title col__title--spaced" />
                                 <ui:VisualElement name="create-kit" class="group" />
                             </ui:VisualElement>
                             <ui:VisualElement class="sheet__column">
