@@ -87,6 +87,16 @@
     -unity-text-align: middle-right;
 }
 
+/* Which page of a wizard this is, between the title and any fault. */
+.stage__steps {
+    margin-left: 18px;
+    padding-bottom: 6px;
+    font-size: 11px;
+    -unity-font-style: bold;
+    letter-spacing: 3px;
+    color: rgb(198, 158, 88);
+}
+
 .stage__fault {
     flex-grow: 1;
     margin-left: 18px;
@@ -1378,4 +1388,217 @@
     font-size: 11px;
     white-space: normal;
     color: rgb(214, 96, 84);
+}
+
+/* ---------- the creator's pages ---------- */
+
+/* A page is a stage body that can be swapped for the next. */
+.page {
+    flex-grow: 1;
+}
+
+/* What a page is asking, under its title, in one sentence. */
+.page__lead {
+    margin-bottom: 10px;
+    font-size: 12px;
+    white-space: normal;
+    color: rgb(139, 147, 165);
+}
+
+.col--wide {
+    flex-grow: 1;
+    flex-shrink: 1;
+    flex-basis: 0;
+    margin-right: 0;
+}
+
+.col--classes {
+    width: 300px;
+}
+
+.col--attributes-tall {
+    width: 330px;
+}
+
+/* A species, as a card: what it is called, what it is, what it gives. */
+.choice-grid {
+    flex-direction: row;
+    flex-wrap: wrap;
+}
+
+.choice-card {
+    width: 300px;
+    min-height: 96px;
+    margin: 0 12px 12px 0;
+    padding: 12px 14px;
+    background-image: url("Generated/ui-card.png");
+    -unity-slice-left: 28;
+    -unity-slice-right: 28;
+    -unity-slice-top: 28;
+    -unity-slice-bottom: 28;
+    -unity-slice-scale: 0.5;
+    border-width: 2px;
+    border-color: rgba(0, 0, 0, 0);
+}
+
+.choice-card:hover {
+    -unity-background-image-tint-color: rgb(150, 160, 185);
+}
+
+.choice-card--chosen {
+    border-color: rgb(226, 191, 122);
+    -unity-background-image-tint-color: rgb(214, 196, 170);
+}
+
+.choice-card__name {
+    font-size: 15px;
+    -unity-font-style: bold;
+    color: rgb(236, 231, 219);
+}
+
+.choice-card__text {
+    margin-top: 3px;
+    font-size: 11px;
+    white-space: normal;
+    color: rgb(150, 158, 176);
+}
+
+.choice-card__line {
+    margin-top: 6px;
+    font-size: 10px;
+    -unity-font-style: bold;
+    letter-spacing: 1px;
+    color: rgb(198, 158, 88);
+    white-space: normal;
+}
+
+/* A class, as a row down the left: name and one line, chosen in gold. */
+.class-list {
+    flex-grow: 1;
+    flex-basis: 0;
+    min-height: 0;
+}
+
+.class-list .unity-scroll-view__content-container > * {
+    flex-shrink: 0;
+}
+
+/* The face on the overview: smaller than the roster's, since the sheet under it is the point. */
+.portrait--overview {
+    width: 110px;
+    height: 132px;
+    margin-right: 20px;
+}
+
+.class-row {
+    align-items: flex-start;
+    min-height: 40px;
+    margin: 0 0 3px 0;
+    padding: 5px 12px;
+    background-color: rgba(0, 0, 0, 0);
+    background-image: url("Generated/ui-card.png");
+    -unity-slice-left: 28;
+    -unity-slice-right: 28;
+    -unity-slice-top: 28;
+    -unity-slice-bottom: 28;
+    -unity-slice-scale: 0.5;
+    border-width: 2px;
+    border-color: rgba(0, 0, 0, 0);
+}
+
+.class-row:hover {
+    -unity-background-image-tint-color: rgb(150, 160, 185);
+}
+
+.class-row--chosen {
+    border-color: rgb(226, 191, 122);
+    -unity-background-image-tint-color: rgb(214, 196, 170);
+}
+
+.class-row__name {
+    font-size: 13px;
+    -unity-font-style: bold;
+    color: rgb(236, 231, 219);
+}
+
+.class-row__blurb {
+    margin-top: 1px;
+    font-size: 10px;
+    white-space: normal;
+    color: rgb(139, 147, 165);
+}
+
+.class-detail__name {
+    font-size: 22px;
+    -unity-font-style: bold;
+    letter-spacing: 4px;
+    color: rgb(236, 231, 219);
+}
+
+.class-detail__text {
+    margin-top: 4px;
+    font-size: 12px;
+    white-space: normal;
+    color: rgb(178, 184, 200);
+}
+
+.class-detail__line {
+    margin-top: 6px;
+    font-size: 11px;
+    letter-spacing: 1px;
+    white-space: normal;
+    color: rgb(198, 158, 88);
+}
+
+/* An attribute row with what a point in it buys written under the steppers. */
+.alloc-row--tall {
+    flex-direction: column;
+    align-items: stretch;
+    padding: 4px 10px 5px 10px;
+}
+
+.alloc-row__line {
+    flex-direction: row;
+    align-items: center;
+    min-height: 22px;
+}
+
+.alloc-row__text {
+    margin-top: 2px;
+    font-size: 10px;
+    white-space: normal;
+    color: rgb(139, 147, 165);
+}
+
+/* What the chosen item is, under its dropdown. */
+.field-note {
+    margin-top: 4px;
+    font-size: 10px;
+    white-space: normal;
+    color: rgb(139, 147, 165);
+}
+
+/* The sheet's head, laid out beside the face. */
+.sheet__titles {
+    flex-grow: 1;
+    flex-shrink: 1;
+}
+
+/* Columns that only hold what fits, in the creator's overview, which scrolls as a whole. */
+.sheet__columns--flat {
+    flex-grow: 0;
+}
+
+/* The one being played as, said on the row. */
+.character-row__playing {
+    margin-top: 2px;
+    font-size: 10px;
+    -unity-font-style: bold;
+    letter-spacing: 2px;
+    color: rgb(226, 191, 122);
+}
+
+/* An empty slot on the sheet, dimmer than what is carried. */
+.kit-line--empty {
+    opacity: 0.55;
 }

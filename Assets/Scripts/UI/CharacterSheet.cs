@@ -295,6 +295,109 @@ namespace Dragoneye.UI
         }
 
         /// <summary>
+        /// What the character carries: each slot, what is in it, and what that does.
+        ///
+        /// A weapon is named with its skills, so the line says what the sword is for; armour and
+        /// a shield are named with their numbers. An empty slot is said to be empty, because a
+        /// list that only shows what is there does not say what is missing.
+        /// </summary>
+        public static void Kit(VisualElement into, Loadout loadout)
+        {
+            into.Clear();
+
+            foreach (var slot in new[] { EquipmentSlot.Weapon, EquipmentSlot.Armor, EquipmentSlot.Offhand })
+            {
+                EquipmentSpec item = null;
+
+                foreach (var candidate in loadout.Items)
+                {
+                    if (candidate.Slot == slot)
+                    {
+                        item = candidate;
+                        break;
+                    }
+                }
+
+                into.Add(KitLine(slot, item, loadout));
+            }
+        }
+
+        static VisualElement KitLine(EquipmentSlot slot, EquipmentSpec item, Loadout loadout)
+        {
+            var line = new VisualElement();
+            line.AddToClassList("skill-line");
+            line.EnableInClassList("kit-line--empty", item == null);
+
+            var head = new VisualElement();
+            head.AddToClassList("skill-line__head");
+
+            var name = new Label(item != null ? item.Name : "Nothing");
+            name.AddToClassList("skill-line__name");
+            head.Add(name);
+
+            var where = new Label(SlotName(slot));
+            where.AddToClassList("skill-line__cost");
+            head.Add(where);
+
+            line.Add(head);
+
+            var text = new Label(item != null ? KitEffect(item, loadout) : "This hand is free.");
+            text.AddToClassList("skill-line__text");
+            line.Add(text);
+
+            if (item != null && !string.IsNullOrWhiteSpace(item.Description))
+            {
+                line.tooltip = item.Description;
+            }
+
+            return line;
+        }
+
+        static string SlotName(EquipmentSlot slot)
+        {
+            switch (slot)
+            {
+                case EquipmentSlot.Weapon: return "WEAPON";
+                case EquipmentSlot.Armor: return "ARMOUR";
+                default: return "OFFHAND";
+            }
+        }
+
+        /// <summary>What an item does, in the shorthand of the stats and the names of its skills.</summary>
+        static string KitEffect(EquipmentSpec item, Loadout loadout)
+        {
+            var parts = new System.Collections.Generic.List<string>();
+
+            if (item.TotalArmour > 0)
+            {
+                parts.Add($"+{item.TotalArmour} ARM");
+            }
+
+            if (item.SpeedCost > 0)
+            {
+                parts.Add($"-{item.SpeedCost} SPD");
+            }
+
+            if (item.GrantsAdvantage)
+            {
+                parts.Add("Advantage in a clash");
+            }
+
+            foreach (var id in item.SkillIds)
+            {
+                foreach (var skill in loadout.Skills)
+                {
+                    if (skill.Id == id)
+                    {
+                        parts.Add(skill.Name);
+                    }
+                }
+            }
+
+            return parts.Count > 0 ? string.Join(" · ", parts) : "Nothing to say about it yet";
+        }
+
+        /// <summary>
         /// Everything the character can do, and any passives it holds.
         ///
         /// The resolved list rather than the class list, which is what makes "no sword, no sword

@@ -76,49 +76,89 @@
 
         <!-- CREATOR -->
 
+        <!-- Four pages, one decision each: who, class, body and kit, and the sheet read back. -->
         <ui:VisualElement name="create-panel" class="screen stage is-hidden">
             <ui:VisualElement class="stage__head">
                 <ui:Label name="create-title" text="NEW CHARACTER" class="stage__title" />
+                <ui:Label name="create-steps" text="" class="stage__steps" />
                 <ui:Label name="create-faults" text="" class="stage__fault" />
             </ui:VisualElement>
             <ui:VisualElement class="rule rule--head" />
 
-            <ui:VisualElement class="stage__body">
+            <!-- Page one: a name, a face, a species. -->
+            <ui:VisualElement name="create-page-1" class="stage__body page">
                 <ui:VisualElement class="col col--identity">
+                    <ui:VisualElement name="create-identity" class="group" />
+                    <ui:Label text="FACE" class="col__title col__title--spaced" />
                     <ui:VisualElement name="create-portrait" class="portrait portrait--large">
                         <ui:Label name="create-portrait-initial" text="?" class="portrait__initial" />
                     </ui:VisualElement>
                     <ui:VisualElement name="create-portrait-controls" class="group" />
-                    <ui:VisualElement name="create-identity" class="group" />
                 </ui:VisualElement>
+                <ui:VisualElement class="col col--wide">
+                    <ui:Label text="SPECIES" class="col__title" />
+                    <ui:Label text="What the character is. Each gives a few points before anything is bought, and every one can catch its breath." class="page__lead" />
+                    <ui:VisualElement name="create-species" class="choice-grid" />
+                </ui:VisualElement>
+            </ui:VisualElement>
 
-                <ui:VisualElement class="col col--attributes">
+            <!-- Page two: the class, with every skill it will ever grant. -->
+            <ui:VisualElement name="create-page-2" class="stage__body page is-hidden">
+                <ui:VisualElement class="col col--classes">
+                    <ui:Label text="CLASS" class="col__title" />
+                    <ui:ScrollView name="create-class-list" mode="Vertical" class="class-list" />
+                </ui:VisualElement>
+                <ui:VisualElement class="col col--sheet">
+                    <ui:ScrollView name="create-class-detail" mode="Vertical" class="sheet-scroll" />
+                </ui:VisualElement>
+            </ui:VisualElement>
+
+            <!-- Page three: the points, the pool and the kit. -->
+            <ui:VisualElement name="create-page-3" class="stage__body page is-hidden">
+                <ui:VisualElement class="col col--attributes-tall">
                     <ui:Label text="ATTRIBUTES" class="col__title" />
                     <ui:Label name="create-budget" text="" class="budget" />
                     <ui:VisualElement name="create-attributes" class="group" />
                 </ui:VisualElement>
-
                 <ui:VisualElement class="col col--kit">
                     <ui:Label name="create-elements-title" text="STARTING ELEMENTS" class="col__title" />
+                    <ui:Label text="What the character brings to every fight. Spent to attack and to answer attacks, and comes back a breath at a time." class="page__lead" />
                     <ui:VisualElement name="create-elements" class="group" />
-                    <ui:Label text="EQUIPMENT" class="col__title col__title--spaced" />
+                </ui:VisualElement>
+                <ui:VisualElement class="col col--kit">
+                    <ui:Label text="EQUIPMENT" class="col__title" />
+                    <ui:Label text="A weapon is its skills. Armour stops blows and slows you. A shield makes you answer with the better of two." class="page__lead" />
                     <ui:VisualElement name="create-equipment" class="group" />
                 </ui:VisualElement>
+            </ui:VisualElement>
 
+            <!-- Page four: the sheet, as the roster will show it. -->
+            <ui:VisualElement name="create-page-4" class="stage__body page is-hidden">
                 <ui:VisualElement class="col col--sheet">
-                    <!-- Scrolls, but only when it has to: how many skills a character ends up with
-                         depends on its species, class and kit, so this is the one column whose
-                         height is not knowable in advance. -->
                     <ui:ScrollView name="create-sheet-scroll" mode="Vertical" class="sheet-scroll">
-                        <ui:Label name="create-summary-name" text="Unnamed" class="sheet__name" />
-                        <ui:Label name="create-summary-class" text="" class="sheet__class" />
-                        <ui:VisualElement name="create-stats" class="statline" />
-                        <ui:VisualElement name="create-xp" class="xp" />
+                        <ui:VisualElement class="sheet__head">
+                            <ui:VisualElement name="create-overview-portrait" class="portrait portrait--overview" />
+                            <ui:VisualElement class="sheet__titles">
+                                <ui:Label name="create-summary-name" text="Unnamed" class="sheet__name" />
+                                <ui:Label name="create-summary-class" text="" class="sheet__class" />
+                                <ui:VisualElement name="create-stats" class="statline" />
+                                <ui:VisualElement name="create-xp" class="xp" />
+                            </ui:VisualElement>
+                        </ui:VisualElement>
+                        <ui:Label text="ATTRIBUTES" class="col__title col__title--spaced" />
                         <ui:VisualElement name="create-attrs" class="attr-grid" />
-                        <ui:Label text="POOL" class="col__title col__title--spaced" />
-                        <ui:VisualElement name="create-pool" class="gem-row" />
-                        <ui:Label text="SKILLS" class="col__title col__title--spaced" />
-                        <ui:VisualElement name="create-skills" class="group" />
+                        <ui:VisualElement class="sheet__columns sheet__columns--flat">
+                            <ui:VisualElement class="sheet__column">
+                                <ui:Label text="POOL" class="col__title" />
+                                <ui:VisualElement name="create-pool" class="gem-row" />
+                                <ui:Label text="CARRIES" class="col__title col__title--spaced" />
+                                <ui:VisualElement name="create-kit" class="group" />
+                            </ui:VisualElement>
+                            <ui:VisualElement class="sheet__column">
+                                <ui:Label text="SKILLS" class="col__title" />
+                                <ui:VisualElement name="create-skills" class="group" />
+                            </ui:VisualElement>
+                        </ui:VisualElement>
                     </ui:ScrollView>
                 </ui:VisualElement>
             </ui:VisualElement>
@@ -126,6 +166,8 @@
             <ui:VisualElement class="stage__foot">
                 <ui:Button name="create-cancel-button" text="Cancel" class="btn btn--ghost" />
                 <ui:VisualElement class="spacer" />
+                <ui:Button name="create-back-button" text="Back" class="btn" />
+                <ui:Button name="create-next-button" text="Next" class="btn btn--primary btn--wide" />
                 <ui:Button name="create-save-button" text="Save character" class="btn btn--primary btn--wide" />
             </ui:VisualElement>
         </ui:VisualElement>

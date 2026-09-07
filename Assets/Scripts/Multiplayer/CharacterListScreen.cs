@@ -11,10 +11,14 @@ namespace Dragoneye.Multiplayer
     /// <summary>
     /// The roster of characters saved on this machine: pick one to play as, make another, or delete.
     ///
-    /// A plain class owning a subtree of the menu document, the same shape as
-    /// <see cref="SessionScreens"/> and <see cref="SettingsScreen"/>. It reads the store and writes
-    /// the selection; it does not decide whether a build is legal, which is
-    /// <see cref="BuildValidator"/>'s answer and is only shown here.
+    /// A rail of characters down the left and the chosen one, in full, on the right: its face, its
+    /// four numbers, its attributes, what it holds, what it carries and what it can do. Picking
+    /// who to play as means comparing what they can do, and a row three lines tall cannot show
+    /// that. The one you are playing as is marked in the rail, so the roster answers "who am I"
+    /// without a trip back to the home screen.
+    ///
+    /// It reads the store and writes the selection; it does not decide whether a build is legal,
+    /// which is <see cref="BuildValidator"/>'s answer and is only shown here.
     /// </summary>
     public sealed class CharacterListScreen
     {
@@ -63,6 +67,8 @@ namespace Dragoneye.Multiplayer
                 return;
             }
 
+            WheelScroll.Attach(m_List);
+
             m_New.clicked += () => m_OnEdit?.Invoke(null);
             m_Edit.clicked += () => { if (Selected() != null) m_OnEdit?.Invoke(Selected()); };
             m_Play.clicked += OnPlayClicked;
@@ -85,11 +91,14 @@ namespace Dragoneye.Multiplayer
             m_Characters.Clear();
             m_Characters.AddRange(CharacterStore.LoadAll());
 
-            // Keep the selection if it survived, otherwise fall back to the first row so Play is
-            // never pointing at nothing.
+            // Keep the selection if it survived; otherwise the one being played as, and failing
+            // that the first row, so Play is never pointing at nothing.
             if (!Contains(m_SelectedId))
             {
-                m_SelectedId = m_Characters.Count > 0 ? m_Characters[0].Id : null;
+                var playing = SelectedCharacter.Current;
+                m_SelectedId = playing != null && Contains(playing.Id)
+                    ? playing.Id
+                    : m_Characters.Count > 0 ? m_Characters[0].Id : null;
             }
 
             Rebuild();
@@ -109,8 +118,13 @@ namespace Dragoneye.Multiplayer
             }
 
             var selected = Selected();
+            var playing = selected != null && SelectedCharacter.Current != null
+                && SelectedCharacter.Current.Id == selected.Id;
 
             m_Play.SetEnabled(selected != null);
+            m_Play.text = selected == null
+                ? "Play"
+                : playing ? "Playing as this one" : $"Play as {DisplayName(selected)}";
             m_Delete.SetEnabled(selected != null);
             m_Edit.SetEnabled(selected != null);
 
@@ -120,9 +134,10 @@ namespace Dragoneye.Multiplayer
         /// <summary>
         /// The right half of the screen: whoever is selected, drawn full size.
         ///
-        /// The list is a list of names; this is the character. Picking who to play as means
-        /// comparing what they can do, and a row three lines tall cannot show that -- which is why
-        /// the roster used to be a scrolling box of rows with nothing to read.
+        /// The head: face, name, what they are, the four numbers and how close the next level
+        /// is. Under it, the attributes across the width, and then three columns: what they
+        /// hold, what they carry, what they can do. The last one scrolls, because a character at
+        /// level six carries more skills than a column can show.
         /// </summary>
         void RebuildSheet(SavedCharacter character)
         {
@@ -145,16 +160,22 @@ namespace Dragoneye.Multiplayer
             head.Add(SheetPortrait(character));
 
             var titles = new VisualElement();
-            titles.style.flexGrow = 1;
+            titles.AddToClassList("sheet__titles");
 
-            var name = new Label(string.IsNullOrWhiteSpace(character.Build.Name)
-                ? "Unnamed" : character.Build.Name);
+            var name = new Label(DisplayName(character));
             name.AddToClassList("sheet__name");
             titles.Add(name);
 
             var subtitle = new Label(CharacterSheet.Describe(loadout));
             subtitle.AddToClassList("sheet__class");
             titles.Add(subtitle);
+
+            if (loadout.Class != null && !string.IsNullOrWhiteSpace(loadout.Class.Description))
+            {
+                var blurb = new Label(loadout.Class.Description);
+                blurb.AddToClassList("sheet__blurb");
+                titles.Add(blurb);
+            }
 
             var stats = new VisualElement();
             stats.AddToClassList("statline");
@@ -169,18 +190,24 @@ namespace Dragoneye.Multiplayer
             head.Add(titles);
             m_Sheet.Add(head);
 
+            var attributes = new Label("ATTRIBUTES");
+            attributes.AddToClassList("col__title");
+            attributes.AddToClassList("col__title--spaced");
+            m_Sheet.Add(attributes);
+
+            var grid = new VisualElement();
+            grid.AddToClassList("attr-grid");
+            CharacterSheet.Attributes(grid, loadout.Attributes, character.Build.Attributes);
+            m_Sheet.Add(grid);
+
             var columns = new VisualElement();
             columns.AddToClassList("sheet__columns");
-            columns.Add(SheetColumn("ATTRIBUTES", attrs =>
-                CharacterSheet.Attributes(attrs, loadout.Attributes), "attr-grid"));
             columns.Add(SheetColumn("POOL", pool =>
-                CharacterSheet.Pool(pool, character.Build.StartingPool,
-                    character.Build.PoolBudget()),
+                CharacterSheet.Pool(pool, character.Build.StartingPool, character.Build.PoolBudget()),
                 "gem-row"));
-            // The one column with no ceiling on it: a character at level six carries species,
-            // class and equipment skills, and the list used to run off the bottom of the panel.
-            columns.Add(SheetColumn("SKILLS", skills =>
-                CharacterSheet.Skills(skills, loadout), "group", scrolls: true));
+            columns.Add(SheetColumn("CARRIES", kit => CharacterSheet.Kit(kit, loadout), "group"));
+            columns.Add(SheetColumn("SKILLS", skills => CharacterSheet.Skills(skills, loadout), "group",
+                scrolls: true));
             m_Sheet.Add(columns);
 
             if (!BuildValidator.IsValid(character.Build, m_Content))
@@ -192,7 +219,7 @@ namespace Dragoneye.Multiplayer
         }
 
         /// <summary>A titled block in the sheet, filled by whoever knows how to draw it.</summary>
-        static VisualElement SheetColumn(string title, System.Action<VisualElement> fill,
+        static VisualElement SheetColumn(string title, Action<VisualElement> fill,
             string bodyClass, bool scrolls = false)
         {
             var column = new VisualElement();
@@ -207,6 +234,7 @@ namespace Dragoneye.Multiplayer
             {
                 var scroll = new ScrollView(ScrollViewMode.Vertical);
                 scroll.AddToClassList("sheet__scroll");
+                WheelScroll.Attach(scroll);
 
                 var scrolled = new VisualElement();
                 scrolled.AddToClassList(bodyClass);
@@ -283,14 +311,22 @@ namespace Dragoneye.Multiplayer
             var body = new VisualElement();
             body.AddToClassList("character-row__body");
 
-            var name = new Label(string.IsNullOrWhiteSpace(character.Build.Name)
-                ? "Unnamed" : character.Build.Name);
+            var name = new Label(DisplayName(character));
             name.AddToClassList("character-row__name");
             body.Add(name);
 
             var detail = new Label(Describe(character));
             detail.AddToClassList("character-row__detail");
             body.Add(detail);
+
+            // The one being played as. Said on the row, because "who am I playing as" is the
+            // question a player opens this screen to answer.
+            if (SelectedCharacter.Current != null && SelectedCharacter.Current.Id == character.Id)
+            {
+                var playing = new Label("PLAYING AS");
+                playing.AddToClassList("character-row__playing");
+                body.Add(playing);
+            }
 
             // A character can become illegal without being touched -- the budget moved, or the class
             // it used was deleted. Saying so here is kinder than refusing it at the lobby.
@@ -303,6 +339,9 @@ namespace Dragoneye.Multiplayer
 
             return body;
         }
+
+        static string DisplayName(SavedCharacter character) =>
+            string.IsNullOrWhiteSpace(character.Build.Name) ? "Unnamed" : character.Build.Name;
 
         /// <summary>The line under the name: level, species and class.</summary>
         string Describe(SavedCharacter character) =>
@@ -381,6 +420,5 @@ namespace Dragoneye.Multiplayer
             m_SelectedId = null;
             Refresh();
         }
-
     }
 }

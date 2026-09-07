@@ -205,6 +205,28 @@ namespace Dragoneye.Combat
         }
 
         /// <summary>
+        /// What raising it does, in one line, for a row that has room for one.
+        ///
+        /// The same facts as <see cref="DescribeEffect"/>, shorter. Two wordings of one rule is
+        /// one too many, so this is the summary and that is the whole: neither says anything the
+        /// other contradicts.
+        /// </summary>
+        public static string Summarise(Attribute attribute)
+        {
+            switch (attribute)
+            {
+                case Attribute.Toughness: return "Heals this much at the start of every turn.";
+                case Attribute.Dexterity: return "Adds to the damage of quick weapons.";
+                case Attribute.Strength: return "Adds to the damage of heavy weapons.";
+                case Attribute.Skill: return "Raises the chance a shot lands. Nothing shipped rolls yet.";
+                case Attribute.Vitality: return "One more health for every point.";
+                case Attribute.Willpower: return "One more action point for every point.";
+                case Attribute.Endurance: return "One more speed: act sooner, and walk further per point.";
+                default: return string.Empty;
+            }
+        }
+
+        /// <summary>
         /// What raising it actually does, in full, for a hover.
         ///
         /// What the rules do with it, not what the word evokes. One of the seven is read by
