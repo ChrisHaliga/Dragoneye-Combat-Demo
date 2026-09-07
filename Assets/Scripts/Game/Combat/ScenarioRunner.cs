@@ -500,6 +500,12 @@ namespace Dragoneye.Game.Combat
 
             public ElementCounts StartingPoolOf(string actor) => FactsOf(actor).StartingPool;
 
+            public ElementLedger LedgerOf(string actor)
+            {
+                var pool = Live(actor)?.Pool;
+                return pool != null ? pool.Ledger : ElementLedger.Starting(ElementCounts.Empty);
+            }
+
             public IReadOnlyList<SkillSpec> SkillsOf(string actor) => FactsOf(actor).Skills;
 
             public SkillSpec SkillOf(string actor, int skillId)

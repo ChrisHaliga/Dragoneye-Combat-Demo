@@ -139,6 +139,12 @@ namespace Dragoneye.Scenarios
         /// <summary>What the actor's pool held at the start.</summary>
         ElementCounts StartingPoolOf(string actor);
 
+        /// <summary>
+        /// The actor's elements as everybody at the table sees them: what it has been watched
+        /// spending, what it has spent that nobody has been told about yet, what has a name.
+        /// </summary>
+        ElementLedger LedgerOf(string actor);
+
         /// <summary>Everything the actor can do, in the order it holds them, attributes folded in.</summary>
         IReadOnlyList<SkillSpec> SkillsOf(string actor);
 

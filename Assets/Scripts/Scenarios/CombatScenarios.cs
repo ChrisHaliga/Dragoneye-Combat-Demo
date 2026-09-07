@@ -250,7 +250,14 @@ namespace Dragoneye.Scenarios
                         Equal("the cleric's pool agrees with the oracle: the Hydro Recover cost, and what the clashes took",
                             oracle.PoolOf("cleric"), world.PoolOf("cleric")),
                         That("the heal was worth having, or there was nothing to heal, or nothing to pay with",
-                            !canHeal || hurt == world.MaxHpOf("cleric") || world.HpOf("cleric") > hurt)
+                            !canHeal || hurt == world.MaxHpOf("cleric") || world.HpOf("cleric") > hurt),
+                        // A heal has nobody to answer it, and a spend nobody answers used to stay
+                        // unannounced until the next clash: the table watched the Hydro leave the
+                        // pool and was never told what it was.
+                        That("everybody was told the Hydro the heal cost, the moment it was spent",
+                            !canHeal || world.LedgerOf("cleric").Revealed[Element.Hydro] >= 1),
+                        That("nothing the cleric spent is still waiting to be announced",
+                            world.LedgerOf("cleric").Outstanding.Count == 0)
                     };
                 });
         }
