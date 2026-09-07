@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using Dragoneye.Combat;
 using Dragoneye.Data;
 using Dragoneye.Hex;
+using Dragoneye.Hex.Systems;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using Dragoneye.Game.Creatures;
@@ -18,7 +19,12 @@ namespace Dragoneye.Game.Combat
     /// to every view that listens, and left on screen for its beat; then the next. A walk waits
     /// for the token to arrive. Holding Space plays it four times faster.
     ///
-    /// Nothing that draws the fight reads anything but <see cref="Fight"/> and <see cref="Presenting"/>.
+    /// The board is part of what is shown, not a backdrop to it: a wall the fight has already
+    /// brought down still stands on screen until its event comes round here, and then it falls
+    /// while the watcher is looking at it.
+    ///
+    /// Nothing that draws the fight reads anything but <see cref="Fight"/>, the arena's drawn
+    /// board, and <see cref="Presenting"/>.
     /// The prompts -- a defence to answer, a swing to take -- wait until the queue is empty, so a
     /// question is never asked about a blow the player has not yet seen thrown. And because the
     /// simulation stops on exactly those questions, the shown fight and the real one are the same
@@ -31,6 +37,10 @@ namespace Dragoneye.Game.Combat
     {
         [SerializeField, Tooltip("Every creature on the board, to find the token a walk belongs to.")]
         CreatureRegistry m_Creatures;
+
+        [SerializeField, Tooltip("The arena's map, whose drawn board a wall change is applied to "
+             + "when the change is reached.")]
+        ArenaMap m_Map;
 
         [SerializeField, Min(0.5f), Tooltip("Seconds a walk may take past its estimate before the "
              + "playback stops waiting for the token. A token that never arrives must not stop the fight.")]
@@ -69,11 +79,12 @@ namespace Dragoneye.Game.Combat
         Func<bool> m_Until;
 
         /// <summary>Puts the playback on the arena, if it is not already there.</summary>
-        public static CombatPlayback Ensure(GameObject host, CreatureRegistry creatures)
+        public static CombatPlayback Ensure(GameObject host, CreatureRegistry creatures, ArenaMap map)
         {
             var existing = host.GetComponent<CombatPlayback>();
             var playback = existing == null ? host.AddComponent<CombatPlayback>() : existing;
             playback.m_Creatures = creatures;
+            playback.m_Map = map;
             return playback;
         }
 
@@ -134,6 +145,7 @@ namespace Dragoneye.Game.Combat
         void Present(CombatEvent e)
         {
             Fight.Apply(e);
+            ShowBoardChange(e);
             Showing = e;
 
             try
@@ -153,6 +165,18 @@ namespace Dragoneye.Game.Combat
             m_Cap = m_Beat + m_WalkGrace;
             m_Until = e.Kind == CombatEventKind.Moved ? StillWalking(e.Actor) : null;
             m_Busy = m_Beat > 0f || m_Until != null;
+        }
+
+        /// <summary>
+        /// A wall reaching the moment it changes. The fight's own board changed when the wall did;
+        /// this is the drawn board catching up, with the watcher looking at it.
+        /// </summary>
+        void ShowBoardChange(CombatEvent e)
+        {
+            if (e.Kind == CombatEventKind.WallChanged && m_Map != null)
+            {
+                m_Map.ShowWall(e.Segment, e.WallAfter);
+            }
         }
 
         /// <summary>A walk is over when the token says so, not when the clock does.</summary>

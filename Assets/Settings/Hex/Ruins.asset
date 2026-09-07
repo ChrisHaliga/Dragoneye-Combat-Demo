@@ -20,6 +20,8 @@ MonoBehaviour:
     Terrain: {fileID: 11400000, guid: 9830a486e55c1d743ba2351cff1fd106, type: 2}
   - Name: stone
     Terrain: {fileID: 11400000, guid: e813c741acfc9c344ba02c2d90e06eac, type: 2}
+  - Name: water
+    Terrain: {fileID: 11400000, guid: 36975dbfba2da0d4a87729aacd2b0089, type: 2}
   m_Tiles:
   - Q: 3
     R: -3

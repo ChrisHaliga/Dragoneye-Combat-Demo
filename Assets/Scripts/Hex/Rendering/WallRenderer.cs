@@ -74,9 +74,9 @@ namespace Dragoneye.Hex.Rendering
 
         void Start()
         {
-            if (m_Source != null && m_Source.Map != null && m_Root == null)
+            if (m_Source != null && m_Source.Shown != null && m_Root == null)
             {
-                Rebuild(m_Source.Map);
+                Rebuild(m_Source.Shown);
             }
         }
 

@@ -7,6 +7,14 @@ namespace Dragoneye.Hex.Systems
     /// <summary>
     /// The map in the scene: built from its definition, placed by its transform, and read through
     /// <see cref="Grid"/> by everything that walks or looks.
+    ///
+    /// Two boards, not one. <see cref="Map"/> is the board the fight is played on, and it changes
+    /// the instant the fight changes it. <see cref="Shown"/> is the board that is drawn, and it
+    /// changes only when the playback reaches the moment a wall changed -- because the fight runs
+    /// ahead of what has been shown of it, and a wall that falls on screen several turns before the
+    /// blow that felled it is not a pacing detail, it is a lie about what is happening. They are
+    /// built from the same definition and are the same board in every respect until a wall moves,
+    /// which is the only thing about a map that changes mid-fight.
     /// </summary>
     [DisallowMultipleComponent]
     public sealed class ArenaMap : MonoBehaviour, IHexMapSource
@@ -24,11 +32,28 @@ namespace Dragoneye.Hex.Systems
         // A definition made for a recipe, replaced -- and destroyed -- by the next.
         AuthoredMapDefinition m_Runtime;
 
+        /// <summary>
+        /// The board the fight is played on: what the rules ask about, and where a wall change
+        /// lands the moment the server makes it.
+        /// </summary>
         public HexMap Map { get; private set; }
 
-        /// <summary>Movement and sight, as this map has them. Rebuilt with the map.</summary>
+        /// <summary>Movement and sight as the fight's board has them. Rebuilt with it.</summary>
         public IGridRules Grid { get; private set; }
 
+        /// <summary>
+        /// The board that is drawn, and pointed at: the same map, changed only when the playback
+        /// reaches the moment a wall changed. Everything visible reads this one.
+        /// </summary>
+        public HexMap Shown { get; private set; }
+
+        /// <summary>
+        /// Movement and sight as the drawn board has them, for drawing a walk through the gaps a
+        /// watcher can see.
+        /// </summary>
+        public IGridRules ShownGrid { get; private set; }
+
+        /// <summary>Raised with the drawn board whenever the arena is rebuilt.</summary>
         public event Action<HexMap> MapBuilt;
 
         public HexMapDefinition Definition => m_Definition;
@@ -106,15 +131,41 @@ namespace Dragoneye.Hex.Systems
 
             Map = m_Definition.Build(m_Seed);
             Grid = new GridRules(Map);
-            MapBuilt?.Invoke(Map);
+
+            // Built a second time rather than shared: a definition builds the same board from the
+            // same seed every time, so these start identical, and they have to be able to differ
+            // for as long as it takes to show a wall coming down.
+            Shown = m_Definition.Build(m_Seed);
+            ShownGrid = new GridRules(Shown);
+
+            MapBuilt?.Invoke(Shown);
         }
 
-        // All of these tolerate a null map. Rebuild already logs the real cause when a definition
-        // is missing, and letting a NullReferenceException pile on top only buries that message.
+        /// <summary>
+        /// Changes a wall on the board that is drawn, leaving the fight's board alone.
+        ///
+        /// The other half of <see cref="HexMap.SetWall"/>: the fight changes its own board at once,
+        /// and this is called when the playback reaches the event, so a wall falls on screen at the
+        /// moment the watcher is shown it falling. Integrity is the rules' business and stays as
+        /// this board has it -- what a drawn wall needs to know is how tall to stand.
+        /// </summary>
+        public void ShowWall(WallSegment segment, WallFlags flags)
+        {
+            if (Shown == null || !Shown.Contains(segment.Tile))
+            {
+                return;
+            }
+
+            Shown.SetWall(segment, new Wall(flags, Shown.WallAt(segment).Integrity));
+        }
+
+        // All of these answer where something is on screen, so all of them read the drawn board.
+        // They tolerate it being null: Rebuild already logs the real cause when a definition is
+        // missing, and letting a NullReferenceException pile on top only buries that message.
 
         /// <summary>The centre of a tile, in the world.</summary>
         public Vector3 ToWorld(Hex hex) =>
-            Map == null ? transform.position : transform.TransformPoint(Map.Layout.ToWorld(hex));
+            Shown == null ? transform.position : transform.TransformPoint(Shown.Layout.ToWorld(hex));
 
         /// <summary>
         /// The centre of a cell, in the world: the tile's centre plus the area's offset within it.
@@ -124,17 +175,17 @@ namespace Dragoneye.Hex.Systems
         /// </summary>
         public Vector3 ToWorld(Cell cell)
         {
-            if (Map == null)
+            if (Shown == null)
             {
                 return transform.position;
             }
 
-            var local = Map.Layout.ToWorld(cell.Tile);
+            var local = Shown.Layout.ToWorld(cell.Tile);
 
-            if (cell.Area != 0 && Map.TryGetTile(cell.Tile, out var tile))
+            if (cell.Area != 0 && Shown.TryGetTile(cell.Tile, out var tile))
             {
                 AreaGeometry.Centre(tile.Areas, cell.Area, out var x, out var z);
-                var scale = Map.Layout.Size / TileGeometry.Scale;
+                var scale = Shown.Layout.Size / TileGeometry.Scale;
                 local += new Vector3((float)(x * scale), 0f, (float)(z * scale));
             }
 
@@ -152,7 +203,7 @@ namespace Dragoneye.Hex.Systems
         {
             world = ToWorld(to);
 
-            if (Map == null || Grid == null || !Grid.TryCrossing(from, to, out var halfEdge))
+            if (Shown == null || ShownGrid == null || !ShownGrid.TryCrossing(from, to, out var halfEdge))
             {
                 return false;
             }
@@ -160,8 +211,8 @@ namespace Dragoneye.Hex.Systems
             TileGeometry.RayEnd(halfEdge, out var ax, out var az);
             TileGeometry.RayEnd(halfEdge + 1, out var bx, out var bz);
 
-            var scale = Map.Layout.Size / TileGeometry.Scale;
-            var local = Map.Layout.ToWorld(from.Tile)
+            var scale = Shown.Layout.Size / TileGeometry.Scale;
+            var local = Shown.Layout.ToWorld(from.Tile)
                 + new Vector3((float)((ax + bx) * 0.5 * scale), 0f, (float)((az + bz) * 0.5 * scale));
 
             world = transform.TransformPoint(local);
@@ -169,13 +220,16 @@ namespace Dragoneye.Hex.Systems
         }
 
         public Hex FromWorld(Vector3 world) =>
-            Map == null ? Hex.Zero : Map.Layout.FromWorld(transform.InverseTransformPoint(world));
+            Shown == null ? Hex.Zero : Shown.Layout.FromWorld(transform.InverseTransformPoint(world));
 
-        /// <summary>The cell under a world point, or null off the map or over dead footing.</summary>
+        /// <summary>
+        /// The cell under a world point, or null off the map or over dead footing. Picked on the
+        /// drawn board, because what a player points at is what they can see.
+        /// </summary>
         public Cell? CellFromWorld(Vector3 world) =>
-            Map?.CellAt(transform.InverseTransformPoint(world));
+            Shown?.CellAt(transform.InverseTransformPoint(world));
 
         public Vector3 WorldCenter() =>
-            Map == null ? transform.position : transform.TransformPoint(Map.WorldCenter());
+            Shown == null ? transform.position : transform.TransformPoint(Shown.WorldCenter());
     }
 }

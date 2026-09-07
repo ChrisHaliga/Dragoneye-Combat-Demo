@@ -104,9 +104,9 @@ namespace Dragoneye.Hex.Rendering
         {
             // The source builds in Awake, so by Start the map usually exists already and MapBuilt
             // has been and gone. Render what is there; MapBuilt covers any later rebuild.
-            if (m_Source != null && m_Source.Map != null && m_TileViews.Count == 0)
+            if (m_Source != null && m_Source.Shown != null && m_TileViews.Count == 0)
             {
-                Rebuild(m_Source.Map);
+                Rebuild(m_Source.Shown);
             }
         }
 

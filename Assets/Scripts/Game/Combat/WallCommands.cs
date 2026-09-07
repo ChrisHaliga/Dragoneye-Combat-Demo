@@ -1,4 +1,3 @@
-using System;
 using Dragoneye.Hex;
 using Unity.Netcode;
 using UnityEngine;
@@ -53,6 +52,10 @@ namespace Dragoneye.Game.Combat
     /// thing about the map that is not fixed, so it travels here -- the server changes its map
     /// and says so, every client changes its own the same way, and the grids agree again.
     ///
+    /// This is the fight's board and nobody sees it. The board on screen is changed by the
+    /// playback when it reaches the <see cref="CombatEventKind.WallChanged"/> event, which is the
+    /// same change arriving at the pace everything else about the fight is watched at.
+    ///
     /// Beside the turn state, and with the same lifetime: a change to the board of one fight
     /// belongs to that fight.
     /// </summary>
@@ -62,9 +65,6 @@ namespace Dragoneye.Game.Combat
     {
         /// <summary>The postbox for the match in progress, or null outside one.</summary>
         public static WallCommands Current { get; private set; }
-
-        /// <summary>A wall changed on this machine's map: where, what was there, what is now.</summary>
-        public static event Action<WallSegment, Wall, Wall> Changed;
 
         public override void OnNetworkSpawn() => Current = this;
 
@@ -97,11 +97,7 @@ namespace Dragoneye.Game.Combat
                 return;
             }
 
-            var segment = change.Segment;
-            var before = map.WallAt(segment);
-
-            map.SetWall(segment, change.Wall);
-            Changed?.Invoke(segment, before, change.Wall);
+            map.SetWall(change.Segment, change.Wall);
         }
     }
 }

@@ -77,7 +77,10 @@ namespace Dragoneye.Game
             }
 
             var cell = hex.Value;
-            var map = context.Map.Map;
+
+            // The drawn board: the marker is a shape on the ground the player can see, and its
+            // areas are the ones the walls they can see cut.
+            var map = context.Map.Shown;
             var split = map != null && map.TryGetTile(cell.Tile, out var tile) && tile.Areas.Count > 1;
 
             if (m_MarkerMesh != null)

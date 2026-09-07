@@ -362,8 +362,14 @@ takes as long as the token needs to walk the server's own route, a shot flies it
 holding **Space** plays at four times speed. The server may be five turns ahead; nothing the client
 draws knows that.
 
-`Shown` is what the HUD reads: the presented creature, the presented active turn, whether playback
-has caught up. Displays — tokens, cards, the log, floating text, the turn bar, the camera — read
+The board is shown the same way. The arena keeps two of it: `ArenaMap.Map`, which the fight is
+played on and which changes the instant a wall does, and `ArenaMap.Shown`, which is what is drawn
+and pointed at and changes only when playback reaches that `WallChanged` event. Renderers are
+handed the drawn one through `IHexMapSource` and cannot reach the other. Rules, routes and prices
+read `Map`; anything that answers where something is on screen reads `Shown`.
+
+`Shown` (the static, not the board) is what the HUD reads: the presented creature, the presented
+active turn, whether playback has caught up. Displays — tokens, cards, the log, floating text, the turn bar, the camera — read
 presented state. Controls — the action bar, the End Turn pips, the reach and shot previews — read
 the live actor, deliberately: a click is priced against what the server will actually accept.
 Prompts (a clash answer, a swing at a passer-by) are built only once playback has caught up, so
@@ -636,10 +642,6 @@ Flagged rather than fixed, deliberately:
   depth pass; if it fails to compile the wall material falls back to lit stone and walls hide
   creatures behind them. The masonry it scores into the faces, and the tiles' shadowed skirts and
   relief, are in the same position: written to the URP contract, not yet looked at.
-- **A wall that changes mid-fight is drawn the moment the server changes it**, not when playback
-  reaches the `WallChanged` event, because the wall renderer reads the live map. The creatures
-  carried off it move at the presented pace, so for a beat the wall is gone and they are still on
-  it.
 - **The map is the host's to pick.** Everybody else in the lobby sees the card change and cannot
   change it.
 - **A fight's playback is not skippable, only faster.** Space holds it at four times speed; there

@@ -923,7 +923,6 @@ GameObject:
   - component: {fileID: 261654072}
   - component: {fileID: 261654071}
   - component: {fileID: 261654073}
-  - component: {fileID: 261654075}
   - component: {fileID: 261654074}
   m_Layer: 0
   m_Name: Arena Context
@@ -1080,11 +1079,6 @@ MonoBehaviour:
   m_Creatures: {fileID: 261654061}
   m_Units: {fileID: 261654057}
   m_Map: {fileID: 1461267523}
-  m_BrainActionDelay: 0.45
-  m_BrainSkillDwell: 1.6
-  m_BrainSecondsPerTile: 0.3
-  m_ClashSettleDelay: 0.9
-  m_TurnLeadIn: 0.7
   m_Seed: 0
 --- !u!114 &261654064
 MonoBehaviour:
@@ -1173,8 +1167,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 421bfc621a720294f8f78ddd14cc6e5b, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Dragoneye.Game::Dragoneye.Game.ProjectileView
-  m_SecondsPerTile: 0.07
-  m_BaseSeconds: 0.14
   m_BeadSize: 0.16
 --- !u!114 &261654070
 MonoBehaviour:
@@ -1230,8 +1222,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 85b6c28f76661e7478878e6fa2baaafb, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Dragoneye.Game::Dragoneye.Game.Combat.ScenarioRunner
-  m_Grass: {fileID: 11400000, guid: 9830a486e55c1d743ba2351cff1fd106, type: 2}
-  m_Stone: {fileID: 11400000, guid: e813c741acfc9c344ba02c2d90e06eac, type: 2}
   m_NextDelay: 3
 --- !u!114 &261654074
 MonoBehaviour:
@@ -1248,19 +1238,6 @@ MonoBehaviour:
   m_Creatures: {fileID: 261654061}
   m_Ease: 0.35
   m_Settled: 0.05
---- !u!114 &261654075
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 261654050}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 3f344f3ddc53f054e956ec95d82006f7, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Dragoneye.Game::Dragoneye.Game.Combat.AttackFlourish
-  m_Creatures: {fileID: 261654061}
 --- !u!1 &454632036
 GameObject:
   m_ObjectHideFlags: 0
@@ -2477,6 +2454,9 @@ MonoBehaviour:
   m_TileBevel: 0.045
   m_TileVariance: 0.12
   m_ColorProperty: _BaseColor
+  m_SkirtShade: 0.5
+  m_BoulderRise: 0.34
+  m_WaterDrop: 0.1
 --- !u!114 &1461267523
 MonoBehaviour:
   m_ObjectHideFlags: 0

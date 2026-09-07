@@ -141,7 +141,7 @@ namespace Dragoneye.Game
         {
             var context = ArenaContext.Current;
             if (context == null || context.OutputCamera == null || context.Map == null
-                || context.Map.Map == null || m_PointerPosition == null)
+                || context.Map.Shown == null || m_PointerPosition == null)
             {
                 return null;
             }

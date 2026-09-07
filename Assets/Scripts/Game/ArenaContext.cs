@@ -95,7 +95,7 @@ namespace Dragoneye.Game
             }
 
             Current = this;
-            Playback = CombatPlayback.Ensure(gameObject, m_Creatures);
+            Playback = CombatPlayback.Ensure(gameObject, m_Creatures, m_Map);
 
             // Onto the map the host picked, before anything is placed on it. Every machine does
             // this from the same replicated index, so every machine builds the same board.
