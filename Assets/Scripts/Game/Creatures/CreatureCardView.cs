@@ -306,9 +306,12 @@ namespace Dragoneye.Game.Creatures
             var row = new VisualElement();
             row.AddToClassList("card-skill");
 
+            var head = new VisualElement();
+            head.AddToClassList("card-skill__head");
+
             var name = new Label(skill.Name);
             name.AddToClassList("card-skill__name");
-            row.Add(name);
+            head.Add(name);
 
             // The element in its own colour and the points in a grey that no element uses, with a
             // dot between them. Both halves used to be the element's colour, which for a Geo or an
@@ -317,11 +320,16 @@ namespace Dragoneye.Game.Creatures
                 CombatLogLines.Tint("#8B93A5", " \u00b7 ")));
 
             cost.AddToClassList("card-skill__cost");
-            row.Add(cost);
+            head.Add(cost);
+            row.Add(head);
 
-            row.tooltip = string.IsNullOrEmpty(skill.Description)
-                ? ElementLore.Describe(skill.Element)
-                : skill.Description + "\n\n" + ElementLore.Describe(skill.Element);
+            // Written out, not hidden behind a hover. Reading an enemy's card is how a player
+            // learns what is about to be thrown at them, and a name alone tells them nothing.
+            var text = new Label(CharacterSheet.Describe(skill));
+            text.AddToClassList("card-skill__text");
+            row.Add(text);
+
+            row.tooltip = ElementLore.Describe(skill.Element);
 
             return row;
         }

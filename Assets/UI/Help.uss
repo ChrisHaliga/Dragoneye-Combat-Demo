@@ -7,9 +7,10 @@
 /* ---------- the page ---------- */
 
 /* A column, against the stage body's row. The rules read top to bottom. */
+/* The whole width. It was held to 760px, which on any ordinary window left the right half of
+   the screen empty beside a column of wrapped text. */
 .help {
     flex-direction: column;
-    max-width: 760px;
 }
 
 /* The page's own parts must not shrink -- but the page's parts are what is *inside* the scroll

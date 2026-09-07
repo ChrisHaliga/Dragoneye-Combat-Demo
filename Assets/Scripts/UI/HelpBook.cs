@@ -38,7 +38,6 @@ namespace Dragoneye.UI
                 scroll.verticalScrollerVisibility = ScrollerVisibility.Auto;
                 scroll.horizontalScrollerVisibility = ScrollerVisibility.Hidden;
                 scroll.mouseWheelScrollSize = 40;
-                ScrollWheelFallback.Attach(scroll);
             }
 
             into.Add(Section("THE FIGHT"));

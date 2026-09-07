@@ -245,13 +245,16 @@ namespace Dragoneye.Hex.Rendering
             uvs.Add(Vector2.one);
             uvs.Add(Vector2.up);
 
+            // Clockwise seen from the side the normal points at, which is what Unity calls the
+            // front. Wound the other way round, every face of every wall and every tile skirt was
+            // a back face: you saw straight through the outside of a wall and onto its inside.
             triangles.Add(start);
-            triangles.Add(start + 1);
             triangles.Add(start + 2);
+            triangles.Add(start + 1);
 
             triangles.Add(start);
-            triangles.Add(start + 2);
             triangles.Add(start + 3);
+            triangles.Add(start + 2);
         }
 
         static Mesh Finish(System.Collections.Generic.List<Vector3> vertices,

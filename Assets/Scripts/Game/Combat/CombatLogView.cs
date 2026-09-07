@@ -73,9 +73,6 @@ namespace Dragoneye.Game.Combat
                 m_List.horizontalScrollerVisibility = ScrollerVisibility.Hidden;
                 m_List.mouseWheelScrollSize = 28f;
 
-                // The wheel, read directly. See ScrollWheelFallback for why the panel's own wheel
-                // handling could not be relied on here.
-                ScrollWheelFallback.Attach(m_List);
             }
             m_Panel?.AddToClassList("combat-log--empty");
 

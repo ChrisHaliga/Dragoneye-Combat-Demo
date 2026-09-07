@@ -159,10 +159,6 @@ namespace Dragoneye.Game.Combat
 
             m_Panel.Add(Intelligence());
 
-            var key = new Label(ClashLabels.OddsKey);
-            key.AddToClassList("clash-prompt__key");
-            m_Panel.Add(key);
-
             m_Options = new VisualElement();
             m_Options.AddToClassList("clash-prompt__options");
             m_Panel.Add(m_Options);
@@ -243,9 +239,8 @@ namespace Dragoneye.Game.Combat
             m_Options.Add(DeclineOption());
 
             m_Tally.text = m_Staged.Count == 0
-                ? $"Choose {m_Request.Required} elements. The first is kept until the second is picked."
-                : $"{m_Staged.Count} of {m_Request.Required} chosen. Pick the other, or click "
-                    + "the first again to put it back.";
+                ? $"Pick {m_Request.Required}."
+                : $"{m_Staged.Count} of {m_Request.Required}. Click one again to put it back.";
         }
 
         /// <summary>How answering with this element is expected to go, against what is known.</summary>
@@ -287,15 +282,13 @@ namespace Dragoneye.Game.Combat
             CharacterSheet.PaintElement(mark, element);
             button.Add(mark);
 
-            var name = new Label(ElementInfo.ShortNameOf(element));
+            // How many are held, on the name rather than under it. A line of its own per option
+            // was four words to say a number, on a panel that covers the board.
+            var name = new Label(staged > 0
+                ? $"{ElementInfo.ShortNameOf(element)} ({staged} up)"
+                : $"{ElementInfo.ShortNameOf(element)} ({left})");
             name.AddToClassList("clash-option__name");
             button.Add(name);
-
-            var count = new Label(staged > 0
-                ? $"{staged} of {left + staged} chosen"
-                : left > 0 ? $"{left} held" : "none held");
-            count.AddToClassList("clash-option__count");
-            button.Add(count);
 
             var chances = new Label(ClashLabels.Chances(OddsFor(element)));
             chances.AddToClassList("clash-option__odds");
@@ -335,10 +328,6 @@ namespace Dragoneye.Game.Combat
             var name = new Label("NONE");
             name.AddToClassList("clash-option__name");
             button.Add(name);
-
-            var count = new Label("costs nothing");
-            count.AddToClassList("clash-option__count");
-            button.Add(count);
 
             var chances = new Label(ClashLabels.Chances(ClashOdds.CertainLoss));
             chances.AddToClassList("clash-option__odds");

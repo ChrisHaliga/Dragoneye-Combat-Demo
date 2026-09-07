@@ -32,6 +32,13 @@ namespace Dragoneye.Game.Combat
         VisualElement m_Hand;
         Label m_Reason;
 
+        // What the skill under the cursor, or the one armed, actually does. Above the bar, because
+        // a row of names is not a description and a tooltip is not one either until it is hovered.
+        VisualElement m_Detail;
+        Label m_DetailHead;
+        Label m_DetailText;
+        int m_Hovered = NoSkill;
+
         int m_Selected = NoSkill;
 
         // Which element the armed skill will arrive as, for the few that offer a choice. Null for
@@ -246,6 +253,8 @@ namespace Dragoneye.Game.Combat
 
                 m_Bar.Add(BuildButton(skill, refusal));
             }
+
+            ShowDetail(actor);
 
             // The reason line is gone from the HUD -- every button explains itself on hover and the
             // points are drawn under the bar -- but a document that still has one gets it filled.
@@ -515,6 +524,67 @@ namespace Dragoneye.Game.Combat
             return button;
         }
 
+        void Hover(int skillId)
+        {
+            if (m_Hovered == skillId)
+            {
+                return;
+            }
+
+            m_Hovered = skillId;
+            ShowDetail(m_Input != null ? m_Input.Actor : null);
+        }
+
+        /// <summary>
+        /// What the skill under the cursor does, or the armed one when nothing is hovered.
+        ///
+        /// Built beside the bar rather than inside it: the bar is rebuilt whenever the creature's
+        /// state changes, and a click is a press and a release on the same element -- anything
+        /// that redraws on hover has to live where a hover cannot destroy the button under it.
+        /// </summary>
+        void ShowDetail(CreatureState actor)
+        {
+            if (m_Bar == null || m_Bar.parent == null)
+            {
+                return;
+            }
+
+            if (m_Detail == null)
+            {
+                m_Detail = new VisualElement();
+                m_Detail.AddToClassList("skill-detail");
+                m_Detail.pickingMode = PickingMode.Ignore;
+
+                m_DetailHead = new Label();
+                m_DetailHead.AddToClassList("skill-detail__head");
+                m_Detail.Add(m_DetailHead);
+
+                m_DetailText = new Label();
+                m_DetailText.AddToClassList("skill-detail__text");
+                m_Detail.Add(m_DetailText);
+
+                m_Bar.parent.Insert(m_Bar.parent.IndexOf(m_Bar), m_Detail);
+            }
+
+            var commands = actor != null ? actor.SkillCommands : null;
+            var wanted = m_Hovered != NoSkill ? m_Hovered : m_Selected;
+
+            if (commands == null || wanted == NoSkill || !commands.TryGetSkill(wanted, out var skill))
+            {
+                m_Detail.AddToClassList("is-hidden");
+                return;
+            }
+
+            m_Detail.RemoveFromClassList("is-hidden");
+
+            m_DetailHead.text = skill.ElementCost > 0
+                ? $"{skill.Name}   {skill.ApCost} AP · {skill.ElementCost} "
+                    + ElementInfo.ShortNameOf(skill.Element)
+                : $"{skill.Name}   {skill.ApCost} AP";
+
+            m_DetailText.text = CharacterSheet.Describe(skill);
+        }
+
         VisualElement BuildButton(SkillSpec skill, SkillRefusal refusal)
         {
             var usable = refusal == SkillRefusal.None;
@@ -560,6 +630,11 @@ namespace Dragoneye.Game.Combat
 
             button.SetEnabled(usable);
             button.clicked += () => OnSkillClicked(skill);
+
+            // Hover names the skill the detail line is about. A skill that cannot be afforded is
+            // disabled and never sees a pointer, which is why the armed one is the fallback.
+            button.RegisterCallback<PointerEnterEvent>(_ => Hover(skill.Id));
+            button.RegisterCallback<PointerLeaveEvent>(_ => Hover(NoSkill));
 
             return button;
         }

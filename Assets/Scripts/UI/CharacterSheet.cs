@@ -313,29 +313,75 @@ namespace Dragoneye.UI
 
             foreach (var skill in loadout.Skills)
             {
-                var line = new VisualElement();
-                line.AddToClassList("skill-line");
-
-                // What it does, in numbers, after what it is in words. The list already resolves
-                // the attributes in, so "6 damage" here is the 6 this character will do.
-                var effect = SkillEffectInfo.Describe(skill.Effect);
-                line.tooltip = string.IsNullOrWhiteSpace(skill.Description)
-                    ? $"{skill.Name}\n\n{effect}"
-                    : $"{skill.Description}\n\n{effect}";
-
-                var name = new Label(skill.Name);
-                name.AddToClassList("skill-line__name");
-
-                var cost = new Label(skill.ElementCost > 0
-                    ? $"{skill.ApCost} AP · {skill.ElementCost} {ElementInfo.ShortNameOf(skill.Element)}"
-                    : $"{skill.ApCost} AP");
-                cost.AddToClassList("skill-line__cost");
-                cost.style.color = ElementPalette.ForElement(skill.Element);
-
-                line.Add(name);
-                line.Add(cost);
-                into.Add(line);
+                into.Add(Line(skill));
             }
+        }
+
+        /// <summary>
+        /// One skill: its name and price on a line, and what it is and does under them.
+        ///
+        /// Written out rather than left to a tooltip. A tooltip is a promise that the reader will
+        /// hover, on a screen where the whole decision is which of these to take -- and it says
+        /// nothing at all until they do.
+        /// </summary>
+        static VisualElement Line(SkillSpec skill)
+        {
+            var line = new VisualElement();
+            line.AddToClassList("skill-line");
+
+            var head = new VisualElement();
+            head.AddToClassList("skill-line__head");
+
+            var name = new Label(skill.Name);
+            name.AddToClassList("skill-line__name");
+
+            var cost = new Label(skill.ElementCost > 0
+                ? $"{skill.ApCost} AP · {skill.ElementCost} {ElementInfo.ShortNameOf(skill.Element)}"
+                : $"{skill.ApCost} AP");
+            cost.AddToClassList("skill-line__cost");
+            cost.style.color = ElementPalette.ForElement(skill.Element);
+
+            head.Add(name);
+            head.Add(cost);
+            line.Add(head);
+
+            // What it does, in numbers, after what it is in words. The list already resolves the
+            // attributes in, so "6 damage" here is the 6 this character will do.
+            line.Add(Detail(skill));
+
+            return line;
+        }
+
+        /// <summary>Reach, effect and description, in one wrapped line.</summary>
+        static Label Detail(SkillSpec skill)
+        {
+            var text = new Label(Describe(skill));
+            text.AddToClassList("skill-line__text");
+            return text;
+        }
+
+        /// <summary>
+        /// A skill in a sentence: how far it reaches, what it does, and what it is.
+        ///
+        /// The one wording, so the creator, the level-up screen, the creature card and the bar in
+        /// a match all say the same thing about the same skill.
+        /// </summary>
+        public static string Describe(SkillSpec skill)
+        {
+            var reach = skill.Target == SkillTarget.Self
+                ? "Yourself"
+                : skill.Range <= 1 ? "Adjacent" : $"Reach {skill.Range}";
+
+            var text = $"{reach} · {SkillEffectInfo.Describe(skill.Effect)}";
+
+            if (skill.RollsToHit)
+            {
+                text += $" · {SkillRules.HitChance(skill, 1)}% at one tile";
+            }
+
+            return string.IsNullOrWhiteSpace(skill.Description)
+                ? text
+                : text + ". " + skill.Description;
         }
 
         /// <summary>"Level 4 · Human · Guardian", or whichever parts of it resolved.</summary>

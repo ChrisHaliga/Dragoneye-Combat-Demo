@@ -75,24 +75,24 @@ namespace Dragoneye.Game.Combat
         }
 
         /// <summary>Why a defender is being asked for two elements rather than one.</summary>
+        /// <summary>
+        /// The one line above the answers: what is being asked, and the key to the three numbers
+        /// on each of them.
+        ///
+        /// One line, and short. This panel goes up in the middle of somebody else's turn, on top
+        /// of the result of the last attack, and every sentence it spends explaining the stakes is
+        /// a sentence in front of the board. What win, tie and lose are worth is on the options
+        /// themselves; this only says which is which.
+        /// </summary>
         public static string Describe(DefenceRequest request)
         {
-            const string stakes = "Win: the attack misses and your element comes back to you. "
-                + "Tie: it misses, but the element is spent. Lose: you take the hit and the "
-                + "element is spent.";
+            var ask = request.Flanked && !request.Shielded
+                ? "Struck from behind: put up two, the worse counts."
+                : request.Shielded && !request.Flanked
+                    ? "Put up two; the better counts."
+                    : "Answer with an element.";
 
-            if (request.Flanked && !request.Shielded)
-            {
-                return "Struck from behind: you put up two elements and the worse one counts. "
-                    + stakes;
-            }
-
-            if (request.Shielded && !request.Flanked)
-            {
-                return "You put up two elements and the better one counts. " + stakes;
-            }
-
-            return "Pick the element you answer with. " + stakes;
+            return ask + "   " + OddsKey;
         }
 
         /// <summary>The word shown where an action's cost would be, when position has changed it.</summary>

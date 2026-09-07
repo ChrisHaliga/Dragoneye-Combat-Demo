@@ -205,14 +205,15 @@ namespace Dragoneye.Game
                 {
                     var next = (i + 1) % segments;
 
-                    // Wall.
+                    // Wall, wound to face outward. The caps below were right and this was not,
+                    // so a token showed you the inside of its own rim.
                     triangles[t++] = i;
-                    triangles[t++] = segments + i;
                     triangles[t++] = segments + next;
+                    triangles[t++] = segments + i;
 
                     triangles[t++] = i;
-                    triangles[t++] = segments + next;
                     triangles[t++] = next;
+                    triangles[t++] = segments + next;
 
                     // Top, wound to face up.
                     triangles[t++] = topCentre;

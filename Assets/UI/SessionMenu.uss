@@ -1081,10 +1081,10 @@
     color: rgb(220, 224, 234);
 }
 
+/* Name and price on one line, what it does under them. A column, because the description is a
+   sentence and a sentence does not belong on the end of a row. */
 .skill-line {
-    flex-direction: row;
-    justify-content: space-between;
-    align-items: center;
+    flex-direction: column;
     min-height: 24px;
     padding: 3px 8px;
     margin-bottom: 1px;
@@ -1098,6 +1098,19 @@
 
 /* The name gives way and the cost does not: a skill with a long name is still identifiable from
    its first few words, but "1 AP" with a letter missing is unreadable. */
+.skill-line__head {
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.skill-line__text {
+    margin-top: 1px;
+    font-size: 10px;
+    white-space: normal;
+    color: rgb(146, 154, 172);
+}
+
 .skill-line__name {
     flex-shrink: 1;
     font-size: 12px;
