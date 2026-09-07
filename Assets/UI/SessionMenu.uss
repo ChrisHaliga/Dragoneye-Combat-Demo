@@ -528,6 +528,8 @@
     font-size: 22px;
     -unity-font-style: bold;
     color: rgb(236, 231, 219);
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .sheet__class {
@@ -535,13 +537,6 @@
     font-size: 12px;
     letter-spacing: 2px;
     color: rgb(198, 158, 88);
-    white-space: normal;
-}
-
-.sheet__blurb {
-    margin-top: 12px;
-    font-size: 12px;
-    color: rgb(139, 147, 165);
     white-space: normal;
 }
 
@@ -1014,16 +1009,23 @@
 
 /* Four numbers, big, in a row of wells. These are the character, and they were previously a list of
    label-and-value lines indistinguishable from the settings screen. */
+/* Spread to both edges of whatever holds them, so the last box lands on the right margin and
+   the gaps between them are equal rather than left over. */
 .statline {
     flex-direction: row;
-    margin: 10px 0 2px 0;
+    justify-content: space-between;
+    margin: 0 0 2px 0;
 }
 
+/* Square. The height was right, so the width matches it rather than the other way round. */
 .stat {
-    width: 52px;
-    margin-right: 6px;
-    padding: 5px 2px 8px 2px;
+    width: 54px;
+    height: 54px;
+    flex-shrink: 0;
+    margin: 0;
+    padding: 6px 0 0 0;
     align-items: center;
+    justify-content: center;
     background-image: url("Generated/ui-well.png");
     -unity-slice-left: 22;
     -unity-slice-right: 22;
@@ -1032,16 +1034,23 @@
     -unity-slice-scale: 0.5;
 }
 
+/* Centred across the whole box rather than shrink-wrapped and centred as a block: letter
+   spacing puts a gap after the last character, which drags a shrink-wrapped label to the left
+   by half of it. The padding gives that gap a twin on the other side. */
 .stat__label {
+    width: 100%;
+    padding-left: 2px;
     font-size: 10px;
     -unity-font-style: bold;
     letter-spacing: 2px;
     color: rgb(139, 147, 165);
+    -unity-text-align: middle-center;
 }
 
 /* Room under the number. A 20px face in a box sized to 20px puts the tail of a digit on the
    frame, which reads as a box that is too small rather than as a number that fits. */
 .stat__value {
+    width: 100%;
     margin-top: 1px;
     min-height: 26px;
     font-size: 20px;
@@ -1092,29 +1101,49 @@
    Resolved rather than bought: the middle column already shows what the player is spending, and the
    difference between the two is the species baseline and the kit, which is the thing worth seeing
    here. */
+/* A frame around them. Loose on the panel, seven labelled numbers read as debris; in a box they
+   read as one block, which is how they are used -- glanced at together, never one at a time. */
 .attr-grid {
     flex-direction: row;
-    flex-wrap: wrap;
-    margin: 2px 0 4px 0;
+    justify-content: space-between;
+    padding: 10px 18px 8px 18px;
+    background-image: url("Generated/ui-well.png");
+    -unity-slice-left: 22;
+    -unity-slice-right: 22;
+    -unity-slice-top: 22;
+    -unity-slice-bottom: 22;
+    -unity-slice-scale: 0.5;
 }
 
+/* Wide enough for three letters, and no wider: the row spreads them to both edges. */
 .attr {
-    width: 14.2%;
-    padding: 2px 0;
+    min-width: 34px;
+    padding: 0;
     align-items: center;
 }
 
+/* Clear of the block above it, where it is not the first thing in a column. */
+.attr-grid--spaced {
+    margin-top: 10px;
+}
+
 .attr__label {
+    width: 100%;
+    padding-left: 1px;
     font-size: 10px;
     -unity-font-style: bold;
     letter-spacing: 1px;
     color: rgb(139, 147, 165);
+    -unity-text-align: middle-center;
 }
 
 .attr__value {
-    font-size: 14px;
+    width: 100%;
+    margin-top: 2px;
+    font-size: 16px;
     -unity-font-style: bold;
     color: rgb(220, 224, 234);
+    -unity-text-align: middle-center;
 }
 
 /* Raised above what was bought: something -- a species, a sword -- is adding to it. */
@@ -1613,9 +1642,36 @@
 }
 
 /* The sheet's head, laid out beside the face. */
+/* The name takes what it needs; the numbers take the rest. */
 .sheet__titles {
+    flex-shrink: 1;
+    justify-content: center;
+}
+
+/* Everything beside the portrait, which the bar under it then spans. */
+.sheet__beside {
     flex-grow: 1;
     flex-shrink: 1;
+    margin-left: 20px;
+}
+
+.sheet__top {
+    flex-direction: row;
+    align-items: center;
+    margin-bottom: 12px;
+}
+
+/* The four boxes fill the space beside the name and end on the right margin, evenly spaced.
+   Packed together they left a hole between the name and themselves that got bigger the shorter
+   the name was. */
+.sheet__top .statline {
+    flex-grow: 1;
+    margin-left: 28px;
+}
+
+/* The bar that frames the block: full width of everything beside the portrait. */
+.xp--sheet {
+    margin: 0 0 12px 0;
 }
 
 /* Columns that only hold what fits, in the creator's overview, which scrolls as a whole. */

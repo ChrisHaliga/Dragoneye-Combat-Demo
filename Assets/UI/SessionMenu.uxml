@@ -42,7 +42,7 @@
                         <ui:Label name="playing-as-label" text="" class="hero__name" />
                         <ui:VisualElement name="home-hero-body" class="hero__body" />
                         <ui:Button name="levelup-open-button" text="Level up" class="btn btn--primary btn--compact" />
-                        <ui:Button name="change-character-button" text="Change character" class="btn btn--ghost btn--compact" />
+                        <ui:Button name="change-character-button" text="Change character" class="btn btn--compact" />
                     </ui:VisualElement>
                 </ui:VisualElement>
             </ui:VisualElement>
@@ -145,8 +145,7 @@
                                 <ui:VisualElement name="create-xp" class="xp" />
                             </ui:VisualElement>
                         </ui:VisualElement>
-                        <ui:Label text="ATTRIBUTES" class="col__title col__title--spaced" />
-                        <ui:VisualElement name="create-attrs" class="attr-grid" />
+                        <ui:VisualElement name="create-attrs" class="attr-grid attr-grid--spaced" />
                         <ui:VisualElement class="sheet__columns sheet__columns--flat">
                             <ui:VisualElement class="sheet__column">
                                 <ui:Label text="POOL" class="col__title" />
@@ -201,7 +200,7 @@
                         <ui:Label name="levelup-summary-class" text="" class="sheet__class" />
                         <ui:VisualElement name="levelup-stats" class="statline" />
                         <ui:VisualElement name="levelup-xp-bar" class="xp" />
-                        <ui:VisualElement name="levelup-attrs" class="attr-grid" />
+                        <ui:VisualElement name="levelup-attrs" class="attr-grid attr-grid--spaced" />
                         <ui:Label text="POOL" class="col__title col__title--spaced" />
                         <ui:VisualElement name="levelup-pool" class="gem-row" />
                         <ui:Label text="SKILLS" class="col__title col__title--spaced" />

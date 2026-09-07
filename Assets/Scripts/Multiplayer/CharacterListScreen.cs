@@ -118,13 +118,11 @@ namespace Dragoneye.Multiplayer
             }
 
             var selected = Selected();
-            var playing = selected != null && SelectedCharacter.Current != null
-                && SelectedCharacter.Current.Id == selected.Id;
 
+            // One word, always. A button whose label rewrites itself as the selection moves reads
+            // as three different buttons appearing in one place.
             m_Play.SetEnabled(selected != null);
-            m_Play.text = selected == null
-                ? "Play"
-                : playing ? "Playing as this one" : $"Play as {DisplayName(selected)}";
+            m_Play.text = "Continue";
             m_Delete.SetEnabled(selected != null);
             m_Edit.SetEnabled(selected != null);
 
@@ -170,33 +168,41 @@ namespace Dragoneye.Multiplayer
             subtitle.AddToClassList("sheet__class");
             titles.Add(subtitle);
 
-            if (loadout.Class != null && !string.IsNullOrWhiteSpace(loadout.Class.Description))
-            {
-                var blurb = new Label(loadout.Class.Description);
-                blurb.AddToClassList("sheet__blurb");
-                titles.Add(blurb);
-            }
+            // The name and what it is, then the four stats spread to the right edge. A row rather
+            // than a column, so the space beside a two-word name is used by the numbers instead of
+            // being left blank above them.
+            var top = new VisualElement();
+            top.AddToClassList("sheet__top");
+            top.Add(titles);
 
             var stats = new VisualElement();
             stats.AddToClassList("statline");
             CharacterSheet.Stats(stats, loadout);
-            titles.Add(stats);
+            top.Add(stats);
 
-            // The seven attributes, under the four stats and over the experience bar, with no
-            // heading over them. Three letters and a number is its own label, and the row of
-            // headed tiles this replaced took a third of the sheet to say the same fourteen
-            // things.
+            // The bar runs the width of everything beside the portrait, which is what makes the
+            // block read as one thing rather than as a name with some numbers near it. The class
+            // description used to sit here; it said the same thing on every character of a class
+            // and cost the line that now says how close this one is to its next level.
+            var xp = new VisualElement();
+            xp.AddToClassList("xp");
+            xp.AddToClassList("xp--sheet");
+            CharacterSheet.Experience(xp, character.Build.Level, character.Build.Xp);
+
+            // The seven attributes, in a frame of their own. Loose on the panel they read as
+            // fourteen unrelated words; boxed, they read as one block that happens to be seven
+            // numbers, which is what they are.
             var grid = new VisualElement();
             grid.AddToClassList("attr-grid");
             CharacterSheet.Attributes(grid, loadout.Attributes, character.Build.Attributes);
-            titles.Add(grid);
 
-            var xp = new VisualElement();
-            xp.AddToClassList("xp");
-            CharacterSheet.Experience(xp, character.Build.Level, character.Build.Xp);
-            titles.Add(xp);
+            var beside = new VisualElement();
+            beside.AddToClassList("sheet__beside");
+            beside.Add(top);
+            beside.Add(xp);
+            beside.Add(grid);
 
-            head.Add(titles);
+            head.Add(beside);
             m_Sheet.Add(head);
 
             // The pool is seven runes and never more, so it takes a fixed strip on the left and

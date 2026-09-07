@@ -1803,8 +1803,11 @@
     align-items: center;
 }
 
+/* The width of the button on the other side, its margin included. The bar between them is only
+   centred on the screen if the space either side of it is equal, and End Turn carries a margin
+   that the gutter has to match or the bar sits half of it to the left. */
 .vitals__gutter {
-    width: 132px;
+    width: 144px;
 }
 
 .own-vitals {
