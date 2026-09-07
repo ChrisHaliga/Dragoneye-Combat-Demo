@@ -559,6 +559,9 @@ Flagged rather than fixed, deliberately:
 - **`StepsToReach` runs one route query per candidate tile** on hover — 37 of them at reach 3. Cached
   per hover, and fine at arena scale, but it is not a shape that would survive a bigger board.
 - **No host migration.** Host leaves, match over, everyone back to the lobby.
+- **The camera follows whoever is acting**, and lets go the moment you pan -- for that turn only,
+  so the next one brings its creature back into view. Turning and zooming do not break it. If it
+  reads as fighting you, the ease and what counts as breaking it are both in `TurnCameraFocus`.
 - **No skill breaks a wall yet.** Walls change mid-fight through `CombatDirector.ServerSetWall`
   -- the test mode's wall-break scenario does exactly that, replicated by `WallCommands`, with every
   creature on the tile carried to the ground it stood on -- but nothing a creature can do calls it,

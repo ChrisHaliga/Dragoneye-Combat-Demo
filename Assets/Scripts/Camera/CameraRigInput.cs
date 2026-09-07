@@ -48,6 +48,14 @@ namespace Dragoneye.CameraControl
         public event Action LeaveRequested;
 
         /// <summary>
+        /// The player moved the camera themselves, rather than something moving it for them.
+        ///
+        /// Panning and dragging only. Turning and zooming are still looking at whatever is being
+        /// looked at, so anything following a creature keeps following through both.
+        /// </summary>
+        public event Action Panned;
+
+        /// <summary>
         /// Asked before the wheel zooms. Set by whoever knows where the UI is -- the arena, which
         /// can hit-test its panels -- so a wheel over the combat log scrolls the log and does not
         /// also pull the camera in. Null means the wheel always zooms.
@@ -125,9 +133,16 @@ namespace Dragoneye.CameraControl
 
             var focus = m_Focus.Value;
 
+            var pan = m_Pan.ReadValue<Vector2>();
+
             if (focus != null)
             {
-                focus.Move(m_Pan.ReadValue<Vector2>(), yaw, deltaTime, speedScale);
+                focus.Move(pan, yaw, deltaTime, speedScale);
+            }
+
+            if (pan.sqrMagnitude > 0f)
+            {
+                Panned?.Invoke();
             }
 
             m_Rig.Rotate(m_Rotate.ReadValue<float>(), deltaTime);
@@ -152,6 +167,11 @@ namespace Dragoneye.CameraControl
             else if (m_DragPan.IsPressed() && focus != null)
             {
                 focus.Drag(pointerDelta, yaw, speedScale);
+
+                if (pointerDelta.sqrMagnitude > 0f)
+                {
+                    Panned?.Invoke();
+                }
             }
         }
     }

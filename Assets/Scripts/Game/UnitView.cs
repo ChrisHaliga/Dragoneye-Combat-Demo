@@ -83,6 +83,23 @@ namespace Dragoneye.Game
 
         Transform m_Pointer;
 
+        // The lean toward whatever this creature just swung at, and where its parts sit when it
+        // is standing still. The offset rides on the token's parts rather than on the object
+        // itself, because the object's position is where the rules say the creature is and a
+        // flourish has no business writing to that.
+        Vector3 m_LungeDirection;
+        float m_LungeAge = -1f;
+        Vector3 m_BodyRest;
+        Vector3 m_PortraitRest;
+        Vector3 m_PointerRest;
+        bool m_RestKnown;
+
+        /// <summary>How far forward the token throws itself, in world units.</summary>
+        const float LungeReach = 0.32f;
+
+        /// <summary>How long the whole lean takes, out and back.</summary>
+        const float LungeTime = 0.28f;
+
         static Material s_FacingMaterial;
         static Material s_ShadowMaterial;
 
@@ -365,6 +382,82 @@ namespace Dragoneye.Game
             Walk(Time.deltaTime);
             PointTheWay();
             Flash(Time.deltaTime);
+            Lean(Time.deltaTime);
+        }
+
+        /// <summary>
+        /// Throws the token a little way toward something and brings it back.
+        ///
+        /// Called when this creature attacks, on every machine. Direction only: how far it leans
+        /// is the same whether the target is next to it or four tiles away, because the lean says
+        /// who acted and which way, not how far the blow reached.
+        /// </summary>
+        public void Lunge(Vector3 towards)
+        {
+            var gap = towards - transform.position;
+            gap.y = 0f;
+
+            if (gap.sqrMagnitude < 1e-4f)
+            {
+                return;
+            }
+
+            m_LungeDirection = gap.normalized;
+            m_LungeAge = 0f;
+        }
+
+        /// <summary>
+        /// One frame of the lean: out fast, back slower, and nothing at all when it is over.
+        ///
+        /// The rest positions are read the first time round rather than at build time, because the
+        /// parts are assembled across two methods and a rest position captured before the last of
+        /// them had moved would put the token back together wrongly.
+        /// </summary>
+        void Lean(float deltaTime)
+        {
+            if (m_LungeAge < 0f)
+            {
+                return;
+            }
+
+            if (!m_RestKnown)
+            {
+                m_BodyRest = m_Body != null ? m_Body.transform.localPosition : Vector3.zero;
+                m_PortraitRest = m_Portrait != null ? m_Portrait.transform.localPosition : Vector3.zero;
+                m_PointerRest = m_Pointer != null ? m_Pointer.localPosition : Vector3.zero;
+                m_RestKnown = true;
+            }
+
+            m_LungeAge += deltaTime;
+
+            var life = Mathf.Clamp01(m_LungeAge / LungeTime);
+
+            // Out in the first third, back over the rest: a jab rather than a sway.
+            var reach = life < 0.34f
+                ? life / 0.34f
+                : 1f - ((life - 0.34f) / 0.66f);
+
+            var offset = m_LungeDirection * (reach * LungeReach);
+
+            if (m_Body != null)
+            {
+                m_Body.transform.localPosition = m_BodyRest + offset;
+            }
+
+            if (m_Portrait != null)
+            {
+                m_Portrait.transform.localPosition = m_PortraitRest + offset;
+            }
+
+            if (m_Pointer != null)
+            {
+                m_Pointer.localPosition = m_PointerRest + offset;
+            }
+
+            if (life >= 1f)
+            {
+                m_LungeAge = -1f;
+            }
         }
 
         /// <summary>

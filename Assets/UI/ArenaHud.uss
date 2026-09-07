@@ -1701,3 +1701,33 @@
     -unity-text-align: middle-center;
     color: rgb(168, 175, 192);
 }
+
+/* ---------- what a note means, beside the number ---------- */
+
+/* Hung outside the label's left edge, so the number stays centred on the creature it is about. */
+.floating-note__mark {
+    position: absolute;
+    right: 100%;
+    top: 4px;
+    margin-right: 5px;
+}
+
+/* A blade: a bar stood on its point. It got through. */
+.floating-note__mark--hit {
+    width: 3px;
+    height: 15px;
+    rotate: 45deg;
+    background-color: rgb(236, 214, 178);
+}
+
+/* A guard: a plate that narrows to a point. It did not. */
+.floating-note__mark--guard {
+    width: 13px;
+    height: 14px;
+    border-width: 2px;
+    border-color: rgb(150, 186, 226);
+    border-top-left-radius: 3px;
+    border-top-right-radius: 3px;
+    border-bottom-left-radius: 7px;
+    border-bottom-right-radius: 7px;
+}

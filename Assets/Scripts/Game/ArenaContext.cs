@@ -64,6 +64,14 @@ namespace Dragoneye.Game
         /// <summary>The scenario runner, or null when the arena has none wired.</summary>
         public ScenarioRunner Scenarios => m_Scenarios;
 
+        /// <summary>
+        /// The local player's focus point: what the camera is pointed at, and what panning moves.
+        ///
+        /// Spawned rather than placed, so it is not a serialised reference -- it arrives here when
+        /// the camera is first pointed at it.
+        /// </summary>
+        public FocusPoint Focus { get; private set; }
+
         void OnEnable()
         {
             if (Current != null && Current != this)
@@ -112,6 +120,7 @@ namespace Dragoneye.Game
                 return;
             }
 
+            Focus = focus;
             m_Rig.SetFocus(focus);
             m_RigInput.SetFocus(focus);
 

@@ -458,7 +458,8 @@ namespace Dragoneye.Game.Creatures
         /// </summary>
         [Rpc(SendTo.Everyone)]
         void ShowDamageRpc(int landed, int absorbed) =>
-            CombatNotices.Raise(TurnId, CombatNotices.Damage(landed, absorbed), NoticeTone.Loss);
+            CombatNotices.Raise(TurnId, CombatNotices.Damage(landed, absorbed), NoticeTone.Loss,
+                landed > 0 ? NoticeMark.Hit : NoticeMark.Guard);
 
         void OnIdChanged(ushort previous, ushort current)
         {

@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using Dragoneye.Combat;
 using UnityEngine;
 using UnityEngine.UIElements;
 using Dragoneye.Game;
@@ -70,13 +71,41 @@ namespace Dragoneye.Game.Combat
             // from the match, both of which appear and vanish on their own schedule, and a view
             // that had to chase each source would miss the ones raised before it caught up.
             CombatNotices.Raised += OnNotice;
+
+            // Two things that happen to a creature and leave no number behind: an attack its
+            // answer turned aside, and a shot that never arrived. Both are read off announcements
+            // every machine already gets, so neither needs anything sent for it.
+            ClashCommands.Resolved += OnClash;
+            CombatAnnouncer.Shot += OnShot;
         }
 
-        void OnDestroy() => CombatNotices.Raised -= OnNotice;
+        void OnDestroy()
+        {
+            CombatNotices.Raised -= OnNotice;
+            ClashCommands.Resolved -= OnClash;
+            CombatAnnouncer.Shot -= OnShot;
+        }
+
+        void OnClash(ClashReport report)
+        {
+            if (report.Outcome != ClashOutcome.AttackerWins)
+            {
+                CombatNotices.Raise(report.DefenderId, "turned aside", NoticeTone.Gain,
+                    NoticeMark.Guard);
+            }
+        }
+
+        void OnShot(ShotReport report)
+        {
+            if (!report.Landed)
+            {
+                CombatNotices.Raise(report.TargetId, "missed", NoticeTone.Gain, NoticeMark.Guard);
+            }
+        }
 
         void Update() => Advance(Time.deltaTime);
 
-        void OnNotice(uint turnId, string text, NoticeTone tone)
+        void OnNotice(uint turnId, string text, NoticeTone tone, NoticeMark mark)
         {
             if (m_Layer == null)
             {
@@ -87,6 +116,19 @@ namespace Dragoneye.Game.Combat
             label.AddToClassList("floating-note");
             label.EnableInClassList("floating-note--loss", tone == NoticeTone.Loss);
             label.pickingMode = PickingMode.Ignore;
+
+            // Hung off the left edge rather than laid out beside the text, so the note stays
+            // centred on the creature: the position below is worked out from the label's width.
+            if (mark != NoticeMark.None)
+            {
+                var shape = new VisualElement();
+                shape.AddToClassList("floating-note__mark");
+                shape.AddToClassList(mark == NoticeMark.Hit
+                    ? "floating-note__mark--hit"
+                    : "floating-note__mark--guard");
+                shape.pickingMode = PickingMode.Ignore;
+                label.Add(shape);
+            }
 
             // Stacked, so two things happening to one creature in the same breath do not draw on
             // top of each other and read as neither.

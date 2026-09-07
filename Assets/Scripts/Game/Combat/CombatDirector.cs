@@ -55,6 +55,10 @@ namespace Dragoneye.Game.Combat
              + "never waits on a view.")]
         float m_BrainSecondsPerTile = 0.3f;
 
+        [SerializeField, Min(0f), Tooltip("Pause between one turn ending and the next creature "
+             + "acting. What stops a computer turn beginning in the same breath the last one ended.")]
+        float m_TurnLeadIn = 0.7f;
+
         [SerializeField, Tooltip("Seed for every roll this fight makes. Zero picks one and logs "
              + "it, so any fight can be rolled again.")]
         int m_Seed;
@@ -221,7 +225,9 @@ namespace Dragoneye.Game.Combat
 
             if (active.IsComputerControlled)
             {
-                m_BrainTurn = StartCoroutine(m_BrainRunner.Run(active));
+                // A beat before it moves. The banner is up, the log has the last exchange in it,
+                // and a turn that began the instant the last one ended gave the player neither.
+                m_BrainTurn = StartCoroutine(RunBrainAfterLeadIn(active));
             }
         }
 
@@ -241,6 +247,21 @@ namespace Dragoneye.Game.Combat
 
             StopBrainTurn();
             TurnState.Current?.ServerEnd();
+        }
+
+        System.Collections.IEnumerator RunBrainAfterLeadIn(CreatureState actor)
+        {
+            if (m_TurnLeadIn > 0f)
+            {
+                yield return new WaitForSeconds(m_TurnLeadIn);
+            }
+
+            // Anything could have happened in that beat: the creature could have been killed by a
+            // swing it was owed, or the match could be over.
+            if (CanAct(actor))
+            {
+                yield return m_BrainRunner.Run(actor);
+            }
         }
 
         void StopBrainTurn()
