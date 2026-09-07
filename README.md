@@ -152,10 +152,17 @@ characters, so they are permanent once content ships.
 
 ### One editor menu
 
-`ClaudeCode → Set Up Everything` is the only `[MenuItem]` in the project, deliberately. The steps
-live in separate files under `Assets/Editor` because each was written for one change, but none of
-them is ever the right one to run alone. Six menu entries only ever raised the question of which
-were stale.
+`ClaudeCode → Set Up Everything` is the one `[MenuItem]` that stays, deliberately. The steps live
+in separate files under `Assets/Editor` because each was written for one change, but none of them
+is ever the right one to run alone. Six menu entries only ever raised the question of which were
+stale.
+
+A change that needs the editor once — a new asset, a dead component to strip from a scene — ships
+as a **named, disposable automation** under the same menu root, named for the job it does. Run it
+once, delete its file, commit. **One is waiting now:** `ClaudeCode → Author The Map Choices` writes
+the water terrain, binds it into the arena's palette and strips the dead flourish component from
+the arena, then wants `Assets/Editor/MapChoicesSetup.cs` deleted. A fresh clone does not need it;
+Set Up Everything does the same authoring.
 
 **A setup step that has done its job gets deleted.** Its output is committed; re-running it after
 the scenes have been hand-edited would overwrite that work.
@@ -292,9 +299,20 @@ boundary tiebreak: a bearing exactly on a boundary belongs to the lower-numbered
 
 ### Add a wall, or a map
 
-Maps are `HexMapDefinition` assets; the arena's is `Assets/Settings/Hex/Ruins.asset`, an
-`AuthoredMapDefinition` written by `ArenaMapSetup` — edit the recipe there, or the asset in the
-inspector, and run `ClaudeCode/Set Up Everything`.
+Maps are `MapRecipe`s in `Scripts/Scenarios/Maps.cs`: a radius of ground, tiles by terrain name,
+walls by tile and ray. The ones a host can choose are listed in `MapLibrary` — the Field, the
+Mansion, the Islands, the Ruins — and that list is protocol: the lobby sends the index, so append
+to it and never reorder it. The host picks in the lobby's setup bar (solo play uses the same pick),
+`ChosenMap` rebuilds the arena from the recipe when the scene loads, and the scene's authored asset
+(`Assets/Settings/Hex/Ruins.asset`, written by `ArenaMapSetup`) is there to lend its terrain
+palette. Terrain names are the three in `ShippedTerrain`: grass; stone, which nobody walks on or
+sees through and is drawn raised; water, which nobody walks on but everybody sees over and is drawn
+sunk. A new terrain is a spec there and a name in `Ground`; the editor step writes the asset.
+
+A map is a mirror image unless it says otherwise. `Symmetry.MirroredEastWest` completes a recipe
+from its eastern half, and the harness's `MapChecks` hold every `MapChoice` marked symmetric to it,
+and every spawn anchor to standable ground on the side it belongs to. The Ruins are the one map
+that is not, kept as they were.
 
 A wall sits on a **ray** (tile centre to one of the twelve points round it, numbered clockwise
 from North: even rays end at edge midpoints, odd at corners) or on a **half-edge** (`SetEdge` sets
@@ -310,7 +328,7 @@ Movement and sight are separate flags (`WallFlags`), so a hedge and a curtain ar
 ### Add a scenario
 
 A scenario is a fight that plays itself in the test mode and checks what happened. They live in
-`Scripts/Scenarios` -- `WallScenarios` and `CombatScenarios` -- and are listed in
+`Scripts/Scenarios` -- `WallScenarios`, `CombatScenarios` and `MapScenarios` -- and are listed in
 `ScenarioLibrary`. One is a map recipe, actors with orders grouped by turn, optional wall changes
 mid-fight, a seed, and checks. Anything the dice decide is predicted by an `Oracle` that replays
 the rules from the same seed, so a check compares the prediction with the run rather than hoping.
@@ -333,10 +351,43 @@ All in `Dragoneye.Combat`:
 Add a check to the harness when you change one. They are cheap and they are the only thing standing
 between a rules change and a playtest.
 
+### Change how a fight is shown
+
+The simulation and the screen are separate, and the screen is behind. The server plays the fight
+at its own pace and writes every consequence down as a `CombatEvent` (`FightRecord.Say`), packed
+to ints by `CombatEventCodec` and sent to everyone by `CombatAnnouncer`. Each client queues them in
+`CombatPlayback`, which applies one at a time to a `PresentedFight` — positions, health, armour,
+AP, elements shown and spent, who fell — and waits the beat `PresentationPacing` gives it: a walk
+takes as long as the token needs to walk the server's own route, a shot flies its distance, and
+holding **Space** plays at four times speed. The server may be five turns ahead; nothing the client
+draws knows that.
+
+`Shown` is what the HUD reads: the presented creature, the presented active turn, whether playback
+has caught up. Displays — tokens, cards, the log, floating text, the turn bar, the camera — read
+presented state. Controls — the action bar, the End Turn pips, the reach and shot previews — read
+the live actor, deliberately: a click is priced against what the server will actually accept.
+Prompts (a clash answer, a swing at a passer-by) are built only once playback has caught up, so
+nobody is asked about a state they have not seen.
+
+To add something a fight can do: a `CombatEventKind`, a factory on `CombatEvent`, its packing, its
+`PresentedFight` case, its beat, and a `PresentationChecks` case in the harness. A creature that
+dies leaves the board (`ServerLeaveBoard`) but stays as a hidden object, so the event that shows it
+falling still has a token to hide.
+
 ### Change the UI
 
 UI Toolkit. Markup in `Assets/UI/*.uxml`, styles in `Assets/UI/*.uss`, bound by plain C# classes in
 `Scripts/Multiplayer` (menus) and `Scripts/Game/Combat` (the arena HUD).
+
+The arena's action bar is fixed slots: Move, then the creature's skills, then its items, on keys
+1–9 in that order. `SkillBarView` fills them and `SkillIcons` gives each a plate — the sprite
+authored on the `SkillAsset` if there is one, otherwise a glyph drawn in the element's colour. The
+hand sits left of the AP line above the bar, the log above that.
+
+The character creator is four pages in `CharacterCreatorScreen`: name, face and species; class,
+with every skill each level brings; attributes and kit; the sheet, to confirm. `uifit.py` in the
+harness adds up each page's columns against the stage, so a page that grows past the screen fails
+a build rather than a playtest.
 
 `MainMenuUI` owns which panel is visible; `MenuScreen` is the enum of them. Each screen is a plain
 class bound to one subtree, so adding one means adding an enum member — which forces you to decide
@@ -416,6 +467,10 @@ grant it. Either state means committing *two* elements instead of one — advant
 never free, and the two cancel on the same side. A side required to commit two while holding one
 commits the one.
 
+**Presentation** — a walk is 0.3 s a tile, a shot 0.14 s plus 0.07 s a tile, and Space held plays
+four times faster (`PresentationPacing`). A walk that has not finished 2.5 s after it was due is
+let go, so a stuck token cannot stall the fight for everybody watching.
+
 **Armour** is a pool above health, not a reduction: none 0, light 4, medium 8, heavy 16, a shield
 +4. Every blow wears it down first and it never comes back -- `CombatRules.Absorb` is the one place
 that arithmetic lives. The floating combat text shows what the armour held and what got through.
@@ -441,7 +496,7 @@ that whole run on the clipboard, failing checks and traces included. A scenario'
 will do, by replaying the rules from the seed, so a failure is the board disagreeing with the
 rules, and the report's trace says where.
 
-`build.sh` does four things:
+`build.sh` does six things:
 
 1. **Compiles each assembly separately against only the references its own asmdef declares.** The
    reference lists are read out of the asmdef files rather than duplicated in the script — a
@@ -453,10 +508,14 @@ rules, and the report's trace says where.
 3. **Checks every `url()` in the stylesheets points at a real file.**
 4. **Runs `uifit.py`**, which adds up the character creator's column heights out of the stylesheet
    and compares them against the stage body at 1280×720.
+5. **Checks whether an editor step is owed**, by reading the components every file in
+   `Assets/Editor` adds and looking for each in the scenes.
+6. **Checks the harness is fresh**: every source it compiles is the same file as the project's.
 
-There is also a .NET console harness (`scratchpad/harness/`) that compiles the pure Combat sources
-and runs fourteen check suites over them — rules, progression, pool pricing, brain decisions, draft
-queries, hex placement, camera maths.
+There is also a .NET console harness (`scratchpad/harness/`) that compiles the pure sources and
+runs twenty-eight check suites over them — rules, progression, pool pricing, brain decisions, draft
+queries, hex placement, camera maths, the presented fight against the events that build it, every
+walk's geometry against the walls it crosses, and every map a host can pick.
 
 **These scripts are not committed.** They live in the session scratchpad. If you want them in the
 repo — and they probably should be — say so and they can move to a `Tools/` folder.
@@ -575,4 +634,13 @@ Flagged rather than fixed, deliberately:
   else's, and the outcome banner has no return to make: the report is the way out.
 - **The cutaway shader has not been seen in a running editor.** It is plain URP forward code with a
   depth pass; if it fails to compile the wall material falls back to lit stone and walls hide
-  creatures behind them.
+  creatures behind them. The masonry it scores into the faces, and the tiles' shadowed skirts and
+  relief, are in the same position: written to the URP contract, not yet looked at.
+- **A wall that changes mid-fight is drawn the moment the server changes it**, not when playback
+  reaches the `WallChanged` event, because the wall renderer reads the live map. The creatures
+  carried off it move at the presented pace, so for a beat the wall is gone and they are still on
+  it.
+- **The map is the host's to pick.** Everybody else in the lobby sees the card change and cannot
+  change it.
+- **A fight's playback is not skippable, only faster.** Space holds it at four times speed; there
+  is no jump to the live state. It is one call in `CombatPlayback` if a playtest wants it.

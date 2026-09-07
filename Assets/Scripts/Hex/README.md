@@ -51,7 +51,9 @@ If someone tries, the build breaks rather than the review catching it.
   the areas the tile had before) so views react to exactly what changed. `CellAt` picks the cell
   under a point.
 - **`TerrainType`** — a ScriptableObject, not an enum, so terrain can be added and retuned without
-  recompiling.
+  recompiling. **`ShippedTerrain`** is the three the game ships written as specs — grass; stone,
+  unwalkable and opaque; water, unwalkable and clear — so the editor's assets and the harness's
+  stand-ins are the same terrain by construction.
 - **`HexMapDefinition`** — abstract ScriptableObject with `Build(int seed)`. This is the seam that
   keeps arena shape out of the upper layers: they hold a definition reference and never learn which
   subclass it is. `GeneratedMapDefinition` (hexagon or rectangle) and `AuthoredMapDefinition` (a
@@ -115,7 +117,9 @@ through; **solid** is both.
 
 **`HexMapRenderer`** reacts to the data and owns none of it. One child object per tile, all sharing
 a single generated mesh and material, tinted through a `MaterialPropertyBlock` so no per-tile
-material instances are created. A tile changing terrain repaints only that tile.
+material instances are created. The mesh is two submeshes — the top and the skirt — so the skirt
+can be painted in shadow, and a tile stands at the height its rules suggest: a boulder raised, water
+sunk. A tile changing terrain repaints and re-seats only that tile.
 
 Assign **Tile Prefab** to instantiate a model per tile instead of the generated mesh — the path to
 3D tiles with no data-layer change.
@@ -123,8 +127,13 @@ Assign **Tile Prefab** to instantiate a model per tile instead of the generated 
 **`WallRenderer`** draws a box along every walled ray and owned half-edge: tall where the wall
 blocks sight, waist-high where it only blocks feet, so what a wall does is what it looks like. One
 object per walled tile, rebuilt on `WallChanged`. Its material is the cutaway one
-(`Assets/Shaders/WallCutaway.shader`), which dithers away where a creature is behind it; a plain
-lit stone is the fallback.
+(`Assets/Shaders/WallCutaway.shader`), which dithers away where a creature is behind it and scores
+courses of stone into every face but the cap; a plain lit stone is the fallback.
+
+**Walking through walls** is a question of geometry, not of pathfinding: `IGridRules.TryCrossing`
+names the half-edge a legal step crosses, and `ArenaMap.TryCrossingPoint` turns it into the point
+on the edge a token should pass through. A token walks centre to gap to centre along the route the
+server took, never the straight line between two centres, which is how it stopped clipping corners.
 
 **`HexMeshFactory.CreateArea`** is the fan for one area of a tile, which is what the hover marker
 and the reach overlay draw once a tile is split: the half you can reach, not the tile.
@@ -164,5 +173,6 @@ editor step writes: the door is the only way in, and sealing it leaves the room 
 The step that created the terrain, map and material assets and dropped a hex map into the Arena
 scene has been deleted: it was spent once it had run and its output is committed. Arena wiring that
 is still worth re-running lives in `AuditRewireSetup`, `ArenaVisualsSetup` and `ArenaMapSetup` (the
-Ruins map, the wall material, the wall renderer, the cutaway and the reach overlay), all driven by
-`ClaudeCode/Set Up Everything`.
+three terrains, the Ruins map, the wall material, the wall renderer, the cutaway and the reach
+overlay), all driven by `ClaudeCode/Set Up Everything`. `MapChoicesSetup` is a disposable one: it
+authors the water terrain into an existing project and is deleted once it has run.

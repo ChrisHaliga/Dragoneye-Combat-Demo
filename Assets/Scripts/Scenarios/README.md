@@ -15,7 +15,9 @@ a scene.
 | `TraceEntry` | One thing the fight announced, by actor key: an order, a turn, a move, a shot, a clash, a fall, a wall |
 | `Oracle` | The rules replayed ahead of the fight with the fight's own dice, so a check can say what *will* happen |
 | `ScenarioCheck` | One claim and whether it held |
-| `Maps` | The Ruins and the open hexagon, as `MapRecipe`s. The editor step writes the Ruins asset from here |
+| `Maps` | Every map as a `MapRecipe`: the open hexagon, the Field, the Mansion, the Islands, the Ruins. The editor step writes the Ruins asset from here |
+| `MapLibrary` | The maps a host can pick, in an order that is protocol: the lobby sends the index |
+| `Symmetry` | The east-west mirror of a cell, a ray, a half-edge and a whole half-recipe |
 | `ScenarioLibrary` | Every scenario the test mode offers |
 
 ## How a scenario runs
@@ -52,9 +54,10 @@ wants a shot from the doorway orders the walk and the shot separately.
 
 ## Writing one
 
-1. Pick a map: `Maps.Ruins()` for walls, `Maps.Open()` for none. Terrain names are `Ground.Grass`
-   and `Ground.Stone`; a new terrain is a new name, bound to an asset in `ScenarioRunner` and
-   `ArenaMapSetup`.
+1. Pick a map: `Maps.Ruins()` for walls, `Maps.Open()` for none, `Maps.Mansion()` for rooms and
+   halls, `Maps.Islands()` for water and a bridge. Terrain names are `Ground.Grass`, `Ground.Stone`
+   and `Ground.Water`; a new terrain is a spec in `ShippedTerrain` and a name here, and the arena
+   binds it through the palette on its authored map.
 2. Place actors with `Premade` ids and `Skills` ids. Two actors never share a cell; nobody starts
    on stone or in a sliver.
 3. Script each actor's turns. A refused order ends the turn, so what should happen after a refusal
