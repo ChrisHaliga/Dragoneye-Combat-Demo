@@ -595,6 +595,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Dragoneye.Game::Dragoneye.Game.Combat.ScenarioRunner
   m_Grass: {fileID: 11400000, guid: 9830a486e55c1d743ba2351cff1fd106, type: 2}
   m_Stone: {fileID: 11400000, guid: e813c741acfc9c344ba02c2d90e06eac, type: 2}
+  m_NextDelay: 3
 --- !u!1 &454632036
 GameObject:
   m_ObjectHideFlags: 0

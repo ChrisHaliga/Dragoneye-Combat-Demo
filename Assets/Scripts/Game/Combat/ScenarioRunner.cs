@@ -305,7 +305,10 @@ namespace Dragoneye.Game.Combat
                 return;
             }
 
-            var scriptsDone = m_Brain != null && !m_Brain.AnyThinks && m_Brain.AllScriptsSpent && m_Pending.Count == 0;
+            // A scenario that never gave an order has no script to run out of; the round limit
+            // is what ends it, and until then it is a board being watched.
+            var scriptsDone = m_Brain != null && m_Brain.HasOrders && !m_Brain.AnyThinks
+                && m_Brain.AllScriptsSpent && m_Pending.Count == 0;
 
             if (scriptsDone || round > m_Scenario.MaxRounds)
             {

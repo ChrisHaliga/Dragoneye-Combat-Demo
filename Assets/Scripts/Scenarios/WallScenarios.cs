@@ -167,8 +167,14 @@ namespace Dragoneye.Scenarios
                 .Expecting(world =>
                 {
                     var roundBoulder = HexPathfinder.CostTo(world.Grid, rangerStart, rangerEnd, null);
-                    var roundTheRoom = HexPathfinder.CostTo(world.Grid, insideHalf, outsideHalf, null);
                     var goblinMoves = Reading.Count(world, TraceKind.Moved, "goblin");
+
+                    // The route between the two halves of the wall's tile, which is the whole
+                    // point of the tile being split: one tile apart, and only reachable by
+                    // leaving the room through its door and walking back up the outside.
+                    var route = new List<Cell>();
+                    HexPathfinder.TryFindPath(world.Grid, insideHalf, outsideHalf, null, route, out var roundTheRoom);
+                    var throughTheDoor = route.Exists(step => step.Tile == Maps.Doorway);
 
                     return new[]
                     {
@@ -182,8 +188,10 @@ namespace Dragoneye.Scenarios
                         Equal("the first into the inside half of the wall's tile",
                             insideHalf, Reading.First(world, TraceKind.Moved, "goblin")?.To ?? default),
                         Equal("and ended on the outside half", outsideHalf, world.CellOf("goblin")),
-                        That("which is seven steps away by the door, and one by distance",
-                            roundTheRoom == 7 && Cell.Distance(insideHalf, outsideHalf) == 1, $"cost {roundTheRoom}"),
+                        Equal("which is one tile away", 1, Cell.Distance(insideHalf, outsideHalf)),
+                        That("and four steps by foot, out through the door and round the outside",
+                            roundTheRoom == 4 && throughTheDoor,
+                            $"cost {roundTheRoom}, through the door {throughTheDoor}"),
                         That("nobody swung at anybody", Reading.Count(world, TraceKind.Clash) == 0)
                     };
                 });
@@ -241,6 +249,13 @@ namespace Dragoneye.Scenarios
                     var slingShot = Reading.First(world, TraceKind.Shot, "goblin");
                     var looseShot = Reading.First(world, TraceKind.Shot, "archer");
                     var roundHedge = HexPathfinder.CostTo(world.Grid, goblinCell, goblinEnd, null);
+                    var straight = Cell.Distance(goblinCell, goblinEnd);
+
+                    // A hedge tile is split like any other, so its two halves are a tile apart
+                    // and a walk apart. This is what "walked round, not through" means.
+                    var hedgeTile = new Hex(-3, 1);
+                    var acrossHedge = HexPathfinder.CostTo(world.Grid,
+                        new Cell(hedgeTile, 0), new Cell(hedgeTile, 1), null);
 
                     return new[]
                     {
@@ -260,7 +275,10 @@ namespace Dragoneye.Scenarios
                             jab.Outcome, Reading.First(world, TraceKind.Clash, "cutpurse")?.Outcome ?? default),
                         Equal("the recruit's health agrees", oracle.HpOf("recruit"), world.HpOf("recruit")),
                         Equal("the goblin ended where the oracle put it", oracle.CellOf("goblin"), world.CellOf("goblin")),
-                        That("the hedge is walked round, not through", roundHedge >= 6, $"cost {roundHedge}")
+                        That("the hedge cannot be stepped through: the halves of one of its tiles are a walk apart",
+                            acrossHedge > 2, $"cost {acrossHedge}"),
+                        That("so the goblin's way round it is longer than the crow flies",
+                            roundHedge > straight, $"cost {roundHedge} against a distance of {straight}")
                     };
                 });
         }

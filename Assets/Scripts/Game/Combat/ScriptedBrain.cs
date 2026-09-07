@@ -61,6 +61,32 @@ namespace Dragoneye.Game.Combat
             }
         }
 
+        /// <summary>
+        /// Whether any actor was given an order at all.
+        ///
+        /// A scenario with no orders anywhere is not a spent script -- it is a board somebody
+        /// wants to watch for a few rounds, which is what proves the turn order. Its script is
+        /// never spent, so its round limit is what ends it.
+        /// </summary>
+        public bool HasOrders
+        {
+            get
+            {
+                foreach (var script in m_Scripts.Values)
+                {
+                    foreach (var turn in script.Actor.Turns)
+                    {
+                        if (turn.Count > 0)
+                        {
+                            return true;
+                        }
+                    }
+                }
+
+                return false;
+            }
+        }
+
         /// <summary>Whether any actor at all is run by the game's own brain.</summary>
         public bool AnyThinks
         {
