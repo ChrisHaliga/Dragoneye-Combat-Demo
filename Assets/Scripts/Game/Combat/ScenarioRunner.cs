@@ -140,7 +140,8 @@ namespace Dragoneye.Game.Combat
                 }
 
                 var creature = spawner.SpawnCreature(id, actor.Party, actor.Level, actor.Cell, actor.Facing,
-                    OrdinalOf(scenario, actor), actor.StartHp);
+                    OrdinalOf(scenario, actor), actor.StartHp,
+                    actor.HasStartPool ? actor.StartPool : (ElementCounts?)null);
 
                 if (creature == null)
                 {

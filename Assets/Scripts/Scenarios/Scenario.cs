@@ -109,6 +109,29 @@ namespace Dragoneye.Scenarios
             return this;
         }
 
+        /// <summary>The hand this actor comes onto the board with, in place of its authored one.</summary>
+        public ElementCounts StartPool { get; private set; }
+
+        /// <summary>Whether <see cref="StartPool"/> is meant, as against nothing having been said.</summary>
+        public bool HasStartPool { get; private set; }
+
+        /// <summary>
+        /// Deals this actor a hand instead of the one its premade is authored with.
+        ///
+        /// The other half of <see cref="Wounded"/>, and there for the same reason. Whether an
+        /// attack lands is up to what the defender puts up, so a scenario about what a landed
+        /// blow does -- armour soaking it, a death, the experience for it -- cannot be written by
+        /// throwing attacks and hoping. A defender holding nothing has nothing to answer with,
+        /// and DE-005 says an unanswered attack resolves for the attacker. Empty-handed is how a
+        /// scenario makes a blow land every time.
+        /// </summary>
+        public Actor Holding(ElementCounts pool)
+        {
+            StartPool = pool;
+            HasStartPool = true;
+            return this;
+        }
+
         /// <summary>The script: one list of orders per turn, in the order the turns come.</summary>
         public IReadOnlyList<IReadOnlyList<Order>> Turns => m_Turns;
 

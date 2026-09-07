@@ -70,6 +70,7 @@ namespace Dragoneye.Game.Creatures
         byte m_StartOrdinal;
         Facing m_StartFacing;
         int m_StartHp;
+        ElementCounts? m_StartPool;
 
         CreatureDefinition m_Definition;
         CreatureRegistry m_Registry;
@@ -166,8 +167,14 @@ namespace Dragoneye.Game.Creatures
         /// <summary>What this creature can do. Empty until the catalog is available.</summary>
         public IReadOnlyList<int> SkillIds => Profile.SkillIds;
 
-        /// <summary>The elements it starts holding.</summary>
-        public ElementCounts StartingPool => Profile.StartingPool;
+        /// <summary>
+        /// The elements it starts holding: its profile's, unless it was dealt another hand.
+        ///
+        /// Server-side. Only the spawner, the fight and a scenario's record of what it set up ever
+        /// ask; what a creature holds *now* is replicated by <see cref="CreaturePool"/>, and that
+        /// is what anything drawing it reads.
+        /// </summary>
+        public ElementCounts StartingPool => m_StartPool ?? Profile.StartingPool;
 
         /// <summary>
         /// Resolves a creature from whichever source owns it.
@@ -281,7 +288,8 @@ namespace Dragoneye.Game.Creatures
         /// </param>
         public void ServerConfigure(ushort creatureId, Party party, byte controllerSlot,
             byte buildSlot = PartyInfo.Unclaimed, int level = Progression.FirstLevel,
-            int ordinal = 0, Facing facing = default, int startHp = 0)
+            int ordinal = 0, Facing facing = default, int startHp = 0,
+            ElementCounts? startPool = null)
         {
             m_StartCreatureId = creatureId;
             m_StartParty = party;
@@ -291,6 +299,7 @@ namespace Dragoneye.Game.Creatures
             m_StartOrdinal = (byte)(ordinal < 0 ? 0 : ordinal > byte.MaxValue ? 0 : ordinal);
             m_StartFacing = facing;
             m_StartHp = startHp;
+            m_StartPool = startPool;
         }
 
         /// <summary>

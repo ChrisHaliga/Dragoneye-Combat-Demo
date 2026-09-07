@@ -58,7 +58,12 @@ namespace Dragoneye.Scenarios
                             clashes.Count > 1 ? clashes[1].Outcome : default),
                         Equal("the sergeant's health agrees", oracle.HpOf("sergeant"), world.HpOf("sergeant")),
                         Equal("and its armour", oracle.ArmourOf("sergeant"), world.ArmourOf("sergeant")),
-                        Equal("and which way it ended up facing", oracle.FacingOf("sergeant"), world.FacingOf("sergeant")),
+                        // Stated rather than deferred to the oracle. Both could be wrong the same
+                        // way and agree with each other; the wolf is due south of the sergeant, so
+                        // there is one right answer and it can be written down.
+                        Equal("the sergeant turned to face the wolf that bit it from behind",
+                            South, world.FacingOf("sergeant")),
+                        Equal("and the oracle agrees", oracle.FacingOf("sergeant"), world.FacingOf("sergeant")),
                         Equal("the wolf faces what it bit", oracle.FacingOf("wolf"), world.FacingOf("wolf")),
                         Equal("the goblin faces what it jabbed", oracle.FacingOf("goblin"), world.FacingOf("goblin"))
                     };
@@ -172,16 +177,17 @@ namespace Dragoneye.Scenarios
             var wolfCell = Cell.Whole(new Hex(0, -1));
 
             return new Scenario("armour-and-regen", "Armour and regeneration",
-                    "A wolf bites and mauls an ogre that starts hurt. The ogre's armour pool soaks "
-                    + "what it can and does not come back; its toughness heals it at the start of "
-                    + "its turn; then it mauls the wolf.",
+                    "A wolf bites and mauls an ogre holding nothing to answer with, so both blows "
+                    + "land. The armour pool soaks what it can and does not come back, the rest "
+                    + "comes off health, and toughness puts a little back at the start of the "
+                    + "ogre's turn.",
                     8809, Maps.Open())
                 .With(new Actor("wolf", Premade.Wolf, Party.Monsters, wolfCell, North)
                     .Then(Order.Use(Skills.Bite, "ogre"))
                     .Then(Order.Use(Skills.Maul, "ogre")))
                 .With(new Actor("ogre", Premade.Ogre, Party.Guards, ogreCell, South, 3)
-                    .Wounded(StartingHealth)
-                    .Then(Order.Use(Skills.Maul, "wolf")))
+                    .Holding(ElementCounts.Empty))
+                .Lasting(2)
                 .Expecting(world =>
                 {
                     var oracle = new Oracle(ArmourAndRegen(), world);
@@ -189,31 +195,39 @@ namespace Dragoneye.Scenarios
                     var bite = oracle.Use("wolf", Skills.Bite, "ogre");
                     var maul = oracle.Use("wolf", Skills.Maul, "ogre");
                     var healed = oracle.BeginTurn("ogre");
-                    var back = oracle.Use("ogre", Skills.Maul, "wolf");
 
                     var recovered = Reading.First(world, TraceKind.Recovered, "ogre");
                     var clashes = Reading.Clashes(world);
+                    var maxArmour = world.MaxArmourOf("ogre");
 
                     return new[]
                     {
-                        Equal("three attacks were answered", 3, clashes.Count),
-                        Equal("the bite came out as the oracle said", bite.Outcome, clashes.Count > 0 ? clashes[0].Outcome : default),
-                        Equal("the maul came out as the oracle said", maul.Outcome, clashes.Count > 1 ? clashes[1].Outcome : default),
-                        Equal("the ogre's armour soaked what the oracle said", oracle.ArmourOf("ogre"), world.ArmourOf("ogre")),
+                        Equal("both attacks were answered with nothing, the ogre holding nothing",
+                            2, clashes.Count),
+                        Equal("so the bite landed", ClashOutcome.AttackerWins,
+                            clashes.Count > 0 ? clashes[0].Outcome : default),
+                        Equal("and so did the maul", ClashOutcome.AttackerWins,
+                            clashes.Count > 1 ? clashes[1].Outcome : default),
+                        Equal("the bite came out as the oracle said", bite.Outcome,
+                            clashes.Count > 0 ? clashes[0].Outcome : default),
+                        Equal("the maul came out as the oracle said", maul.Outcome,
+                            clashes.Count > 1 ? clashes[1].Outcome : default),
+                        // Both of these used to be zero equals zero: nothing had landed on the
+                        // ogre, so its armour had soaked nothing and its toughness had nothing to
+                        // put back. The scenario passed by describing an afternoon in which
+                        // nothing happened to anybody.
+                        That("the armour pool actually soaked something", world.ArmourOf("ogre") < maxArmour,
+                            $"{world.ArmourOf("ogre")} of {maxArmour}"),
+                        Equal("and soaked exactly what the oracle said", oracle.ArmourOf("ogre"),
+                            world.ArmourOf("ogre")),
                         Equal("the ogre's health agrees", oracle.HpOf("ogre"), world.HpOf("ogre")),
-                        // The ogre starts wounded so that this cannot pass by describing nothing.
-                        // It used to stand at full health, where toughness has nothing to put back
-                        // and "healed by what the oracle said" is zero equals zero.
-                        That("toughness actually healed the ogre, which is what it starts hurt for",
+                        That("toughness actually healed the ogre, the blows having given it something to heal",
                             healed > 0 && (recovered?.Amount ?? 0) > 0,
                             $"oracle {healed}, fight {recovered?.Amount ?? 0}"),
                         Equal("toughness healed the ogre at the start of its turn by what the oracle said",
                             healed, recovered?.Amount ?? 0),
                         Equal("the regeneration is the ogre's authored toughness, no more",
                             world.RegenOf("ogre"), recovered?.Amount ?? 0),
-                        That("armour only ever went down", world.ArmourOf("ogre") <= world.MaxArmourOf("ogre")),
-                        Equal("the ogre's maul came out as the oracle said", back.Outcome, clashes.Count > 2 ? clashes[2].Outcome : default),
-                        Equal("the wolf's health agrees", oracle.HpOf("wolf"), world.HpOf("wolf")),
                         Equal("the wolf has no armour to lose", 0, world.ArmourOf("wolf"))
                     };
                 });
@@ -307,8 +321,18 @@ namespace Dragoneye.Scenarios
         const int HealOrders = 3;
 
         /// <summary>
-        /// A goblin in front of an ogre. The ogre mauls and torches it, twice over if it has to;
-        /// when it falls the match is over and the monsters have it.
+        /// An ogre kills a defenceless goblin, and the match ends because a side is gone.
+        ///
+        /// **The goblin holds nothing and stands one blow from death, on purpose.** This used to
+        /// be a fair fight, and every check in it was written to agree with whatever happened:
+        /// the goblin was alive or dead as the oracle said, a fallen goblin was announced if one
+        /// fell, a side won if somebody died. On a seed where the goblin answered the ogre all
+        /// afternoon, every one of those passed and the scenario called "A kill and a win" proved
+        /// that nobody was killed and nobody won.
+        ///
+        /// An attack nobody answers resolves for the attacker, so an empty-handed defender is how
+        /// a blow is made to land every time. What is claimed here is claimed flatly, with no
+        /// escape clause: it dies, it is announced, it leaves the order, the monsters win.
         /// </summary>
         public static Scenario Kill()
         {
@@ -316,68 +340,54 @@ namespace Dragoneye.Scenarios
             var goblinCell = Cell.Whole(new Hex(0, 1));
 
             return new Scenario("kill", "A kill and a win",
-                    "An ogre mauls and torches a goblin over two rounds while the goblin jabs "
-                    + "back. When the goblin falls it leaves the order, the match ends, and the "
-                    + "monsters win.",
+                    "A goblin with nothing left to answer with, one blow from death, is mauled by "
+                    + "an ogre. It falls, it leaves the initiative order, and the monsters take "
+                    + "the match.",
                     1213, Maps.Open())
                 .With(new Actor("goblin", Premade.Goblin, Party.Guards, goblinCell, South)
-                    .Then(Order.Use(Skills.Jab, "ogre"))
-                    .NextTurn()
-                    .Then(Order.Use(Skills.Jab, "ogre")))
+                    .Wounded(OneBlowLeft)
+                    .Holding(ElementCounts.Empty))
                 .With(new Actor("ogre", Premade.Ogre, Party.Monsters, ogreCell, North, 3)
-                    .Then(Order.Use(Skills.Maul, "goblin"))
-                    .Then(Order.Use(Skills.Torch, "goblin"))
-                    .NextTurn()
-                    .Then(Order.Use(Skills.Maul, "goblin"))
-                    .Then(Order.Use(Skills.Torch, "goblin")))
+                    .Then(Order.Use(Skills.Maul, "goblin")))
                 .Lasting(3)
                 .Expecting(world =>
                 {
                     var oracle = new Oracle(Kill(), world);
+                    oracle.BeginTurn("goblin");
+                    oracle.BeginTurn("ogre");
+                    var maul = oracle.Use("ogre", Skills.Maul, "goblin");
 
-                    // Two rounds, goblin first (speed 10 to 5), each actor two orders a round,
-                    // until somebody is down.
-                    // An order the fight refuses for want of an element is skipped here too.
-                    for (var round = 1; round <= 2 && oracle.IsAlive("goblin") && oracle.IsAlive("ogre"); round++)
-                    {
-                        oracle.BeginTurn("goblin");
-
-                        if (oracle.CanPay("goblin", Skills.Jab))
-                        {
-                            oracle.Use("goblin", Skills.Jab, "ogre");
-                        }
-
-                        if (!oracle.IsAlive("ogre")) break;
-
-                        oracle.BeginTurn("ogre");
-
-                        if (oracle.CanPay("ogre", Skills.Maul))
-                        {
-                            oracle.Use("ogre", Skills.Maul, "goblin");
-                        }
-
-                        if (!oracle.IsAlive("goblin")) break;
-
-                        if (oracle.CanPay("ogre", Skills.Torch))
-                        {
-                            oracle.Use("ogre", Skills.Torch, "goblin");
-                        }
-                    }
-
-                    var dead = !oracle.IsAlive("goblin");
+                    var clashes = Reading.Clashes(world);
 
                     return new[]
                     {
-                        Equal("the goblin is alive or dead as the oracle said", !dead, world.IsAlive("goblin")),
-                        Equal("a fallen goblin was announced as fallen", dead ? 1 : 0, Reading.Count(world, TraceKind.Fell, "goblin")),
-                        Equal("a side won exactly when somebody is dead", dead, world.IsWon),
-                        That("and the monsters won it", !dead || world.Winner == Party.Monsters),
-                        Equal("the ogre's health agrees with the oracle", oracle.HpOf("ogre"), world.HpOf("ogre")),
-                        That("the goblin's health agrees with the oracle", dead || oracle.HpOf("goblin") == world.HpOf("goblin"),
-                            $"oracle {oracle.HpOf("goblin")}")
+                        Equal("the goblin had nothing to answer the maul with", 0,
+                            clashes.Count > 0 ? clashes[0].DefenderElements.Count : -1),
+                        Equal("so the maul resolved for the ogre, as an unanswered attack does",
+                            ClashOutcome.AttackerWins, clashes.Count > 0 ? clashes[0].Outcome : default),
+                        Equal("and it went as the oracle said", maul.Outcome,
+                            clashes.Count > 0 ? clashes[0].Outcome : default),
+                        That("the goblin is dead", !world.IsAlive("goblin")),
+                        Equal("its fall was announced once", 1, Reading.Count(world, TraceKind.Fell, "goblin")),
+                        That("it took no more turns after falling",
+                            Reading.Count(world, TraceKind.TurnBegan, "goblin") == 1,
+                            $"{Reading.Count(world, TraceKind.TurnBegan, "goblin")} turns"),
+                        That("the match was won", world.IsWon),
+                        Equal("and the monsters won it", Party.Monsters, world.Winner),
+                        Equal("the ogre came through untouched, having been swung at by nobody",
+                            world.MaxHpOf("ogre"), world.HpOf("ogre")),
+                        Equal("the maul's element cost came out of the ogre's hand and was shown",
+                            world.SkillOf("ogre", Skills.Maul)?.ElementCost ?? -1,
+                            world.LedgerOf("ogre").Outstanding.Count)
                     };
                 });
         }
+
+        /// <summary>
+        /// The health a scenario puts a creature on the board with when the next blow must be the
+        /// last one. Any contested attack that lands does at least a point.
+        /// </summary>
+        const int OneBlowLeft = 1;
 
         /// <summary>Who goes first: fastest first, and of two equals, whoever spawned first.</summary>
         public static Scenario Initiative()
@@ -436,6 +446,17 @@ namespace Dragoneye.Scenarios
                     {
                         That("somebody walked", Reading.Count(world, TraceKind.Moved) > 0),
                         That("somebody attacked", Reading.Count(world, TraceKind.Clash) + Reading.Count(world, TraceKind.Shot) > 0),
+                        // Attacking and landing are different things: a defender who answers well
+                        // takes nothing and keeps what they put up. Without this the duel passes
+                        // on a stalemate -- eight rounds of two creatures swinging and neither of
+                        // them ever hurt -- and "a side won exactly when a side is gone" is then
+                        // false equals false, which reads as a pass and proves nothing.
+                        That("and actually hurt somebody",
+                            world.HpOf("sergeant") < world.MaxHpOf("sergeant")
+                            || world.HpOf("goblin") < world.MaxHpOf("goblin")
+                            || !world.IsAlive("sergeant") || !world.IsAlive("goblin"),
+                            $"sergeant {world.HpOf("sergeant")}/{world.MaxHpOf("sergeant")}, "
+                            + $"goblin {world.HpOf("goblin")}/{world.MaxHpOf("goblin")}"),
                         Equal("a side won exactly when a side is gone", oneSideGone, world.IsWon),
                         That("nobody's health went below zero or above its maximum",
                             (!world.IsAlive("sergeant") || (world.HpOf("sergeant") > 0 && world.HpOf("sergeant") <= world.MaxHpOf("sergeant")))

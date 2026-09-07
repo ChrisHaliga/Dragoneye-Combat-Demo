@@ -478,12 +478,13 @@ namespace Dragoneye.Game
         /// </summary>
         /// <returns>The creature, or null when the prefab is missing or the spawn failed.</returns>
         public CreatureState SpawnCreature(ushort creatureId, Party party, int level, Cell cell,
-            Facing facing, int ordinal = 0, int startHp = 0) =>
+            Facing facing, int ordinal = 0, int startHp = 0, ElementCounts? startPool = null) =>
             Spawn(creatureId, party, PartyInfo.Unclaimed, PartyInfo.Unclaimed, level, cell, facing,
-                ordinal, startHp);
+                ordinal, startHp, startPool);
 
         CreatureState Spawn(ushort creatureId, Party party, byte claimedBySlot, byte buildSlot,
-            int level, Cell cell, Facing facing, int ordinal, int startHp = 0)
+            int level, Cell cell, Facing facing, int ordinal, int startHp = 0,
+            ElementCounts? startPool = null)
         {
             if (m_UnitPrefab == null)
             {
@@ -510,7 +511,8 @@ namespace Dragoneye.Game
                 instance.GetComponent<UnitState>().ServerPlaceAt(cell);
                 var creature = instance.GetComponent<CreatureState>();
 
-                creature.ServerConfigure(creatureId, party, claimedBySlot, buildSlot, level, ordinal, facing, startHp);
+                creature.ServerConfigure(creatureId, party, claimedBySlot, buildSlot, level, ordinal,
+                    facing, startHp, startPool);
 
                 // The starting pool is authored on the premade definition. A built character will
                 // bring its own from the creator; both arrive here before the spawn so the owning
@@ -519,8 +521,9 @@ namespace Dragoneye.Game
 
                 if (pool != null)
                 {
-                    pool.ServerConfigure(
-                        CreatureState.ProfileFor(buildSlot, creatureId, level).StartingPool);
+                    // Through the creature, so a hand a scenario dealt is the one that reaches the
+                    // board -- and the one the fight is built from a moment later.
+                    pool.ServerConfigure(creature.StartingPool);
                 }
 
                 // Destroyed with the arena, which is the whole of a unit's life. Left at the
