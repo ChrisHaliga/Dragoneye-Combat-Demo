@@ -124,16 +124,6 @@
 }
 
 
-.portrait__name {
-    font-size: 10px;
-    -unity-font-style: bold;
-    letter-spacing: 1px;
-    color: rgb(232, 226, 212);
-    -unity-text-align: middle-center;
-    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.95);
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
 
 /* Track stays visible so a nearly-empty bar still reads as "hurt" rather than "missing". */
 /* Health and armour read the same way wherever they are drawn: a dark track, a fill that is the
@@ -365,23 +355,8 @@
 
 /* Whose turn it is, under the order. The name used to float over a disc in the world, where it
    labelled a cursor rather than answering the question a player actually asks. */
-.turn-bar__active-owner {
-    min-height: 14px;
-    font-size: 10px;
-    -unity-font-style: bold;
-    letter-spacing: 3px;
-    color: rgb(198, 158, 88);
-}
 
 /* Reserved whether or not there is a name, so portraits do not shift as turns pass. */
-.turn-bar__active-name {
-    min-height: 20px;
-    margin-top: 4px;
-    font-size: 16px;
-    -unity-font-style: bold;
-    letter-spacing: 2px;
-    color: rgb(236, 231, 219);
-}
 
 /* The order of play, as faces. The one acting is bigger and named; the rest are the same card
    without the numbers, because "who is next" is a question about faces and not about health. */
@@ -478,13 +453,6 @@
 }
 
 /* The hand, the points and the button on one line, across the whole width. */
-.turn-footer__line {
-    flex-direction: row;
-    align-items: center;
-    align-self: stretch;
-    min-height: 22px;
-    margin-bottom: 4px;
-}
 
 /* The bar and the button that ends the turn, as one row. */
 .action-row {
@@ -1392,9 +1360,6 @@
     display: flex;
 }
 
-.combat-log--empty {
-    background-color: rgba(0, 0, 0, 0);
-}
 
 
 /* Fills the frame and scrolls inside it.

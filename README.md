@@ -385,10 +385,25 @@ falling still has a token to hide.
 UI Toolkit. Markup in `Assets/UI/*.uxml`, styles in `Assets/UI/*.uss`, bound by plain C# classes in
 `Scripts/Multiplayer` (menus) and `Scripts/Game/Combat` (the arena HUD).
 
-The arena's action bar is fixed slots: Move, then the creature's skills, then its items, on keys
-1–9 in that order. `SkillBarView` fills them and `SkillIcons` gives each a plate — the sprite
-authored on the `SkillAsset` if there is one, otherwise a glyph drawn in the element's colour. The
-hand sits left of the AP line above the bar, the log above that.
+The arena HUD is four panels and a band. `PartyPanelView` draws the party as floating cards on the
+left, each a face with what it is holding down one edge and what is left of it along the bottom.
+`TurnBarView` draws the order of play across the top out of the same card, larger and named for
+whoever is acting. `CombatLogView` is the last line above the bar, or the whole record when it is
+opened. `CreatureCardView` is the inspector, which only opens when somebody asks for it: right-click
+a creature or a portrait and choose Inspect. It closes on any click outside it unless it is pinned.
+
+The bottom band is `TurnControlsView` over `SkillBarView`: action points, then health with End Turn
+beside it, then the bar of actions. Slots are fixed: Move, then the creature's skills, then its
+items, on keys 1 through 9 and 0. A slot carries an icon and its key and nothing else — what a skill
+costs is written against the cursor once it is armed, and its name appears over the slot on hover.
+A slot that cannot be afforded is greyed rather than disabled, because a disabled button never sees
+the pointer and so can never say what it is. Right-clicking one offers Inspect, which opens the
+skill in full. `SkillIcons` gives each slot a plate — the sprite authored on the `SkillAsset` if
+there is one, otherwise a glyph drawn in the element's colour.
+
+Two EditMode tests hold the markup to the views: every element a view looks up by name exists, and
+every class the markup asks for has a rule somewhere. The second also runs in `build.sh`, and
+`uifit.py` holds the bottom band under a share of a 720p screen.
 
 The character creator is four pages in `CharacterCreatorScreen`: name, face and species; class,
 with every skill each level brings; attributes and kit; the sheet, to confirm. `uifit.py` in the
