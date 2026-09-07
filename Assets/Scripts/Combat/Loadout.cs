@@ -316,9 +316,11 @@ namespace Dragoneye.Combat
 
             var armour = ArmourClass.None;
 
-            // Equipment does not touch the attributes. A weapon is its skills, armour is its pool
-            // and its weight, and an offhand is one or the other -- a sword that also made you
-            // stronger was a second thing to compare on every line of a list that already had one.
+            // Most equipment does not touch the attributes: a weapon is its skills, and armour is
+            // its pool and its weight. What an item moves it moves here, added after the points
+            // are spent, so what was bought and what is carried stay separate -- the budget is
+            // checked against the numbers the player paid for, never against the ones they are
+            // wearing.
             foreach (var item in items)
             {
                 // The heaviest worn wins rather than the sum, so a second piece of armour cannot
@@ -327,6 +329,8 @@ namespace Dragoneye.Combat
                 {
                     armour = item.Armour;
                 }
+
+                attributes += item.Modifiers;
             }
 
             var level = build.Level < Progression.FirstLevel ? Progression.FirstLevel : build.Level;

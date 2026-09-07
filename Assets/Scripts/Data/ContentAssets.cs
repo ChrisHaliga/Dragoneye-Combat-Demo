@@ -145,6 +145,14 @@ namespace Dragoneye.Data
              + "elements. It costs two rather than one, so it drains as fast as it protects.")]
         bool m_GrantsAdvantage;
 
+        [SerializeField, Tooltip("Whether this takes both hands. A weapon that does leaves no hand "
+             + "for an offhand, and the creator hides the slot while it is carried.")]
+        bool m_TwoHanded;
+
+        [SerializeField, Tooltip("What carrying this does to attributes. Usually nothing: an item "
+             + "that moves a number is one more thing to weigh against every other item.")]
+        AttributeValues m_Modifiers;
+
         public int Id => m_Id;
 
         public string DisplayName => m_DisplayName;
@@ -156,7 +164,7 @@ namespace Dragoneye.Data
         public EquipmentSpec ToSpec() =>
             new EquipmentSpec(m_Id, m_DisplayName, m_Slot,
                 ContentIds.SkillIds(m_Skills), m_Armour, m_Description, m_ArmourPoints,
-                m_GrantsAdvantage);
+                m_GrantsAdvantage, m_TwoHanded, m_Modifiers.ToBlock());
 
         void OnValidate()
         {

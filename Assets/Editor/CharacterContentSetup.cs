@@ -223,7 +223,8 @@ namespace Dragoneye.MultiplayerEditor
             var sword = Equipment(10, "Sword", EquipmentSlot.Weapon,
                 "A soldier's blade. Reliable, and heavy enough to matter.", strike);
             var greataxe = Equipment(11, "Greataxe", EquipmentSlot.Weapon,
-                "Enormous. You will hit first only by accident.", strike, cleave);
+                "Enormous. You will hit first only by accident.",
+                new[] { strike, cleave }, twoHanded: true);
             var bow = Equipment(12, "Bow", EquipmentSlot.Weapon,
                 "Keeps the fight at the distance you choose.", loose);
             var dagger = Equipment(13, "Dagger", EquipmentSlot.Weapon,
@@ -245,6 +246,15 @@ namespace Dragoneye.MultiplayerEditor
                 "Between you and anything that reaches you, and no speed for it. It costs you "
                 + "the other hand.",
                 new SkillAsset[0], ArmourClass.None, armourPoints: 4);
+
+            // The other thing to do with the hand: nothing that guards, and two points of the
+            // attribute that decides who swings first. The only item that moves an attribute, and
+            // it is the whole of what it is -- a parrying dagger is not a second weapon.
+            var offhandDagger = Equipment(31, "Offhand Dagger", EquipmentSlot.Offhand,
+                "Held reversed in the other hand. It turns a blade aside and leaves you first to "
+                + "answer.",
+                new SkillAsset[0], ArmourClass.None,
+                modifiers: new AttributeValues { Dexterity = 2 });
 
             // The numbers are not in the words: the creator prints "+4 ARM  -2 SPD" beside the
             // name from the rules, so a retune does not leave a description telling a lie.
@@ -308,7 +318,8 @@ namespace Dragoneye.MultiplayerEditor
 
             var equipment = new List<EquipmentAsset>
             {
-                sword, greataxe, bow, dagger, staff, mace, light, medium, heavy, shield
+                sword, greataxe, bow, dagger, staff, mace, light, medium, heavy, shield,
+                offhandDagger
             };
 
             var skills = new List<SkillAsset>
@@ -742,7 +753,8 @@ namespace Dragoneye.MultiplayerEditor
         static EquipmentAsset Equipment(int id, string name, EquipmentSlot slot,
             string description, IReadOnlyList<SkillAsset> skills,
             ArmourClass armour = ArmourClass.None, int armourPoints = 0,
-            bool grantsAdvantage = false)
+            bool grantsAdvantage = false, bool twoHanded = false,
+            AttributeValues modifiers = default)
         {
             var asset = Upsert<EquipmentAsset>($"{k_Folder}/{Sanitise(name)}.asset");
             var serialized = new SerializedObject(asset);
@@ -755,6 +767,8 @@ namespace Dragoneye.MultiplayerEditor
 
             serialized.FindProperty("m_ArmourPoints").intValue = armourPoints;
             serialized.FindProperty("m_GrantsAdvantage").boolValue = grantsAdvantage;
+            serialized.FindProperty("m_TwoHanded").boolValue = twoHanded;
+            WriteAttributes(serialized.FindProperty("m_Modifiers"), modifiers);
 
             WriteList(serialized.FindProperty("m_Skills"), skills);
             serialized.ApplyModifiedPropertiesWithoutUndo();

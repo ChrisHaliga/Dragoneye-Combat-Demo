@@ -126,10 +126,13 @@ namespace Dragoneye.Combat
     {
         public EquipmentSpec(int id, string name, EquipmentSlot slot,
             IReadOnlyList<int> skillIds = null, ArmourClass armour = ArmourClass.None,
-            string description = "", int armourPoints = 0, bool grantsAdvantage = false)
+            string description = "", int armourPoints = 0, bool grantsAdvantage = false,
+            bool twoHanded = false, AttributeBlock modifiers = default)
         {
             Armour = armour;
             GrantsAdvantage = grantsAdvantage;
+            TwoHanded = twoHanded;
+            Modifiers = modifiers;
             Id = id;
             Name = name ?? string.Empty;
             Slot = slot;
@@ -158,6 +161,24 @@ namespace Dragoneye.Combat
 
         /// <summary>What wearing this does to speed. Zero for anything that is not a suit.</summary>
         public int SpeedCost => ArmourRules.SpeedCostOf(Armour);
+
+        /// <summary>
+        /// Whether this takes both hands.
+        ///
+        /// A weapon that does leaves no hand for an offhand, which is the whole of what the rules
+        /// make of it: a greataxe is not heavier or slower than a sword, it costs you the shield.
+        /// </summary>
+        public bool TwoHanded { get; }
+
+        /// <summary>
+        /// What carrying this does to attributes, before anything is derived from them.
+        ///
+        /// Usually nothing. A weapon is its skills first, and an item that also moves a number is
+        /// a second thing to weigh on every line of a list that already has one -- so this is for
+        /// the item whose whole point is the number, a dagger in the off hand that makes you
+        /// quicker, and not for a bonus on everything that has a name.
+        /// </summary>
+        public AttributeBlock Modifiers { get; }
 
         /// <summary>
         /// Whether holding this gives its wearer the better of two elements in a clash.

@@ -341,9 +341,14 @@ namespace Dragoneye.UI
 
             line.Add(head);
 
-            var text = new Label(item != null ? KitEffect(item, loadout) : "This hand is free.");
-            text.AddToClassList("skill-line__text");
-            line.Add(text);
+            // An empty slot says "Nothing" and stops. A line under it explaining that the hand is
+            // empty was three words saying what the word above it already said.
+            if (item != null)
+            {
+                var text = new Label(KitEffect(item, loadout));
+                text.AddToClassList("skill-line__text");
+                line.Add(text);
+            }
 
             if (item != null && !string.IsNullOrWhiteSpace(item.Description))
             {
@@ -381,6 +386,21 @@ namespace Dragoneye.UI
             if (item.GrantsAdvantage)
             {
                 parts.Add("Advantage in a clash");
+            }
+
+            if (item.TwoHanded)
+            {
+                parts.Add("Both hands");
+            }
+
+            foreach (var attribute in AttributeInfo.All)
+            {
+                var moved = item.Modifiers[attribute];
+
+                if (moved != 0)
+                {
+                    parts.Add($"{(moved > 0 ? "+" : string.Empty)}{moved} {AttributeInfo.ShortNameOf(attribute)}");
+                }
             }
 
             foreach (var id in item.SkillIds)

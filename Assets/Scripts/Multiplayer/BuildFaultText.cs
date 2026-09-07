@@ -53,6 +53,8 @@ namespace Dragoneye.Multiplayer
                     return "That offhand item no longer exists.";
                 case BuildProblem.ItemInWrongSlot:
                     return "That item does not fit the slot it is in.";
+                case BuildProblem.OffhandWithBothHands:
+                    return "Your weapon takes both hands. Nothing can go in the offhand.";
                 default:
                     return "Something about this character is not allowed.";
             }

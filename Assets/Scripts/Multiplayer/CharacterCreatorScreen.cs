@@ -87,11 +87,17 @@ namespace Dragoneye.Multiplayer
         readonly List<BuildFault> m_FaultBuffer = new List<BuildFault>();
 
         readonly Dictionary<Attribute, Label> m_AttributeValues = new Dictionary<Attribute, Label>();
+        readonly Dictionary<Attribute, Label> m_AttributeCost = new Dictionary<Attribute, Label>();
         readonly Dictionary<Attribute, Button> m_AttributeMinus = new Dictionary<Attribute, Button>();
         readonly Dictionary<Attribute, Button> m_AttributePlus = new Dictionary<Attribute, Button>();
         readonly Dictionary<int, VisualElement> m_PortraitChoices = new Dictionary<int, VisualElement>();
         readonly Dictionary<int, VisualElement> m_SpeciesChoices = new Dictionary<int, VisualElement>();
         readonly Dictionary<int, VisualElement> m_ClassChoices = new Dictionary<int, VisualElement>();
+
+        // The offhand field, kept because whether it may be used at all is decided by the weapon
+        // in the field above it, and answered on every refresh.
+        DropdownField m_OffhandField;
+        Label m_OffhandNote;
 
         ElementPicker m_Picker;
         CharacterBuild m_Build;
@@ -640,15 +646,24 @@ namespace Dragoneye.Multiplayer
             label.AddToClassList("alloc-row__label");
             line.Add(label);
 
+            // What the next point costs, on the row rather than under the pointer. Each step
+            // costs the value it leaves, so the price changes as it is spent and a player working
+            // from the one number in the header has to do the arithmetic seven times.
+            var cost = new Label();
+            cost.AddToClassList("alloc-row__cost");
+
             var minus = MenuControls.StepButton("-", () => Adjust(stat, -1));
             var value = new Label();
             value.AddToClassList("alloc-row__value");
             var plus = MenuControls.StepButton("+", () => Adjust(stat, +1));
 
+            line.Add(cost);
             line.Add(minus);
             line.Add(value);
             line.Add(plus);
             row.Add(line);
+
+            m_AttributeCost[stat] = cost;
 
             var text = new Label(AttributeInfo.Summarise(stat));
             text.AddToClassList("alloc-row__text");
@@ -709,8 +724,22 @@ namespace Dragoneye.Multiplayer
                 var picked = options[Mathf.Clamp(dropdown.index, 0, options.Count - 1)];
                 explain.text = Explain(picked);
                 Equip(slot, Id(picked));
+
+                // Picking up something that needs both hands puts down what was in the other one,
+                // rather than leaving a build that Save will refuse for a reason on another line.
+                if (slot == EquipmentSlot.Weapon && picked != null && picked.TwoHanded)
+                {
+                    m_Build.OffhandId = CharacterBuild.NoEquipment;
+                }
+
                 Refresh();
             });
+
+            if (slot == EquipmentSlot.Offhand)
+            {
+                m_OffhandField = dropdown;
+                m_OffhandNote = explain;
+            }
 
             group.Add(dropdown);
             group.Add(explain);
@@ -825,6 +854,22 @@ namespace Dragoneye.Multiplayer
                 text += $"-{spec.SpeedCost} SPD  ";
             }
 
+            if (spec.TwoHanded)
+            {
+                text += "Both hands  ";
+            }
+
+            foreach (var attribute in AttributeInfo.All)
+            {
+                var moved = spec.Modifiers[attribute];
+
+                if (moved != 0)
+                {
+                    text += $"{(moved > 0 ? "+" : string.Empty)}{moved} "
+                        + $"{AttributeInfo.ShortNameOf(attribute)}  ";
+                }
+            }
+
             if (spec.GrantsAdvantage)
             {
                 text += "Advantage  ";
@@ -856,11 +901,43 @@ namespace Dragoneye.Multiplayer
 
             RefreshPortrait();
             RefreshAttributes(rules);
+            RefreshOffhand();
             RefreshElements();
             RefreshOverview(loadout);
 
             m_Faults.text = BuildFaultText.Summarise(m_FaultBuffer);
             m_Save.SetEnabled(m_FaultBuffer.Count == 0);
+        }
+
+        /// <summary>
+        /// The offhand slot, which the weapon decides the use of.
+        ///
+        /// Shut rather than hidden: a slot that vanishes reads as a bug, and a slot that is there
+        /// and greyed out with the reason under it says what the weapon costs you.
+        /// </summary>
+        void RefreshOffhand()
+        {
+            if (m_OffhandField == null)
+            {
+                return;
+            }
+
+            var bothHands = m_Content.TryGetEquipment(m_Build.WeaponId, out var weapon)
+                && weapon.TwoHanded;
+
+            m_OffhandField.SetEnabled(!bothHands);
+
+            if (!bothHands)
+            {
+                return;
+            }
+
+            m_OffhandField.SetValueWithoutNotify(Describe(null));
+
+            if (m_OffhandNote != null)
+            {
+                m_OffhandNote.text = $"{weapon.Name} takes both hands.";
+            }
         }
 
         void RefreshAttributes(CharacterRules rules)
@@ -896,7 +973,18 @@ namespace Dragoneye.Multiplayer
                 {
                     plus.SetEnabled(PointBuy.CanRaise(m_Build.Attributes, stat,
                         rules.PointBudget, rules.MaxPerAttribute));
-                    plus.tooltip = $"Costs {PointBuy.CostToRaise(value)}";
+                }
+
+                if (m_AttributeCost.TryGetValue(stat, out var cost))
+                {
+                    var next = PointBuy.CostToRaise(value);
+                    var capped = value >= rules.MaxPerAttribute;
+
+                    cost.text = capped ? "MAX" : $"NEXT {next}";
+                    cost.EnableInClassList("alloc-row__cost--dear", !capped && next > remaining);
+                    cost.tooltip = capped
+                        ? $"{AttributeInfo.NameOf(stat)} cannot go above {rules.MaxPerAttribute}."
+                        : $"The next point in {AttributeInfo.NameOf(stat)} costs {next}.";
                 }
             }
         }

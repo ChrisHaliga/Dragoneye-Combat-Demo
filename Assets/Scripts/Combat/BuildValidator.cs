@@ -19,7 +19,10 @@ namespace Dragoneye.Combat
         WeaponNotForClass,
         ArmorUnknown,
         OffhandUnknown,
-        ItemInWrongSlot
+        ItemInWrongSlot,
+
+        /// <summary>Something is in the offhand and the weapon needs both hands.</summary>
+        OffhandWithBothHands
     }
 
     /// <summary>
@@ -200,6 +203,14 @@ namespace Dragoneye.Combat
             CheckSlot(build.ArmorId, EquipmentSlot.Armor, BuildProblem.ArmorUnknown, content, faults);
             CheckSlot(build.OffhandId, EquipmentSlot.Offhand, BuildProblem.OffhandUnknown,
                 content, faults);
+
+            // Both hands on the weapon means no hand for anything else. Checked here as well as
+            // hidden in the creator, because the creator is a courtesy and this is the answer.
+            if (build.OffhandId != CharacterBuild.NoEquipment
+                && content.TryGetEquipment(build.WeaponId, out var held) && held.TwoHanded)
+            {
+                faults.Add(new BuildFault(BuildProblem.OffhandWithBothHands, build.WeaponId));
+            }
         }
 
         static void CheckSlot(int id, EquipmentSlot slot, BuildProblem unknown,

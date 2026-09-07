@@ -18,6 +18,9 @@ namespace Dragoneye.Hex.Tests
         const int SwordId = 10;
         const int BowId = 11;
         const int PlateId = 20;
+        const int GreataxeId = 12;
+        const int ShieldId = 30;
+        const int OffhandDaggerId = 31;
         // Seven more than it was. Attributes now start at zero, so the first point of each is
         // bought rather than given, and the budget covers exactly that -- every spread that fitted
         // before still fits, and dumping one now pays for something.
@@ -72,12 +75,19 @@ namespace Dragoneye.Hex.Tests
 
         static FakeContent Content() =>
             new FakeContent(new CharacterRules(Budget, 8, Level))
-                .With(new ClassSpec(1, "Guardian", AttributeBlock.Zero, new[] { SwordId }))
+                .With(new ClassSpec(1, "Guardian", AttributeBlock.Zero, new[] { SwordId, GreataxeId }))
                 .With(new ClassSpec(2, "Hunter", AttributeBlock.Zero, new[] { BowId }))
                 .With(new EquipmentSpec(SwordId, "Sword", EquipmentSlot.Weapon))
                 .With(new EquipmentSpec(BowId, "Bow", EquipmentSlot.Weapon))
                 .With(new EquipmentSpec(PlateId, "Plate", EquipmentSlot.Armor,
-                    null, ArmourClass.Heavy));
+                    null, ArmourClass.Heavy))
+                .With(new EquipmentSpec(GreataxeId, "Greataxe", EquipmentSlot.Weapon,
+                    null, ArmourClass.None, "", 0, false, twoHanded: true))
+                .With(new EquipmentSpec(ShieldId, "Shield", EquipmentSlot.Offhand,
+                    null, ArmourClass.None, "", 4))
+                .With(new EquipmentSpec(OffhandDaggerId, "Offhand Dagger", EquipmentSlot.Offhand,
+                    null, ArmourClass.None, "", 0, false, false,
+                    new AttributeBlock(0, 2, 0, 0, 0, 0, 0)));
 
         /// <summary>
         /// A build that passes, so each case below can break exactly one thing.
@@ -417,6 +427,87 @@ namespace Dragoneye.Hex.Tests
             Assert.AreEqual(
                 LoadoutResolver.Resolve(build, content).Attributes,
                 LoadoutResolver.Resolve(new CharacterBuild(build), content).Attributes);
+        }
+
+        // ---------- both hands ----------
+
+        [Test]
+        public void AWeaponThatTakesBothHandsLeavesNoOffhand()
+        {
+            var content = Content();
+            var build = Valid(content);
+            build.ClassId = 1;
+            build.WeaponId = GreataxeId;
+            build.OffhandId = ShieldId;
+
+            Assert.Contains(BuildProblem.OffhandWithBothHands, Problems(build, content));
+        }
+
+        [Test]
+        public void TheSameWeaponWithAnEmptyOffhandIsFine()
+        {
+            var content = Content();
+            var build = Valid(content);
+            build.WeaponId = GreataxeId;
+            build.OffhandId = CharacterBuild.NoEquipment;
+
+            CollectionAssert.DoesNotContain(Problems(build, content),
+                BuildProblem.OffhandWithBothHands);
+        }
+
+        [Test]
+        public void AOneHandedWeaponKeepsItsOffhand()
+        {
+            var content = Content();
+            var build = Valid(content);
+            build.WeaponId = SwordId;
+            build.OffhandId = ShieldId;
+
+            CollectionAssert.DoesNotContain(Problems(build, content),
+                BuildProblem.OffhandWithBothHands);
+        }
+
+        [Test]
+        public void AnEmptyWeaponSlotKeepsItsOffhand()
+        {
+            var content = Content();
+            var build = Valid(content);
+            build.WeaponId = CharacterBuild.NoEquipment;
+            build.OffhandId = ShieldId;
+
+            CollectionAssert.DoesNotContain(Problems(build, content),
+                BuildProblem.OffhandWithBothHands);
+        }
+
+        // ---------- what an item moves ----------
+
+        [Test]
+        public void AnItemsModifiersLandInTheResolvedAttributes()
+        {
+            var content = Content();
+            var build = Valid(content);
+            var without = LoadoutResolver.Resolve(build, content).Attributes;
+
+            build.OffhandId = OffhandDaggerId;
+            var with = LoadoutResolver.Resolve(build, content).Attributes;
+
+            Assert.AreEqual(without[Attribute.Dexterity] + 2, with[Attribute.Dexterity]);
+            Assert.AreEqual(without[Attribute.Strength], with[Attribute.Strength],
+                "nothing it does not name");
+        }
+
+        [Test]
+        public void WhatAnItemGivesIsNotBoughtWithPoints()
+        {
+            // The budget is checked against the points spent, not against what is being carried.
+            // An item that moved an attribute into the budget would make the same build legal or
+            // illegal depending on what was in its hands.
+            var content = Content();
+            var build = Valid(content);
+            build.OffhandId = OffhandDaggerId;
+
+            CollectionAssert.DoesNotContain(Problems(build, content), BuildProblem.OverBudget);
+            Assert.AreEqual(0, build.PointsRemaining(content.Rules));
         }
 
         [Test]

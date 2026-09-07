@@ -836,6 +836,20 @@
     color: rgb(198, 158, 88);
 }
 
+/* What the next point costs, right of the name and left of the steppers. Small and gold, because
+   it is a price rather than a value: the big number in the middle is what you have. */
+.alloc-row__cost {
+    margin-right: 8px;
+    font-size: 9px;
+    -unity-font-style: bold;
+    letter-spacing: 1px;
+    color: rgb(139, 147, 165);
+}
+
+.alloc-row__cost--dear {
+    color: rgb(198, 108, 96);
+}
+
 .alloc-row__value {
     width: 34px;
     font-size: 17px;
