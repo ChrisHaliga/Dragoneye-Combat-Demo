@@ -77,6 +77,29 @@ Shader "Dragoneye/WallCutaway"
                 15.0 / 16.0, 7.0 / 16.0, 13.0 / 16.0, 5.0 / 16.0
             };
 
+            // Courses of stone on the faces of a wall: a thin dark mortar line every course of
+            // height, and a joint every so often along it, staggered course to course the way
+            // bricks are laid. The top face is left plain -- it is a cap, not a course. A flat
+            // grey slab was the whole of what a wall looked like, and this is the cheapest thing
+            // that makes it look built.
+            float Masonry(float3 positionWS, float3 normal)
+            {
+                if (normal.y > 0.5)
+                {
+                    return 1.0;
+                }
+
+                const float course = 0.16;
+                const float brick = 0.34;
+
+                float row = floor(positionWS.y / course);
+                float alongWall = positionWS.x + positionWS.z;
+                float mortar = step(frac(positionWS.y / course), 0.14);
+                float joint = step(frac(alongWall / brick + fmod(row, 2.0) * 0.5), 0.09);
+
+                return 1.0 - 0.32 * max(mortar, joint);
+            }
+
             half4 frag(Varyings input) : SV_Target
             {
                 float2 screen = input.positionHCS.xy / _ScreenParams.xy;
@@ -108,7 +131,7 @@ Shader "Dragoneye/WallCutaway"
                 float3 normal = normalize(input.normalWS);
                 Light light = GetMainLight();
                 float lambert = saturate(dot(normal, light.direction));
-                float3 stone = _BaseColor.rgb * input.colour.rgb;
+                float3 stone = _BaseColor.rgb * input.colour.rgb * Masonry(input.positionWS, normal);
                 float3 lit = stone * light.color * (0.3 + 0.7 * lambert);
                 float3 ambient = stone * SampleSH(normal);
 

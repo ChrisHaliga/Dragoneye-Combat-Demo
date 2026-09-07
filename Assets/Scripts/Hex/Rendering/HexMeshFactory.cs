@@ -72,6 +72,12 @@ namespace Dragoneye.Hex.Rendering
                 return Finish(vertices, normals, uvs, triangles);
             }
 
+            // The top is the first submesh and everything below it the second, so the renderer
+            // can paint the skirt darker than the face. A slab whose sides are the same colour
+            // as its top is a coloured shape; one with a shadowed side is a thing on a table.
+            var face = new System.Collections.Generic.List<int>(triangles);
+            triangles.Clear();
+
             // The lip and the sides, one quad per edge with its own flat normal. Shared corners
             // would smear the lip into the side and the side into the next side, and the whole
             // point of the geometry is that those are three surfaces lit three ways.
@@ -97,8 +103,17 @@ namespace Dragoneye.Hex.Rendering
                     outward);
             }
 
-            return Finish(vertices, normals, uvs, triangles);
+            var mesh = Finish(vertices, normals, uvs, face);
+            mesh.subMeshCount = 2;
+            mesh.SetTriangles(face, TileTop);
+            mesh.SetTriangles(triangles, TileSkirt);
+            mesh.RecalculateBounds();
+            return mesh;
         }
+
+        /// <summary>The submesh a tile's top face is; the skirt is the one after it.</summary>
+        public const int TileTop = 0;
+        public const int TileSkirt = 1;
 
         /// <summary>
         /// The top face of one area of a tile: a fan of its wedges, apex at the tile's centre,

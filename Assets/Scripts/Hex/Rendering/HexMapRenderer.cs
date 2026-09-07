@@ -40,6 +40,18 @@ namespace Dragoneye.Hex.Rendering
         [SerializeField, Tooltip("Colour property on the material. URP Lit uses _BaseColor.")]
         string m_ColorProperty = "_BaseColor";
 
+        [SerializeField, Range(0.2f, 1f), Tooltip("How much of the top's colour the skirt keeps. "
+             + "Darker sides are what make a tile read as a slab rather than a shape.")]
+        float m_SkirtShade = 0.5f;
+
+        [SerializeField, Min(0f), Tooltip("How far ground that blocks sight -- a boulder -- stands "
+             + "above the board.")]
+        float m_BoulderRise = 0.34f;
+
+        [SerializeField, Min(0f), Tooltip("How far ground nothing stands on and nothing hides "
+             + "behind -- water -- sits below the board.")]
+        float m_WaterDrop = 0.1f;
+
         readonly Dictionary<Hex, Renderer> m_TileViews = new Dictionary<Hex, Renderer>();
 
         // Resolved from this GameObject rather than serialised: Unity cannot serialise an interface
@@ -147,12 +159,14 @@ namespace Dragoneye.Hex.Rendering
                 typeof(MeshRenderer));
 
             tileObject.transform.SetParent(m_TileRoot, false);
-            tileObject.transform.localPosition = position;
+            tileObject.transform.localPosition = position + Vector3.up * Relief(tile);
 
             tileObject.GetComponent<MeshFilter>().sharedMesh = m_SharedMesh;
 
+            // The same material twice: the top and the skirt are two submeshes so they can be
+            // tinted apart, and the skirt has no material of its own to be.
             var renderer = tileObject.GetComponent<MeshRenderer>();
-            renderer.sharedMaterial = m_TileMaterial;
+            renderer.sharedMaterials = new[] { m_TileMaterial, m_TileMaterial };
             renderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
             return renderer;
         }
@@ -161,8 +175,27 @@ namespace Dragoneye.Hex.Rendering
         {
             if (m_TileViews.TryGetValue(tile.Coordinates, out var view))
             {
+                view.transform.localPosition = m_SubscribedMap.Layout.ToWorld(tile.Coordinates)
+                    + Vector3.up * Relief(tile);
                 Paint(view, tile);
             }
+        }
+
+        /// <summary>
+        /// How far a tile stands from the board: a boulder up, water down, everything else flat.
+        ///
+        /// What the ground does to the rules is what it looks like. Something a line stops at
+        /// stands up; something feet cannot cross but eyes can lies low, with the ground beside it
+        /// showing a bank.
+        /// </summary>
+        float Relief(HexTile tile)
+        {
+            if (tile.BlocksSight)
+            {
+                return m_BoulderRise;
+            }
+
+            return tile.IsWalkable ? 0f : -m_WaterDrop;
         }
 
         void Paint(Renderer view, HexTile tile)
@@ -178,11 +211,20 @@ namespace Dragoneye.Hex.Rendering
             // rather than a random draw, because every peer draws the same board and a floor that
             // was speckled differently on each machine would be a floor nobody could describe.
             var shade = 1f + ((Noise(tile.Coordinates) - 0.5f) * m_TileVariance);
+            var top = new Color(colour.r * shade, colour.g * shade, colour.b * shade, colour.a);
 
-            view.GetPropertyBlock(m_PropertyBlock);
-            m_PropertyBlock.SetColor(m_ColorPropertyId,
-                new Color(colour.r * shade, colour.g * shade, colour.b * shade, colour.a));
-            view.SetPropertyBlock(m_PropertyBlock);
+            view.GetPropertyBlock(m_PropertyBlock, HexMeshFactory.TileTop);
+            m_PropertyBlock.SetColor(m_ColorPropertyId, top);
+            view.SetPropertyBlock(m_PropertyBlock, HexMeshFactory.TileTop);
+
+            // The skirt: the same colour, in shadow. A prefab tile has one material and no skirt.
+            if (view.sharedMaterials.Length > HexMeshFactory.TileSkirt)
+            {
+                view.GetPropertyBlock(m_PropertyBlock, HexMeshFactory.TileSkirt);
+                m_PropertyBlock.SetColor(m_ColorPropertyId,
+                    new Color(top.r * m_SkirtShade, top.g * m_SkirtShade, top.b * m_SkirtShade, top.a));
+                view.SetPropertyBlock(m_PropertyBlock, HexMeshFactory.TileSkirt);
+            }
         }
 
         /// <summary>A number in [0, 1) that depends only on the tile, and looks like it does not.</summary>
