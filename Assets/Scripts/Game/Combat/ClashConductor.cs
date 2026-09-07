@@ -66,7 +66,7 @@ namespace Dragoneye.Game.Combat
 
             // Which way the blow arrived, from the defender's point of view.
             var flanked = FacingRules.IsFlank(target.Facing,
-                ThreatGeometry.Bearing(m_Map.Map, target.Cell, actor.Cell));
+                ThreatGeometry.Bearing(m_Map.Grid, target.Cell, actor.Cell));
 
             var committed = new List<Element>();
 
@@ -281,7 +281,7 @@ namespace Dragoneye.Game.Combat
             // landed is the one the position bought, and only if there is still somebody to turn.
             if (flanked && defender.IsAlive && attacker.IsAlive)
             {
-                defender.ServerFace(ThreatGeometry.Bearing(m_Map.Map, defender.Cell, attacker.Cell));
+                defender.ServerFace(ThreatGeometry.Bearing(m_Map.Grid, defender.Cell, attacker.Cell));
             }
 
             // The attack is over, so whatever the pause was holding up can go on.

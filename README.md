@@ -11,7 +11,7 @@ their own subjects:
 |---|---|
 | [`Assets/Scripts/Combat/README.md`](Assets/Scripts/Combat/README.md) | The rules layer and why it holds no engine types |
 | [`Assets/Scripts/Data/README.md`](Assets/Scripts/Data/README.md) | Authored content and the seam it sits behind |
-| [`Assets/Scripts/Hex/README.md`](Assets/Scripts/Hex/README.md) | Coordinates, layout, pathfinding, rendering |
+| [`Assets/Scripts/Hex/README.md`](Assets/Scripts/Hex/README.md) | Coordinates, walls and areas, pathfinding, sight, rendering |
 | [`Assets/Scripts/Multiplayer/README.md`](Assets/Scripts/Multiplayer/README.md) | Sessions, Relay, scenes, the match lifecycle |
 | [`Assets/Art/Portraits/README.md`](Assets/Art/Portraits/README.md) | Adding faces |
 | [`Assets/Art/Elements/README.md`](Assets/Art/Elements/README.md) | The element runes |
@@ -281,8 +281,27 @@ The facing rides in the move *intent* (`UnitCommands.RequestMove(hex, facing)`) 
 following as a second order, because two orders can be interrupted between and that would be a free
 turn for anybody who timed it.
 
-`FacingRules.IsFlank` decides which arrivals count; `Hex.DirectionTo` turns an offset into one of
-six. Both are pure and both are tested, including the boundary tiebreak.
+`FacingRules.IsFlank` decides which arrivals count; `AreaGeometry.Direction` turns the offset between
+two cells into one of six, from area centres in integer geometry, so two areas of one tile have a
+bearing and every machine computes the same one. Both are pure and both are tested, including the
+boundary tiebreak: a bearing exactly on a boundary belongs to the lower-numbered direction.
+
+### Add a wall, or a map
+
+Maps are `HexMapDefinition` assets; the arena's is `Assets/Settings/Hex/Ruins.asset`, an
+`AuthoredMapDefinition` written by `ArenaMapSetup` — edit the recipe there, or the asset in the
+inspector, and run `ClaudeCode/Set Up Everything`.
+
+A wall sits on a **ray** (tile centre to one of the twelve points round it, numbered clockwise
+from North: even rays end at edge midpoints, odd at corners) or on a **half-edge** (`SetEdge` sets
+both halves, which is how a door-sized gap is left: leave the edge out). Rays that block movement
+cut the tile into areas, and a piece narrower than ninety degrees is nowhere anybody can stand, so
+a tile never has more than four. A vertical wall is rays 0 and 6; a horizontal one is rays 3 and 9
+and then along the flat North edge of the tile beyond, which is how a rectangular room sits on a
+hex grid — the Ruins recipe has helpers for both.
+
+Put doors and anything that will one day open on half-edges: those never change a tile's areas.
+Movement and sight are separate flags (`WallFlags`), so a hedge and a curtain are both one wall.
 
 ### Change the combat maths
 
@@ -518,3 +537,11 @@ Flagged rather than fixed, deliberately:
 - **`StepsToReach` runs one route query per candidate tile** on hover — 37 of them at reach 3. Cached
   per hover, and fine at arena scale, but it is not a shape that would survive a bigger board.
 - **No host migration.** Host leaves, match over, everyone back to the lobby.
+- **Nothing changes a wall mid-fight yet.** The seam is there — `HexMap.SetRay`/`SetHalfEdge`,
+  `WallChanged` with the areas as they were, `AreaLayout.Carry` to move a creature with a renumbered
+  tile, `Wall.Integrity` — and nobody calls it. Doors and destructibles land through it.
+- **The AI does not seek cover** and does not price a low wall between it and a target beyond the
+  hit chance it is handed.
+- **The cutaway shader has not been seen in a running editor.** It is plain URP forward code with a
+  depth pass; if it fails to compile the wall material falls back to lit stone and walls hide
+  creatures behind them.

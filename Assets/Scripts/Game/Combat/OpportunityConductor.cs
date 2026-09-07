@@ -107,30 +107,21 @@ namespace Dragoneye.Game.Combat
         public CreatureState Offered => m_Offered;
 
         /// <summary>
-        /// Whether this creature is stood next to that one and looking at it.
+        /// Whether this creature is stood next to that one, looking at it, with nothing it cannot
+        /// see through between them.
         ///
-        /// Position and facing only, both of which are on the board for anybody to read. Whether
+        /// Position, facing and walls, all of which are on the board for anybody to read. Whether
         /// it can afford the swing is its own business -- that is the whole of DE-005.
         /// </summary>
         public static bool Watches(ArenaMap map, CreatureState watcher, CreatureState mover) =>
             AreEnemies(watcher, mover) && map != null
-            && ThreatGeometry.Watches(map.Map, watcher.Cell, watcher.Facing, mover.Cell)
-            && CanSee(map, watcher.Cell, mover.Cell);
+            && ThreatGeometry.Watches(map.Grid, watcher.Cell, watcher.Facing, mover.Cell);
 
-        /// <summary>
-        /// Whether that creature walking to this cell would give this one a swing.
-        ///
-        /// Geometry first, then the wall: a creature the arc covers but a wall hides is not one
-        /// that can be struck at, and the far side of a low wall is still within reach of a swing.
-        /// </summary>
+        /// <summary>Whether that creature walking to this cell would give this one a swing.</summary>
         public static bool Provokes(ArenaMap map, CreatureState watcher, CreatureState mover,
             Cell destination) =>
             AreEnemies(watcher, mover) && map != null
-            && ThreatGeometry.Provokes(map.Map, watcher.Cell, watcher.Facing, mover.Cell, destination)
-            && CanSee(map, watcher.Cell, mover.Cell);
-
-        static bool CanSee(ArenaMap map, Cell from, Cell to) =>
-            map.Grid == null || LineOfSight.Verdict(map.Grid, from, to) != LineVerdict.Blocked;
+            && ThreatGeometry.Provokes(map.Grid, watcher.Cell, watcher.Facing, mover.Cell, destination);
 
         static bool AreEnemies(CreatureState a, CreatureState b) =>
             a != null && b != null && a != b && a.IsAlive && b.IsAlive && a.Party != b.Party;
@@ -332,7 +323,7 @@ namespace Dragoneye.Game.Combat
             }
 
             // Turning to swing, like any other attack, which opens the swinger's own back in turn.
-            watcher.ServerFace(ThreatGeometry.Bearing(m_Map.Map, watcher.Cell, mover.Cell));
+            watcher.ServerFace(ThreatGeometry.Bearing(m_Map.Grid, watcher.Cell, mover.Cell));
 
             m_Host.BeginClash(watcher, skill, mover, telegraphed);
             return true;

@@ -30,6 +30,11 @@ namespace Dragoneye.Game
         [SerializeField, Tooltip("Height above the tile surface, to avoid z-fighting.")]
         float m_GroundOffset = 0.03f;
 
+        // The marker's own mesh, and what it was before any area replaced it. A split tile lights
+        // only the half under the cursor; a whole one lights the way it always did.
+        MeshFilter m_MarkerMesh;
+        Mesh m_TileMesh;
+
         void OnEnable()
         {
             if (m_Pointer == null || m_Marker == null)
@@ -37,6 +42,12 @@ namespace Dragoneye.Game
                 Debug.LogError($"{nameof(HexHoverHighlight)} is missing its pointer or marker.", this);
                 enabled = false;
                 return;
+            }
+
+            if (m_MarkerMesh == null)
+            {
+                m_MarkerMesh = m_Marker.GetComponentInChildren<MeshFilter>();
+                m_TileMesh = m_MarkerMesh != null ? m_MarkerMesh.sharedMesh : null;
             }
 
             m_Pointer.HoverChanged += OnHoverChanged;
@@ -65,7 +76,18 @@ namespace Dragoneye.Game
                 return;
             }
 
-            m_Marker.transform.position = context.Map.ToWorld(hex.Value) + Vector3.up * m_GroundOffset;
+            var cell = hex.Value;
+            var map = context.Map.Map;
+            var split = map != null && map.TryGetTile(cell.Tile, out var tile) && tile.Areas.Count > 1;
+
+            if (m_MarkerMesh != null)
+            {
+                m_MarkerMesh.sharedMesh = split ? AreaMeshes.For(map, cell) : m_TileMesh;
+            }
+
+            // The fan is drawn in the tile's frame, apex at its centre, whichever area it is.
+            m_Marker.transform.position = context.Map.ToWorld(cell.Tile) + Vector3.up * m_GroundOffset;
+            m_Marker.transform.rotation = context.Map.transform.rotation;
             m_Marker.SetActive(true);
         }
     }

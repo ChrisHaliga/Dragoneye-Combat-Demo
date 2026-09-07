@@ -21,8 +21,12 @@ namespace Dragoneye.Hex
 
         public event Action<HexTile> TileChanged;
 
-        /// <summary>A wall changed on this tile. The record's owner, for a half-edge.</summary>
-        public event Action<HexTile> WallChanged;
+        /// <summary>
+        /// A wall changed on this tile -- the record's owner, for a half-edge -- and the areas the
+        /// tile had before. A ray can merge or split them, and whoever keeps creatures on this
+        /// map carries each one across with <see cref="AreaLayout.Carry"/>.
+        /// </summary>
+        public event Action<HexTile, AreaLayout> WallChanged;
 
         public HexMap(HexLayout layout, IEnumerable<HexTile> tiles)
         {
@@ -50,21 +54,6 @@ namespace Dragoneye.Hex
         public bool TryGetTile(Hex hex, out HexTile tile) => m_Tiles.TryGetValue(hex, out tile);
 
         public HexTile this[Hex hex] => m_Tiles[hex];
-
-        /// <summary>
-        /// The tiles touching this one, ignoring walls. Coordinate adjacency, not the game's: who
-        /// can walk where is <c>GridRules</c>' question, and this is not the answer to it.
-        /// </summary>
-        public IEnumerable<HexTile> NeighborsOf(Hex hex)
-        {
-            foreach (var neighbor in hex.Neighbors())
-            {
-                if (m_Tiles.TryGetValue(neighbor, out var tile))
-                {
-                    yield return tile;
-                }
-            }
-        }
 
         /// <summary>Every cell of a tile: one per area.</summary>
         public IEnumerable<Cell> CellsOf(Hex hex)
@@ -113,8 +102,9 @@ namespace Dragoneye.Hex
                 return;
             }
 
+            var before = tile.Areas;
             tile.ApplyRay(ray, wall);
-            WallChanged?.Invoke(tile);
+            WallChanged?.Invoke(tile, before);
         }
 
         /// <summary>Sets a half-edge, on whichever tile keeps the record.</summary>
@@ -134,7 +124,7 @@ namespace Dragoneye.Hex
             }
 
             tile.ApplyHalfEdge(halfEdge, wall);
-            WallChanged?.Invoke(tile);
+            WallChanged?.Invoke(tile, tile.Areas);
         }
 
         /// <summary>Both halves of an edge at once. The usual way to author one.</summary>
@@ -143,6 +133,42 @@ namespace Dragoneye.Hex
             TileGeometry.HalvesOf(edge, out var first, out var second);
             SetHalfEdge(hex, first, wall);
             SetHalfEdge(hex, second, wall);
+        }
+
+        // ---------- picking ----------
+
+        /// <summary>
+        /// The cell under a point in the map's own space, or null off the map or over footing
+        /// nobody can stand on.
+        ///
+        /// The tile from the layout, then the wedge the point lies in by its bearing off the
+        /// tile's centre, then that wedge's area. This is a picking question, not a rules one, so
+        /// the float-to-scaled step here is allowed what a bearing between creatures is not.
+        /// </summary>
+        public Cell? CellAt(Vector3 local)
+        {
+            var hex = Layout.FromWorld(local);
+
+            if (!m_Tiles.TryGetValue(hex, out var tile))
+            {
+                return null;
+            }
+
+            // Only a tile with no wall through it is all one area: a single walled pair of rays
+            // leaves one area and a sliver, and the sliver is nowhere.
+            if (tile.MovementRayMask == 0)
+            {
+                return Cell.Whole(hex);
+            }
+
+            var centre = Layout.ToWorld(hex);
+            var scale = TileGeometry.Scale / Layout.Size;
+            var x = (long)((local.x - centre.x) * scale);
+            var z = (long)((local.z - centre.z) * scale);
+
+            var area = tile.Areas.AreaOf(TileGeometry.WedgeAt(x, z));
+
+            return area == AreaLayout.Dead ? (Cell?)null : new Cell(hex, area);
         }
 
         // ---------- terrain ----------

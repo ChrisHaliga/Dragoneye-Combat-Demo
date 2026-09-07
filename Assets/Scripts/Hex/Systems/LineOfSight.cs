@@ -35,6 +35,28 @@ namespace Dragoneye.Hex.Systems
     /// </summary>
     public static class LineOfSight
     {
+        /// <summary>
+        /// The tiles a line passes over between its ends, neither end included: everywhere a
+        /// body could be in its way. Nothing for two cells a step apart, or two on one tile.
+        /// </summary>
+        public static void TilesBetween(Cell from, Cell to, List<Hex> into)
+        {
+            into.Clear();
+
+            if (Cell.Distance(from, to) < 2)
+            {
+                return;
+            }
+
+            foreach (var tile in Hex.Line(from.Tile, to.Tile))
+            {
+                if (tile != from.Tile && tile != to.Tile)
+                {
+                    into.Add(tile);
+                }
+            }
+        }
+
         public static LineVerdict Verdict(IGridRules grid, Cell from, Cell to)
         {
             if (grid == null || grid.Map == null || from == to)

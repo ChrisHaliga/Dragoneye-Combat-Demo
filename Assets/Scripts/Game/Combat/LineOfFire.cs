@@ -81,10 +81,11 @@ namespace Dragoneye.Game.Combat
     public static class LineOfFire
     {
         static readonly List<UnitState> s_Occupants = new List<UnitState>();
+        static readonly List<Dragoneye.Hex.Hex> s_Between = new List<Dragoneye.Hex.Hex>();
 
         public static ShotLine Trace(IGridRules grid, UnitIndex units, Cell from, Cell to)
         {
-            var walls = grid != null ? LineOfSight.Verdict(grid, from, to) : LineVerdict.Clear;
+            var walls = LineOfSight.Verdict(grid, from, to);
 
             if (walls == LineVerdict.Blocked)
             {
@@ -93,18 +94,15 @@ namespace Dragoneye.Game.Combat
 
             var bodies = new List<CreatureState>();
 
-            if (units == null || Cell.Distance(from, to) < 2)
+            if (units == null)
             {
                 return new ShotLine(walls, bodies);
             }
 
-            foreach (var tile in Dragoneye.Hex.Hex.Line(from.Tile, to.Tile))
-            {
-                if (tile == from.Tile || tile == to.Tile)
-                {
-                    continue;
-                }
+            LineOfSight.TilesBetween(from, to, s_Between);
 
+            foreach (var tile in s_Between)
+            {
                 s_Occupants.Clear();
                 units.OccupantsOf(tile, s_Occupants);
 

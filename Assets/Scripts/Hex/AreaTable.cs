@@ -37,6 +37,27 @@ namespace Dragoneye.Hex
 
         /// <summary>Whether a wedge belongs to an area.</summary>
         public bool Contains(int wedge, byte area) => AreaOf(wedge) == area;
+
+        /// <summary>
+        /// Where an area of this layout is in another: the area there that holds this one's first
+        /// wedge, or <see cref="Dead"/> when the new walls leave that ground nowhere to stand.
+        ///
+        /// For the day a wall through a tile goes up or comes down mid-fight. The areas renumber,
+        /// and a creature standing in one is carried to the piece of ground it was on -- the same
+        /// piece on every machine, since the first wedge is the same on every machine.
+        /// </summary>
+        public byte Carry(byte area, AreaLayout into)
+        {
+            for (var wedge = 0; wedge < TileGeometry.Wedges; wedge++)
+            {
+                if (m_AreaOfWedge[wedge] == area)
+                {
+                    return into.AreaOf(wedge);
+                }
+            }
+
+            return Dead;
+        }
     }
 
     /// <summary>

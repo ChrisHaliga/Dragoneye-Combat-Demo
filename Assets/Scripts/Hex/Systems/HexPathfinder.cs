@@ -170,52 +170,6 @@ namespace Dragoneye.Hex.Systems
             into.Remove(from);
         }
 
-        // ---------- the tile-only face, for maps that have no walls ----------
-
-        /// <summary>A route between whole tiles, for a map without walls. What the old search answered.</summary>
-        public static bool TryFindPath(HexMap map, Hex from, Hex to, ICollection<Hex> blocked,
-            List<Hex> path, int maxCost = -1)
-        {
-            path?.Clear();
-
-            if (map == null || path == null)
-            {
-                return false;
-            }
-
-            var cells = new List<Cell>();
-            var found = TryFindPath(new GridRules(map), Cell.Whole(from), Cell.Whole(to),
-                Whole(blocked), cells, out _, maxCost);
-
-            foreach (var cell in cells)
-            {
-                path.Add(cell.Tile);
-            }
-
-            return found;
-        }
-
-        public static int CostTo(HexMap map, Hex from, Hex to, ICollection<Hex> blocked,
-            int maxCost = -1) =>
-            CostTo(new GridRules(map), Cell.Whole(from), Cell.Whole(to), Whole(blocked), maxCost);
-
-        static ICollection<Cell> Whole(ICollection<Hex> tiles)
-        {
-            if (tiles == null)
-            {
-                return null;
-            }
-
-            var cells = new HashSet<Cell>();
-
-            foreach (var tile in tiles)
-            {
-                cells.Add(Cell.Whole(tile));
-            }
-
-            return cells;
-        }
-
         static bool CanEnter(IGridRules grid, Cell cell, ICollection<Cell> blocked) =>
             (blocked == null || !blocked.Contains(cell)) && grid.IsWalkable(cell);
 

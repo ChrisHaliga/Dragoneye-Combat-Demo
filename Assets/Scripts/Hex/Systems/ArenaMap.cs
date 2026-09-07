@@ -75,39 +75,9 @@ namespace Dragoneye.Hex.Systems
         public Hex FromWorld(Vector3 world) =>
             Map == null ? Hex.Zero : Map.Layout.FromWorld(transform.InverseTransformPoint(world));
 
-        /// <summary>
-        /// The cell under a world point, or null when the point is off the map or in a sliver of a
-        /// tile nobody can stand in.
-        /// </summary>
-        public Cell? CellFromWorld(Vector3 world)
-        {
-            if (Map == null)
-            {
-                return null;
-            }
-
-            var local = transform.InverseTransformPoint(world);
-            var hex = Map.Layout.FromWorld(local);
-
-            if (!Map.TryGetTile(hex, out var tile))
-            {
-                return null;
-            }
-
-            if (tile.Areas.Count <= 1)
-            {
-                return tile.Areas.Count == 1 ? Cell.Whole(hex) : (Cell?)null;
-            }
-
-            var centre = Map.Layout.ToWorld(hex);
-            var scale = TileGeometry.Scale / Map.Layout.Size;
-            var x = (long)((local.x - centre.x) * scale);
-            var z = (long)((local.z - centre.z) * scale);
-
-            var area = tile.Areas.AreaOf(TileGeometry.WedgeAt(x, z));
-
-            return area == AreaLayout.Dead ? (Cell?)null : new Cell(hex, area);
-        }
+        /// <summary>The cell under a world point, or null off the map or over dead footing.</summary>
+        public Cell? CellFromWorld(Vector3 world) =>
+            Map?.CellAt(transform.InverseTransformPoint(world));
 
         public Vector3 WorldCenter() =>
             Map == null ? transform.position : transform.TransformPoint(Map.WorldCenter());

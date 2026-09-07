@@ -36,15 +36,19 @@ namespace Dragoneye.Hex.Tests
         }
 
         [Test]
-        public void InteriorTilesHaveSixNeighborsAndEdgeTilesHaveFewer()
+        public void InteriorTilesHaveSixNeighboursAndRimTilesFewer()
         {
-            var map = BuildHexagon(2);
+            var grid = new GridRules(BuildHexagon(2));
+            var into = new List<Cell>();
 
-            Assert.AreEqual(6, map.NeighborsOf(Hex.Zero).Count(), "Centre tile should be surrounded");
+            grid.Neighbours(Cell.Whole(Hex.Zero), into);
+            Assert.AreEqual(6, into.Count, "Centre tile should be surrounded");
 
             foreach (var hex in Hex.Ring(Hex.Zero, 2))
             {
-                Assert.Less(map.NeighborsOf(hex).Count(), 6, $"{hex} is on the rim");
+                into.Clear();
+                grid.Neighbours(Cell.Whole(hex), into);
+                Assert.Less(into.Count, 6, $"{hex} is on the rim");
             }
         }
 
@@ -120,7 +124,7 @@ namespace Dragoneye.Hex.Tests
         {
             var map = BuildHexagon(5);
 
-            var spawns = HexSpawnPlacement.ChooseSpawns(map, 4);
+            var spawns = HexSpawnPlacement.ChooseSpawns(new GridRules(map), 4);
 
             Assert.AreEqual(4, spawns.Count);
             Assert.AreEqual(4, spawns.Distinct().Count(), "Two players would share a tile");
@@ -136,11 +140,11 @@ namespace Dragoneye.Hex.Tests
             const int radius = 5;
             var map = BuildHexagon(radius);
 
-            var spawns = HexSpawnPlacement.ChooseSpawns(map, 4);
+            var spawns = HexSpawnPlacement.ChooseSpawns(new GridRules(map), 4);
 
             foreach (var spawn in spawns)
             {
-                Assert.GreaterOrEqual(Hex.Distance(Hex.Zero, spawn), radius - 1,
+                Assert.GreaterOrEqual(Hex.Distance(Hex.Zero, spawn.Tile), radius - 1,
                     $"{spawn} is too close to the middle to be a starting position");
             }
 
@@ -148,7 +152,7 @@ namespace Dragoneye.Hex.Tests
             {
                 for (var j = i + 1; j < spawns.Count; j++)
                 {
-                    Assert.Greater(Hex.Distance(spawns[i], spawns[j]), radius / 2,
+                    Assert.Greater(Cell.Distance(spawns[i], spawns[j]), radius / 2,
                         "Spawns should be spread around the map, not bunched together");
                 }
             }
@@ -159,8 +163,8 @@ namespace Dragoneye.Hex.Tests
         {
             var map = BuildHexagon(5);
 
-            var first = HexSpawnPlacement.ChooseSpawns(map, 6);
-            var second = HexSpawnPlacement.ChooseSpawns(map, 6);
+            var first = HexSpawnPlacement.ChooseSpawns(new GridRules(map), 6);
+            var second = HexSpawnPlacement.ChooseSpawns(new GridRules(map), 6);
 
             CollectionAssert.AreEqual(first, second);
         }
@@ -170,7 +174,7 @@ namespace Dragoneye.Hex.Tests
         {
             var map = BuildHexagon(1);
 
-            var spawns = HexSpawnPlacement.ChooseSpawns(map, 50);
+            var spawns = HexSpawnPlacement.ChooseSpawns(new GridRules(map), 50);
 
             Assert.AreEqual(map.Count, spawns.Count);
             Assert.AreEqual(spawns.Count, spawns.Distinct().Count());
@@ -179,8 +183,8 @@ namespace Dragoneye.Hex.Tests
         [Test]
         public void SpawnPlacementHandlesDegenerateInput()
         {
-            Assert.IsEmpty(HexSpawnPlacement.ChooseSpawns((HexMap)null, 4));
-            Assert.IsEmpty(HexSpawnPlacement.ChooseSpawns(BuildHexagon(3), 0));
+            Assert.IsEmpty(HexSpawnPlacement.ChooseSpawns(null, 4));
+            Assert.IsEmpty(HexSpawnPlacement.ChooseSpawns(new GridRules(BuildHexagon(3)), 0));
         }
     }
 }

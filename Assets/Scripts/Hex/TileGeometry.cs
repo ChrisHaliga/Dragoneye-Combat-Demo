@@ -50,8 +50,14 @@ namespace Dragoneye.Hex
             second = Wrap(2 * (int)edge);
         }
 
-        /// <summary>The same half-edge, indexed from the neighbour it is shared with.</summary>
-        public static int Twin(int halfEdge) => Wrap(halfEdge + 6);
+        /// <summary>
+        /// The same half-edge, indexed from the neighbour it is shared with.
+        ///
+        /// A mirror, not a half turn: the half of an edge nearer one corner is, from the other
+        /// side, the half nearer that same corner, so the east half of a South edge is the east
+        /// half of the neighbour's North edge (wedge 5 meets wedge 0, wedge 6 meets wedge 11).
+        /// </summary>
+        public static int Twin(int halfEdge) => Wrap(halfEdge + (halfEdge % 2 == 0 ? 5 : 7));
 
         /// <summary>Whether this tile keeps the record for this half-edge, or its neighbour does.</summary>
         public static bool IsOwned(int halfEdge)

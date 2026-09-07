@@ -100,6 +100,113 @@ namespace Dragoneye.Hex.Rendering
             return Finish(vertices, normals, uvs, triangles);
         }
 
+        /// <summary>
+        /// The top face of one area of a tile: a fan of its wedges, apex at the tile's centre,
+        /// in tile-local space.
+        ///
+        /// What the hover marker and the reach overlay draw once a tile has more than one area. A
+        /// whole tile is the fan of all twelve, which is the same hexagon <see cref="Create"/>
+        /// draws, so the two cannot disagree about where a tile's edge is.
+        /// </summary>
+        public static Mesh CreateArea(AreaLayout layout, byte area, float size, float fill = 1f)
+        {
+            var radius = size * Mathf.Clamp(fill, 0.01f, 1f);
+
+            var vertices = new System.Collections.Generic.List<Vector3>();
+            var normals = new System.Collections.Generic.List<Vector3>();
+            var uvs = new System.Collections.Generic.List<Vector2>();
+            var triangles = new System.Collections.Generic.List<int>();
+
+            vertices.Add(Vector3.zero);
+            normals.Add(Vector3.up);
+            uvs.Add(new Vector2(0.5f, 0.5f));
+
+            for (var wedge = 0; wedge < TileGeometry.Wedges; wedge++)
+            {
+                if (layout != null && layout.AreaOf(wedge) != area)
+                {
+                    continue;
+                }
+
+                var a = RayEnd(wedge) * radius;
+                var b = RayEnd(wedge + 1) * radius;
+
+                var start = vertices.Count;
+                vertices.Add(a);
+                vertices.Add(b);
+                normals.Add(Vector3.up);
+                normals.Add(Vector3.up);
+                uvs.Add(new Vector2(0.5f + a.x * 0.5f / size, 0.5f + a.z * 0.5f / size));
+                uvs.Add(new Vector2(0.5f + b.x * 0.5f / size, 0.5f + b.z * 0.5f / size));
+
+                // Rays run clockwise from North, so (centre, this ray, next ray) is clockwise
+                // seen from above, which is the winding that faces up.
+                triangles.Add(0);
+                triangles.Add(start);
+                triangles.Add(start + 1);
+            }
+
+            var mesh = Finish(vertices, normals, uvs, triangles);
+            mesh.name = "Area";
+            return mesh;
+        }
+
+        /// <summary>
+        /// A wall: a box along a segment between two tile-local points, standing on the tile.
+        ///
+        /// Extended by half its thickness at both ends, so two segments meeting at a corner or
+        /// at a ray's root close up rather than leaving a notch.
+        /// </summary>
+        public static Mesh CreateWall(Vector3 a, Vector3 b, float height, float thickness)
+        {
+            var along = b - a;
+            var length = along.magnitude;
+
+            if (length < 1e-4f)
+            {
+                return Finish(new System.Collections.Generic.List<Vector3>(),
+                    new System.Collections.Generic.List<Vector3>(),
+                    new System.Collections.Generic.List<Vector2>(),
+                    new System.Collections.Generic.List<int>());
+            }
+
+            along /= length;
+            var half = thickness * 0.5f;
+            var side = Vector3.Cross(Vector3.up, along) * half;
+            var start = a - along * half;
+            var end = b + along * half;
+            var up = Vector3.up * height;
+
+            var vertices = new System.Collections.Generic.List<Vector3>();
+            var normals = new System.Collections.Generic.List<Vector3>();
+            var uvs = new System.Collections.Generic.List<Vector2>();
+            var triangles = new System.Collections.Generic.List<int>();
+
+            // Bottom corners: left/right of the start, left/right of the end.
+            var sl = start - side;
+            var sr = start + side;
+            var el = end - side;
+            var er = end + side;
+
+            // Each face wound clockwise seen from outside, the way Quad expects.
+            Quad(vertices, normals, uvs, triangles, sl + up, el + up, el, sl, -side.normalized);
+            Quad(vertices, normals, uvs, triangles, er + up, sr + up, sr, er, side.normalized);
+            Quad(vertices, normals, uvs, triangles, sr + up, sl + up, sl, sr, -along);
+            Quad(vertices, normals, uvs, triangles, el + up, er + up, er, el, along);
+            Quad(vertices, normals, uvs, triangles, sl + up, sr + up, er + up, el + up, Vector3.up);
+
+            var mesh = Finish(vertices, normals, uvs, triangles);
+            mesh.name = "Wall";
+            return mesh;
+        }
+
+        /// <summary>Where a ray ends, as a unit-radius tile-local vector, from the integer table.</summary>
+        public static Vector3 RayEnd(int ray)
+        {
+            TileGeometry.RayEnd(ray, out var x, out var z);
+            return new Vector3(x / (float)TileGeometry.Scale, 0f, z / (float)TileGeometry.Scale);
+        }
+
         static Vector3 Corner(int i)
         {
             var angle = Mathf.Deg2Rad * 60f * i;

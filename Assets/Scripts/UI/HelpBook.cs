@@ -114,6 +114,20 @@ namespace Dragoneye.UI
                 "The cursor warns you before you commit, and you carry on moving afterwards whether "
                 + "the swing landed or not."));
 
+            into.Add(Section("WALLS"));
+            into.Add(Text(
+                "Walls run along the edges of tiles and straight through them. A wall through a "
+                + "tile cuts it into separate footing, and each piece is a place of its own: a "
+                + "creature stands on one side or the other, and the two sides are a step apart "
+                + "with no way across. The floor lights up by piece when you are choosing where "
+                + "to walk, so what you can reach is what is lit."));
+            into.Add(Text(
+                "A high wall stops feet and eyes. A low wall stops feet and lets a shot over it, "
+                + "at the same cost as a body in the way. A hanging cloth stops eyes and not feet. "
+                + "Nothing can be attacked, or swung at as it walks past, through something that "
+                + "cannot be seen through -- the cursor says \"no line of sight\" rather than "
+                + "pricing an attack that will be refused."));
+
             into.Add(Section("SHOOTING"));
             into.Add(Text(
                 "A ranged skill rolls to hit before anybody answers it. Its chance starts at what "

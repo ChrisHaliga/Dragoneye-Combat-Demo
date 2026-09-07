@@ -300,7 +300,7 @@ namespace Dragoneye.Game.Combat
 
             // Read before the move, because afterwards the two hexes are the same one and the
             // bearing between them is meaningless.
-            var travelled = ThreatGeometry.Bearing(m_Map.Map, actor.Cell, destination);
+            var travelled = ThreatGeometry.Bearing(m_Map.Grid, actor.Cell, destination);
             var from = actor.Cell;
 
             actor.Unit.ServerSetCell(destination);
@@ -417,7 +417,7 @@ namespace Dragoneye.Game.Combat
             // they swung at, which opens their own flank to everybody they did not.
             if (occupant != null && occupant != actor)
             {
-                actor.ServerFace(ThreatGeometry.Bearing(m_Map.Map, actor.Cell, target));
+                actor.ServerFace(ThreatGeometry.Bearing(m_Map.Grid, actor.Cell, target));
             }
 
             // A shot rolls before anybody answers it. The element is committed already -- the
