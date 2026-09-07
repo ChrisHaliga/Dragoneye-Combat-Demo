@@ -47,12 +47,19 @@ namespace Dragoneye.Game.Combat
         /// <summary>The creature it happened to, what to say, how it reads, and what it means.</summary>
         public static event Action<uint, string, NoticeTone, NoticeMark> Raised;
 
+        /// <summary>
+        /// Says something over a creature's head: a number, a mark, or both.
+        ///
+        /// A mark on its own is a whole note. A blow that was turned aside has nothing to count,
+        /// and a word for it is a word the reader has to translate back into "it did not get
+        /// through" -- which is what the mark already says.
+        /// </summary>
         public static void Raise(uint turnId, string text, NoticeTone tone,
             NoticeMark mark = NoticeMark.None)
         {
-            if (!string.IsNullOrEmpty(text))
+            if (!string.IsNullOrEmpty(text) || mark != NoticeMark.None)
             {
-                Raised?.Invoke(turnId, text, tone, mark);
+                Raised?.Invoke(turnId, text ?? string.Empty, tone, mark);
             }
         }
 

@@ -181,6 +181,7 @@ namespace Dragoneye.Hex.Rendering
             var normals = new System.Collections.Generic.List<Vector3>();
             var uvs = new System.Collections.Generic.List<Vector2>();
             var triangles = new System.Collections.Generic.List<int>();
+            var colours = new System.Collections.Generic.List<Color>();
 
             // Bottom corners: left/right of the start, left/right of the end.
             var sl = start - side;
@@ -188,17 +189,29 @@ namespace Dragoneye.Hex.Rendering
             var el = end - side;
             var er = end + side;
 
-            // Each face wound clockwise seen from outside, the way Quad expects.
-            Quad(vertices, normals, uvs, triangles, sl + up, el + up, el, sl, -side.normalized);
-            Quad(vertices, normals, uvs, triangles, er + up, sr + up, sr, er, side.normalized);
-            Quad(vertices, normals, uvs, triangles, sr + up, sl + up, sl, sr, -along);
-            Quad(vertices, normals, uvs, triangles, el + up, er + up, er, el, along);
-            Quad(vertices, normals, uvs, triangles, sl + up, sr + up, er + up, el + up, Vector3.up);
+            // Each face wound clockwise seen from outside, the way Quad expects. The colours are
+            // a gradient up the wall, so a flat grey slab reads as something with a foot and a
+            // head; the top is lightest because it is the face the light actually falls on.
+            Quad(vertices, normals, uvs, triangles, sl + up, el + up, el, sl, -side.normalized, colours);
+            Quad(vertices, normals, uvs, triangles, er + up, sr + up, sr, er, side.normalized, colours);
+            Quad(vertices, normals, uvs, triangles, sr + up, sl + up, sl, sr, -along, colours);
+            Quad(vertices, normals, uvs, triangles, el + up, er + up, er, el, along, colours);
+            Quad(vertices, normals, uvs, triangles, sl + up, sr + up, er + up, el + up, Vector3.up,
+                colours, WallCap, WallCap);
 
-            var mesh = Finish(vertices, normals, uvs, triangles);
+            var mesh = Finish(vertices, normals, uvs, triangles, colours);
             mesh.name = "Wall";
             return mesh;
         }
+
+        /// <summary>How much of the wall's colour reaches its foot. Stone in its own shadow.</summary>
+        static readonly Color WallFoot = new Color(0.52f, 0.52f, 0.56f, 1f);
+
+        /// <summary>And its head, where the light gets to it.</summary>
+        static readonly Color WallHead = new Color(1.06f, 1.05f, 1.02f, 1f);
+
+        /// <summary>The top, which is the face a low wall is mostly seen as.</summary>
+        static readonly Color WallCap = new Color(1.18f, 1.16f, 1.10f, 1f);
 
         /// <summary>Where a ray ends, as a unit-radius tile-local vector, from the integer table.</summary>
         public static Vector3 RayEnd(int ray)
@@ -226,7 +239,9 @@ namespace Dragoneye.Hex.Rendering
             System.Collections.Generic.List<Vector3> normals,
             System.Collections.Generic.List<Vector2> uvs,
             System.Collections.Generic.List<int> triangles,
-            Vector3 topA, Vector3 topB, Vector3 bottomB, Vector3 bottomA, Vector3 normal)
+            Vector3 topA, Vector3 topB, Vector3 bottomB, Vector3 bottomA, Vector3 normal,
+            System.Collections.Generic.List<Color> colours = null, Color? top = null,
+            Color? bottom = null)
         {
             var start = vertices.Count;
 
@@ -238,6 +253,17 @@ namespace Dragoneye.Hex.Rendering
             for (var i = 0; i < 4; i++)
             {
                 normals.Add(normal);
+            }
+
+            if (colours != null)
+            {
+                var head = top ?? WallHead;
+                var foot = bottom ?? WallFoot;
+
+                colours.Add(head);
+                colours.Add(head);
+                colours.Add(foot);
+                colours.Add(foot);
             }
 
             uvs.Add(Vector2.zero);
@@ -260,7 +286,8 @@ namespace Dragoneye.Hex.Rendering
         static Mesh Finish(System.Collections.Generic.List<Vector3> vertices,
             System.Collections.Generic.List<Vector3> normals,
             System.Collections.Generic.List<Vector2> uvs,
-            System.Collections.Generic.List<int> triangles)
+            System.Collections.Generic.List<int> triangles,
+            System.Collections.Generic.List<Color> colours = null)
         {
             var mesh = new Mesh
             {
@@ -270,6 +297,11 @@ namespace Dragoneye.Hex.Rendering
                 uv = uvs.ToArray(),
                 triangles = triangles.ToArray()
             };
+
+            if (colours != null && colours.Count == vertices.Count)
+            {
+                mesh.colors = colours.ToArray();
+            }
 
             mesh.RecalculateBounds();
             return mesh;

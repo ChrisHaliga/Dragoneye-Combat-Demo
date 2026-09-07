@@ -37,6 +37,8 @@ namespace Dragoneye.Game.Creatures
 
         readonly List<CreatureState> m_Observed = new List<CreatureState>();
 
+        VisualElement m_Column;
+
         void Start()
         {
             if (m_Selection == null || m_Creatures == null)
@@ -52,10 +54,11 @@ namespace Dragoneye.Game.Creatures
             m_Title = root.Q<Label>("party-title");
             m_List = root.Q<ScrollView>("portrait-list");
 
-            var column = root.Q<VisualElement>("party-column");
-            if (column != null)
+            m_Column = root.Q<VisualElement>("party-column");
+
+            if (m_Column != null)
             {
-                column.pickingMode = PickingMode.Ignore;
+                m_Column.pickingMode = PickingMode.Ignore;
             }
 
             if (m_Title == null || m_List == null)
@@ -69,6 +72,23 @@ namespace Dragoneye.Game.Creatures
             m_Selection.SelectionChanged += OnSelectionChanged;
 
             Rebuild();
+        }
+
+        /// <summary>
+        /// Stands aside while a test scenario is running.
+        ///
+        /// A scenario is watched rather than played -- nobody's party is anybody's -- and the
+        /// report of what it proved wants the column this would otherwise be holding.
+        /// </summary>
+        void Update()
+        {
+            if (m_Column == null)
+            {
+                return;
+            }
+
+            var scenario = ScenarioRunner.Current != null && ScenarioRunner.Current.Scenario != null;
+            m_Column.EnableInClassList("is-hidden", scenario);
         }
 
         void OnDestroy()

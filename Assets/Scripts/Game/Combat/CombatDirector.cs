@@ -55,6 +55,10 @@ namespace Dragoneye.Game.Combat
              + "never waits on a view.")]
         float m_BrainSecondsPerTile = 0.3f;
 
+        [SerializeField, Min(0f), Tooltip("Pause after an exchange settles, before whatever was "
+             + "waiting on it carries on. What separates two swings at somebody walking past.")]
+        float m_ClashSettleDelay = 0.9f;
+
         [SerializeField, Min(0f), Tooltip("Pause between one turn ending and the next creature "
              + "acting. What stops a computer turn beginning in the same breath the last one ended.")]
         float m_TurnLeadIn = 0.7f;
@@ -106,7 +110,12 @@ namespace Dragoneye.Game.Combat
         /// offered there is no clash open, and a creature that read only the clash would take that
         /// gap as its turn resuming -- and act in the middle of its own interrupted move.
         /// </summary>
-        public bool IsBusy => IsClashPending || (m_Opportunities != null && m_Opportunities.IsPending);
+        public bool IsBusy =>
+            IsClashPending || m_Settling || (m_Opportunities != null && m_Opportunities.IsPending);
+
+        // The beat after an exchange. Counted as busy, so nothing -- the computer's next action,
+        // the next swing owed, a player's click -- lands inside it.
+        bool m_Settling;
 
         /// <summary>Whether this creature is stood next to that one and looking at it.</summary>
         public static bool Watches(CreatureState watcher, CreatureState mover) =>
@@ -686,8 +695,26 @@ namespace Dragoneye.Game.Combat
             }
         }
 
-        /// <summary>A clash is over. A swing taken mid-move lets the move go on.</summary>
-        public void ClashSettled() => m_Opportunities?.Continue();
+        /// <summary>
+        /// A clash is over. A swing taken mid-move lets the move go on -- after a beat.
+        ///
+        /// The beat is the whole point. Two enemies owed a swing at one walk used to take them in
+        /// the same frame: two attacks, two answers and two results, none of which anybody could
+        /// read. The fight stays busy while it waits, so nothing else starts either.
+        /// </summary>
+        public void ClashSettled() => StartCoroutine(SettleThenContinue());
+
+        System.Collections.IEnumerator SettleThenContinue()
+        {
+            if (m_ClashSettleDelay > 0f)
+            {
+                m_Settling = true;
+                yield return new WaitForSeconds(m_ClashSettleDelay);
+                m_Settling = false;
+            }
+
+            m_Opportunities?.Continue();
+        }
 
         // The brain's door into the fight is the same one a player uses.
         public bool Move(CreatureState actor, Cell destination) => ServerMove(actor, destination);

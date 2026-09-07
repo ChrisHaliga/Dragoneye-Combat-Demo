@@ -63,11 +63,15 @@
             <ui:ScrollView name="combat-log-list" class="combat-log-list" />
         </ui:VisualElement>
 
+        <!-- Everything below the party line scrolls: a level-six creature carries more skills and
+             elements than a card can show, and the card is not allowed to grow past the HUD. -->
         <ui:VisualElement name="summary-card" class="card">
 
             <!-- Which side, first and in that side's colour. It is the thing a player checks before
                  anything else on the card, and it was buried three lines down. -->
             <ui:Label name="card-party" text="" class="card__party" />
+
+            <ui:ScrollView name="card-scroll" class="card__scroll">
 
             <ui:VisualElement class="card__head">
                 <ui:VisualElement name="card-portrait" class="card__portrait" />
@@ -113,6 +117,7 @@
 
             <ui:Label name="card-skills-title" text="" class="card__elements-title" />
             <ui:VisualElement name="card-skills" class="card__skills" />
+            </ui:ScrollView>
         </ui:VisualElement>
     </ui:VisualElement>
 </ui:UXML>

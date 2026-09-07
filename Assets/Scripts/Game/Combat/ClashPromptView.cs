@@ -159,6 +159,10 @@ namespace Dragoneye.Game.Combat
 
             m_Panel.Add(Intelligence());
 
+            var key = new Label(ClashLabels.Stakes);
+            key.AddToClassList("clash-prompt__key");
+            m_Panel.Add(key);
+
             m_Options = new VisualElement();
             m_Options.AddToClassList("clash-prompt__options");
             m_Panel.Add(m_Options);

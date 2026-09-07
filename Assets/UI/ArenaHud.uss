@@ -131,14 +131,22 @@
     overflow: hidden;
 }
 
+/* Red, which is what a health bar is. It spent a while green, which read as a good-news bar on a
+   creature that was dying. */
 .hp-fill {
     height: 100%;
-    background-color: rgb(112, 196, 140);
+    background-color: rgb(186, 66, 60);
 }
 
 /* ---------- summary card ---------- */
 
+/* Pinned to the HUD rather than sized by what is on it: top with everything else, bottom on the
+   line the log and the footer sit on. What does not fit scrolls. */
 .card {
+    position: absolute;
+    right: 16px;
+    top: 16px;
+    bottom: 22px;
     width: 290px;
     padding: 18px;
     background-image: url("Generated/ui-panel.png");
@@ -429,7 +437,7 @@
     top: 0;
     left: 0;
     bottom: 0;
-    background-color: rgba(112, 200, 140, 0.42);
+    background-color: rgba(186, 66, 60, 0.46);
 }
 
 .turn-portrait__hp-text {
@@ -814,7 +822,10 @@
     left: 50%;
     bottom: 20px;
     translate: -50% 0;
-    width: 440px;
+
+    /* Four answers to a row, two rows: eight buttons in a line was a panel wider than the board.
+       The width is what four of them come to, and the buttons are what their own numbers need. */
+    width: 452px;
     padding: 12px 16px 12px 16px;
     background-image: url("Generated/ui-panel.png");
     -unity-slice-left: 32;
@@ -848,6 +859,7 @@
 
 .clash-prompt__options {
     flex-wrap: wrap;
+    justify-content: center;
     flex-direction: row;
     flex-wrap: wrap;
     margin-top: 12px;
@@ -856,7 +868,7 @@
 /* One per element held, with what is left of it. The count is the defender's own business, which is
    why it can be shown at all. */
 .clash-option {
-    width: 52px;
+    width: 105px;
     height: 122px;
     margin: 0 8px 8px 0;
     padding: 8px 0;
@@ -895,15 +907,15 @@
 }
 
 .clash-option__mark {
-    width: 34px;
-    height: 34px;
+    width: 40px;
+    height: 40px;
     background-image: url("Generated/ui-gem.png");
     -unity-background-scale-mode: scale-to-fit;
 }
 
 .clash-option__name {
     margin-top: 3px;
-    font-size: 10px;
+    font-size: 11px;
     -unity-font-style: bold;
     letter-spacing: 1px;
     color: rgb(226, 222, 210);
@@ -924,7 +936,8 @@
 }
 
 .clash-prompt__key {
-    margin-top: 10px;
+    white-space: normal;
+    margin-top: 6px;
     font-size: 10px;
     -unity-font-style: bold;
     letter-spacing: 2px;
@@ -1600,18 +1613,18 @@
 
 /* ---------- scenario report ---------- */
 
-/* Bottom right.
+/* The left column, above the log.
  *
- * Everything else on this HUD announces itself across the middle -- the turn banner, the result
- * of a clash, the defender's prompt -- and a report that has to be read cannot live where those
- * pass through. The corner it is in is the one nothing else claims: the card is above it, the log
- * is opposite, the footer is between them. */
+ * Everything else on this HUD announces itself across the middle -- the turn banner, the result of
+ * a clash, the defender's prompt -- and a report that has to be read cannot live where those pass
+ * through. The right is the card's and the bottom is the log's, so it takes the space between the
+ * two, and the party column stands aside while a scenario runs. */
 .scenario-report {
     position: absolute;
-    right: 16px;
-    bottom: 20px;
-    width: 360px;
-    max-height: 62%;
+    left: 16px;
+    top: 84px;
+    bottom: 168px;
+    width: 400px;
     padding: 12px 16px;
     background-image: url("Generated/ui-panel.png");
     -unity-background-image-tint-color: rgba(255, 255, 255, 0.92);
@@ -1720,6 +1733,14 @@
     background-color: rgb(236, 214, 178);
 }
 
+/* On its own it is the whole note, so it lays out in flow and the label is its size. */
+.floating-note__mark--alone {
+    position: relative;
+    right: auto;
+    top: auto;
+    margin-right: 0;
+}
+
 /* A guard: a plate that narrows to a point. It did not. */
 .floating-note__mark--guard {
     width: 13px;
@@ -1730,4 +1751,15 @@
     border-top-right-radius: 3px;
     border-bottom-left-radius: 7px;
     border-bottom-right-radius: 7px;
+}
+
+/* The card's body. The party line stays put at the top; everything under it scrolls. */
+.card__scroll {
+    flex-grow: 1;
+    flex-basis: 0;
+    min-height: 0;
+}
+
+.card__scroll .unity-scroll-view__content-container > * {
+    flex-shrink: 0;
 }

@@ -92,8 +92,20 @@ namespace Dragoneye.Game.Combat
                     ? "Put up two; the better counts."
                     : "Answer with an element.";
 
-            return ask + "   " + OddsKey;
+            return ask;
         }
+
+        /// <summary>
+        /// What each of the three outcomes is worth, in three short sentences.
+        ///
+        /// Kept, and kept short. A defender who does not know what a tie costs is not making a
+        /// decision, they are picking a colour -- and this panel is often the first thing a new
+        /// player is asked to answer.
+        /// </summary>
+        public static string Stakes =>
+            Tint(WinColour, "Win") + " and the attack does nothing and you keep your element.   "
+            + Tint(TieColour, "Tie") + " and it still does nothing, but the element is spent.   "
+            + Tint(LoseColour, "Lose") + " and it lands, and the element is spent.";
 
         /// <summary>The word shown where an action's cost would be, when position has changed it.</summary>
         public const string Advantage = "ADVANTAGE";

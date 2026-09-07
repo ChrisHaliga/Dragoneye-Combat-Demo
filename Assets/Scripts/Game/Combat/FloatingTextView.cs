@@ -90,7 +90,7 @@ namespace Dragoneye.Game.Combat
         {
             if (report.Outcome != ClashOutcome.AttackerWins)
             {
-                CombatNotices.Raise(report.DefenderId, "turned aside", NoticeTone.Gain,
+                CombatNotices.Raise(report.DefenderId, string.Empty, NoticeTone.Gain,
                     NoticeMark.Guard);
             }
         }
@@ -99,7 +99,7 @@ namespace Dragoneye.Game.Combat
         {
             if (!report.Landed)
             {
-                CombatNotices.Raise(report.TargetId, "missed", NoticeTone.Gain, NoticeMark.Guard);
+                CombatNotices.Raise(report.TargetId, string.Empty, NoticeTone.Gain, NoticeMark.Guard);
             }
         }
 
@@ -126,6 +126,10 @@ namespace Dragoneye.Game.Combat
                 shape.AddToClassList(mark == NoticeMark.Hit
                     ? "floating-note__mark--hit"
                     : "floating-note__mark--guard");
+
+                // With no number beside it the mark is the note, so it sits in the label rather
+                // than hanging off the edge of one that has no width.
+                shape.EnableInClassList("floating-note__mark--alone", text.Length == 0);
                 shape.pickingMode = PickingMode.Ignore;
                 label.Add(shape);
             }

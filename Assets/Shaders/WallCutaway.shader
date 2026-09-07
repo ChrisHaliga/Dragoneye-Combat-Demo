@@ -44,6 +44,10 @@ Shader "Dragoneye/WallCutaway"
             {
                 float4 positionOS : POSITION;
                 float3 normalOS : NORMAL;
+
+                // A gradient up the wall, baked into the mesh. Flat stone under flat light is a
+                // slab; this is what gives it a foot and a head without a texture.
+                float4 colour : COLOR;
             };
 
             struct Varyings
@@ -51,6 +55,7 @@ Shader "Dragoneye/WallCutaway"
                 float4 positionHCS : SV_POSITION;
                 float3 normalWS : TEXCOORD0;
                 float3 positionWS : TEXCOORD1;
+                float4 colour : COLOR;
             };
 
             Varyings vert(Attributes input)
@@ -60,6 +65,7 @@ Shader "Dragoneye/WallCutaway"
                 output.positionHCS = positions.positionCS;
                 output.positionWS = positions.positionWS;
                 output.normalWS = TransformObjectToWorldNormal(input.normalOS);
+                output.colour = input.colour;
                 return output;
             }
 
@@ -102,8 +108,9 @@ Shader "Dragoneye/WallCutaway"
                 float3 normal = normalize(input.normalWS);
                 Light light = GetMainLight();
                 float lambert = saturate(dot(normal, light.direction));
-                float3 lit = _BaseColor.rgb * light.color * (0.3 + 0.7 * lambert);
-                float3 ambient = _BaseColor.rgb * SampleSH(normal);
+                float3 stone = _BaseColor.rgb * input.colour.rgb;
+                float3 lit = stone * light.color * (0.3 + 0.7 * lambert);
+                float3 ambient = stone * SampleSH(normal);
 
                 return half4(lit + ambient, 1.0);
             }
