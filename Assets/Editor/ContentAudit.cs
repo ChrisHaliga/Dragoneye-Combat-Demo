@@ -44,7 +44,7 @@ namespace Dragoneye.MultiplayerEditor
         static int s_Repairs;
 
         [MenuItem("ClaudeCode/Check The Content Is Wired")]
-        static void Run()
+        internal static void Run()
         {
             s_Faults = 0;
             s_Repairs = 0;

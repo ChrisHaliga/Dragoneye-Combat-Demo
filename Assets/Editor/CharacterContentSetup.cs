@@ -56,7 +56,7 @@ namespace Dragoneye.MultiplayerEditor
         [MenuItem("ClaudeCode/Seed Missing Character Content")]
         internal static void Run()
         {
-            if (!EditorSceneManager.SaveCurrentModifiedScenesIfUserWantsTo())
+            if (!EverySetupStep.ReadyToTouchScenes())
             {
                 return;
             }

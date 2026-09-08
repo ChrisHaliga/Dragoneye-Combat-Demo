@@ -22,7 +22,7 @@ namespace Dragoneye.MultiplayerEditor
         [MenuItem("ClaudeCode/Wire The Arena Scene")]
         internal static void Run()
         {
-            if (!UnityEditor.SceneManagement.EditorSceneManager.SaveCurrentModifiedScenesIfUserWantsTo())
+            if (!EverySetupStep.ReadyToTouchScenes())
             {
                 return;
             }

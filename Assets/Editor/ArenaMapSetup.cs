@@ -33,7 +33,7 @@ namespace Dragoneye.MultiplayerEditor
         [MenuItem("ClaudeCode/Build The Arena Map")]
         internal static void Run()
         {
-            if (!UnityEditor.SceneManagement.EditorSceneManager.SaveCurrentModifiedScenesIfUserWantsTo())
+            if (!EverySetupStep.ReadyToTouchScenes())
             {
                 return;
             }

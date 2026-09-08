@@ -24,7 +24,7 @@ namespace Dragoneye.MultiplayerEditor
         [MenuItem("ClaudeCode/Wire The Main Menu")]
         internal static void Run()
         {
-            if (!UnityEditor.SceneManagement.EditorSceneManager.SaveCurrentModifiedScenesIfUserWantsTo())
+            if (!EverySetupStep.ReadyToTouchScenes())
             {
                 return;
             }

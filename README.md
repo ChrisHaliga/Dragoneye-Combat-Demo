@@ -197,12 +197,11 @@ characters, so they are permanent once content ships.
 
 ### Every editor step is named for its job, and none of them overwrites your work
 
-There is no catch-all. `ClaudeCode → Set Up Everything` used to run ten steps in dependency order,
-which meant the only way to import a portrait was to also rewire three scenes and rewrite every
-piece of content in the project. Each step now has its own entry saying what it does:
+Each step has its own entry saying what it does, and one entry runs them all:
 
 | Menu | Does |
 |---|---|
+| **Run Every Setup Step In Order** | All of the below, in dependency order, then the audit |
 | Seed Missing Character Content | Writes the species, classes, equipment, skills and premades that are not on disk |
 | Import The UI Art | Slices and imports the interface art |
 | Import The Portraits | Imports the portrait folder as sprites and rebuilds the library |
@@ -211,6 +210,14 @@ piece of content in the project. Each step now has its own entry saying what it 
 | Wire The Arena Scene / Visuals / Turn System | Rebuilds the Arena scene's components and references |
 | Build The Arena Map | Writes the terrains, the maps and the wall material |
 | Wire The Main Menu | Points the menu at its documents and its catalog |
+| Check The Content Is Wired | Audits the layout, the names, the ids and the catalogs |
+
+The aggregate is back, and the reason it was thrown out is worth stating: it was never that
+running the steps together is wrong. It is the only sensible way to bring up a fresh clone or to
+put a project back after a scene has been mangled. It was that the content step it ran **rewrote
+every asset in the project from code**, so the only way to import a portrait was to also discard
+every number anybody had tuned. That is fixed at the source rather than by refusing to have a
+button.
 
 **A step never touches an asset that already exists.** Seeding creates what is missing and reports
 how many it left alone; the two catalogs are added to and never rewritten; a reference that is
