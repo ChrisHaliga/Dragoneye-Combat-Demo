@@ -53,7 +53,7 @@
              the layer is a full-screen canvas with nothing of its own in it. -->
         <!-- What this player is holding, always on screen. Four rows of two, bottom right,
              out of the way of the board and beside the hand it describes. -->
-        <ui:VisualElement name="own-elements" class="own-elements" picking-mode="Ignore" />
+        <ui:VisualElement name="own-elements" class="own-elements" />
 
         <ui:VisualElement name="floating-text" class="floating-layer" picking-mode="Ignore" />
 

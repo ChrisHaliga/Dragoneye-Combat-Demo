@@ -2230,3 +2230,44 @@
     font-size: 15px;
     color: rgb(244, 214, 140);
 }
+
+/* What an element beats and loses to, on hover, wherever a rune is drawn. The matchup table is
+   learned here rather than from a grid nailed to the screen: it appears on the runes a player is
+   already reading, at the moment they wonder, and costs no permanent room. */
+.element-hint {
+    position: absolute;
+    bottom: 100%;
+    right: 0;
+    margin-bottom: 6px;
+    min-width: 150px;
+    padding: 6px 9px;
+    background-color: rgba(8, 9, 13, 0.96);
+    border-width: 1px;
+    border-color: rgb(58, 66, 82);
+    border-radius: 4px;
+}
+
+.element-hint__name {
+    font-size: 11px;
+    -unity-font-style: bold;
+    letter-spacing: 2px;
+    color: rgb(236, 231, 219);
+}
+
+.element-hint__beats {
+    font-size: 11px;
+    color: rgb(127, 191, 106);
+    margin-top: 3px;
+}
+
+.element-hint__loses {
+    font-size: 11px;
+    color: rgb(217, 112, 94);
+    margin-top: 1px;
+}
+
+.element-hint__even {
+    font-size: 11px;
+    color: rgb(169, 176, 190);
+    margin-top: 3px;
+}

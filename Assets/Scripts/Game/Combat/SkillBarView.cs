@@ -550,6 +550,7 @@ namespace Dragoneye.Game.Combat
                 button.AddToClassList("action-slot--choice");
                 button.SetEnabled(refusal == SkillRefusal.None);
                 button.tooltip = ElementLore.Describe(element);
+                ElementChart.Hint(button, element);
                 button.text = string.Empty;
 
                 var mark = new VisualElement();

@@ -21,6 +21,85 @@ namespace Dragoneye.UI
     public static class ElementChart
     {
         /// <summary>Fills a container with the chart, replacing whatever was in it.</summary>
+        /// <summary>
+        /// Shows what an element beats and loses to while the pointer is on something.
+        ///
+        /// **This is how the table is meant to be learned.** A seven-by-seven grid is a thing you
+        /// look up once and forget; a player asked for the matchups to be legible without one
+        /// being nailed to the screen. So the answer is attached to the runes they are already
+        /// looking at -- their own hand, the options in a clash, the element a weapon is about to
+        /// be thrown as -- and appears at the moment they wonder. Nothing is added to the layout,
+        /// and after a few fights nobody needs it.
+        ///
+        /// Drawn rather than handed to the engine's tooltip. That waits on a hover timer, and a
+        /// hint you only get for holding still is a hint most players never see.
+        /// </summary>
+        public static void Hint(VisualElement host, Element element)
+        {
+            VisualElement shown = null;
+
+            host.RegisterCallback<PointerEnterEvent>(_ =>
+            {
+                if (shown != null)
+                {
+                    return;
+                }
+
+                shown = Card(element);
+                host.Add(shown);
+            });
+
+            host.RegisterCallback<PointerLeaveEvent>(_ =>
+            {
+                shown?.RemoveFromHierarchy();
+                shown = null;
+            });
+        }
+
+        /// <summary>The card itself: the name, then what it beats and what beats it.</summary>
+        public static VisualElement Card(Element element)
+        {
+            var card = new VisualElement();
+            card.AddToClassList("element-hint");
+            card.pickingMode = PickingMode.Ignore;
+
+            var name = new Label(ElementInfo.NameOf(element).ToUpperInvariant());
+            name.AddToClassList("element-hint__name");
+            card.Add(name);
+
+            Line(card, "Beats", ElementLore.Beats(element), "element-hint__beats");
+            Line(card, "Loses to", ElementLore.LosesTo(element), "element-hint__loses");
+
+            if (card.childCount == 1)
+            {
+                var even = new Label("Even against everything");
+                even.AddToClassList("element-hint__even");
+                card.Add(even);
+            }
+
+            return card;
+        }
+
+        static void Line(VisualElement into, string lead, IReadOnlyList<Element> elements,
+            string style)
+        {
+            if (elements == null || elements.Count == 0)
+            {
+                return;
+            }
+
+            var names = new List<string>();
+
+            foreach (var element in elements)
+            {
+                names.Add(ElementInfo.ShortNameOf(element));
+            }
+
+            var label = new Label(lead + " " + string.Join(" ", names));
+            label.AddToClassList(style);
+            into.Add(label);
+        }
+
         public static void Build(VisualElement into)
         {
             if (into == null)

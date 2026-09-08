@@ -275,6 +275,10 @@ namespace Dragoneye.Game.Combat
             count.AddToClassList("own-elements__count");
             cell.Add(count);
 
+            // Where the matchups are learned: on the runes a player is already reading.
+            cell.pickingMode = PickingMode.Position;
+            ElementChart.Hint(cell, element);
+
             return cell;
         }
 
