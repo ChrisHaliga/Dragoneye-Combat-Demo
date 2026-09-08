@@ -60,6 +60,7 @@ namespace Dragoneye.MultiplayerEditor
 
             HomesAreRight();
             NamesFollowTheConvention();
+            EveryAssetKnowsItsScript();
 
             var serialized = new SerializedObject(catalog);
             Reconcile(serialized.FindProperty("m_Species"), Everything<SpeciesDefinition>(), "species");
@@ -158,6 +159,36 @@ namespace Dragoneye.MultiplayerEditor
             }
 
             return built.ToString();
+        }
+
+        /// <summary>
+        /// Every asset can name the script it is an instance of.
+        ///
+        /// **This is the one check here that catches something the editor cannot show you.** Unity
+        /// only creates a MonoScript for a type whose file is named after it, and an asset of a
+        /// type without one is written with no script reference at all -- just a string naming the
+        /// class. The editor resolves that string and everything looks right; a built player has
+        /// no such fallback, so the asset deserialises to null. Seven classes and eleven items
+        /// once shipped that way, and the only symptom was a character creator that said no
+        /// classes were authored, in the build and nowhere else.
+        ///
+        /// So it is not reported as a naming problem. It is reported as what it is: an asset that
+        /// will vanish the next time the game is built.
+        /// </summary>
+        static void EveryAssetKnowsItsScript()
+        {
+            foreach (var guid in AssetDatabase.FindAssets("t:ScriptableObject", new[] { k_Content }))
+            {
+                var path = AssetDatabase.GUIDToAssetPath(guid);
+                var asset = AssetDatabase.LoadAssetAtPath<ScriptableObject>(path);
+
+                if (asset != null && MonoScript.FromScriptableObject(asset) == null)
+                {
+                    Fault($"{path} has no script reference, so it loads in the editor and is null "
+                        + $"in a build. {asset.GetType().Name} needs to live in a file named after "
+                        + "it, and the asset needs repointing at that script.");
+                }
+            }
         }
 
         /// <summary>A piece of equipment is filed under the slot it occupies.</summary>

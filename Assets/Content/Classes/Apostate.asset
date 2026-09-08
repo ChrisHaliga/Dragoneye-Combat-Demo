@@ -9,9 +9,9 @@ MonoBehaviour:
   m_GameObject: {fileID: 0}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 0}
+  m_Script: {fileID: 11500000, guid: def9f4b4009147e5a3ab81f583f27bb3, type: 3}
   m_Name: Apostate
-  m_EditorClassIdentifier: Dragoneye.Data:Dragoneye.Data:ClassAsset
+  m_EditorClassIdentifier: Dragoneye.Data::Dragoneye.Data.ClassAsset
   m_Id: 6
   m_DisplayName: Apostate
   m_Description: Trained devout, and no longer.
