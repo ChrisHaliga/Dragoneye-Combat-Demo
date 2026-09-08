@@ -172,7 +172,7 @@ namespace Dragoneye.Multiplayer
             m_Character = character;
             m_Build = new CharacterBuild(character.Build);
             m_Gain = Progression.Resolve(m_Build.Level, m_Build.Xp);
-            m_Floor = ElementPricing.Free;
+            m_Floor = ElementPricing.Minimum;
 
             // The level is applied to the working copy up front, so everything below -- the budget,
             // the skills, the health -- is what the character is about to be rather than what it

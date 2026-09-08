@@ -16,34 +16,36 @@ namespace Dragoneye.Combat
     public static class ElementPricing
     {
         /// <summary>
-        /// One of each physical element, which every creature has without paying for it.
+        /// One of each physical element. Every creature has these, and cannot not have them.
         ///
-        /// A fight where somebody holds nothing an attack can be made of is not a fight, and a
-        /// budget spent entirely on depth in one element left exactly that. These four are the
-        /// floor: enough to always have something to throw and something to answer with, and
-        /// cheap enough in the fiction that nobody should have to buy them.
+        /// A floor rather than an allowance, and the distinction is the whole of it: nobody is
+        /// given four points to spend on whatever they like, they are given four elements. The
+        /// budget buys depth and the rarer three on top. A creator that let a player take one
+        /// away would be offering them a trade that does not exist -- the point does not come
+        /// back, because it was never charged.
         ///
-        /// The four are the ones that cost a point. Lux, Nyx and Arcana are the ones you pay for
-        /// and the ones a build is characterised by, so none of them is free.
+        /// Why these four: a fight where somebody holds nothing an attack can be made of is not a
+        /// fight, and a budget spent entirely on depth in one element left exactly that. Lux, Nyx
+        /// and Arcana are what a build is characterised by, so none of them is standard issue.
         /// </summary>
-        public static readonly ElementCounts Free = new ElementCounts(1, 1, 1, 1, 0, 0, 0);
+        public static readonly ElementCounts Minimum = new ElementCounts(1, 1, 1, 1, 0, 0, 0);
 
         /// <summary>
-        /// A pool with the free elements in it, whoever wrote the pool.
+        /// A pool brought up to the floor, whoever wrote the pool.
         ///
         /// Per element the larger of the two, not the sum, so it can be applied twice without
         /// handing anybody eight physical elements -- a premade authored with two Pyro keeps two,
         /// and gains one each of the rest.
         /// </summary>
-        public static ElementCounts WithFree(ElementCounts pool)
+        public static ElementCounts AtLeastMinimum(ElementCounts pool)
         {
             var whole = pool;
 
             foreach (var element in ElementInfo.All)
             {
-                if (Free[element] > pool[element])
+                if (Minimum[element] > pool[element])
                 {
-                    whole = whole.With(element, Free[element]);
+                    whole = whole.With(element, Minimum[element]);
                 }
             }
 
@@ -74,10 +76,10 @@ namespace Dragoneye.Combat
         }
 
         /// <summary>
-        /// What a whole pool costs, with the free elements taken off first.
+        /// What a whole pool costs, with the floor taken off first.
         ///
-        /// So a pool of exactly <see cref="Free"/> costs nothing, and a budget buys depth and the
-        /// rarer elements rather than the first of each common one.
+        /// So a pool of exactly <see cref="Minimum"/> costs nothing, and a budget buys depth and
+        /// the rarer elements rather than the first of each common one.
         /// </summary>
         public static int CostOf(ElementCounts pool)
         {
@@ -85,7 +87,7 @@ namespace Dragoneye.Combat
 
             foreach (var element in ElementInfo.All)
             {
-                var paid = pool[element] - Free[element];
+                var paid = pool[element] - Minimum[element];
 
                 if (paid > 0)
                 {

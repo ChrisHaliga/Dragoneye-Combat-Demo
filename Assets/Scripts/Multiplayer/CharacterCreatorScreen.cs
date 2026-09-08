@@ -998,7 +998,10 @@ namespace Dragoneye.Multiplayer
                 ? $"STARTING ELEMENTS  ·  {budget} PT SPENT"
                 : $"STARTING ELEMENTS  ·  {left} OF {budget} LEFT";
 
-            m_Picker.Refresh(m_Build.StartingPool, budget);
+            // The four physical elements are standard issue, so the creator will not take one
+            // away: there is no point to be got back for it, and a step that spends nothing and
+            // leaves a worse character is a step that should not be offered.
+            m_Picker.Refresh(m_Build.StartingPool, budget, ElementPricing.Minimum);
         }
 
         void RefreshOverview(Loadout loadout)

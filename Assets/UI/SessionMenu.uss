@@ -908,6 +908,16 @@
     color: rgb(200, 206, 220);
 }
 
+/* The price of one, on the row. Matched to the attributes' so the two allocations read as one
+   kind of decision. */
+.element-row__cost {
+    margin-right: 8px;
+    font-size: 9px;
+    -unity-font-style: bold;
+    letter-spacing: 1px;
+    color: rgb(198, 158, 88);
+}
+
 .element-row__value {
     width: 28px;
     font-size: 16px;

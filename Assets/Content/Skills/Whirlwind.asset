@@ -17,11 +17,7 @@ MonoBehaviour:
   m_Description: Everything you have, in one turn of the body.
   m_Icon: {fileID: 0}
   m_Element: 2
-  m_ElementOptions:
-  - 0
-  - 1
-  - 2
-  - 3
+  m_ElementOptions: 
   m_Conditions: []
   m_ApCost: 2
   m_ElementCost: 2

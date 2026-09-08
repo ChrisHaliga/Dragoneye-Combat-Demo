@@ -68,7 +68,7 @@ namespace Dragoneye.Combat
         /// fight, and the screen should show the floor rather than let a player discover it in
         /// the arena.
         /// </summary>
-        public ElementCounts StartingPool = ElementPricing.Free;
+        public ElementCounts StartingPool = ElementPricing.Minimum;
 
         public int WeaponId = NoEquipment;
 

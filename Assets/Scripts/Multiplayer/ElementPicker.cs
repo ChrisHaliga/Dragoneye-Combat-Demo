@@ -52,11 +52,8 @@ namespace Dragoneye.Multiplayer
             var row = new VisualElement();
             row.AddToClassList("element-row");
 
-            // What it costs is a tooltip rather than a column, because the price never changes and
-            // seven fixed numbers down the middle of the column would read as part of the pool.
             var cost = ElementPricing.CostOf(element);
-            row.tooltip = ElementLore.Describe(element) + $"\n\nCosts {cost} "
-                + (cost == 1 ? "point" : "points") + " of the pool budget";
+            row.tooltip = ElementLore.Describe(element);
 
             var gem = new VisualElement();
             gem.AddToClassList("element-row__gem");
@@ -66,6 +63,13 @@ namespace Dragoneye.Multiplayer
             var label = new Label(ElementInfo.ShortNameOf(element));
             label.AddToClassList("element-row__name");
             row.Add(label);
+
+            // On the row, not under the pointer. Six of the seven cost something other than a
+            // point, and a price you have to hover each row in turn to learn is a price nobody
+            // reads -- the rows look interchangeable and the budget appears to fall at random.
+            var price = new Label($"COST {cost}");
+            price.AddToClassList("element-row__cost");
+            row.Add(price);
 
             var minus = MenuControls.StepButton("-", () => adjust(element, -1));
             var value = new Label();
@@ -93,8 +97,8 @@ namespace Dragoneye.Multiplayer
         /// because the last point left buys some of these and not others.
         /// </summary>
         /// <param name="floor">
-        /// The pool the player may not go below -- what they already owned before this screen. Zero
-        /// in the creator, where everything is still being chosen.
+        /// The pool the player may not go below. In the creator that is the four physical elements
+        /// every creature has; on a level up it is everything they already owned.
         /// </param>
         public void Refresh(ElementCounts pool, int budget, ElementCounts floor = default)
         {
