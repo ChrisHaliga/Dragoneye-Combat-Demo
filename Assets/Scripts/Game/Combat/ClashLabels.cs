@@ -110,16 +110,16 @@ namespace Dragoneye.Game.Combat
         /// a sentence in front of the board. What win, tie and lose are worth is on the options
         /// themselves; this only says which is which.
         /// </summary>
-        public static string Describe(DefenceRequest request)
-        {
-            var ask = request.Flanked && !request.Shielded
+        public static string Describe(DefenceRequest request) =>
+            request.Flanked && !request.Shielded
                 ? "Struck from behind: put up two, the worse counts."
                 : request.Shielded && !request.Flanked
                     ? "Put up two; the better counts."
-                    : "Answer with an element.";
 
-            return ask;
-        }
+                    // Nothing. A panel of eight elements with a percentage under each does not
+                    // need to be captioned "answer with an element": the only two asks worth a
+                    // line are the two that are not the ordinary one.
+                    : string.Empty;
 
         /// <summary>
         /// What each of the three outcomes is worth, in three short sentences.

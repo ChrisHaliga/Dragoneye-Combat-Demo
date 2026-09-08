@@ -213,6 +213,7 @@ namespace Dragoneye.Game.Combat
 
             var reason = new Label(ClashLabels.Describe(m_Request));
             reason.AddToClassList("clash-prompt__reason");
+            reason.EnableInClassList("is-hidden", string.IsNullOrEmpty(reason.text));
             head.Add(reason);
 
             head.Add(HelpButton());
@@ -311,10 +312,30 @@ namespace Dragoneye.Game.Combat
             stakes.AddToClassList("clash-help__stakes");
             window.Add(stakes);
 
-            var chart = new VisualElement();
-            chart.AddToClassList("clash-help__chart");
-            ElementChart.Build(chart);
-            window.Add(chart);
+            var heading = new Label("WHAT BEATS WHAT");
+            heading.AddToClassList("clash-help__heading");
+            window.Add(heading);
+
+            // Built here rather than from ElementChart, whose styles are authored in Help.uss --
+            // which the arena does not load, so every rule of it missed and the chart came out as
+            // unstyled grey text on a grey panel.
+            foreach (var element in ElementInfo.All)
+            {
+                var row = new VisualElement();
+                row.AddToClassList("clash-help__row");
+
+                var mark = new VisualElement();
+                mark.AddToClassList("clash-help__mark");
+                CharacterSheet.PaintElement(mark, element);
+                row.Add(mark);
+
+                var name = new Label(ElementInfo.ShortNameOf(element));
+                name.AddToClassList("clash-help__name");
+                row.Add(name);
+
+                row.Add(Matchups(element));
+                window.Add(row);
+            }
 
             return window;
         }
@@ -381,7 +402,7 @@ namespace Dragoneye.Game.Combat
             // Only an element the defender holds none of is off the table.
             button.SetEnabled(left + staged > 0);
 
-            return Answer(button, ClashLabels.Chances(OddsFor(element)),
+            return Answer(button, ClashLabels.Chances(OddsFor(element)), Matchups(element),
                 "Win: the attack misses and this element comes back. Tie: it misses, but the "
                 + "element is spent. Lose: you take the hit and it is spent.");
         }
@@ -412,8 +433,63 @@ namespace Dragoneye.Game.Combat
             // Nothing goes up and nothing comes off the hand, which is the whole of its appeal.
             button.Add(Count(0, 0));
 
-            return Answer(button, ClashLabels.Chances(ClashOdds.CertainLoss),
+            return Answer(button, ClashLabels.Chances(ClashOdds.CertainLoss), Nothing(),
                 "You take the hit. Nothing is spent.");
+        }
+
+        /// <summary>
+        /// What this element beats, ties and loses to, beside the button that spends it.
+        ///
+        /// The table is the game, and it was behind a hover on a rune or on a screen before the
+        /// match. Neither is any use at the moment it is being used: a defender is choosing
+        /// between eight elements against one they cannot see, and "which of these beats fire"
+        /// is the whole of the question. Read out of the shipped table, so it cannot disagree
+        /// with what the clash then does.
+        /// </summary>
+        static VisualElement Matchups(Element element)
+        {
+            var lines = new VisualElement();
+            lines.AddToClassList("clash-option__matchups");
+
+            Matchup(lines, "Beats", ElementLore.Beats(element), "clash-matchup--beats");
+            Matchup(lines, "Even", ElementLore.Even(element), "clash-matchup--even");
+            Matchup(lines, "Loses", ElementLore.LosesTo(element), "clash-matchup--loses");
+
+            return lines;
+        }
+
+        static void Matchup(VisualElement into, string lead, IReadOnlyList<Element> against,
+            string style)
+        {
+            if (against == null || against.Count == 0)
+            {
+                return;
+            }
+
+            var names = new List<string>();
+
+            foreach (var other in against)
+            {
+                names.Add(ElementInfo.ShortNameOf(other));
+            }
+
+            var line = new Label(lead + "  " + string.Join(" ", names));
+            line.AddToClassList("clash-matchup");
+            line.AddToClassList(style);
+            into.Add(line);
+        }
+
+        /// <summary>The eighth answer beats nothing, because it is not an element.</summary>
+        static VisualElement Nothing()
+        {
+            var lines = new VisualElement();
+            lines.AddToClassList("clash-option__matchups");
+
+            var line = new Label("Take the hit as it comes.");
+            line.AddToClassList("clash-matchup");
+            lines.Add(line);
+
+            return lines;
         }
 
         /// <summary>What you hold, and what you would hold having put one up.</summary>
@@ -425,22 +501,29 @@ namespace Dragoneye.Game.Combat
         }
 
         /// <summary>
-        /// One answer: the button, and its odds under it.
+        /// One answer: the button with its odds under it, and what it beats beside them.
         ///
-        /// Under rather than inside, so the button is the rune and the number it costs -- the two
-        /// things a click decides -- and the forecast sits below where it can be read across the
-        /// row without the eye stepping in and out of eight boxes.
+        /// Two columns rather than one, because the matchups are three short lines and a button
+        /// is three lines tall -- so putting them side by side costs no height at all and saves
+        /// the player the hover they would otherwise need on every one of eight options.
         /// </summary>
-        static VisualElement Answer(VisualElement button, string chances, string explain)
+        static VisualElement Answer(VisualElement button, string chances, VisualElement matchups,
+            string explain)
         {
             var cell = new VisualElement();
             cell.AddToClassList("clash-answer");
-            cell.Add(button);
+
+            var press = new VisualElement();
+            press.AddToClassList("clash-answer__press");
+            press.Add(button);
 
             var odds = new Label(chances);
             odds.AddToClassList("clash-option__odds");
             odds.tooltip = explain;
-            cell.Add(odds);
+            press.Add(odds);
+
+            cell.Add(press);
+            cell.Add(matchups);
 
             return cell;
         }
