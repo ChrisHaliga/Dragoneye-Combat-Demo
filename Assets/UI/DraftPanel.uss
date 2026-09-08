@@ -558,31 +558,6 @@
     display: none;
 }
 
-/* Where a brought character fights, for the host. A chip per party, the current one ringed.
-
-   Colour rather than a name: the column heading already says which party this card is in, so the
-   only question left is where else it could go -- and four named buttons on a card this narrow was
-   what made the old panel need a horizontal scrollbar. */
-.party-chip {
-    width: 14px;
-    height: 14px;
-    margin: 0 0 0 4px;
-    padding: 0;
-    border-width: 1px;
-    border-color: rgba(0, 0, 0, 0.6);
-    border-radius: 0;
-    opacity: 0.4;
-}
-
-.party-chip:hover {
-    opacity: 0.8;
-}
-
-.party-chip--current {
-    opacity: 1;
-    border-color: rgb(232, 226, 212);
-}
-
 /* ---------- motion ---------- */
 
 .button,

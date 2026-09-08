@@ -104,19 +104,6 @@
     margin-bottom: 8px;
 }
 
-/* What it is holding, beside the card, one rune to a line and right against it. */
-.portrait__elements {
-    align-items: flex-end;
-    margin-right: 4px;
-    padding-top: 2px;
-}
-
-.portrait__element {
-    flex-direction: row;
-    align-items: center;
-    margin-bottom: 2px;
-}
-
 /* Everything known about a creature's elements, on hover. Absolute, so it hangs off the portrait
    without shoving the column around, and pointer-transparent, so hovering it is still hovering the
    portrait underneath and it does not flicker itself out of existence. */
@@ -1302,38 +1289,6 @@
     margin: 0 10px;
     background-color: rgba(198, 158, 88, 0.35);
 }
-
-/* Picking what a fist is made of. The slots become the question while it is being asked. */
-.skill-choice__title {
-    -unity-text-align: middle-center;
-    margin-right: 10px;
-    font-size: 11px;
-    -unity-font-style: bold;
-    letter-spacing: 2px;
-    color: rgb(198, 158, 88);
-}
-
-.action-slot__rune-large {
-    width: 30px;
-    height: 30px;
-    margin-bottom: 2px;
-    background-image: url("../Art/UI/ui-gem.png");
-    -unity-background-scale-mode: scale-to-fit;
-}
-
-.action-slot__caption {
-    font-size: 10px;
-    -unity-font-style: bold;
-    letter-spacing: 1px;
-    color: rgb(226, 222, 210);
-}
-
-.action-slot--cancel {
-    width: 74px;
-    font-size: 11px;
-    color: rgb(139, 147, 165);
-}
-
 
 /* ---------- combat log ---------- */
 

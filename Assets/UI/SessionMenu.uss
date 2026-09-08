@@ -384,15 +384,6 @@
 
 /* ---------- panels and wells ---------- */
 
-.panel-skin {
-    background-image: url("../Art/UI/ui-panel.png");
-    -unity-slice-left: 32;
-    -unity-slice-right: 32;
-    -unity-slice-top: 32;
-    -unity-slice-bottom: 32;
-    -unity-slice-scale: 0.5;
-}
-
 .well {
     background-image: url("../Art/UI/ui-well.png");
     -unity-slice-left: 22;
@@ -669,21 +660,6 @@
     -unity-text-align: middle-center;
 }
 
-.portrait__controls {
-    flex-direction: row;
-    margin-top: 8px;
-}
-
-.portrait__controls > .btn {
-    flex-grow: 1;
-    flex-basis: 0;
-    margin: 0 0 0 8px;
-}
-
-.portrait__controls > .btn:disabled {
-    opacity: 0.3;
-}
-
 /* ---------- creator columns ---------- */
 
 /* Fixed columns are genuinely fixed, and only the sheet flexes.
@@ -719,10 +695,6 @@
 
 .col--identity {
     width: 230px;
-}
-
-.col--attributes {
-    width: 240px;
 }
 
 .col--kit {
@@ -1227,13 +1199,6 @@
     background-image: none;
     padding: 0;
     min-height: 0;
-}
-
-.passive-line {
-    margin-top: 6px;
-    font-size: 11px;
-    color: rgb(198, 158, 88);
-    white-space: normal;
 }
 
 /* ---------- dialogs ---------- */
