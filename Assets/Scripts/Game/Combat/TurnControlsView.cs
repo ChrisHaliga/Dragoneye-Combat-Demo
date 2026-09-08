@@ -3,6 +3,7 @@ using Dragoneye.Combat;
 using Dragoneye.Hex.Systems;
 using UnityEngine;
 using UnityEngine.UIElements;
+using Dragoneye.UI;
 using Dragoneye.Game;
 using Dragoneye.Game.Creatures;
 
@@ -45,6 +46,12 @@ namespace Dragoneye.Game.Combat
         // What is left of the creature being played, on the line the turn is spent from.
         VisualElement m_HealthFill;
         Label m_HealthText;
+        VisualElement m_OwnElements;
+
+        // What the panel was last drawn for, so seven rows are not rebuilt sixty times a second
+        // to say the same thing.
+        uint m_DrawnElementsFor;
+        int m_DrawnElementsHash;
 
         ArenaBoard m_Board;
 
@@ -71,6 +78,7 @@ namespace Dragoneye.Game.Combat
 
             m_HealthFill = root.Q<VisualElement>("own-health-fill");
             m_HealthText = root.Q<Label>("own-health-text");
+            m_OwnElements = root.Q<VisualElement>("own-elements");
 
             if (m_Footer == null || m_Banner == null || m_ApPips == null || m_ApText == null
                 || m_Cursor == null
@@ -144,6 +152,7 @@ namespace Dragoneye.Game.Combat
             m_ApText.text = $"{shown.CurrentAp} / {shown.MaxAp} AP";
 
             RefreshVitals(shown);
+            RefreshOwnElements();
 
             if (!mine)
             {
@@ -184,6 +193,101 @@ namespace Dragoneye.Game.Combat
             m_HealthFill.style.width = Length.Percent(
                 CreatureDisplay.Fraction(hp, actor.MaxHp) * 100f);
             m_HealthText.text = $"{hp} / {actor.MaxHp}";
+        }
+
+        /// <summary>
+        /// What this player is holding, bottom right, whether or not it is their turn.
+        ///
+        /// Their own creature's, not the acting one's: between turns the question "what can I do
+        /// next" is still worth answering, and the hand is most of the answer. Read from the shown
+        /// fight like everything else, so it does not empty before the blow that emptied it has
+        /// been shown.
+        ///
+        /// Rebuilt only when the numbers change. Seven rows is nothing to build, but building them
+        /// every frame throws away the element the pointer is over.
+        /// </summary>
+        void RefreshOwnElements()
+        {
+            if (m_OwnElements == null)
+            {
+                return;
+            }
+
+            var mine = m_Input.Actor ?? LocalPlayer.Mine(
+                ArenaContext.Current != null ? ArenaContext.Current.Creatures : null);
+
+            if (mine == null || !LocalPlayer.Controls(mine))
+            {
+                m_OwnElements.Clear();
+                m_OwnElements.style.display = DisplayStyle.None;
+                m_DrawnElementsFor = 0;
+                return;
+            }
+
+            m_OwnElements.style.display = DisplayStyle.Flex;
+
+            var held = Shown.Hand(mine);
+            var start = mine.StartingPool;
+            var hash = Hash(held) * 31 + Hash(start);
+
+            if (m_DrawnElementsFor == mine.TurnId && m_DrawnElementsHash == hash)
+            {
+                return;
+            }
+
+            m_DrawnElementsFor = mine.TurnId;
+            m_DrawnElementsHash = hash;
+            m_OwnElements.Clear();
+
+            VisualElement row = null;
+            var index = 0;
+
+            foreach (var element in ElementInfo.All)
+            {
+                if (index % 2 == 0)
+                {
+                    row = new VisualElement();
+                    row.AddToClassList("own-elements__row");
+                    m_OwnElements.Add(row);
+                }
+
+                row.Add(ElementCell(element, held[element], start[element]));
+                index++;
+            }
+        }
+
+        static VisualElement ElementCell(Element element, int held, int total)
+        {
+            var cell = new VisualElement();
+            cell.AddToClassList("own-elements__cell");
+            cell.EnableInClassList("own-elements__cell--empty", held <= 0);
+
+            var rune = new VisualElement();
+            rune.AddToClassList("portrait__rune");
+            CharacterSheet.PaintElement(rune, element);
+            cell.Add(rune);
+
+            var name = new Label(ElementInfo.ShortNameOf(element));
+            name.AddToClassList("own-elements__name");
+            cell.Add(name);
+
+            var count = new Label($"{held} ({total})");
+            count.AddToClassList("own-elements__count");
+            cell.Add(count);
+
+            return cell;
+        }
+
+        static int Hash(ElementCounts counts)
+        {
+            var hash = 17;
+
+            foreach (var element in ElementInfo.All)
+            {
+                hash = hash * 31 + counts[element];
+            }
+
+            return hash;
         }
 
         /// <summary>

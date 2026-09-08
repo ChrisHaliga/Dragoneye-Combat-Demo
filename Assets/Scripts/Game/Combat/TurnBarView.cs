@@ -143,11 +143,19 @@ namespace Dragoneye.Game.Combat
                 return;
             }
 
+            // Your own turn is a different sentence, not a smaller one. A tester played a whole
+            // game without being sure when it was their go, because "Ansel's turn" and "Goblin 2's
+            // turn" are the same shape and you have to remember which of them is you.
+            var yours = LocalPlayer.Controls(creature);
+
             var who = creature.IsComputerControlled
                 ? creature.DisplayName
                 : CreatureDisplay.ControllerName(creature);
 
-            m_Announce.text = m_Fast ? $"{who}'s turn  ·  FAST FORWARD" : $"{who}'s turn";
+            var line = yours ? $"YOUR TURN  ·  {creature.DisplayName}" : $"{who}'s turn";
+
+            m_Announce.text = m_Fast ? line + "  ·  FAST FORWARD" : line;
+            m_Announce.EnableInClassList("turn-announce--yours", yours);
         }
 
         void Rebuild()

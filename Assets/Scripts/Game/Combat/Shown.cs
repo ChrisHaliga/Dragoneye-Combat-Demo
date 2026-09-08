@@ -42,6 +42,43 @@ namespace Dragoneye.Game.Combat
         public static bool IsAlive(CreatureState creature) =>
             Of(creature)?.IsAlive ?? (creature != null && creature.IsAlive);
 
+        /// <summary>
+        /// What a creature is holding, as the watcher has been shown it.
+        ///
+        /// Worked out rather than replicated: the hand it started with, less what the playback has
+        /// seen it spend and not get back. Both halves are things this viewer knows -- the starting
+        /// pool is authored, and every spend was announced -- so this is honest for anybody's
+        /// creature, and it moves when the blow is shown rather than when the server resolves it.
+        ///
+        /// Falls back to the live pool before the fight has begun, which is the only moment there
+        /// is nothing shown yet and the creature is standing there with a full hand.
+        /// </summary>
+        public static ElementCounts Hand(CreatureState creature)
+        {
+            if (creature == null)
+            {
+                return ElementCounts.Empty;
+            }
+
+            var shown = Of(creature);
+
+            if (shown == null)
+            {
+                var pool = creature.Pool;
+                return pool != null ? pool.Pool : creature.StartingPool;
+            }
+
+            var hand = creature.StartingPool;
+
+            foreach (var spent in shown.Outstanding)
+            {
+                var left = hand[spent] - 1;
+                hand = hand.With(spent, left < 0 ? 0 : left);
+            }
+
+            return hand;
+        }
+
         public static int Round => Fight?.Round ?? 0;
 
         public static uint ActiveId => Fight?.ActiveId ?? 0;

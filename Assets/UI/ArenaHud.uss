@@ -2176,3 +2176,57 @@
     margin-top: 5px;
     white-space: normal;
 }
+
+/* The hand, bottom right and always up. A player asked for it: what you are holding decides every
+   attack you can make and every answer you can give, and it was only readable by inspecting your
+   own creature. Two to a row, four rows, the eighth cell empty because there are seven. */
+.own-elements {
+    position: absolute;
+    right: 16px;
+    bottom: 104px;
+    padding: 7px 8px;
+    background-color: rgba(8, 9, 13, 0.9);
+    border-width: 1px;
+    border-color: rgb(36, 42, 54);
+    border-radius: 4px;
+}
+
+.own-elements__row {
+    flex-direction: row;
+    align-items: center;
+}
+
+.own-elements__cell {
+    flex-direction: row;
+    align-items: center;
+    width: 96px;
+    margin: 2px 0;
+}
+
+.own-elements__name {
+    width: 34px;
+    margin-left: 5px;
+    font-size: 10px;
+    -unity-font-style: bold;
+    letter-spacing: 1px;
+    color: rgb(169, 176, 190);
+}
+
+.own-elements__count {
+    font-size: 11px;
+    -unity-font-style: bold;
+    color: rgb(236, 231, 219);
+}
+
+/* Nothing left of it. Still listed, because a gap in the grid reads as a bug and "none" is an
+   answer a player needs. */
+.own-elements__cell--empty .own-elements__name,
+.own-elements__cell--empty .own-elements__count {
+    color: rgb(96, 102, 116);
+}
+
+/* Your own turn, said louder than anybody else's. A tester could not tell when it was their go. */
+.turn-announce--yours {
+    font-size: 15px;
+    color: rgb(244, 214, 140);
+}
