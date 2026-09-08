@@ -44,10 +44,30 @@ namespace Dragoneye.Sim
         /// </summary>
         public ElementCounts Hand => Private.Pool;
 
-        /// <summary>Spends an element, lowering the pool and raising the reveal record together.</summary>
+        /// <summary>Whether an answer has been put up that nobody has been told about yet.</summary>
+        public bool HasAnswerInFlight => m_Pending.HasValue;
+
+        /// <summary>
+        /// Spends an element, lowering the pool and raising the reveal record together.
+        ///
+        /// Refused outright while a commitment is unannounced. What was put up is remembered as a
+        /// list beside the record so it can be handed back if it is kept, and that list is matched
+        /// against the record by element -- so a spend that lands underneath it takes the entry
+        /// the answer was going to reclaim, and the hand ends up with an element nobody has.
+        ///
+        /// The fight cannot reach this: a clash makes it busy, and a busy fight takes no orders.
+        /// The refusal is here so that if that ever stops being true, it stops being true loudly,
+        /// rather than by quietly inventing an element.
+        /// </summary>
         /// <returns>False if the creature does not hold it, in which case nothing changed.</returns>
         public bool Spend(Element element, int amount, out SpendRefusal refusal)
         {
+            if (m_Pending.HasValue)
+            {
+                refusal = SpendRefusal.AnswerInFlight;
+                return false;
+            }
+
             if (!m_Ledger.TrySpend(element, amount, out var next, out refusal))
             {
                 return false;
@@ -131,19 +151,29 @@ namespace Dragoneye.Sim
             m_Pending = null;
         }
 
-        /// <summary>Brings back the oldest outstanding spend, which is what Take a Breath does.</summary>
+        /// <summary>
+        /// Brings back the oldest outstanding spend, which is what Take a Breath does.
+        ///
+        /// Refused while a commitment is unannounced, for the reason <see cref="Spend"/> is, and
+        /// for one more: the oldest spend the truth knows about may be the commitment itself, and
+        /// handing that back would take an answer out of the air mid-clash and tell everybody
+        /// about it on the way.
+        /// </summary>
         public bool Return(out Element returned, out SpendRefusal refusal)
         {
-            if (!Private.TryReturn(out var next, out returned, out refusal))
+            returned = default;
+
+            if (m_Pending.HasValue)
+            {
+                refusal = SpendRefusal.AnswerInFlight;
+                return false;
+            }
+
+            if (!m_Ledger.TryReturn(out var next, out returned, out refusal))
             {
                 return false;
             }
 
-            // Settles anything pending along with it. Nothing returns an element mid-clash --
-            // Take a Breath is a turn's action, not a defence -- so this is a consistency
-            // guarantee rather than a path anybody walks.
-            m_Pending = null;
-            m_Committed.Clear();
             m_Ledger = next;
             return true;
         }

@@ -9,7 +9,16 @@ namespace Dragoneye.Combat
         NotHeld,
         NotAnElement,
         NothingToSpend,
-        NothingToReturn
+        NothingToReturn,
+
+        /// <summary>
+        /// There is an answer in the air that nobody has been told about yet.
+        ///
+        /// A hand cannot be spent from or breathed back into while a commitment is unannounced:
+        /// what was put up is remembered as a list beside the record, and anything that reorders
+        /// the record underneath it leaves that list pointing at spends which are no longer there.
+        /// </summary>
+        AnswerInFlight
     }
 
     /// <summary>
