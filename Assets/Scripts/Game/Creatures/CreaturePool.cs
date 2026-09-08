@@ -143,22 +143,6 @@ namespace Dragoneye.Game.Creatures
         /// <summary>How many elements this creature owns altogether, spent or not. Public.</summary>
         public int Total => m_Total.Value;
 
-        /// <summary>
-        /// How many elements are in the hand right now. Public, and exact.
-        ///
-        /// Spending moves an element out and returning moves it back, so this is the total less
-        /// whatever is outstanding -- and both of those are things everybody watched. It is the
-        /// number an opponent counts to know how much answering somebody has left in them.
-        /// </summary>
-        public int InHand
-        {
-            get
-            {
-                var left = Total - m_OutstandingView.Count;
-                return left < 0 ? 0 : left;
-            }
-        }
-
         /// <summary>How many of them nobody has put a name to yet.</summary>
         public int Unidentified
         {

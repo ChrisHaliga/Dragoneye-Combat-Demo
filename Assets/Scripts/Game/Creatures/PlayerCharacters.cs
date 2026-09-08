@@ -580,25 +580,5 @@ namespace Dragoneye.Game.Creatures
 
             m_Builds.Add(build);
         }
-
-        /// <summary>
-        /// Server only. Drops a slot's character, for a player who left.
-        /// </summary>
-        public void ServerRemove(byte slot)
-        {
-            if (!IsServer)
-            {
-                return;
-            }
-
-            for (var i = 0; i < m_Builds.Count; i++)
-            {
-                if (m_Builds[i].Slot == slot)
-                {
-                    m_Builds.RemoveAt(i);
-                    return;
-                }
-            }
-        }
     }
 }

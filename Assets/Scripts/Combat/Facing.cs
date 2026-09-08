@@ -37,8 +37,6 @@ namespace Dragoneye.Combat
 
         public Facing Opposite => Of(Index + (Count / 2));
 
-        public Facing Turned(int steps) => Of(Index + steps);
-
         public bool Equals(Facing other) => Index == other.Index;
 
         public override bool Equals(object obj) => obj is Facing other && Equals(other);

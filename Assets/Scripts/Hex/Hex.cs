@@ -39,6 +39,7 @@ namespace Dragoneye.Hex
             new Hex(-1, 1)   // NorthWest
         };
 
+        /// <summary>The step a direction takes, as a hex to add.</summary>
         public static Hex Offset(HexDirection direction) => k_Directions[(int)direction];
 
         /// <summary>
@@ -104,8 +105,6 @@ namespace Dragoneye.Hex
             var ds = Math.Abs(a.S - b.S);
             return (dq + dr + ds) / 2;
         }
-
-        public int DistanceTo(Hex other) => Distance(this, other);
 
         /// <summary>
         /// The hexes exactly <paramref name="radius"/> steps from <paramref name="center"/>.

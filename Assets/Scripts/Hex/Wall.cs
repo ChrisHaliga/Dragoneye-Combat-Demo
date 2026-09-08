@@ -40,8 +40,6 @@ namespace Dragoneye.Hex
 
         public bool BlocksSight => (Flags & WallFlags.BlocksSight) != 0;
 
-        public bool Breakable => Integrity > 0;
-
         public bool Equals(Wall other) => Flags == other.Flags && Integrity == other.Integrity;
 
         public override bool Equals(object obj) => obj is Wall other && Equals(other);

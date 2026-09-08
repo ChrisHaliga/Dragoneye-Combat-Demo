@@ -137,7 +137,5 @@ namespace Dragoneye.Combat
 
         /// <summary>Element points this character has to spend, and what is left of them.</summary>
         public int PoolBudget() => Progression.PoolBudget(Level);
-
-        public int PoolRemaining() => ElementPricing.Remaining(StartingPool, PoolBudget());
     }
 }

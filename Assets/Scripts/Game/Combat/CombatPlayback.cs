@@ -64,9 +64,6 @@ namespace Dragoneye.Game.Combat
         /// <summary>Whether everything the fight has said has been shown.</summary>
         public bool IsCaughtUp => m_Queue.Count == 0 && !m_Busy;
 
-        /// <summary>How many events are waiting to be shown.</summary>
-        public int Pending => m_Queue.Count;
-
         /// <summary>One, or the fast-forward multiple while the key is held.</summary>
         public float Speed { get; private set; } = 1f;
 

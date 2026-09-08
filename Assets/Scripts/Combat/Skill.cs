@@ -53,9 +53,6 @@ namespace Dragoneye.Combat
     /// </summary>
     public readonly struct Aim
     {
-        /// <summary>Never rolls.</summary>
-        public static readonly Aim Sure = default;
-
         /// <summary>Percent chance to hit at one tile. Zero means it does not roll.</summary>
         public readonly int Accuracy;
 

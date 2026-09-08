@@ -235,9 +235,6 @@ namespace Dragoneye.Combat
         /// it is the thing experience changes -- see <see cref="Progression"/>.
         /// </summary>
         public int StartingLevel { get; }
-
-        /// <summary>Where a fresh character starts: every attribute at the floor.</summary>
-        public AttributeBlock StartingAttributes => AttributeBlock.Uniform(PointBuy.Floor);
     }
 
     /// <summary>

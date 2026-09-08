@@ -226,17 +226,6 @@ namespace Dragoneye.Scenarios
             mover.Facing = facing;
         }
 
-        /// <summary>
-        /// Whether the actor still holds what a skill costs. The fight refuses an order it cannot
-        /// pay for before any dice are rolled, so a script that might have spent its element
-        /// answering a clash asks this first and skips the order the fight would skip.
-        /// </summary>
-        public bool CanPay(string key, int skillId)
-        {
-            var skill = m_World.SkillOf(key, skillId);
-            return skill != null && SkillRules.TryChooseElement(skill, m_Fighters[key].Ledger, out _);
-        }
-
         /// <summary>A skill used on an actor, or on the user, from where the user stands.</summary>
         public AttackForecast Use(string key, int skillId, string targetKey, Element? element = null)
         {

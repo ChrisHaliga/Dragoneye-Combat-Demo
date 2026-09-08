@@ -51,8 +51,6 @@ namespace Dragoneye.Game
 
         public ArenaMap Map => m_Map;
 
-        public CameraRig Rig => m_Rig;
-
         public CameraRigInput RigInput => m_RigInput;
 
         public Camera OutputCamera => m_OutputCamera;

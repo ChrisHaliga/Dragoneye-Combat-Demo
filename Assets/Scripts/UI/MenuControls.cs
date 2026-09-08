@@ -14,40 +14,13 @@ namespace Dragoneye.UI
     /// </summary>
     public static class MenuControls
     {
-        public static Label Heading(string text) => Styled(new Label(text), "section-heading");
-
         public static Label FieldLabel(string text) => Styled(new Label(text), "field-label");
 
         public static Label Note(string text) => Styled(new Label(text), "setting-note");
 
-        /// <summary>A label-and-value line, for read-only numbers.</summary>
-        public static VisualElement ReadoutRow(string label, string value)
-        {
-            var row = Styled(new VisualElement(), "resolved-row");
-            row.Add(Styled(new Label(label), "resolved-row__label"));
-            row.Add(Styled(new Label(value), "resolved-row__value"));
-            return row;
-        }
-
         /// <summary>A square nudge button, for stepping a number up or down.</summary>
         public static Button StepButton(string text, Action onClick) =>
             Styled(new Button(onClick) { text = text }, "step-button");
-
-        /// <summary>A button with one or more space-separated USS classes.</summary>
-        public static Button TextButton(string text, string classes, Action onClick)
-        {
-            var button = new Button(onClick) { text = text };
-
-            foreach (var name in classes.Split(' '))
-            {
-                if (name.Length > 0)
-                {
-                    button.AddToClassList(name);
-                }
-            }
-
-            return button;
-        }
 
         /// <summary>
         /// The letter shown when there is no portrait.

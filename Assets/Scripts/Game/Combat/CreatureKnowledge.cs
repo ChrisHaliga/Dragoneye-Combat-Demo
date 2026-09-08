@@ -60,38 +60,6 @@ namespace Dragoneye.Game.Combat
             return pool != null ? PossibleElements.Seen(pool.Ledger) : PossibleElements.None;
         }
 
-        /// <summary>
-        /// The elements of every contested skill this creature has been watched using.
-        ///
-        /// Only contested ones: a skill it used on itself tells you what it is holding, but it is
-        /// not something that can arrive as an attack, and counting it would widen the guess with
-        /// an element the creature can never throw at you.
-        /// </summary>
-        public static List<Element> RevealedAttackElements(CreatureState creature)
-        {
-            var elements = new List<Element>();
-            var commands = creature != null ? creature.SkillCommands : null;
-            var catalog = SkillCatalog.Current;
-
-            if (commands == null || catalog == null)
-            {
-                return elements;
-            }
-
-            foreach (var id in commands.SeenSkillIds)
-            {
-                if (catalog.TryGetSkill(id, out var skill)
-                    && skill.IsContested
-                    && skill.ElementCost > 0
-                    && !elements.Contains(skill.Element))
-                {
-                    elements.Add(skill.Element);
-                }
-            }
-
-            return elements;
-        }
-
         /// <summary>How an attack with this element is expected to go against this defender.</summary>
         public static ClashOdds Forecast(Element attacking, CreatureState defender) =>
             ClashForecast.Attacking(attacking, PossibleAnswers(defender), ElementMatchups.Table);

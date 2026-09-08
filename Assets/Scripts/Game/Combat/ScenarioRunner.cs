@@ -62,8 +62,6 @@ namespace Dragoneye.Game.Combat
 
         public Scenario Scenario => m_Scenario;
 
-        public bool IsRunning => m_Scenario != null && !m_Finished;
-
         public ScenarioResult Result { get; private set; }
 
         /// <summary>

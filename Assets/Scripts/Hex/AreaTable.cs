@@ -32,9 +32,6 @@ namespace Dragoneye.Hex
         /// <summary>Which area a wedge belongs to, or <see cref="Dead"/> for a sliver nobody can stand in.</summary>
         public byte AreaOf(int wedge) => m_AreaOfWedge[TileGeometry.Wrap(wedge)];
 
-        /// <summary>Whether a wedge is part of somewhere a creature can stand.</summary>
-        public bool IsFooting(int wedge) => AreaOf(wedge) != Dead;
-
         /// <summary>Whether a wedge belongs to an area.</summary>
         public bool Contains(int wedge, byte area) => AreaOf(wedge) == area;
 

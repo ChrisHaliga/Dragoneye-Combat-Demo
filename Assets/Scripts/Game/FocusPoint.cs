@@ -67,8 +67,6 @@ namespace Dragoneye.Game
             ApplyBounds();
         }
 
-        public void ClearBounds() => m_HasBounds = false;
-
         /// <summary>
         /// Continuous movement from a held control, relative to the given yaw so "up" always means
         /// away from the camera. Time-scaled, because the input is a sustained direction.

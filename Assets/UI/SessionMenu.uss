@@ -255,16 +255,6 @@
     margin-bottom: 4px;
 }
 
-/* Kept for the settings note and anything else that used the old name. */
-.section-heading {
-    font-size: 11px;
-    -unity-font-style: bold;
-    letter-spacing: 3px;
-    color: rgb(198, 158, 88);
-    margin-top: 18px;
-    margin-bottom: 10px;
-}
-
 /* ---------- buttons ---------- */
 
 .btn {
@@ -1128,23 +1118,6 @@
 }
 
 /* ---------- readouts and skills ---------- */
-
-.resolved-row {
-    flex-direction: row;
-    justify-content: space-between;
-    padding: 3px 0;
-}
-
-.resolved-row__label {
-    font-size: 12px;
-    color: rgb(139, 147, 165);
-}
-
-.resolved-row__value {
-    font-size: 12px;
-    -unity-font-style: bold;
-    color: rgb(220, 224, 234);
-}
 
 /* Name and price on one line, what it does under them. A column, because the description is a
    sentence and a sentence does not belong on the end of a row. */

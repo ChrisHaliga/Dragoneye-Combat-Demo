@@ -33,12 +33,6 @@ namespace Dragoneye.Hex
         /// <summary>Integer units per tile radius. A million is exact enough and never overflows a long.</summary>
         public const long Scale = 1000000;
 
-        /// <summary>Degrees clockwise from North that ray <paramref name="ray"/> points along.</summary>
-        public static int AngleOf(int ray) => 30 * Wrap(ray);
-
-        /// <summary>Whether a ray reaches an edge midpoint (even) rather than a corner (odd).</summary>
-        public static bool ReachesMidpoint(int ray) => (Wrap(ray) & 1) == 0;
-
         /// <summary>The direction whose edge this half-edge is part of.</summary>
         public static HexDirection EdgeOf(int halfEdge) =>
             (HexDirection)(((Wrap(halfEdge) + 1) / 2) % 6);
