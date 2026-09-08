@@ -498,44 +498,6 @@
     flex-grow: 1;
 }
 
-.end-turn {
-    height: 40px;
-    margin-left: 12px;
-    padding: 0 18px;
-    border-width: 2px;
-    border-color: rgba(0, 0, 0, 0);
-    font-size: 13px;
-    -unity-font-style: bold;
-    letter-spacing: 3px;
-    color: rgb(220, 224, 234);
-    background-color: rgba(0, 0, 0, 0);
-    background-image: url("../Art/UI/ui-button.png");
-    -unity-slice-left: 22;
-    -unity-slice-right: 22;
-    -unity-slice-top: 22;
-    -unity-slice-bottom: 22;
-    -unity-slice-scale: 0.5;
-    border-width: 0;
-}
-
-.end-turn:hover {
-    background-image: url("../Art/UI/ui-button-hot.png");
-    color: rgb(245, 247, 252);
-}
-
-/* Prompts, never forces: the turn still only ends on a click. Nothing left to spend puts a gold
-   outline on the button and blinks it; the words stay the words. */
-.end-turn--spent {
-    border-color: rgba(226, 191, 122, 0.45);
-    transition-property: border-color, scale;
-    transition-duration: 0.5s, 0.12s;
-    transition-timing-function: ease-in-out;
-}
-
-.end-turn--spent.end-turn--pulse {
-    border-color: rgb(226, 191, 122);
-}
-
 /* ---------- floating notes ---------- */
 
 .floating-layer {
@@ -1027,6 +989,41 @@
 
 .button:disabled {
     opacity: 0.4;
+}
+
+/* ---------- end turn ----------
+ *
+ * After `.button`, and that is the whole of why this section is here rather than up with the rest
+ * of the footer. The button carries both classes and they are one class deep apiece, so USS breaks
+ * the tie on which is written last: declared first, every one of these would lose to the shared
+ * rule above and the button would be styled by the base it was meant to specialise.
+ */
+.end-turn {
+    width: 132px;
+
+    /* Reserved, not drawn. The prompt below fills it in, and a border that only appeared when the
+       prompt did would nudge the words as it arrived -- the width and height are fixed and USS
+       measures the border inside them, so keeping it here costs nothing and moves nothing. */
+    border-width: 2px;
+    border-color: rgba(0, 0, 0, 0);
+}
+
+.end-turn:hover {
+    background-image: url("../Art/UI/ui-button-hot.png");
+    color: rgb(245, 247, 252);
+}
+
+/* Prompts, never forces: the turn still only ends on a click. Nothing left to spend puts a gold
+   outline on the button and blinks it; the words stay the words. */
+.end-turn--spent {
+    border-color: rgba(226, 191, 122, 0.45);
+    transition-property: border-color, scale;
+    transition-duration: 0.5s, 0.12s;
+    transition-timing-function: ease-in-out;
+}
+
+.end-turn--spent.end-turn--pulse {
+    border-color: rgb(226, 191, 122);
 }
 
 /* The answer the panel expects: the ember frame, with light text on it, the same as the menu. */
@@ -1791,11 +1788,22 @@
 
 /* ==================================================================== the vitals cluster
  *
- * Points over health, and the button that ends the turn beside it. The gutter on the left is the
- * width of that button, which is what keeps the bar itself centred on the screen rather than
- * centred on what is left of the screen.
+ * Points over health, and the button that ends the turn beside it. The bar is the thing a player
+ * looks at, so it is centred on the screen rather than on what is left of the screen once the
+ * button has had its share.
+ *
+ * Centred by construction. The row is a spacer, the bar, and a second spacer holding the button,
+ * and the two spacers are equal flexible halves of whatever the bar leaves over -- so the bar is
+ * in the middle whatever the button turns out to be.
+ *
+ * It used to be centred by measurement: the left spacer was given the button's width plus its
+ * margin, as a number. That is a promise about a value written three rules away, and it was
+ * already wrong. The button carries `class="button end-turn"`, `.button` is declared further down
+ * this same file, both are one class deep -- so `.button`'s 8px margin quietly won over the 12px
+ * the spacer had been matched against, and the bar sat two pixels right of centre.
  */
 .vitals {
+    width: 100%;
     align-items: center;
     margin-bottom: 4px;
 }
@@ -1803,13 +1811,21 @@
 .vitals__row {
     flex-direction: row;
     align-items: center;
+    width: 100%;
 }
 
-/* The width of the button on the other side, its margin included. The bar between them is only
-   centred on the screen if the space either side of it is equal, and End Turn carries a margin
-   that the gutter has to match or the bar sits half of it to the left. */
-.vitals__gutter {
-    width: 144px;
+/* Equal halves of what the bar leaves. min-width lets them give way rather than push the bar off
+   a narrow screen; the button slot lets what is in it keep its own width instead of stretching to
+   fill the half, so End Turn sits against the bar rather than drifting away from it. */
+.vitals__gutter,
+.vitals__button-slot {
+    flex-grow: 1;
+    flex-basis: 0;
+    min-width: 0;
+}
+
+.vitals__button-slot {
+    align-items: flex-start;
 }
 
 .own-vitals {
@@ -1854,10 +1870,6 @@
     width: 420px;
     justify-content: center;
     margin-bottom: 2px;
-}
-
-.end-turn {
-    width: 132px;
 }
 
 /* Whose turn it is, over the bar, small and permanent. */

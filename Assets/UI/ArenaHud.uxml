@@ -36,7 +36,9 @@
                             <ui:Label name="own-health-text" text="" class="own-health__text" />
                         </ui:VisualElement>
                     </ui:VisualElement>
-                    <ui:Button name="end-turn-button" text="End Turn" class="button end-turn" />
+                    <ui:VisualElement class="vitals__button-slot">
+                        <ui:Button name="end-turn-button" text="End Turn" class="button end-turn" />
+                    </ui:VisualElement>
                 </ui:VisualElement>
             </ui:VisualElement>
 
