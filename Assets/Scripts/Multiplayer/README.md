@@ -146,9 +146,10 @@ glance which menus are real tooling and which are disposable scaffolding.
 
 The steps that generated the three scenes above have been deleted, per that convention: their
 output is committed, and re-running them after the scenes were hand-edited would overwrite that
-work. What remains under `Assets/Editor` is the set that is still idempotent and still worth
-re-running, and `ClaudeCode/Set Up Everything` runs all of it in dependency order. Anything else
-under that root is disposable and named for its job — run it once, delete it, commit.
+work. What remains under `Assets/Editor` is the set still worth re-running, and each has its own
+menu entry named for what it does — there is no catch-all that runs all of them, because the only
+reason to run one is that you want that one. Anything under that root is disposable and named for
+its job — run it once, delete it, commit.
 
 ## Characters
 

@@ -30,8 +30,14 @@ namespace Dragoneye.MultiplayerEditor
         const string k_TerrainFolder = "Assets/Settings/Hex";
         const string k_ArenaScene = "Assets/Scenes/Arena.unity";
 
+        [MenuItem("ClaudeCode/Build The Arena Map")]
         internal static void Run()
         {
+            if (!UnityEditor.SceneManagement.EditorSceneManager.SaveCurrentModifiedScenesIfUserWantsTo())
+            {
+                return;
+            }
+
             var map = AuthorTerrainAndMap();
 
             if (map == null)

@@ -22,6 +22,7 @@ namespace Dragoneye.MultiplayerEditor
         const string k_FocusPrefab = "Assets/NGO_Minimal_Setup/PlayerFocus.prefab";
 
         /// <summary>Runs the whole step. Called by <see cref="SetUpEverything"/>.</summary>
+        [MenuItem("ClaudeCode/Wire The Arena Visuals")]
         internal static void Run()
         {
             var contents = PrefabUtility.LoadPrefabContents(k_FocusPrefab);

@@ -174,5 +174,4 @@ The step that created the terrain, map and material assets and dropped a hex map
 scene has been deleted: it was spent once it had run and its output is committed. Arena wiring that
 is still worth re-running lives in `AuditRewireSetup`, `ArenaVisualsSetup` and `ArenaMapSetup` (the
 three terrains, the Ruins map, the wall material, the wall renderer, the cutaway and the reach
-overlay), all driven by `ClaudeCode/Set Up Everything`. `MapChoicesSetup` is a disposable one: it
-authors the water terrain into an existing project and is deleted once it has run.
+overlay), each with its own menu entry under `ClaudeCode/`.

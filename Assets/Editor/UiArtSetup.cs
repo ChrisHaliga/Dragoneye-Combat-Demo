@@ -59,6 +59,7 @@ namespace Dragoneye.MultiplayerEditor
         static readonly Color32 k_EmberLow = new Color32(142, 58, 24, 255);
 
         /// <summary>Runs the whole step. Called directly by the master setup.</summary>
+        [MenuItem("ClaudeCode/Import The UI Art")]
         internal static void Run()
         {
             EnsureFolder();

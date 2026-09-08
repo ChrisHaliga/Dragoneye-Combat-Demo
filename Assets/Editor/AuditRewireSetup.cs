@@ -19,8 +19,14 @@ namespace Dragoneye.MultiplayerEditor
         const string k_ArenaScene = "Assets/Scenes/Arena.unity";
 
         /// <summary>Runs the whole step. Called directly by the master setup.</summary>
+        [MenuItem("ClaudeCode/Wire The Arena Scene")]
         internal static void Run()
         {
+            if (!UnityEditor.SceneManagement.EditorSceneManager.SaveCurrentModifiedScenesIfUserWantsTo())
+            {
+                return;
+            }
+
 
             var scene = EditorSceneManager.OpenScene(k_ArenaScene, OpenSceneMode.Single);
 

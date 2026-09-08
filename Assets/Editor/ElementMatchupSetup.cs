@@ -38,6 +38,7 @@ namespace Dragoneye.MultiplayerEditor
 
         static readonly Element[] k_Opposed = { Element.Lux, Element.Nyx };
 
+        [MenuItem("ClaudeCode/Author The Element Matchups")]
         internal static void Run()
         {
             var beats = new List<(Element Winner, Element Loser)>

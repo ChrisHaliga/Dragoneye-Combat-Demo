@@ -21,8 +21,14 @@ namespace Dragoneye.MultiplayerEditor
         const string k_MenuDocument = "SessionMenu";
 
         /// <summary>Runs the whole step. Called directly by the master setup.</summary>
+        [MenuItem("ClaudeCode/Wire The Main Menu")]
         internal static void Run()
         {
+            if (!UnityEditor.SceneManagement.EditorSceneManager.SaveCurrentModifiedScenesIfUserWantsTo())
+            {
+                return;
+            }
+
 
             var scene = EditorSceneManager.OpenScene(k_MenuScene, OpenSceneMode.Single);
 

@@ -26,8 +26,14 @@ namespace Dragoneye.MultiplayerEditor
         const string k_PauseDocument = "Assets/UI/PauseMenu.uxml";
 
         /// <summary>Runs the whole step. Called directly by the master setup.</summary>
+        [MenuItem("ClaudeCode/Wire The Turn System")]
         internal static void Run()
         {
+            if (!UnityEditor.SceneManagement.EditorSceneManager.SaveCurrentModifiedScenesIfUserWantsTo())
+            {
+                return;
+            }
+
 
             if (!SetUpMatchPrefab() || !SetUpUnitPrefab())
             {

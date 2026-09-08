@@ -12,18 +12,25 @@ using Dragoneye.Game.Creatures;
 namespace Dragoneye.MultiplayerEditor
 {
     /// <summary>
-    /// Creates a starter set of species, classes, weapons and armour, collects them into a catalog,
-    /// and hands that catalog to the menu.
+    /// Writes the starter set of species, classes, weapons, armour and premades that a fresh
+    /// clone needs, and adds anything missing to the catalog.
     ///
-    /// Content, not code: everything written here is an ordinary asset a designer can edit
-    /// afterwards. It exists so a fresh clone has something to build a character out of, not because
-    /// the game needs these particular seven classes.
+    /// **It only ever creates. It never touches an asset that already exists.** Everything it
+    /// writes is content -- ordinary assets meant to be opened in the Inspector and tuned -- and
+    /// a step that rewrote them on every run would quietly undo an afternoon's balancing and give
+    /// back the numbers in this file. That is what it used to do. An asset on disk is yours; this
+    /// will not argue with it, and the log says how many it left alone.
     ///
-    /// Safe to re-run. Existing assets are updated in place rather than duplicated, so re-running
-    /// after adding a class keeps the ids and the edits already made to the others.
+    /// So the way to change existing content is the Inspector, not this file. What belongs here is
+    /// the *starting* set: new content added to the code appears on the next run, alongside
+    /// whatever is already there.
     /// </summary>
     static class CharacterContentSetup
     {
+        /// <summary>How many assets this run made, and how many it found already there.</summary>
+        static int s_Created;
+        static int s_Kept;
+
         const string k_Folder = "Assets/Settings/Characters";
         const string k_CatalogPath = k_Folder + "/ContentCatalog.asset";
 
@@ -39,9 +46,23 @@ namespace Dragoneye.MultiplayerEditor
         const string k_MenuScene = "Assets/Scenes/MainMenu.unity";
         const string k_MatchPrefab = "Assets/NGO_Minimal_Setup/DraftState.prefab";
 
-        /// <summary>Runs the whole step. Called directly by the master setup.</summary>
+        /// <summary>
+        /// Seeds whatever content is missing and leaves the rest alone.
+        ///
+        /// Opens the menu scene at the end, so it saves what is open first: a step that discards
+        /// unsaved work is worse than a step nobody ran.
+        /// </summary>
+        [MenuItem("ClaudeCode/Seed Missing Character Content")]
         internal static void Run()
         {
+            if (!EditorSceneManager.SaveCurrentModifiedScenesIfUserWantsTo())
+            {
+                return;
+            }
+
+            s_Created = 0;
+            s_Kept = 0;
+
             var catalog = BuildContent();
 
             if (catalog == null)
@@ -53,6 +74,10 @@ namespace Dragoneye.MultiplayerEditor
             // another scene afterwards would discard that.
             WireMatchPrefab(catalog);
             WireMenu(catalog);
+
+            Debug.Log(s_Created == 0
+                ? $"Content is complete: {s_Kept} assets were already there and none was touched."
+                : $"Seeded {s_Created} new assets. The {s_Kept} already on disk were left alone.");
         }
 
         static ContentCatalog BuildContent()
@@ -445,20 +470,27 @@ namespace Dragoneye.MultiplayerEditor
             CreatureCatalogAll();
         }
 
-        /// <summary>Writes a premade in full. Species and class references stay as authored.</summary>
+        /// <summary>
+        /// Writes a premade, if there is not one at that path already.
+        ///
+        /// A premade is the most tuned thing in the project -- health, pool, level, the three
+        /// skills it fights with -- so an existing one is left exactly as it is. This used to
+        /// rewrite all twelve on every run, which meant every number a designer changed lasted
+        /// until the next time somebody seeded content.
+        /// </summary>
         static void Creature(string id, string portrait, int level, int hp, int ap, int speed,
             int armour, bool shielded, ElementValues pool, Element buys, params SkillAsset[] skills)
         {
             var path = $"{k_SpeciesFolder}/{id}.asset";
-            var asset = AssetDatabase.LoadAssetAtPath<CreatureDefinition>(path);
+            var asset = Seed<CreatureDefinition>(path, out var created);
 
-            if (asset == null)
+            if (!created)
             {
-                Debug.LogWarning($"No creature at {path}; it was not authored.");
                 return;
             }
 
             var serialized = new SerializedObject(asset);
+            serialized.FindProperty("m_Id").stringValue = id;
 
             var sprite = LoadPortrait($"{k_PortraitFolder}/{portrait}.jpg");
 
@@ -555,7 +587,7 @@ namespace Dragoneye.MultiplayerEditor
             creatures.Sort((a, b) => string.CompareOrdinal(a.Id, b.Id));
 
             var serialized = new SerializedObject(catalog);
-            WriteList(serialized.FindProperty("m_Creatures"), creatures);
+            AddMissing(serialized.FindProperty("m_Creatures"), creatures);
             serialized.ApplyModifiedPropertiesWithoutUndo();
             EditorUtility.SetDirty(catalog);
         }
@@ -623,19 +655,26 @@ namespace Dragoneye.MultiplayerEditor
         }
 
         /// <summary>
-        /// Loads the asset at a path or creates it, so re-running updates rather than duplicates.
+        /// The asset at a path, and whether this call is what brought it into being.
+        ///
+        /// Every caller writes fields only when <paramref name="created"/> is true. An asset that
+        /// was already there is handed back exactly as it is found -- see the note on the class
+        /// for why that matters more than it sounds like it does.
         /// </summary>
-        static T Upsert<T>(string path) where T : ScriptableObject
+        static T Seed<T>(string path, out bool created) where T : ScriptableObject
         {
             var asset = AssetDatabase.LoadAssetAtPath<T>(path);
+            created = asset == null;
 
-            if (asset != null)
+            if (!created)
             {
+                s_Kept++;
                 return asset;
             }
 
             asset = ScriptableObject.CreateInstance<T>();
             AssetDatabase.CreateAsset(asset, path);
+            s_Created++;
             return asset;
         }
 
@@ -674,7 +713,13 @@ namespace Dragoneye.MultiplayerEditor
             IReadOnlyList<Element> options = null, Attribute? scaling = null,
             int accuracy = 0, int falloff = 0)
         {
-            var asset = Upsert<SkillAsset>($"{k_Folder}/Skill{Sanitise(name)}.asset");
+            var asset = Seed<SkillAsset>($"{k_Folder}/Skill{Sanitise(name)}.asset", out var created);
+
+            if (!created)
+            {
+                return asset;
+            }
+
             var serialized = new SerializedObject(asset);
 
             serialized.FindProperty("m_Id").intValue = id;
@@ -756,7 +801,13 @@ namespace Dragoneye.MultiplayerEditor
             bool grantsAdvantage = false, bool twoHanded = false,
             AttributeValues modifiers = default)
         {
-            var asset = Upsert<EquipmentAsset>($"{k_Folder}/{Sanitise(name)}.asset");
+            var asset = Seed<EquipmentAsset>($"{k_Folder}/{Sanitise(name)}.asset", out var created);
+
+            if (!created)
+            {
+                return asset;
+            }
+
             var serialized = new SerializedObject(asset);
 
             serialized.FindProperty("m_Id").intValue = id;
@@ -786,7 +837,14 @@ namespace Dragoneye.MultiplayerEditor
         static SpeciesDefinition Species(int id, string name, AttributeValues baseline,
             string description, int baseAp, params SkillAsset[] skills)
         {
-            var asset = Upsert<SpeciesDefinition>($"{k_SpeciesFolder}/Species_{Sanitise(name)}.asset");
+            var asset = Seed<SpeciesDefinition>($"{k_SpeciesFolder}/Species_{Sanitise(name)}.asset",
+                out var created);
+
+            if (!created)
+            {
+                return asset;
+            }
+
             var serialized = new SerializedObject(asset);
 
             serialized.FindProperty("m_Id").intValue = id;
@@ -806,7 +864,13 @@ namespace Dragoneye.MultiplayerEditor
         static ClassAsset Class(int id, string name, string description,
             IReadOnlyList<EquipmentAsset> weapons, IReadOnlyList<SkillAsset> skills)
         {
-            var asset = Upsert<ClassAsset>($"{k_Folder}/{Sanitise(name)}.asset");
+            var asset = Seed<ClassAsset>($"{k_Folder}/{Sanitise(name)}.asset", out var created);
+
+            if (!created)
+            {
+                return asset;
+            }
+
             var serialized = new SerializedObject(asset);
 
             serialized.FindProperty("m_Id").intValue = id;
@@ -827,19 +891,27 @@ namespace Dragoneye.MultiplayerEditor
             IReadOnlyList<ClassAsset> classes, IReadOnlyList<EquipmentAsset> equipment,
             IReadOnlyList<SkillAsset> skills)
         {
-            var asset = Upsert<ContentCatalog>(k_CatalogPath);
+            var asset = Seed<ContentCatalog>(k_CatalogPath, out var created);
             var serialized = new SerializedObject(asset);
 
-            WriteList(serialized.FindProperty("m_Species"), species);
-            WriteList(serialized.FindProperty("m_Classes"), classes);
-            WriteList(serialized.FindProperty("m_Equipment"), equipment);
-            WriteList(serialized.FindProperty("m_Skills"), skills);
+            // Added to, never rewritten. Anything already listed keeps its place -- including
+            // content authored by hand that this file has never heard of -- and anything seeded
+            // this run goes on the end.
+            AddMissing(serialized.FindProperty("m_Species"), species);
+            AddMissing(serialized.FindProperty("m_Classes"), classes);
+            AddMissing(serialized.FindProperty("m_Equipment"), equipment);
+            AddMissing(serialized.FindProperty("m_Skills"), skills);
 
-            // Twenty points, every attribute starting at one and each step costing the attribute's
-            // current value. Deliberately tight: a budget that covers everything is not a choice.
-            serialized.FindProperty("m_PointBudget").intValue = 27;
-            serialized.FindProperty("m_MaxPerAttribute").intValue = 8;
-            serialized.FindProperty("m_StartingLevel").intValue = 1;
+            if (created)
+            {
+                // Twenty-seven points, every attribute starting at one and each step costing the
+                // attribute's current value. Deliberately tight: a budget that covers everything
+                // is not a choice. Written once, at creation -- retuning the budget is exactly the
+                // kind of thing done in the Inspector and expected to stay done.
+                serialized.FindProperty("m_PointBudget").intValue = 27;
+                serialized.FindProperty("m_MaxPerAttribute").intValue = 8;
+                serialized.FindProperty("m_StartingLevel").intValue = 1;
+            }
 
             serialized.ApplyModifiedPropertiesWithoutUndo();
 
@@ -848,8 +920,8 @@ namespace Dragoneye.MultiplayerEditor
 
             AssetDatabase.SaveAssets();
             AssetDatabase.Refresh();
-            Debug.Log($"Character content ready: {species.Count} species, {classes.Count} classes, "
-                + $"{equipment.Count} items, {skills.Count} skills, catalog at {k_CatalogPath}.");
+            Debug.Log($"Catalog at {k_CatalogPath} lists {species.Count} species, "
+                + $"{classes.Count} classes, {equipment.Count} items, {skills.Count} skills.");
 
             return asset;
         }
@@ -873,6 +945,44 @@ namespace Dragoneye.MultiplayerEditor
             for (var i = 0; i < items.Count; i++)
             {
                 list.GetArrayElementAtIndex(i).objectReferenceValue = items[i];
+            }
+        }
+
+        /// <summary>
+        /// Appends whatever is not in the list already, keeping what is there and its order.
+        ///
+        /// For the two catalogs, which are indexes rather than content: an entry a designer added
+        /// or reordered survives, an entry whose asset was deleted is dropped as the null it has
+        /// become, and anything seeded this run is on the end where it can be found.
+        /// </summary>
+        static void AddMissing<T>(SerializedProperty list, IReadOnlyList<T> items)
+            where T : Object
+        {
+            var kept = new List<Object>();
+
+            for (var i = 0; i < list.arraySize; i++)
+            {
+                var existing = list.GetArrayElementAtIndex(i).objectReferenceValue;
+
+                if (existing != null && !kept.Contains(existing))
+                {
+                    kept.Add(existing);
+                }
+            }
+
+            foreach (var item in items)
+            {
+                if (item != null && !kept.Contains(item))
+                {
+                    kept.Add(item);
+                }
+            }
+
+            list.arraySize = kept.Count;
+
+            for (var i = 0; i < kept.Count; i++)
+            {
+                list.GetArrayElementAtIndex(i).objectReferenceValue = kept[i];
             }
         }
 
@@ -952,6 +1062,14 @@ namespace Dragoneye.MultiplayerEditor
                 Debug.LogError($"{target.GetType().Name} has no field '{path}'; "
                     + "it was renamed or removed.", target);
                 return false;
+            }
+
+            // Only where nothing is pointed at yet. A field already filled in was filled in by
+            // somebody, and a project deliberately running a second catalog is not a mistake to
+            // correct on their behalf.
+            if (property.objectReferenceValue != null)
+            {
+                return true;
             }
 
             property.objectReferenceValue = value;

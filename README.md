@@ -25,12 +25,14 @@ their own subjects:
 verification harness is that one.
 
 1. Open the project.
-2. Run **ClaudeCode → Set Up Everything**.
-3. Press Play. You will already be on **Bootstrap**, which is where the menu expects to start from.
+2. On a **fresh clone only**, run **ClaudeCode → Seed Missing Character Content**. It writes the
+   species, classes, equipment, skills and premades that are not on disk yet, and touches nothing
+   that is.
+3. Open **Bootstrap** and press Play. The menu expects to start from there.
 
-Step 2 is not optional on a fresh clone, and it is safe to repeat. It is idempotent — running it on
-an already-configured project re-saves the same scenes and rewrites the same assets. When something
-is missing and you cannot see why, run it.
+Nothing else needs running. The scenes are wired and committed; the steps that wired them are still
+under `Assets/Editor` with a menu entry each, named for the job they do, for when a scene has to be
+rebuilt.
 
 ### The scenes
 
@@ -44,8 +46,7 @@ runtime with a message that points nowhere useful.
 | 2 | **Arena** | Camera, light, ground, the hex map, the HUD. |
 
 Playing from MainMenu or Arena directly *appears* to work and then fails at the first thing that
-needs the persistent objects, because they only exist in Bootstrap. That is why Set Up Everything
-leaves you on Bootstrap when it finishes.
+needs the persistent objects, because they only exist in Bootstrap. Start from Bootstrap.
 
 ---
 
@@ -164,19 +165,33 @@ interface over a three-line list.
 Every asset carries a **hand-assigned integer id**. Ids cross the network and get written into saved
 characters, so they are permanent once content ships.
 
-### One editor menu
+### Every editor step is named for its job, and none of them overwrites your work
 
-`ClaudeCode → Set Up Everything` is the one `[MenuItem]` that stays, deliberately. The steps live
-in separate files under `Assets/Editor` because each was written for one change, but none of them
-is ever the right one to run alone. Six menu entries only ever raised the question of which were
-stale.
+There is no catch-all. `ClaudeCode → Set Up Everything` used to run ten steps in dependency order,
+which meant the only way to import a portrait was to also rewire three scenes and rewrite every
+piece of content in the project. Each step now has its own entry saying what it does:
 
-A change that needs the editor once — a new asset, a dead component to strip from a scene — ships
-as a **named, disposable automation** under the same menu root, named for the job it does. Run it
-once, delete its file, commit. **One is waiting now:** `ClaudeCode → Author The Map Choices` writes
-the water terrain, binds it into the arena's palette and strips the dead flourish component from
-the arena, then wants `Assets/Editor/MapChoicesSetup.cs` deleted. A fresh clone does not need it;
-Set Up Everything does the same authoring.
+| Menu | Does |
+|---|---|
+| Seed Missing Character Content | Writes the species, classes, equipment, skills and premades that are not on disk |
+| Import The UI Art | Slices and imports the interface art |
+| Import The Portraits | Imports the portrait folder as sprites and rebuilds the library |
+| Import The Element Icons | Imports the element runes |
+| Author The Element Matchups | Writes the matchup table asset |
+| Wire The Arena Scene / Visuals / Turn System | Rebuilds the Arena scene's components and references |
+| Build The Arena Map | Writes the terrains, the maps and the wall material |
+| Wire The Main Menu | Points the menu at its documents and its catalog |
+
+**A step never touches an asset that already exists.** Seeding creates what is missing and reports
+how many it left alone; the two catalogs are added to and never rewritten; a reference that is
+already pointed at something is left pointed at it. This is not politeness. The content step used to
+rewrite all twelve premades and every skill on every run, so any number tuned in the Inspector
+lasted exactly until the next time somebody ran setup, and the guide had no honest answer to "how
+do I change a creature".
+
+A change that needs the editor once — a new asset, a dead component to strip from a scene — still
+ships as a **named, disposable automation** under the same menu root. Run it once, delete its file,
+commit. None is waiting.
 
 **A setup step that has done its job gets deleted.** Its output is committed; re-running it after
 the scenes have been hand-edited would overwrite that work.
