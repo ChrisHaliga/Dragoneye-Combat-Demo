@@ -980,7 +980,7 @@ namespace Dragoneye.Multiplayer
                     var next = PointBuy.CostToRaise(value);
                     var capped = value >= rules.MaxPerAttribute;
 
-                    cost.text = capped ? "MAX" : $"NEXT {next}";
+                    cost.text = capped ? "MAX" : $"COST {next}";
                     cost.EnableInClassList("alloc-row__cost--dear", !capped && next > remaining);
                     cost.tooltip = capped
                         ? $"{AttributeInfo.NameOf(stat)} cannot go above {rules.MaxPerAttribute}."

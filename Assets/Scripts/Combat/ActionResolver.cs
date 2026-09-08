@@ -25,6 +25,15 @@ namespace Dragoneye.Combat
         NoTarget,
         Unreachable,
 
+        /// <summary>
+        /// Nothing there to stand on: a boulder, deep water, the ground a wall was built out of.
+        ///
+        /// Told apart from <see cref="Unreachable"/> because the two are different problems. No
+        /// route means walk further or go round; this means never, and a player who reads "no
+        /// route" at a boulder goes looking for the way round it.
+        /// </summary>
+        Impassable,
+
         /// <summary>Somebody is standing there. Clicking reads their card; a skill has to be armed.</summary>
         Occupied,
 
@@ -109,8 +118,12 @@ namespace Dragoneye.Combat
         /// when the hex is occupied. A count of tiles, not a price -- pricing is this method.
         /// </param>
         /// <param name="stepCost">What one tile costs this creature. Its armour's to say.</param>
+        /// <param name="targetStandable">
+        /// Whether the ground could be stood on at all, walls and terrain considered. False for a
+        /// boulder, which is a different answer from "there is no route to it".
+        /// </param>
         public static ActionPlan Resolve(bool isActorsTurn, bool controlsActor, Ap currentAp,
-            bool targetOccupied, int moveSteps, Ap stepCost)
+            bool targetOccupied, int moveSteps, Ap stepCost, bool targetStandable = true)
         {
             if (!controlsActor)
             {
@@ -127,6 +140,11 @@ namespace Dragoneye.Combat
                 // Nothing to price. Reaching somebody is a skill's job, and which skill is a
                 // decision the player makes on the bar before they click the board.
                 return new ActionPlan(BoardAction.None, Ap.Zero, ActionRefusal.Occupied);
+            }
+
+            if (!targetStandable)
+            {
+                return new ActionPlan(BoardAction.None, Ap.Zero, ActionRefusal.Impassable);
             }
 
             return ResolveMove(currentAp, moveSteps, stepCost);

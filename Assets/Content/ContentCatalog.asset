@@ -72,6 +72,10 @@ MonoBehaviour:
   - {fileID: 11400000, guid: 19df20f0bf9914a4f8b6aa162b4e951b, type: 2}
   - {fileID: 11400000, guid: b1661daf8a99f9f4bbd2a7f4d8ced19d, type: 2}
   - {fileID: 11400000, guid: 597bcabd5e70fe34ab9b37e0c47ea0ac, type: 2}
+  - {fileID: 11400000, guid: 79e6ba61d817f3f489a5297ec84db13d, type: 2}
+  - {fileID: 11400000, guid: db401d68e8e01664c899f43085296b35, type: 2}
+  - {fileID: 11400000, guid: c2e089dd8cfc08841bc2f8c64add57d3, type: 2}
+  - {fileID: 11400000, guid: 85c6740f433c40148b14d90dcc7e3dd1, type: 2}
   m_Portraits: {fileID: 11400000, guid: 6633950f887b0bb43a52ee5680e98291, type: 2}
   m_ElementIcons: {fileID: 11400000, guid: ae43c083302147146a111869a9e8eea8, type: 2}
   m_ElementMatchups: {fileID: 11400000, guid: 28427c1ad5d4ad9499a4328fa2d7b3ff, type: 2}

@@ -466,6 +466,7 @@ namespace Dragoneye.Game.Combat
             }
 
             var occupied = m_Units.TryGet(hex, out _);
+            var grid = m_Map != null ? m_Map.Grid : null;
 
             return ActionResolver.Resolve(
                 isActorsTurn: true,
@@ -473,7 +474,8 @@ namespace Dragoneye.Game.Combat
                 currentAp: actor.CurrentAp,
                 targetOccupied: occupied,
                 moveSteps: occupied ? -1 : m_Board.CostTo(actor.Cell, hex),
-                stepCost: actor.StepCost);
+                stepCost: actor.StepCost,
+                targetStandable: grid == null || grid.IsWalkable(hex));
         }
 
         /// <summary>

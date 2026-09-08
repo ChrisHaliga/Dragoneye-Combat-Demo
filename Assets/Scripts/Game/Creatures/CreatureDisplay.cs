@@ -203,10 +203,48 @@ namespace Dragoneye.Game.Creatures
                 column.Add(row);
             }
 
+            DrawSpent(column, pool);
+
             if (column.childCount > 0)
             {
                 into.Add(column);
             }
+        }
+
+        /// <summary>
+        /// What this creature has spent and not got back, oldest first, under what it still holds.
+        ///
+        /// Public information -- everybody watched it leave the hand -- and it is the half a
+        /// player was having to reconstruct from memory. The order is the point: Take a Breath
+        /// returns the one spent longest ago, so which element comes back next is read off the
+        /// left of this row rather than guessed at.
+        ///
+        /// Kept apart from the hand by being greyed and unnumbered: one rune per element spent,
+        /// because two of the same spent at different times come back at different times.
+        /// </summary>
+        static void DrawSpent(VisualElement column, CreaturePool pool)
+        {
+            var spent = pool.Outstanding;
+
+            if (spent.Count == 0)
+            {
+                return;
+            }
+
+            var row = new VisualElement();
+            row.AddToClassList("portrait__spent");
+            row.pickingMode = PickingMode.Ignore;
+
+            foreach (var element in spent)
+            {
+                var rune = new VisualElement();
+                rune.AddToClassList("portrait__rune");
+                rune.AddToClassList("portrait__rune--spent");
+                CharacterSheet.PaintElement(rune, element);
+                row.Add(rune);
+            }
+
+            column.Add(row);
         }
 
         /// <summary>

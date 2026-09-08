@@ -856,7 +856,7 @@
     font-size: 9px;
     -unity-font-style: bold;
     letter-spacing: 1px;
-    color: rgb(139, 147, 165);
+    color: rgb(198, 158, 88);
 }
 
 .alloc-row__cost--dear {

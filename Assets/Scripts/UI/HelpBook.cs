@@ -193,9 +193,6 @@ namespace Dragoneye.UI
             into.Add(Bullet("As the defender, a win means no damage and you keep the element."));
             into.Add(Bullet("A tie means no damage, but the element is gone."));
             into.Add(Bullet("A loss means you take the hit and the element is gone."));
-            into.Add(Bullet(
-                "As the attacker, only a win lands the blow. A tie stops it as completely as a "
-                + "loss does, and your element is spent whichever way it goes."));
 
             into.Add(Section("ADVANTAGE AND FLANKING"));
             into.Add(Text(

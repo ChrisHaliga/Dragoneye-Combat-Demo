@@ -84,8 +84,17 @@ namespace Dragoneye.Game.Combat
                 return NeutralColour;
             }
 
-            // The defender's side reads it backwards from the attacker's: an attack that lands is
-            // the attacker's good day and the defender's bad one.
+            // A tie is its own news and gets its own colour, on either side of the attack. Green
+            // and red are for a clash somebody won: reading a tie as a win because no damage
+            // landed hides that both elements are gone, which is the part a player has to notice
+            // before the hand they were counting on is empty.
+            if (outcome == ClashOutcome.Tie)
+            {
+                return TieColour;
+            }
+
+            // Otherwise the defender's side reads it backwards from the attacker's: an attack that
+            // lands is the attacker's good day and the defender's bad one.
             var good = side == LogSide.Attacker ? Landed(outcome) : !Landed(outcome);
 
             return good ? WinColour : LoseColour;

@@ -23,11 +23,15 @@ namespace Dragoneye.Game.Combat
                 case ActionRefusal.Unreachable:
                     return "No route";
 
-                // Nothing to say. Hovering a creature, empty space you already occupy, or the board
-                // during someone else's turn should leave the cursor clean rather than explaining
-                // itself -- and reaching a creature is now a skill's job, offered on the bar.
-                case ActionRefusal.NotYours:
+                case ActionRefusal.Impassable:
+                    return "Nothing to stand on";
+
                 case ActionRefusal.Occupied:
+                    return "Somebody is standing there";
+
+                // Nothing to say. Empty space you already occupy, or the board during someone
+                // else's turn, should leave the cursor clean rather than explain itself.
+                case ActionRefusal.NotYours:
                 case ActionRefusal.NoTarget:
                     return string.Empty;
 
@@ -62,6 +66,7 @@ namespace Dragoneye.Game.Combat
                 case ActionRefusal.NotYours: return "Not yours to command";
                 case ActionRefusal.NoTarget: return "Nothing there to aim at";
                 case ActionRefusal.Unreachable: return "No route there";
+                case ActionRefusal.Impassable: return "Nothing to stand on there";
                 case ActionRefusal.Occupied: return "Somebody is standing there";
                 case ActionRefusal.TooExpensive: return "Not enough action points";
                 case ActionRefusal.Waiting: return "Waiting on an answer";

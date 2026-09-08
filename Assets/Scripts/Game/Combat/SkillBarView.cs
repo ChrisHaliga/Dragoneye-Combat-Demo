@@ -481,28 +481,34 @@ namespace Dragoneye.Game.Combat
             Use(skill, null);
         }
 
+        /// <summary>
+        /// Arms a skill. Every skill, including the ones aimed at the user.
+        ///
+        /// A self skill used to fire the moment its slot was clicked, which made it the one action
+        /// in the game with no second step: a move asks for a tile, an attack asks for a target,
+        /// and catching your breath simply happened. That is a turn spent by accident waiting to
+        /// occur, and it also meant the one action whose cost nobody ever read, because the cursor
+        /// is where costs are shown and the cursor was never involved.
+        ///
+        /// So it arms like anything else and the board takes the confirming click, on the creature
+        /// itself. <see cref="BoardActionInput"/> puts the camera on the actor when that happens,
+        /// because a skill aimed at somebody off screen cannot be confirmed by clicking them.
+        /// </summary>
         void Use(SkillSpec skill, Element? element)
         {
             m_Choosing = NoSkill;
 
-            if (skill.Target != SkillTarget.Self)
+            var same = m_Selected == skill.Id;
+            m_Selected = same ? NoSkill : skill.Id;
+            m_SelectedElement = same ? null : element;
+
+            // A skill aimed at the user is confirmed by clicking the user, so the user has to be
+            // on screen. Nothing else about arming moves the camera; this does, because the thing
+            // that has to be clicked next is a specific creature and it may be nowhere in view.
+            if (!same && skill.Target == SkillTarget.Self && m_Input.Actor != null)
             {
-                var same = m_Selected == skill.Id;
-                m_Selected = same ? NoSkill : skill.Id;
-                m_SelectedElement = same ? null : element;
-                return;
+                TurnCameraFocus.Current?.LookAt(m_Input.Actor);
             }
-
-            var actor = m_Input.Actor;
-            var commands = actor != null ? actor.SkillCommands : null;
-
-            if (commands != null)
-            {
-                commands.RequestUse(skill.Id, actor.Cell, element);
-            }
-
-            m_Selected = NoSkill;
-            m_SelectedElement = null;
         }
 
         void ToggleMove() => m_Selected = m_Selected == MoveSkill ? NoSkill : MoveSkill;

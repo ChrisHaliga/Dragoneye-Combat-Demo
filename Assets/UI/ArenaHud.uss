@@ -117,6 +117,22 @@
     margin-bottom: 2px;
 }
 
+/* The graveyard: what this creature has spent and not got back, oldest on the left. Public
+   information, and the order is what Take a Breath returns them in. Laid across rather than
+   down, because it is a queue and reads as one. */
+.portrait__spent {
+    flex-direction: row;
+    align-items: center;
+    margin-top: 2px;
+    opacity: 0.45;
+}
+
+.portrait__rune--spent {
+    width: 8px;
+    height: 8px;
+    margin-left: 2px;
+}
+
 .portrait__rune {
     width: 12px;
     height: 12px;

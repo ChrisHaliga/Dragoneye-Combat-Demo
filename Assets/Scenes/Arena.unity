@@ -1077,7 +1077,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Dragoneye.Game::Dragoneye.Game.CombatDirector
   m_Creatures: {fileID: 261654061}
-  m_Units: {fileID: 261654057}
   m_Map: {fileID: 1461267523}
   m_Seed: 0
 --- !u!114 &261654064

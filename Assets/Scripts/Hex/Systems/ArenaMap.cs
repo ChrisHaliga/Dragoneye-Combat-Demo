@@ -207,7 +207,12 @@ namespace Dragoneye.Hex.Systems
 
             var local = Shown.Layout.ToWorld(cell.Tile);
 
-            if (cell.Area != 0 && Shown.TryGetTile(cell.Tile, out var tile))
+            // Every area, including the first. Skipping area zero drew a creature standing in the
+            // first piece of a split tile at the tile's centre instead -- which on a tile cut by
+            // rays is across the wall, in the other piece. It read as walking through the wall,
+            // and the rules never agreed: AreaGeometry.Position, which decides bearings and lines
+            // of sight, has always offset area zero like any other.
+            if (Shown.TryGetTile(cell.Tile, out var tile))
             {
                 AreaGeometry.Centre(tile.Areas, cell.Area, out var x, out var z);
                 var scale = Shown.Layout.Size / TileGeometry.Scale;

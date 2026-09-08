@@ -133,6 +133,13 @@ namespace Dragoneye.Game.Combat
 
                     break;
 
+                // The board warns a mover that a swing is coming. When it does not come, the one
+                // who held off says so over their own head -- the log has the line too, but the
+                // player is watching the two creatures, not the log.
+                case CombatEventKind.HeldBack:
+                    OnNotice(e.Actor, "Lets them pass", NoticeTone.Gain, NoticeMark.None);
+                    break;
+
                 case CombatEventKind.Fell:
                     if (e.Amount > 0 && e.Target != 0)
                     {

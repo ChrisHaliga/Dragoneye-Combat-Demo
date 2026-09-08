@@ -17,11 +17,11 @@ MonoBehaviour:
   m_DefaultTerrain: grass
   m_Palette:
   - Name: grass
-    Terrain: {fileID: 11400000, guid: 9830a486e55c1d743ba2351cff1fd106, type: 2}
+    Terrain: {fileID: 11400000, guid: 71a0445c8682d8a48b1384a257fcc92b, type: 2}
   - Name: stone
-    Terrain: {fileID: 11400000, guid: e813c741acfc9c344ba02c2d90e06eac, type: 2}
+    Terrain: {fileID: 11400000, guid: c30ce9b81d8e71446bb883e00585639e, type: 2}
   - Name: water
-    Terrain: {fileID: 11400000, guid: 36975dbfba2da0d4a87729aacd2b0089, type: 2}
+    Terrain: {fileID: 11400000, guid: 59dc1b45aa57c9445917bf512f3ba0f4, type: 2}
   m_Tiles:
   - Q: 3
     R: -3
