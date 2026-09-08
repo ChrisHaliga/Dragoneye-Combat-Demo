@@ -170,8 +170,8 @@ editor step writes: the door is the only way in, and sealing it leaves the room 
 
 ## Editor scaffolding
 
-The step that created the terrain, map and material assets and dropped a hex map into the Arena
-scene has been deleted: it was spent once it had run and its output is committed. Arena wiring that
-is still worth re-running lives in `AuditRewireSetup`, `ArenaVisualsSetup` and `ArenaMapSetup` (the
-three terrains, the Ruins map, the wall material, the wall renderer, the cutaway and the reach
-overlay), each with its own menu entry under `ClaudeCode/`.
+The steps that created the terrain, map and material assets, dropped a hex map into the Arena
+scene and wired the wall renderer, the cutaway and the reach overlay have all been deleted. They
+were spent once they had run and their output is committed, so the only thing re-running them
+could do now is undo an edit. The three terrains and the Ruins map are assets under `Assets/Maps`;
+the Arena scene holds the rest.

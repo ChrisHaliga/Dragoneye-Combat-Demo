@@ -10,7 +10,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 5b5afe3455a6b4544881d36f2a1ccd7d, type: 3}
-  m_Name: guard-archer
+  m_Name: GuardArcher
   m_EditorClassIdentifier: Dragoneye.Game::Dragoneye.Game.CreatureDefinition
   m_Id: guard-archer
   m_DisplayName: Watch Archer

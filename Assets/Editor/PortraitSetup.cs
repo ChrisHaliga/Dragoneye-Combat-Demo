@@ -46,7 +46,8 @@ namespace Dragoneye.MultiplayerEditor
         /// -- which is the path that matters, because it means adding a portrait is dropping a file
         /// in and nothing else.
         /// </summary>
-        [MenuItem("ClaudeCode/Import The Portraits")]
+        // No menu entry. The importer runs this when the portrait folder changes, which is the
+        // only moment it is ever the right thing to do.
         internal static void Run()
         {
             if (IsRebuilding)

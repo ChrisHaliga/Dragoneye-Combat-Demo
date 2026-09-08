@@ -141,15 +141,15 @@ a test across the internet.
 
 ## Editor tooling
 
-One-off editor automation belongs under a **`ClaudeCode/`** menu root, so it is obvious at a
-glance which menus are real tooling and which are disposable scaffolding.
+One-off editor automation belongs under a **`ClaudeCode/`** menu root, named for the job it does,
+and it is deleted once it has run. Its output is committed; re-running it after the scenes or the
+content were edited by hand could only undo that work.
 
-The steps that generated the three scenes above have been deleted, per that convention: their
-output is committed, and re-running them after the scenes were hand-edited would overwrite that
-work. What remains under `Assets/Editor` is the set still worth re-running, and each has its own
-menu entry named for what it does — there is no catch-all that runs all of them, because the only
-reason to run one is that you want that one. Anything under that root is disposable and named for
-its job — run it once, delete it, commit.
+Every step that built this project has now been through that cycle, so the menu holds one entry,
+and it is not a step: `Check The Content Is Wired` reads the content and reports what is wrong with
+it. `Assets/Editor` also holds the art importer and the two rebuilds it calls when the portrait or
+element folders change. Those have no menu entry, because the import is the only moment either is
+the right thing to do.
 
 ## Characters
 

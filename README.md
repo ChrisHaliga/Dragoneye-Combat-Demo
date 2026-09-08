@@ -25,14 +25,9 @@ their own subjects:
 verification harness is that one.
 
 1. Open the project.
-2. On a **fresh clone only**, run **ClaudeCode → Seed Missing Character Content**. It writes the
-   species, classes, equipment, skills and premades that are not on disk yet, and touches nothing
-   that is.
-3. Open **Bootstrap** and press Play. The menu expects to start from there.
+2. Open **Bootstrap** and press Play. The menu expects to start from there.
 
-Nothing else needs running. The scenes are wired and committed; the steps that wired them are still
-under `Assets/Editor` with a menu entry each, named for the job they do, for when a scene has to be
-rebuilt.
+Nothing needs running. The scenes are wired, the content is authored, and both are committed.
 
 ### The scenes
 
@@ -195,36 +190,24 @@ interface over a three-line list.
 Every asset carries a **hand-assigned integer id**. Ids cross the network and get written into saved
 characters, so they are permanent once content ships.
 
-### Every editor step is named for its job, and none of them overwrites your work
+### There is one editor menu item, and it is a check
 
-Each step has its own entry saying what it does, and one entry runs them all:
+`ClaudeCode → Check The Content Is Wired`. It reports an asset in the wrong folder, a file named
+against the convention, an item filed away from its slot, two assets claiming one id, and an asset
+that cannot name the script it is an instance of. It repairs one thing only, a catalog that has
+fallen behind what is on disk, because that is the only one of them that is not a decision.
 
-| Menu | Does |
-|---|---|
-| **Run Every Setup Step In Order** | All of the below, in dependency order, then the audit |
-| Seed Missing Character Content | Writes the species, classes, equipment, skills and premades that are not on disk |
-| Import The UI Art | Slices and imports the interface art |
-| Import The Portraits | Imports the portrait folder as sprites and rebuilds the library |
-| Import The Element Icons | Imports the element runes |
-| Author The Element Matchups | Writes the matchup table asset |
-| Wire The Arena Scene / Visuals / Turn System | Rebuilds the Arena scene's components and references |
-| Build The Arena Map | Writes the terrains, the maps and the wall material |
-| Wire The Main Menu | Points the menu at its documents and its catalog |
-| Check The Content Is Wired | Audits the layout, the names, the ids and the catalogs |
+That last check is the one worth having. Unity only creates a script object for a type whose file
+is named after it, and an asset of a type without one is written with no script reference at all.
+The editor covers for that and a build does not, so seven classes and eleven items once loaded
+perfectly in the editor and came out null in a player, and the only symptom was a character creator
+that said no classes were authored. Nothing else in the project catches that.
 
-The aggregate is back, and the reason it was thrown out is worth stating: it was never that
-running the steps together is wrong. It is the only sensible way to bring up a fresh clone or to
-put a project back after a scene has been mangled. It was that the content step it ran **rewrote
-every asset in the project from code**, so the only way to import a portrait was to also discard
-every number anybody had tuned. That is fixed at the source rather than by refusing to have a
-button.
-
-**A step never touches an asset that already exists.** Seeding creates what is missing and reports
-how many it left alone; the two catalogs are added to and never rewritten; a reference that is
-already pointed at something is left pointed at it. This is not politeness. The content step used to
-rewrite all twelve premades and every skill on every run, so any number tuned in the Inspector
-lasted exactly until the next time somebody ran setup, and the guide had no honest answer to "how
-do I change a creature".
+Everything else that used to be under this menu has gone. Eleven setup steps wired the three scenes
+and authored the starting content; that work is committed, so re-running them could only ever undo
+an edit. Two of them survive as code without a menu entry, because the art importer calls them
+when the portrait or element folders change, which is the only moment either is the right thing to
+do.
 
 A change that needs the editor once — a new asset, a dead component to strip from a scene — still
 ships as a **named, disposable automation** under the same menu root. Run it once, delete its file,

@@ -41,7 +41,8 @@ namespace Dragoneye.MultiplayerEditor
         /// changes -- which is the path that matters, because it means replacing a rune is
         /// replacing a file and nothing else.
         /// </summary>
-        [MenuItem("ClaudeCode/Import The Element Icons")]
+        // No menu entry. The importer runs this when the element art changes, which is the
+        // only moment it is ever the right thing to do.
         internal static void Run()
         {
             if (IsRebuilding)
