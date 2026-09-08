@@ -129,6 +129,85 @@ namespace Dragoneye.Game.Creatures
             return slots;
         }
 
+        /// <summary>
+        /// The sides that would walk onto the board with nobody on them, and so want a premade or
+        /// three dealt to them.
+        ///
+        /// A side counts as manned by either kind of fighter, because the arena places both: a
+        /// creature drafted onto the roster, or a character a player built and brought. Asking
+        /// only about the roster is what once dealt three premades onto each side of a
+        /// one-against-one where both players had brought a character -- the roster was empty, so
+        /// by that reading both sides were.
+        ///
+        /// There are always at least two sides in the answer's input. A host alone on the heroes
+        /// has to be fighting somebody.
+        /// </summary>
+        /// <param name="chosen">The side each player slot picked, in slot order.</param>
+        /// <param name="broughtCharacter">The slots that are bringing a built character.</param>
+        public static List<Party> PartiesNeedingSeed(IReadOnlyList<RosterEntry> roster,
+            IReadOnlyList<PartyChoice> chosen, IReadOnlyList<byte> broughtCharacter)
+        {
+            var sides = new List<Party>();
+
+            if (chosen != null)
+            {
+                foreach (var choice in chosen)
+                {
+                    if (!sides.Contains(choice.Party))
+                    {
+                        sides.Add(choice.Party);
+                    }
+                }
+            }
+
+            if (!sides.Contains(Party.Heroes))
+            {
+                sides.Insert(0, Party.Heroes);
+            }
+
+            if (sides.Count < 2)
+            {
+                sides.Add(Party.Monsters);
+            }
+
+            var empty = new List<Party>();
+
+            foreach (var side in sides)
+            {
+                if (!HasFighters(roster, chosen, broughtCharacter, side))
+                {
+                    empty.Add(side);
+                }
+            }
+
+            return empty;
+        }
+
+        /// <summary>Whether anybody at all walks onto the board on this side.</summary>
+        public static bool HasFighters(IReadOnlyList<RosterEntry> roster,
+            IReadOnlyList<PartyChoice> chosen, IReadOnlyList<byte> broughtCharacter, Party party)
+        {
+            if (CreatureCountIn(roster, party) > 0)
+            {
+                return true;
+            }
+
+            if (broughtCharacter == null)
+            {
+                return false;
+            }
+
+            foreach (var slot in broughtCharacter)
+            {
+                if (TryGetParty(chosen, slot, out var side) && side == party)
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
         public static int CreatureCountIn(IReadOnlyList<RosterEntry> roster, Party party)
         {
             var count = 0;

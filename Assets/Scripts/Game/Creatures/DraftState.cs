@@ -498,7 +498,7 @@ namespace Dragoneye.Game.Creatures
             }
 
             AssignMissingParties(playerSlots);
-            SeedIfEmpty(perParty);
+            SeedEmptyParties(perParty);
             ClaimUpToCaps();
         }
 
@@ -526,38 +526,42 @@ namespace Dragoneye.Game.Creatures
         }
 
         /// <summary>
-        /// Deals a starting roster, but only into a draft nobody has touched. A hand-built roster is
-        /// the host's decision and must not be added to behind their back.
+        /// Deals a starting roster into any side that would otherwise walk onto the board empty.
+        ///
+        /// Which sides those are is <see cref="DraftQueries.PartiesNeedingSeed"/>'s decision, so
+        /// it can be asked the awkward questions without a network session: two players with a
+        /// character each, a host alone, a side somebody joined and left. This gathers what it
+        /// needs and deals what it says.
         /// </summary>
-        void SeedIfEmpty(int perParty)
+        void SeedEmptyParties(int perParty)
         {
-            if (m_Roster.Count > 0 || m_Catalog == null || m_Catalog.Count == 0 || perParty <= 0)
+            if (m_Catalog == null || m_Catalog.Count == 0 || perParty <= 0)
             {
                 return;
             }
 
-            var parties = new List<Party>();
+            var roster = Snapshot();
+            var chosen = new List<PartyChoice>();
+
             for (var i = 0; i < m_PartyChoices.Count; i++)
             {
-                if (!parties.Contains(m_PartyChoices[i].Party))
+                chosen.Add(m_PartyChoices[i]);
+            }
+
+            var brought = new List<byte>();
+            var characters = PlayerCharacters.Current;
+
+            if (characters != null)
+            {
+                foreach (var build in characters.All)
                 {
-                    parties.Add(m_PartyChoices[i].Party);
+                    brought.Add(build.Slot);
                 }
             }
 
-            // Always at least two sides. A solo host all on Heroes would otherwise face nobody.
-            if (!parties.Contains(Party.Heroes))
-            {
-                parties.Insert(0, Party.Heroes);
-            }
-
-            if (parties.Count < 2)
-            {
-                parties.Add(Party.Monsters);
-            }
-
             var next = 0;
-            foreach (var party in parties)
+
+            foreach (var party in DraftQueries.PartiesNeedingSeed(roster, chosen, brought))
             {
                 for (var i = 0; i < perParty; i++)
                 {
