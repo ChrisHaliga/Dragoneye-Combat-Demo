@@ -253,6 +253,7 @@ namespace Dragoneye.Game.Combat
                     active ? Color.white : tint;
 
             CreatureDisplay.DrawPortrait(root, creature, "turn-portrait__initial");
+            CreatureDisplay.ShowElementsOnHover(root, creature, columns: 2, placement: "rune-grid--below");
             CreatureDisplay.DrawVitals(root, creature, numbers: active);
 
             if (active)

@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using Dragoneye.Combat;
 using Dragoneye.Data;
 using Dragoneye.UI;
@@ -203,8 +204,6 @@ namespace Dragoneye.Game.Creatures
                 column.Add(row);
             }
 
-            DrawSpent(column, pool);
-
             if (column.childCount > 0)
             {
                 into.Add(column);
@@ -212,39 +211,130 @@ namespace Dragoneye.Game.Creatures
         }
 
         /// <summary>
-        /// What this creature has spent and not got back, oldest first, under what it still holds.
+        /// Everything known about a creature's elements, laid out in a grid, for a hover.
         ///
-        /// Public information -- everybody watched it leave the hand -- and it is the half a
-        /// player was having to reconstruct from memory. The order is the point: Take a Breath
-        /// returns the one spent longest ago, so which element comes back next is read off the
-        /// left of this row rather than guessed at.
+        /// **On hover rather than always.** Seven elements will not fit beside a portrait, and the
+        /// four or five that did fit made the column a wall of runes that told you nothing at a
+        /// glance. Asked for, they are worth the room; unasked, the face is the thing.
         ///
-        /// Kept apart from the hand by being greyed and unnumbered: one rune per element spent,
-        /// because two of the same spent at different times come back at different times.
+        /// What is shown is what this viewer is entitled to know. Their own creature shows its
+        /// hand exactly. Somebody else's shows only what has been proven, plus one last cell
+        /// holding a question mark and the number of elements nobody has put a name to yet -- so
+        /// the unknown is a number on the screen rather than something to be inferred.
         /// </summary>
-        static void DrawSpent(VisualElement column, CreaturePool pool)
+        /// <param name="columns">How many runes to a row. The last row takes whatever is left.</param>
+        public static VisualElement ElementGrid(CreatureState creature, int columns)
         {
-            var spent = pool.Outstanding;
+            var grid = new VisualElement();
+            grid.AddToClassList("rune-grid");
+            grid.pickingMode = PickingMode.Ignore;
 
-            if (spent.Count == 0)
+            var pool = creature.Pool;
+
+            if (pool == null)
             {
-                return;
+                return grid;
             }
 
-            var row = new VisualElement();
-            row.AddToClassList("portrait__spent");
-            row.pickingMode = PickingMode.Ignore;
+            var mine = LocalPlayer.Controls(creature);
+            var held = mine ? pool.Pool : PossibleElements.Seen(pool.Ledger).Known;
+            var unknown = mine ? 0 : pool.Unidentified;
 
-            foreach (var element in spent)
+            var cells = new List<VisualElement>();
+
+            foreach (var element in ElementInfo.All)
             {
-                var rune = new VisualElement();
-                rune.AddToClassList("portrait__rune");
-                rune.AddToClassList("portrait__rune--spent");
-                CharacterSheet.PaintElement(rune, element);
-                row.Add(rune);
+                var count = held[element];
+
+                if (count > 0)
+                {
+                    cells.Add(RuneCell(element, count.ToString()));
+                }
             }
 
-            column.Add(row);
+            if (unknown > 0)
+            {
+                cells.Add(UnknownCell(unknown));
+            }
+
+            for (var i = 0; i < cells.Count; i += columns)
+            {
+                var row = new VisualElement();
+                row.AddToClassList("rune-grid__row");
+
+                for (var j = i; j < i + columns && j < cells.Count; j++)
+                {
+                    row.Add(cells[j]);
+                }
+
+                grid.Add(row);
+            }
+
+            return grid;
+        }
+
+        static VisualElement RuneCell(Element element, string count)
+        {
+            var cell = new VisualElement();
+            cell.AddToClassList("rune-grid__cell");
+
+            var rune = new VisualElement();
+            rune.AddToClassList("portrait__rune");
+            CharacterSheet.PaintElement(rune, element);
+            cell.Add(rune);
+
+            var label = new Label(count);
+            label.AddToClassList("portrait__count");
+            cell.Add(label);
+
+            return cell;
+        }
+
+        /// <summary>The elements nobody has put a name to, as one cell rather than seven guesses.</summary>
+        static VisualElement UnknownCell(int count)
+        {
+            var cell = new VisualElement();
+            cell.AddToClassList("rune-grid__cell");
+
+            var mark = new Label("?");
+            mark.AddToClassList("rune-grid__unknown");
+            cell.Add(mark);
+
+            var label = new Label(count.ToString());
+            label.AddToClassList("portrait__count");
+            cell.Add(label);
+
+            return cell;
+        }
+
+        /// <summary>
+        /// Shows the grid beside a portrait while the pointer is on it, and takes it away after.
+        ///
+        /// Built on entry rather than kept and hidden, because what it says changes every time an
+        /// element is spent and a panel that is only correct when it was built is worse than none.
+        /// </summary>
+        public static void ShowElementsOnHover(VisualElement portrait, CreatureState creature,
+            int columns, string placement)
+        {
+            VisualElement shown = null;
+
+            portrait.RegisterCallback<PointerEnterEvent>(_ =>
+            {
+                if (shown != null)
+                {
+                    return;
+                }
+
+                shown = ElementGrid(creature, columns);
+                shown.AddToClassList(placement);
+                portrait.Add(shown);
+            });
+
+            portrait.RegisterCallback<PointerLeaveEvent>(_ =>
+            {
+                shown?.RemoveFromHierarchy();
+                shown = null;
+            });
         }
 
         /// <summary>

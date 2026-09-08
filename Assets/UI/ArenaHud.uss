@@ -117,20 +117,51 @@
     margin-bottom: 2px;
 }
 
-/* The graveyard: what this creature has spent and not got back, oldest on the left. Public
-   information, and the order is what Take a Breath returns them in. Laid across rather than
-   down, because it is a queue and reads as one. */
-.portrait__spent {
-    flex-direction: row;
-    align-items: center;
-    margin-top: 2px;
-    opacity: 0.45;
+/* Everything known about a creature's elements, on hover. Absolute, so it hangs off the portrait
+   without shoving the column around, and pointer-transparent, so hovering it is still hovering the
+   portrait underneath and it does not flicker itself out of existence. */
+.rune-grid {
+    position: absolute;
+    padding: 5px 6px;
+    background-color: rgba(8, 9, 13, 0.94);
+    border-width: 1px;
+    border-color: rgb(58, 66, 82);
+    border-radius: 4px;
 }
 
-.portrait__rune--spent {
-    width: 8px;
-    height: 8px;
-    margin-left: 2px;
+.rune-grid--right {
+    left: 100%;
+    top: 2px;
+    margin-left: 6px;
+}
+
+.rune-grid--below {
+    left: 50%;
+    top: 100%;
+    margin-left: -34px;
+    margin-top: 4px;
+}
+
+.rune-grid__row {
+    flex-direction: row;
+    align-items: center;
+}
+
+.rune-grid__cell {
+    flex-direction: row;
+    align-items: center;
+    margin: 1px 4px 1px 0;
+    min-width: 26px;
+}
+
+/* What nobody has put a name to yet. One cell with a count, rather than seven guesses. */
+.rune-grid__unknown {
+    width: 12px;
+    height: 12px;
+    font-size: 11px;
+    -unity-font-style: bold;
+    color: rgb(139, 147, 165);
+    -unity-text-align: middle-center;
 }
 
 .portrait__rune {
@@ -2104,4 +2135,44 @@
     font-size: 12px;
     -unity-font-style: bold;
     color: rgb(232, 226, 212);
+}
+
+/* What a skill is, above its slot, while the pointer is on it. Absolute and pointer-transparent:
+   it hangs over the board rather than pushing the bar around, and hovering it is still hovering
+   the slot, so it does not flicker itself away. */
+.slot-hint {
+    position: absolute;
+    bottom: 100%;
+    left: 50%;
+    margin-left: -110px;
+    margin-bottom: 8px;
+    width: 220px;
+    padding: 8px 10px;
+    background-color: rgba(8, 9, 13, 0.96);
+    border-width: 1px;
+    border-color: rgb(58, 66, 82);
+    border-radius: 4px;
+}
+
+.slot-hint__name {
+    font-size: 13px;
+    -unity-font-style: bold;
+    color: rgb(236, 231, 219);
+    white-space: normal;
+}
+
+.slot-hint__cost {
+    font-size: 11px;
+    -unity-font-style: bold;
+    letter-spacing: 1px;
+    color: rgb(198, 158, 88);
+    margin-top: 2px;
+    white-space: normal;
+}
+
+.slot-hint__text {
+    font-size: 11px;
+    color: rgb(169, 176, 190);
+    margin-top: 5px;
+    white-space: normal;
 }

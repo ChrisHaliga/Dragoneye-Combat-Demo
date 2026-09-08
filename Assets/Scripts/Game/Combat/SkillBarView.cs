@@ -610,6 +610,13 @@ namespace Dragoneye.Game.Combat
                 + "\n\nRight-click to inspect."
                 : $"{skill.Name}\n{SkillLabels.Describe(refusal)}\n\nRight-click to inspect.";
 
+            // Drawn rather than left to the engine's tooltip. The string above is the same one and
+            // it was already there -- but a runtime tooltip waits on a hover timer, and a
+            // playtester reported not knowing what any skill did. A hint that only appears if you
+            // hold still long enough is a hint most players never see.
+            Hint(slot, skill.Name, usable ? PlainCost(skill) : SkillLabels.Describe(refusal),
+                usable ? CharacterSheet.Describe(skill) : string.Empty);
+
             // Greyed rather than disabled. A disabled button never sees the pointer, so an
             // unusable slot could neither name itself nor be read -- which is exactly when a
             // player most wants to know what it is and why they cannot have it.
@@ -628,6 +635,57 @@ namespace Dragoneye.Game.Combat
             });
 
             return slot;
+        }
+
+        /// <summary>
+        /// Puts a card above a slot while the pointer is on it: what the skill is, what it costs,
+        /// and what it does.
+        ///
+        /// Built on entry and thrown away on exit, so it cannot go stale, and pointer-transparent
+        /// so hovering the card is still hovering the slot underneath -- otherwise it would
+        /// flicker itself out of existence the moment it appeared under the cursor.
+        /// </summary>
+        static void Hint(VisualElement slot, string name, string cost, string description)
+        {
+            VisualElement shown = null;
+
+            slot.RegisterCallback<PointerEnterEvent>(_ =>
+            {
+                if (shown != null)
+                {
+                    return;
+                }
+
+                shown = new VisualElement();
+                shown.AddToClassList("slot-hint");
+                shown.pickingMode = PickingMode.Ignore;
+
+                var title = new Label(name);
+                title.AddToClassList("slot-hint__name");
+                shown.Add(title);
+
+                if (!string.IsNullOrEmpty(cost))
+                {
+                    var line = new Label(cost);
+                    line.AddToClassList("slot-hint__cost");
+                    shown.Add(line);
+                }
+
+                if (!string.IsNullOrEmpty(description))
+                {
+                    var text = new Label(description);
+                    text.AddToClassList("slot-hint__text");
+                    shown.Add(text);
+                }
+
+                slot.Add(shown);
+            });
+
+            slot.RegisterCallback<PointerLeaveEvent>(_ =>
+            {
+                shown?.RemoveFromHierarchy();
+                shown = null;
+            });
         }
 
         /// <summary>A slot with nothing in it: the frame, the key, and what will go there.</summary>
