@@ -139,8 +139,17 @@ namespace Dragoneye.Sim
                     return new BrainPlan(BrainState.Recovering, recovery, actor.Id);
                 }
 
-                // Nothing to spend and nothing to get back. Walking would only put it somewhere else
-                // with the same problem, but somewhere else is at least where the fight is.
+                // Nothing to spend and nothing to get back, and no hex on the board changes that:
+                // elements only come back from a skill, and it can pay for none. Walking would put
+                // it somewhere else with the same problem.
+                //
+                // It used to walk anyway, on the grounds that somewhere else is where the fight is,
+                // and that is the bug that hung whole fights. Two creatures standing beside each
+                // other, neither able to pay for anything, both reported Closing; Approach then
+                // passed, because no neighbouring hex was closer; and they did that for ever. A
+                // creature that cannot act is Idle, which is both true and something the fight can
+                // notice.
+                return new BrainPlan(BrainState.Idle);
             }
 
             return actor.CurrentAp >= actor.StepCost

@@ -45,6 +45,22 @@ namespace Dragoneye.Sim
         readonly Dictionary<uint, FightCreature> m_ById = new Dictionary<uint, FightCreature>();
         readonly Dictionary<Cell, FightCreature> m_Standing = new Dictionary<Cell, FightCreature>();
 
+        /// <summary>Whether anybody has spent a point since the round began.</summary>
+        bool m_ActedThisRound;
+
+        /// <summary>How many whole rounds have gone by in which nobody did anything.</summary>
+        int m_DeadRounds;
+
+        /// <summary>
+        /// Rounds of nothing before the fight is called a draw.
+        ///
+        /// Two rather than one so that a player who holds a turn back while they think is not
+        /// handed a draw for it. Nothing is lost by waiting: a round in which no point was spent
+        /// leaves the board, every hand and every action point exactly as it found them, so the
+        /// round after it can only go the same way.
+        /// </summary>
+        const int DeadRoundsBeforeDraw = 2;
+
         /// <param name="map">The board the fight is played on. The fight changes its walls.</param>
         /// <param name="brain">What runs the computer's creatures.</param>
         public Fight(HexMap map, IGridRules grid, IElementMatchup matchups, Dice dice,
@@ -170,6 +186,17 @@ namespace Dragoneye.Sim
                 return false;
             }
 
+            // Before the turn is handed on, while the creature that held it is still the active
+            // one: did it do anything with it? Every action in the game costs action points, and
+            // points are refilled at the top of a turn, so a creature that ends its turn on a full
+            // bar spent nothing and therefore did nothing.
+            var acting = Creature(ActiveId);
+
+            if (acting != null && acting.Ap.Units < acting.MaxAp.Units)
+            {
+                m_ActedThisRound = true;
+            }
+
             if (!m_Turns.Advance(IsStillFighting, out var wrapped))
             {
                 ResolveOutcome();
@@ -178,6 +205,23 @@ namespace Dragoneye.Sim
 
             if (wrapped)
             {
+                // A whole round in which nobody spent a point is a fight that has stopped moving.
+                // Nothing carries over from such a round -- no damage, no elements returned, no
+                // ground given -- so the next one starts from the same position and goes the same
+                // way. Left alone it runs for ever, which in a build is a game that never hands
+                // the result back.
+                //
+                // This is not a turn limit. A fight where anybody can still do anything runs as
+                // long as it likes; only a fight that has provably stopped is called.
+                m_DeadRounds = m_ActedThisRound ? 0 : m_DeadRounds + 1;
+                m_ActedThisRound = false;
+
+                if (m_DeadRounds >= DeadRoundsBeforeDraw)
+                {
+                    Finish();
+                    return true;
+                }
+
                 Say(CombatEvent.RoundBeganAt(0));
             }
 
@@ -794,6 +838,12 @@ namespace Dragoneye.Sim
             {
                 m_Map.WallChanged -= PlanCarries;
             }
+
+            // The board itself changed, which is the one thing that can free a fight nobody could
+            // move: a way opens, or a way closes and somebody is carried off it. Give it the
+            // fresh rounds it deserves rather than counting a stall it may have just ended.
+            m_ActedThisRound = true;
+            m_DeadRounds = 0;
 
             m_Listener.WallChanged(segment, wall);
             Say(CombatEvent.WallChangedAt(0, segment, before.Flags, wall.Flags));
