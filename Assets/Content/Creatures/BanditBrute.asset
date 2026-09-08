@@ -1,0 +1,39 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5b5afe3455a6b4544881d36f2a1ccd7d, type: 3}
+  m_Name: bandit-brute
+  m_EditorClassIdentifier: Dragoneye.Game::Dragoneye.Game.CreatureDefinition
+  m_Id: bandit-brute
+  m_DisplayName: Brute
+  m_Portrait: {fileID: 21300000, guid: c514a9e3efbd5e24ab697a4a39491372, type: 3}
+  m_Species: {fileID: 11400000, guid: b92cd10445fd19f4daf506356eaa5e11, type: 2}
+  m_ClassName: Warrior
+  m_Level: 3
+  m_MaxHp: 26
+  m_MaxAp: 4
+  m_Speed: 6
+  m_Armour: 4
+  m_Shielded: 0
+  m_StartingPool:
+    Geo: 3
+    Hydro: 1
+    Pyro: 2
+    Aero: 0
+    Lux: 0
+    Nyx: 0
+    Arcana: 0
+  m_LevelUpPicks: 0000000000000000000000000000000000000000000000000000000000000000
+  m_Skills:
+  - {fileID: 11400000, guid: 3a9ebc4e7d1b11a40a5050b27d62761f, type: 2}
+  - {fileID: 11400000, guid: 033e1b59e526f754fb62a30a8156f229, type: 2}
+  - {fileID: 11400000, guid: 50e887c1586957747a36566bdbdcd0d5, type: 2}
+  - {fileID: 11400000, guid: 8900854cab095b84a8e9cab956ff9a78, type: 2}

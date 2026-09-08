@@ -15,7 +15,7 @@
 .draft {
     flex-grow: 1;
     padding: 34px 48px 26px 48px;
-    background-image: url("Generated/ui-backdrop.png");
+    background-image: url("../Art/UI/ui-backdrop.png");
     -unity-background-scale-mode: scale-and-crop;
 }
 
@@ -43,7 +43,7 @@
 .draft__rule {
     height: 9px;
     margin: 8px 0 16px 0;
-    background-image: url("Generated/ui-rule.png");
+    background-image: url("../Art/UI/ui-rule.png");
 }
 
 .draft__eyebrow {
@@ -108,7 +108,7 @@
     flex-direction: row;
     align-items: center;
     padding: 6px 14px;
-    background-image: url("Generated/ui-well.png");
+    background-image: url("../Art/UI/ui-well.png");
     -unity-slice-left: 22;
     -unity-slice-right: 22;
     -unity-slice-top: 22;
@@ -161,7 +161,7 @@
        said which side this was; three pixels along the whole top says it from across the room. */
     border-top-width: 3px;
     border-top-color: rgba(0, 0, 0, 0);
-    background-image: url("Generated/ui-panel.png");
+    background-image: url("../Art/UI/ui-panel.png");
     -unity-slice-left: 32;
     -unity-slice-right: 32;
     -unity-slice-top: 32;
@@ -263,7 +263,7 @@
 .fighter {
     padding: 7px 9px 6px 9px;
     margin-bottom: 5px;
-    background-image: url("Generated/ui-card.png");
+    background-image: url("../Art/UI/ui-card.png");
     -unity-slice-left: 28;
     -unity-slice-right: 28;
     -unity-slice-top: 28;
@@ -466,7 +466,7 @@
     letter-spacing: 1px;
     color: rgb(220, 224, 234);
     background-color: rgba(0, 0, 0, 0);
-    background-image: url("Generated/ui-button.png");
+    background-image: url("../Art/UI/ui-button.png");
     -unity-slice-left: 22;
     -unity-slice-right: 22;
     -unity-slice-top: 22;
@@ -476,7 +476,7 @@
 }
 
 .button:hover {
-    background-image: url("Generated/ui-button-hot.png");
+    background-image: url("../Art/UI/ui-button-hot.png");
 }
 
 .button:disabled {
@@ -484,7 +484,7 @@
 }
 
 .button--primary {
-    background-image: url("Generated/ui-button-primary.png");
+    background-image: url("../Art/UI/ui-button-primary.png");
     color: rgb(255, 244, 234);
 }
 
@@ -499,7 +499,7 @@
     -unity-font-style: bold;
     color: rgb(220, 224, 234);
     background-color: rgba(0, 0, 0, 0);
-    background-image: url("Generated/ui-button.png");
+    background-image: url("../Art/UI/ui-button.png");
     -unity-slice-left: 22;
     -unity-slice-right: 22;
     -unity-slice-top: 22;
@@ -509,7 +509,7 @@
 }
 
 .level-step:hover {
-    background-image: url("Generated/ui-button-hot.png");
+    background-image: url("../Art/UI/ui-button-hot.png");
 }
 
 .level-step:disabled {
@@ -524,7 +524,7 @@
 
 /* The side you are on. */
 .button--chosen {
-    background-image: url("Generated/ui-button-primary.png");
+    background-image: url("../Art/UI/ui-button-primary.png");
     color: rgb(255, 244, 234);
 }
 

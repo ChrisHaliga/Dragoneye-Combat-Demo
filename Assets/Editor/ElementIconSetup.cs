@@ -20,8 +20,8 @@ namespace Dragoneye.MultiplayerEditor
     static class ElementIconSetup
     {
         const string k_Root = "Assets/Art/Elements";
-        const string k_Library = "Assets/Settings/Characters/ElementIcons.asset";
-        const string k_Catalog = "Assets/Settings/Characters/ContentCatalog.asset";
+        const string k_Library = "Assets/Content/Elements/ElementIcons.asset";
+        const string k_Catalog = "Assets/Content/ContentCatalog.asset";
 
         static readonly string[] k_Extensions = { ".png", ".jpg", ".jpeg" };
 

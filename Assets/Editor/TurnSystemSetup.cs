@@ -19,8 +19,8 @@ namespace Dragoneye.MultiplayerEditor
     {
         const string k_ArenaScene = "Assets/Scenes/Arena.unity";
         const string k_BootScene = "Assets/Scenes/Bootstrap.unity";
-        const string k_MatchPrefab = "Assets/NGO_Minimal_Setup/DraftState.prefab";
-        const string k_UnitPrefab = "Assets/NGO_Minimal_Setup/Unit.prefab";
+        const string k_MatchPrefab = "Assets/Prefabs/DraftState.prefab";
+        const string k_UnitPrefab = "Assets/Prefabs/Unit.prefab";
         const string k_TurnObject = "Turn State";
         const string k_PauseObject = "Pause Menu";
         const string k_PauseDocument = "Assets/UI/PauseMenu.uxml";

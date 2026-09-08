@@ -25,8 +25,8 @@ namespace Dragoneye.MultiplayerEditor
     static class PortraitSetup
     {
         const string k_Root = "Assets/Art/Portraits";
-        const string k_Library = "Assets/Settings/Characters/PortraitLibrary.asset";
-        const string k_Catalog = "Assets/Settings/Characters/ContentCatalog.asset";
+        const string k_Library = "Assets/Content/Portraits/PortraitLibrary.asset";
+        const string k_Catalog = "Assets/Content/ContentCatalog.asset";
 
         static readonly string[] k_Extensions = { ".png", ".jpg", ".jpeg" };
 

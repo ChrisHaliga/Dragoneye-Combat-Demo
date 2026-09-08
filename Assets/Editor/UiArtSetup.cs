@@ -27,7 +27,7 @@ namespace Dragoneye.MultiplayerEditor
     /// </summary>
     static class UiArtSetup
     {
-        const string k_Folder = "Assets/UI/Generated";
+        const string k_Folder = "Assets/Art/UI";
 
         /// <summary>Everything that references these images by path, and so has to be reimported.</summary>
         static readonly string[] k_Stylesheets =

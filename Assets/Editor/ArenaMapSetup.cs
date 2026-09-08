@@ -25,9 +25,9 @@ namespace Dragoneye.MultiplayerEditor
     /// </summary>
     static class ArenaMapSetup
     {
-        const string k_Map = "Assets/Settings/Hex/Ruins.asset";
-        const string k_WallMaterial = "Assets/Settings/Hex/Wall.mat";
-        const string k_TerrainFolder = "Assets/Settings/Hex";
+        const string k_Map = "Assets/Maps/Ruins.asset";
+        const string k_WallMaterial = "Assets/Materials/Wall.mat";
+        const string k_TerrainFolder = "Assets/Maps";
         const string k_ArenaScene = "Assets/Scenes/Arena.unity";
 
         [MenuItem("ClaudeCode/Build The Arena Map")]

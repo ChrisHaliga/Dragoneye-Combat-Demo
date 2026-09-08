@@ -105,6 +105,36 @@ Namespaces follow folders inside `Game`: `Scripts/Game/Combat` is `Dragoneye.Gam
 `Assets/Editor` has no asmdef. It is the predefined `Assembly-CSharp-Editor`, which automatically
 sees everything else.
 
+### Where things are
+
+One folder per kind of thing, and the folder an asset is in is what it is. Nothing carries a type
+prefix, because the folder already said it, and every file is named for what it holds with each
+word capitalised: `Skills/TakeABreath.asset`, not `Characters/SkillTakeaBreath.asset`.
+
+```
+Assets/
+  Art/          Elements/  Portraits/<Species>/  UI/      source art
+  Content/      ContentCatalog.asset                      everything authored
+                Classes/  Species/  Skills/  Creatures/
+                Equipment/Weapons/  Equipment/Offhand/  Equipment/Armour/
+                Elements/  Portraits/
+  Maps/         Terrain/                                  hex maps and their ground
+  Materials/                                              shared materials
+  Prefabs/                                                the networked prefabs
+  Scenes/       Bootstrap  MainMenu  Arena
+  Scripts/      one folder per assembly
+  Settings/     Unity's own: render pipeline, volume profiles, input, build profiles
+  Shaders/  Tests/  UI/                                   markup and stylesheets
+```
+
+Equipment is split by **slot**, not by how it sounds: a shield and an offhand dagger are the same
+decision, so they sit together under `Offhand`. `Assets/Settings` holds only what Unity put there.
+
+`ClaudeCode → Check The Content Is Wired` enforces all of that. It reports an asset in the wrong
+folder, a file named against the convention, an item filed away from its slot, and two assets
+claiming one id. It repairs exactly one thing, because it is the only one that is not a decision:
+a catalog that has fallen behind what is on disk.
+
 ---
 
 ## Design philosophy
@@ -158,7 +188,7 @@ up guarantees.
 ### The content is authored, not compiled
 
 Species, classes, equipment, skills and premade creatures are all ScriptableObjects under
-`Assets/Settings`. Retuning a number is editing an asset, not a recompile. `ContentCatalog`
+`Assets/Content`, one folder per kind. Retuning a number is editing an asset, not a recompile. `ContentCatalog`
 implements `IContentIndex`, which is what Combat actually talks to — a test implements the same
 interface over a three-line list.
 
@@ -208,7 +238,7 @@ is load-bearing, why the transport listen address matters, why a field is cleare
 
 ### Add or retune a skill
 
-Skills are `SkillAsset` ScriptableObjects in `Assets/Settings/Characters`.
+Skills are `SkillAsset` ScriptableObjects in `Assets/Content/Skills`.
 
 - **Duplicate an existing one** (`SkillStrike.asset` is the simplest) and give it a fresh `m_Id`.
 - Fields: element, AP cost, element cost, range, target (`Creature` / `Self`), effect
@@ -222,7 +252,7 @@ contradiction the UI would have to special-case.
 
 ### Add a species
 
-`SpeciesDefinition` in `Assets/Settings/Creatures`. Id, display name, attribute baseline, base AP,
+`SpeciesDefinition` in `Assets/Content/Species`. Id, display name, attribute baseline, base AP,
 and the skills it knows. Add it to `ContentCatalog`.
 
 Then make a portrait folder for it: `Assets/Art/Portraits/<Display Name>/`. The folder is matched by
@@ -230,7 +260,7 @@ display name.
 
 ### Add a premade creature
 
-`CreatureDefinition` in `Assets/Settings/Creatures`. Beyond the obvious stats it carries:
+`CreatureDefinition` in `Assets/Content/Creatures`. Beyond the obvious stats it carries:
 
 - `m_Portrait` — any sprite in the project, not just the portrait folder.
 - `m_StartingPool` — its elements at level 1.
@@ -334,7 +364,7 @@ walls by tile and ray. The ones a host can choose are listed in `MapLibrary` —
 Mansion, the Islands, the Ruins — and that list is protocol: the lobby sends the index, so append
 to it and never reorder it. The host picks in the lobby's setup bar (solo play uses the same pick),
 `ChosenMap` rebuilds the arena from the recipe when the scene loads, and the scene's authored asset
-(`Assets/Settings/Hex/Ruins.asset`, written by `ArenaMapSetup`) is there to lend its terrain
+(`Assets/Maps/Ruins.asset`, written by `ArenaMapSetup`) is there to lend its terrain
 palette. Terrain names are the three in `ShippedTerrain`: grass; stone, which nobody walks on or
 sees through and is drawn raised; water, which nobody walks on but everybody sees over and is drawn
 sunk. A new terrain is a spec there and a name in `Ground`; the editor step writes the asset.

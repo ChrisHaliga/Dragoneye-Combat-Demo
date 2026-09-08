@@ -28,8 +28,8 @@ namespace Dragoneye.MultiplayerEditor
     /// </summary>
     static class ElementMatchupSetup
     {
-        const string k_Asset = "Assets/Settings/Characters/ElementMatchups.asset";
-        const string k_Catalog = "Assets/Settings/Characters/ContentCatalog.asset";
+        const string k_Asset = "Assets/Content/Elements/ElementMatchups.asset";
+        const string k_Catalog = "Assets/Content/ContentCatalog.asset";
 
         static readonly Element[] k_Commons =
         {

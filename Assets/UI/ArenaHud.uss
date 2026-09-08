@@ -185,7 +185,7 @@
     bottom: 130px;
     width: 290px;
     padding: 18px;
-    background-image: url("Generated/ui-panel.png");
+    background-image: url("../Art/UI/ui-panel.png");
     -unity-background-image-tint-color: rgba(255, 255, 255, 0.88);
     -unity-slice-left: 32;
     -unity-slice-right: 32;
@@ -232,7 +232,7 @@
        from the shape of the card without reading a word of it. */
     border-width: 2px;
     background-color: rgb(18, 21, 28);
-    background-image: url("Generated/ui-well.png");
+    background-image: url("../Art/UI/ui-well.png");
     -unity-slice-left: 22;
     -unity-slice-right: 22;
     -unity-slice-top: 22;
@@ -281,7 +281,7 @@
     min-height: 26px;
     padding: 3px 8px;
     margin-bottom: 4px;
-    background-image: url("Generated/ui-card.png");
+    background-image: url("../Art/UI/ui-card.png");
     -unity-slice-left: 28;
     -unity-slice-right: 28;
     -unity-slice-top: 28;
@@ -475,7 +475,7 @@
     letter-spacing: 3px;
     color: rgb(220, 224, 234);
     background-color: rgba(0, 0, 0, 0);
-    background-image: url("Generated/ui-button.png");
+    background-image: url("../Art/UI/ui-button.png");
     -unity-slice-left: 22;
     -unity-slice-right: 22;
     -unity-slice-top: 22;
@@ -485,7 +485,7 @@
 }
 
 .end-turn:hover {
-    background-image: url("Generated/ui-button-hot.png");
+    background-image: url("../Art/UI/ui-button-hot.png");
     color: rgb(245, 247, 252);
 }
 
@@ -709,7 +709,7 @@
 .element-chip__mark {
     width: 26px;
     height: 26px;
-    background-image: url("Generated/ui-gem.png");
+    background-image: url("../Art/UI/ui-gem.png");
     -unity-background-scale-mode: scale-to-fit;
 }
 
@@ -717,7 +717,7 @@
    no rune for "something", and bright enough that it reads as a real quantity rather than as an
    element that failed to load. */
 .element-chip__mark--unknown {
-    background-image: url("Generated/ui-gem.png");
+    background-image: url("../Art/UI/ui-gem.png");
     -unity-background-image-tint-color: rgb(96, 104, 124);
     justify-content: center;
 }
@@ -752,7 +752,7 @@
     translate: -50% 0;
     align-items: center;
     padding: 10px 22px;
-    background-image: url("Generated/ui-panel.png");
+    background-image: url("../Art/UI/ui-panel.png");
     -unity-slice-left: 32;
     -unity-slice-right: 32;
     -unity-slice-top: 32;
@@ -782,7 +782,7 @@
     width: 30px;
     height: 30px;
     margin: 0 2px;
-    background-image: url("Generated/ui-gem.png");
+    background-image: url("../Art/UI/ui-gem.png");
     -unity-background-scale-mode: scale-to-fit;
 }
 
@@ -828,7 +828,7 @@
        The width is what four of them come to, and the buttons are what their own numbers need. */
     width: 452px;
     padding: 12px 16px 12px 16px;
-    background-image: url("Generated/ui-panel.png");
+    background-image: url("../Art/UI/ui-panel.png");
     -unity-slice-left: 32;
     -unity-slice-right: 32;
     -unity-slice-top: 32;
@@ -878,7 +878,7 @@
     align-items: center;
     justify-content: center;
     background-color: rgba(0, 0, 0, 0);
-    background-image: url("Generated/ui-card.png");
+    background-image: url("../Art/UI/ui-card.png");
     -unity-slice-left: 28;
     -unity-slice-right: 28;
     -unity-slice-top: 28;
@@ -910,7 +910,7 @@
 .clash-option__mark {
     width: 40px;
     height: 40px;
-    background-image: url("Generated/ui-gem.png");
+    background-image: url("../Art/UI/ui-gem.png");
     -unity-background-scale-mode: scale-to-fit;
 }
 
@@ -978,7 +978,7 @@
     letter-spacing: 2px;
     color: rgb(214, 218, 230);
     background-color: rgba(0, 0, 0, 0);
-    background-image: url("Generated/ui-button.png");
+    background-image: url("../Art/UI/ui-button.png");
     -unity-slice-left: 22;
     -unity-slice-right: 22;
     -unity-slice-top: 22;
@@ -1033,7 +1033,7 @@
     position: absolute;
     min-width: 190px;
     padding: 5px;
-    background-image: url("Generated/ui-panel.png");
+    background-image: url("../Art/UI/ui-panel.png");
     -unity-slice-left: 32;
     -unity-slice-right: 32;
     -unity-slice-top: 32;
@@ -1102,7 +1102,7 @@
     letter-spacing: 1px;
     color: rgb(220, 224, 234);
     background-color: rgba(0, 0, 0, 0);
-    background-image: url("Generated/ui-button.png");
+    background-image: url("../Art/UI/ui-button.png");
     -unity-slice-left: 22;
     -unity-slice-right: 22;
     -unity-slice-top: 22;
@@ -1112,7 +1112,7 @@
 }
 
 .context-facing:hover {
-    background-image: url("Generated/ui-button-hot.png");
+    background-image: url("../Art/UI/ui-button-hot.png");
 }
 
 .context-note {
@@ -1157,7 +1157,7 @@
     margin: 0 2px;
     padding: 0;
     background-color: rgba(0, 0, 0, 0);
-    background-image: url("Generated/ui-card.png");
+    background-image: url("../Art/UI/ui-card.png");
     -unity-slice-left: 28;
     -unity-slice-right: 28;
     -unity-slice-top: 28;
@@ -1270,7 +1270,7 @@
     width: 30px;
     height: 30px;
     margin-bottom: 2px;
-    background-image: url("Generated/ui-gem.png");
+    background-image: url("../Art/UI/ui-gem.png");
     -unity-background-scale-mode: scale-to-fit;
 }
 
@@ -1655,7 +1655,7 @@
     bottom: 276px;
     width: 400px;
     padding: 12px 16px;
-    background-image: url("Generated/ui-panel.png");
+    background-image: url("../Art/UI/ui-panel.png");
     -unity-background-image-tint-color: rgba(255, 255, 255, 0.92);
     -unity-slice-left: 32;
     -unity-slice-right: 32;
@@ -1896,7 +1896,7 @@
     letter-spacing: 1px;
     color: rgb(198, 158, 88);
     background-color: rgba(0, 0, 0, 0);
-    background-image: url("Generated/ui-button.png");
+    background-image: url("../Art/UI/ui-button.png");
     -unity-slice-left: 22;
     -unity-slice-right: 22;
     -unity-slice-top: 22;
@@ -1906,7 +1906,7 @@
 }
 
 .action-menu__button:hover {
-    background-image: url("Generated/ui-button-hot.png");
+    background-image: url("../Art/UI/ui-button-hot.png");
     color: rgb(244, 226, 190);
 }
 
@@ -2021,7 +2021,7 @@
     bottom: 150px;
     width: 320px;
     padding: 14px 16px 16px 16px;
-    background-image: url("Generated/ui-panel.png");
+    background-image: url("../Art/UI/ui-panel.png");
     -unity-background-image-tint-color: rgba(255, 255, 255, 0.94);
     -unity-slice-left: 32;
     -unity-slice-right: 32;

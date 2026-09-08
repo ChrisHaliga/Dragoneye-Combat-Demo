@@ -21,7 +21,7 @@
 
 .pause-plate {
     padding: 26px 30px 22px 30px;
-    background-image: url("Generated/ui-panel.png");
+    background-image: url("../Art/UI/ui-panel.png");
     -unity-slice-left: 32;
     -unity-slice-right: 32;
     -unity-slice-top: 32;

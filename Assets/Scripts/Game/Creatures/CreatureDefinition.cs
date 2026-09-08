@@ -33,8 +33,9 @@ namespace Dragoneye.Game.Creatures
         [SerializeField]
         SpeciesDefinition m_Species;
 
-        [SerializeField]
-        ClassDefinition m_Class;
+        [SerializeField, Tooltip("What this creature is, in a word: Warrior, Ranger, Cleric. "
+             + "Shown on its card and in the draft.")]
+        string m_ClassName = "";
 
         [SerializeField, Min(1), Tooltip("The level this creature is authored at. The host may "
              + "raise it when setting up a match; everything below scales from here.")]
@@ -77,8 +78,6 @@ namespace Dragoneye.Game.Creatures
         public Sprite Portrait => m_Portrait;
 
         public SpeciesDefinition Species => m_Species;
-
-        public ClassDefinition Class => m_Class;
 
         /// <summary>The level this creature was authored at.</summary>
         public int Level => m_Level;
@@ -188,7 +187,14 @@ namespace Dragoneye.Game.Creatures
 
         public string SpeciesName => m_Species != null ? m_Species.DisplayName : "Unknown";
 
-        public string ClassName => m_Class != null ? m_Class.DisplayName : "Unknown";
+        /// <summary>
+        /// What this creature is, for the card and the draft panel.
+        ///
+        /// A string on the creature rather than a reference to an asset. It used to be a
+        /// <c>ClassDefinition</c>, a ScriptableObject type whose every other field nothing ever
+        /// read: the four assets existed so that this one word could be looked up through them.
+        /// </summary>
+        public string ClassName => string.IsNullOrWhiteSpace(m_ClassName) ? "Unknown" : m_ClassName;
 
         public string Description => m_Species != null ? m_Species.Description : string.Empty;
 

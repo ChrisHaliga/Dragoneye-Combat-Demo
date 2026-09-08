@@ -31,20 +31,21 @@ namespace Dragoneye.MultiplayerEditor
         static int s_Created;
         static int s_Kept;
 
-        const string k_Folder = "Assets/Settings/Characters";
-        const string k_CatalogPath = k_Folder + "/ContentCatalog.asset";
+        // One folder per kind of thing. The folder an asset is in is what it is, so nothing
+        // needs a name that says so: a skill is Skills/Strike.asset, not Characters/SkillStrike.
+        const string k_Content = "Assets/Content";
+        const string k_CatalogPath = k_Content + "/ContentCatalog.asset";
+        const string k_ClassFolder = k_Content + "/Classes";
+        const string k_SkillFolder = k_Content + "/Skills";
+        const string k_EquipmentFolder = k_Content + "/Equipment";
+        const string k_CreatureFolder = k_Content + "/Creatures";
+        const string k_ElementFolder = k_Content + "/Elements";
+        const string k_PortraitAssetFolder = k_Content + "/Portraits";
 
-        /// <summary>
-        /// Where species already live.
-        ///
-        /// The twelve premade creatures reference the four species assets in this folder by id.
-        /// Authoring them in place is what gives those creatures Take a Breath without re-pointing
-        /// twelve assets at somewhere tidier.
-        /// </summary>
-        const string k_SpeciesFolder = "Assets/Settings/Creatures";
+        const string k_SpeciesFolder = k_Content + "/Species";
 
         const string k_MenuScene = "Assets/Scenes/MainMenu.unity";
-        const string k_MatchPrefab = "Assets/NGO_Minimal_Setup/DraftState.prefab";
+        const string k_MatchPrefab = "Assets/Prefabs/DraftState.prefab";
 
         /// <summary>
         /// Seeds whatever content is missing and leaves the rest alone.
@@ -430,13 +431,13 @@ namespace Dragoneye.MultiplayerEditor
                 armour: 0, shielded: false, Pool(aero: 2, geo: 2), Element.Aero, kit.Bite, kit.Maul);
 
             // Skirmishers: an arrow, a stone, and a snap shot for close work.
-            Creature("bandit-scout", "Human/henry-jester", level: 2, hp: 15, ap: 5, speed: 9,
+            Creature("bandit-scout", "Human/Jester", level: 2, hp: 15, ap: 5, speed: 9,
                 armour: 0, shielded: false, Pool(aero: 3, geo: 2), Element.Aero,
                 kit.Loose, kit.Sling, kit.SnapShot);
             Creature("guard-archer", "Human/Finn", level: 2, hp: 15, ap: 5, speed: 8,
                 armour: 0, shielded: false, Pool(aero: 3, pyro: 2), Element.Aero,
                 kit.Loose, kit.Strike, kit.SnapShot);
-            Creature("hero-ranger", "Human/henry-jester", level: 3, hp: 18, ap: 5, speed: 9,
+            Creature("hero-ranger", "Human/Jester", level: 3, hp: 18, ap: 5, speed: 9,
                 armour: 0, shielded: false, Pool(aero: 3, geo: 2, hydro: 1), Element.Aero,
                 kit.Loose, kit.Club, kit.SnapShot, kit.Recover);
 
@@ -481,7 +482,9 @@ namespace Dragoneye.MultiplayerEditor
         static void Creature(string id, string portrait, int level, int hp, int ap, int speed,
             int armour, bool shielded, ElementValues pool, Element buys, params SkillAsset[] skills)
         {
-            var path = $"{k_SpeciesFolder}/{id}.asset";
+            // The file is named for the convention; the id inside it is what the game, the draft
+            // and every scenario know this creature by, and that does not change.
+            var path = $"{k_CreatureFolder}/{FileName(id.Replace('-', ' '))}.asset";
             var asset = Seed<CreatureDefinition>(path, out var created);
 
             if (!created)
@@ -563,7 +566,7 @@ namespace Dragoneye.MultiplayerEditor
         static void CreatureCatalogAll()
         {
             var catalog = AssetDatabase.LoadAssetAtPath<CreatureCatalog>(
-                $"{k_SpeciesFolder}/CreatureCatalog.asset");
+                $"{k_CreatureFolder}/CreatureCatalog.asset");
 
             if (catalog == null)
             {
@@ -573,7 +576,7 @@ namespace Dragoneye.MultiplayerEditor
             var creatures = new List<CreatureDefinition>();
 
             foreach (var guid in AssetDatabase.FindAssets("t:CreatureDefinition",
-                         new[] { k_SpeciesFolder }))
+                         new[] { k_CreatureFolder }))
             {
                 var definition = AssetDatabase.LoadAssetAtPath<CreatureDefinition>(
                     AssetDatabase.GUIDToAssetPath(guid));
@@ -636,21 +639,24 @@ namespace Dragoneye.MultiplayerEditor
                 Endurance = endurance
             };
 
+        /// <summary>Makes every folder the seed writes into, parents before children.</summary>
         static void EnsureFolder()
         {
-            if (!AssetDatabase.IsValidFolder("Assets/Settings"))
+            foreach (var path in new[]
+                     {
+                         k_Content, k_ClassFolder, k_SpeciesFolder, k_SkillFolder,
+                         k_EquipmentFolder, k_EquipmentFolder + "/Weapons",
+                         k_EquipmentFolder + "/Offhand", k_EquipmentFolder + "/Armour",
+                         k_CreatureFolder, k_ElementFolder, k_PortraitAssetFolder
+                     })
             {
-                AssetDatabase.CreateFolder("Assets", "Settings");
-            }
+                if (AssetDatabase.IsValidFolder(path))
+                {
+                    continue;
+                }
 
-            if (!AssetDatabase.IsValidFolder(k_Folder))
-            {
-                AssetDatabase.CreateFolder("Assets/Settings", "Characters");
-            }
-
-            if (!AssetDatabase.IsValidFolder(k_SpeciesFolder))
-            {
-                AssetDatabase.CreateFolder("Assets/Settings", "Creatures");
+                var cut = path.LastIndexOf('/');
+                AssetDatabase.CreateFolder(path.Substring(0, cut), path.Substring(cut + 1));
             }
         }
 
@@ -713,7 +719,7 @@ namespace Dragoneye.MultiplayerEditor
             IReadOnlyList<Element> options = null, Attribute? scaling = null,
             int accuracy = 0, int falloff = 0)
         {
-            var asset = Seed<SkillAsset>($"{k_Folder}/Skill{Sanitise(name)}.asset", out var created);
+            var asset = Seed<SkillAsset>($"{k_SkillFolder}/{FileName(name)}.asset", out var created);
 
             if (!created)
             {
@@ -801,7 +807,8 @@ namespace Dragoneye.MultiplayerEditor
             bool grantsAdvantage = false, bool twoHanded = false,
             AttributeValues modifiers = default)
         {
-            var asset = Seed<EquipmentAsset>($"{k_Folder}/{Sanitise(name)}.asset", out var created);
+            var asset = Seed<EquipmentAsset>(
+                $"{k_EquipmentFolder}/{SlotFolder(slot)}/{FileName(name)}.asset", out var created);
 
             if (!created)
             {
@@ -837,7 +844,7 @@ namespace Dragoneye.MultiplayerEditor
         static SpeciesDefinition Species(int id, string name, AttributeValues baseline,
             string description, int baseAp, params SkillAsset[] skills)
         {
-            var asset = Seed<SpeciesDefinition>($"{k_SpeciesFolder}/Species_{Sanitise(name)}.asset",
+            var asset = Seed<SpeciesDefinition>($"{k_SpeciesFolder}/{FileName(name)}.asset",
                 out var created);
 
             if (!created)
@@ -864,7 +871,7 @@ namespace Dragoneye.MultiplayerEditor
         static ClassAsset Class(int id, string name, string description,
             IReadOnlyList<EquipmentAsset> weapons, IReadOnlyList<SkillAsset> skills)
         {
-            var asset = Seed<ClassAsset>($"{k_Folder}/{Sanitise(name)}.asset", out var created);
+            var asset = Seed<ClassAsset>($"{k_ClassFolder}/{FileName(name)}.asset", out var created);
 
             if (!created)
             {
@@ -1078,6 +1085,37 @@ namespace Dragoneye.MultiplayerEditor
             return true;
         }
 
-        static string Sanitise(string name) => name.Replace(" ", string.Empty);
+        /// <summary>
+        /// An authored name as a file name: every word capitalised, run together.
+        ///
+        /// "Take a Breath" is TakeABreath, not the TakeaBreath the old version produced by
+        /// deleting spaces and hoping. The folder says what kind of thing it is, so the name
+        /// carries no prefix.
+        /// </summary>
+        static string FileName(string name)
+        {
+            var built = new System.Text.StringBuilder(name.Length);
+
+            foreach (var word in name.Split(new[] { ' ', '-', '_' },
+                         System.StringSplitOptions.RemoveEmptyEntries))
+            {
+                built.Append(char.ToUpperInvariant(word[0]));
+                built.Append(word, 1, word.Length - 1);
+            }
+
+            return built.ToString();
+        }
+
+        /// <summary>
+        /// Which folder a piece of equipment belongs in: the slot it occupies.
+        ///
+        /// The slot is what the rules branch on, so it is the split worth having on disk. A shield
+        /// and an offhand dagger are the same kind of decision -- what is in the other hand -- and
+        /// filing one under armour and the other under weapons would hide that.
+        /// </summary>
+        static string SlotFolder(EquipmentSlot slot) =>
+            slot == EquipmentSlot.Armor ? "Armour"
+            : slot == EquipmentSlot.Offhand ? "Offhand"
+            : "Weapons";
     }
 }
