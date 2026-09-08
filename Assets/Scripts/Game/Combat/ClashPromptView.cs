@@ -418,8 +418,10 @@ namespace Dragoneye.Game.Combat
         VisualElement DeclineOption()
         {
             var button = new Button(ToggleDecline);
+            // No modifier of its own: it is meant to sit among the seven and be pressed like
+            // them, and the slash on its mark is what says it is not an element. A class nothing
+            // styles was doing none of that work and looked like styling somebody had forgotten.
             button.AddToClassList("clash-option");
-            button.AddToClassList("clash-option--decline");
             button.EnableInClassList("clash-option--staged", m_Declined);
             button.text = string.Empty;
             button.tooltip = "Put nothing up. The attack lands as it is, and you spend nothing.";
