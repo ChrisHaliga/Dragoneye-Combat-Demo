@@ -28,7 +28,6 @@ namespace Dragoneye.Hex.Systems
             {
                 foreach (var tile in Hex.Ring(anchor.Tile, radius))
                 {
-                    cells.Clear();
                     grid.CellsOf(tile, cells);
 
                     foreach (var candidate in cells)
@@ -177,7 +176,6 @@ namespace Dragoneye.Hex.Systems
 
             foreach (var tile in tiles)
             {
-                cells.Clear();
                 grid.CellsOf(tile, cells);
 
                 foreach (var start in cells)
@@ -194,7 +192,6 @@ namespace Dragoneye.Hex.Systems
 
                     while (frontier.Count > 0)
                     {
-                        neighbours.Clear();
                         grid.Neighbours(frontier.Dequeue(), neighbours);
 
                         foreach (var next in neighbours)

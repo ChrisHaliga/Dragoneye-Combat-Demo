@@ -23,9 +23,15 @@ namespace Dragoneye.Hex.Systems
         int StepsToEnter(Cell cell);
 
         /// <summary>Every cell one step from this one: across an open half-edge, onto walkable ground.</summary>
+        /// <remarks>
+        /// The list is emptied first. Every one of these fills replaces what it is handed rather
+        /// than adding to it, so the answer to one question can never be read as the answer to
+        /// the last one -- which for a list of places a creature may step is the difference
+        /// between a legal move and a creature walking through a wall it asked about a frame ago.
+        /// </remarks>
         void Neighbours(Cell from, List<Cell> into);
 
-        /// <summary>Every cell of a tile.</summary>
+        /// <summary>Every cell of a tile. The list is emptied first.</summary>
         void CellsOf(Hex tile, List<Cell> into);
 
         /// <summary>The wall on a half-edge, from either side.</summary>
@@ -74,6 +80,8 @@ namespace Dragoneye.Hex.Systems
 
         public void CellsOf(Hex tile, List<Cell> into)
         {
+            into.Clear();
+
             if (Map == null)
             {
                 return;
@@ -127,6 +135,8 @@ namespace Dragoneye.Hex.Systems
         /// </summary>
         public void Neighbours(Cell from, List<Cell> into)
         {
+            into.Clear();
+
             if (Map == null || !Map.TryGetTile(from.Tile, out var tile) || from.Area >= tile.Areas.Count)
             {
                 return;

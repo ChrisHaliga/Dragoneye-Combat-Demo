@@ -63,7 +63,6 @@ namespace Dragoneye.Hex.Systems
                     return true;
                 }
 
-                neighbours.Clear();
                 grid.Neighbours(current, neighbours);
 
                 foreach (var next in neighbours)
@@ -141,7 +140,6 @@ namespace Dragoneye.Hex.Systems
                 var current = open[index];
                 open.RemoveAt(index);
 
-                neighbours.Clear();
                 grid.Neighbours(current, neighbours);
 
                 foreach (var next in neighbours)

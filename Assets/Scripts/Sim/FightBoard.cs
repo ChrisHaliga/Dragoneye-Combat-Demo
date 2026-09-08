@@ -60,6 +60,11 @@ namespace Dragoneye.Sim
 
         public void Neighbours(Cell of, List<Cell> into)
         {
+            // Emptied even with no grid behind us. A board that is not ready yet has no neighbours
+            // to offer, and leaving the caller's last answer in the list would have it read as
+            // this one.
+            into.Clear();
+
             if (IsReady)
             {
                 Grid.Neighbours(of, into);
@@ -153,7 +158,6 @@ namespace Dragoneye.Sim
 
             foreach (var hex in Hex.Range(target.Tile, reach))
             {
-                m_Cells.Clear();
                 Grid.CellsOf(hex, m_Cells);
 
                 foreach (var candidate in m_Cells)
@@ -182,7 +186,6 @@ namespace Dragoneye.Sim
                 return false;
             }
 
-            m_Cells.Clear();
             Grid.Neighbours(from, m_Cells);
 
             foreach (var neighbour in m_Cells)
@@ -206,7 +209,6 @@ namespace Dragoneye.Sim
 
             foreach (var hex in Hex.Range(from.Tile, reach))
             {
-                m_Cells.Clear();
                 Grid.CellsOf(hex, m_Cells);
 
                 foreach (var candidate in m_Cells)
