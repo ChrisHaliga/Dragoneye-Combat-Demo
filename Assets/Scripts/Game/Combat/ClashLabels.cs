@@ -54,7 +54,6 @@ namespace Dragoneye.Game.Combat
         /// <summary>For a fight the reader has no side in. Neither good news nor bad.</summary>
         public const string NeutralColour = "#C8CCD6";
 
-        /// <summary>
         /// <summary>Whether the attack got through. A tie stops it as surely as a win does.</summary>
         public static bool Landed(ClashOutcome outcome) => outcome == ClashOutcome.AttackerWins;
 
@@ -100,15 +99,13 @@ namespace Dragoneye.Game.Combat
             return good ? WinColour : LoseColour;
         }
 
-        /// <summary>Why a defender is being asked for two elements rather than one.</summary>
         /// <summary>
-        /// The one line above the answers: what is being asked, and the key to the three numbers
-        /// on each of them.
+        /// The heading over the answers: what is being asked, in the words that matter.
         ///
-        /// One line, and short. This panel goes up in the middle of somebody else's turn, on top
-        /// of the result of the last attack, and every sentence it spends explaining the stakes is
-        /// a sentence in front of the board. What win, tie and lose are worth is on the options
-        /// themselves; this only says which is which.
+        /// Ordinarily the ask itself, because a panel of eight elements with a percentage under
+        /// each does not need explaining. The other two are the ones a defender has to be told:
+        /// struck from behind and shielded both want two elements, and they count them opposite
+        /// ways round.
         /// </summary>
         public static string Describe(DefenceRequest request) =>
             request.Flanked && !request.Shielded
@@ -144,6 +141,13 @@ namespace Dragoneye.Game.Combat
         public const string AttackerStakes =
             "Only a win lands it; your element is spent either way.";
 
+        /// <summary>"72% to hit", for a shot.</summary>
+        public static string Chance(int percent) => $"{percent}% to hit";
+
+        /// <summary>Who the shot flies over, and what that costs. In the danger colour.</summary>
+        public static string Cover(string names, int penalty) =>
+            Tint(DangerColour, $"! Firing past {names}: -{penalty} to hit");
+
         /// <summary>
         /// Said before a move that somebody is watching.
         ///
@@ -152,13 +156,6 @@ namespace Dragoneye.Game.Combat
         /// spend a turn getting round somebody the long way, or to want a skill that does not
         /// provoke.
         /// </summary>
-        /// <summary>"72% to hit", for a shot.</summary>
-        public static string Chance(int percent) => $"{percent}% to hit";
-
-        /// <summary>Who the shot flies over, and what that costs. In the danger colour.</summary>
-        public static string Cover(string names, int penalty) =>
-            Tint(DangerColour, $"! Firing past {names}: -{penalty} to hit");
-
         public static string Provokes =>
             Tint(DangerColour, "! Moving draws an opportunity attack");
 

@@ -284,12 +284,6 @@ namespace Dragoneye.Multiplayer
         }
 
         /// <summary>
-        /// Greys out what cannot work in this process, and says why on the button itself.
-        ///
-        /// Both play buttons need the persistent Bootstrap objects. Rather than let them fail on
-        /// click, they are disabled up front with the reason attached.
-        /// </summary>
-        /// <summary>
         /// Why every way of playing is dead, when it is.
         ///
         /// On the screen and not only in a tooltip. Three greyed buttons with no reason on them
@@ -300,6 +294,12 @@ namespace Dragoneye.Multiplayer
         const string NotBooted = "Play from Assets/Scenes/Bootstrap.unity -- the network manager "
             + "and session runner live there, and nothing can start without them.";
 
+        /// <summary>
+        /// Greys out what cannot work in this process, and says why on the button itself.
+        ///
+        /// Both play buttons need the persistent Bootstrap objects. Rather than let them fail on
+        /// click, they are disabled up front with the reason attached.
+        /// </summary>
         void ApplyAvailability()
         {
             var booted = MatchFlow.Instance != null;

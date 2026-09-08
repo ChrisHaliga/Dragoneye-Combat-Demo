@@ -335,9 +335,6 @@ namespace Dragoneye.Combat
 
             var level = build.Level < Progression.FirstLevel ? Progression.FirstLevel : build.Level;
 
-            // A baseline may subtract, but never below zero, where the derived numbers stop meaning
-            // anything.
-            //
             // What the conditions on a skill get to ask about. Built once, from the same
             // resolution that decided everything else, so the sheet and the arena cannot disagree
             // about whether somebody is holding a weapon.
@@ -346,21 +343,14 @@ namespace Dragoneye.Combat
                 classSpec != null ? classSpec.Id : 0,
                 HasWeapon(items));
 
+            // Clamped low: a baseline may subtract, but never below zero, where the derived
+            // numbers stop meaning anything.
             return new Loadout(species, classSpec, attributes.ClampedLow(0), level,
                 armour, items, build.StartingPool,
                 ResolveSkills(species, classSpec, items, build.LearnedSkillIds, content,
                     situation));
         }
 
-        /// <summary>
-        /// What the species grants, then the class set, then everything equipped grants, then what
-        /// the character has learned -- in that order, without duplicates.
-        ///
-        /// Species first because it is the least conditional: it is true of the creature before it
-        /// picked anything. Order is fixed so two clients list a creature's skills identically, and
-        /// duplicates are dropped rather than stacked -- two sources granting the same skill grant
-        /// one skill.
-        /// </summary>
         /// <summary>Whether anything is in the weapon slot.</summary>
         public static bool HasWeapon(IReadOnlyList<EquipmentSpec> items)
         {
@@ -380,6 +370,15 @@ namespace Dragoneye.Combat
             return false;
         }
 
+        /// <summary>
+        /// What the species grants, then the class set, then everything equipped grants, then what
+        /// the character has learned -- in that order, without duplicates.
+        ///
+        /// Species first because it is the least conditional: it is true of the creature before it
+        /// picked anything. Order is fixed so two clients list a creature's skills identically, and
+        /// duplicates are dropped rather than stacked -- two sources granting the same skill grant
+        /// one skill.
+        /// </summary>
         static List<SkillSpec> ResolveSkills(SpeciesSpec species, ClassSpec classSpec,
             List<EquipmentSpec> items, IReadOnlyList<int> learned, ISkillIndex skills,
             SkillSituation situation)

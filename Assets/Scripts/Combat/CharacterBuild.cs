@@ -55,13 +55,6 @@ namespace Dragoneye.Combat
         public AttributeBlock Attributes = AttributeBlock.Uniform(PointBuy.Floor);
 
         /// <summary>
-        /// The elements this character starts holding.
-        ///
-        /// Any spread that totals the character's level. A level-four character may hold three Hydro
-        /// and one Pyro, or one of four different elements -- the shape of the pool is as much a
-        /// choice as its size.
-        /// </summary>
-        /// <summary>
         /// The elements this character brings. Starts at the free four, which cost nothing.
         ///
         /// Not empty, because a character that holds nothing an attack can be made of cannot

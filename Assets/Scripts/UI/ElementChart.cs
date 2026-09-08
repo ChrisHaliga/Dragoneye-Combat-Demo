@@ -20,7 +20,6 @@ namespace Dragoneye.UI
     /// </summary>
     public static class ElementChart
     {
-        /// <summary>Fills a container with the chart, replacing whatever was in it.</summary>
         /// <summary>
         /// Shows what an element beats and loses to while the pointer is on something.
         ///
@@ -100,6 +99,7 @@ namespace Dragoneye.UI
             into.Add(label);
         }
 
+        /// <summary>Fills a container with the chart, replacing whatever was in it.</summary>
         public static void Build(VisualElement into)
         {
             if (into == null)

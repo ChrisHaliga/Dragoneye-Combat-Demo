@@ -42,7 +42,6 @@ namespace Dragoneye.Combat
         ReturnElement = 3
     }
 
-    /// <summary>An effect and how much of it.</summary>
     /// <summary>
     /// How a skill rolls to hit, where it rolls at all.
     ///
@@ -71,6 +70,7 @@ namespace Dragoneye.Combat
         public Aim Plus(int bonus) => Rolls ? new Aim(Accuracy + bonus, Falloff) : this;
     }
 
+    /// <summary>An effect and how much of it.</summary>
     public readonly struct SkillEffect
     {
         public readonly SkillEffectKind Kind;

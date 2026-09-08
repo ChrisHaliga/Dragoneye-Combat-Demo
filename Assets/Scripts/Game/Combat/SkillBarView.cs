@@ -542,13 +542,6 @@ namespace Dragoneye.Game.Combat
         }
 
         /// <summary>
-        /// The one question, with the elements that could answer it, in the slots' place.
-        ///
-        /// Options the creature cannot pay for are shown and disabled rather than hidden: which
-        /// elements a fist could be made of is a fact about the skill, and a row that changed
-        /// length as the pool drained would teach the player nothing about either.
-        /// </summary>
-        /// <summary>
         /// Which element the armed skill arrives as: one button an option, and nothing else on them.
         ///
         /// Icons alone. The rune is the thing being chosen between and it is the thing a player

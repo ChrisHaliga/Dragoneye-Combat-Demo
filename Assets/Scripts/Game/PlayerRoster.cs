@@ -198,7 +198,6 @@ namespace Dragoneye.Game
             return slot;
         }
 
-        /// <summary>Reverse lookup: which client holds a slot.</summary>
         /// <summary>How many players are registered. Every peer agrees.</summary>
         public int Count => m_Entries.Count;
 
@@ -210,6 +209,7 @@ namespace Dragoneye.Game
         /// </summary>
         public PlayerEntry At(int index) => m_Entries[index];
 
+        /// <summary>Reverse lookup: which client holds a slot.</summary>
         public bool TryGetBySlot(int slot, out PlayerEntry entry)
         {
             for (var i = 0; i < m_Entries.Count; i++)

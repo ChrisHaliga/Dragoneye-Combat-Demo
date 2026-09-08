@@ -53,17 +53,6 @@ namespace Dragoneye.Game.Creatures
             max <= 0 ? 0f : Mathf.Clamp01((float)current / max);
 
         /// <summary>
-        /// Draws a creature's face into an element, or its initial when there is no face to draw.
-        ///
-        /// One implementation, because the turn bar, the party column and the inspect card all show
-        /// the same creature and a second copy would eventually disagree about what it looks like.
-        ///
-        /// A premade carries its own sprite. A character a player built carries the id of one of
-        /// the game's own portraits, which every machine can resolve -- so everybody sees the same
-        /// face, which is the whole reason the pictures ship with the game rather than being loaded
-        /// off the player who made the character.
-        /// </summary>
-        /// <summary>
         /// A face from a sprite, or a lettered tile from a name. For anywhere that knows the
         /// sprite already -- a draft card reading a definition -- rather than a live creature.
         /// </summary>
@@ -81,6 +70,17 @@ namespace Dragoneye.Game.Creatures
             into.Add(initial);
         }
 
+        /// <summary>
+        /// Draws a creature's face into an element, or its initial when there is no face to draw.
+        ///
+        /// One implementation, because the turn bar, the party column and the inspect card all show
+        /// the same creature and a second copy would eventually disagree about what it looks like.
+        ///
+        /// A premade carries its own sprite. A character a player built carries the id of one of
+        /// the game's own portraits, which every machine can resolve -- so everybody sees the same
+        /// face, which is the whole reason the pictures ship with the game rather than being loaded
+        /// off the player who made the character.
+        /// </summary>
         public static void DrawPortrait(VisualElement into, CreatureState creature,
             string initialClass = "portrait__initial")
         {
@@ -261,12 +261,6 @@ namespace Dragoneye.Game.Creatures
             return cell;
         }
 
-        /// <summary>
-        /// Shows the grid beside a portrait while the pointer is on it, and takes it away after.
-        ///
-        /// Built on entry rather than kept and hidden, because what it says changes every time an
-        /// element is spent and a panel that is only correct when it was built is worse than none.
-        /// </summary>
         /// <summary>Which side of the portrait the panel opens on.</summary>
         public enum RunePlacement
         {
@@ -277,6 +271,12 @@ namespace Dragoneye.Game.Creatures
             Below
         }
 
+        /// <summary>
+        /// Shows the grid beside a portrait while the pointer is on it, and takes it away after.
+        ///
+        /// Built on entry rather than kept and hidden, because what it says changes every time an
+        /// element is spent and a panel that is only correct when it was built is worse than none.
+        /// </summary>
         public static void ShowElementsOnHover(VisualElement portrait, CreatureState creature,
             int columns, RunePlacement placement)
         {

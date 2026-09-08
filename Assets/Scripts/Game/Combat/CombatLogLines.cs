@@ -87,12 +87,6 @@ namespace Dragoneye.Game.Combat
             return text;
         }
 
-        /// <summary>
-        /// What a skill cost, elements first.
-        ///
-        /// The element is the interesting half -- action points come back every turn and elements
-        /// do not -- so it leads, and it is the half that gets a colour.
-        /// </summary>
         /// <summary>What happened to a wall, as a line: it fell, it rose, or it changed.</summary>
         public static string Wall(Dragoneye.Hex.Wall before, Dragoneye.Hex.Wall after)
         {
@@ -122,6 +116,12 @@ namespace Dragoneye.Game.Combat
                 : $"nothing: {absorbed} on armour";
         }
 
+        /// <summary>
+        /// What a skill cost, elements first.
+        ///
+        /// The element is the interesting half -- action points come back every turn and elements
+        /// do not -- so it leads, and it is the half that gets a colour.
+        /// </summary>
         public static string Cost(SkillSpec skill)
         {
             if (skill == null)

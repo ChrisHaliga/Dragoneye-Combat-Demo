@@ -292,12 +292,6 @@ namespace Dragoneye.Game.Combat
         }
 
         /// <summary>
-        /// Pins the action label beside the cursor.
-        ///
-        /// Positioned in panel coordinates, which are y-down from the top-left, while Unity's input
-        /// gives y-up from the bottom-left. Flipping it is the whole reason this is not a one-liner.
-        /// </summary>
-        /// <summary>
         /// Whether anything on the bar could still be used on somebody.
         ///
         /// Asked of the same rules the bar and the server ask, so the End Turn prompt cannot say
@@ -350,6 +344,12 @@ namespace Dragoneye.Game.Combat
             return text;
         }
 
+        /// <summary>
+        /// Pins the action label beside the cursor.
+        ///
+        /// Positioned in panel coordinates, which are y-down from the top-left, while Unity's input
+        /// gives y-up from the bottom-left. Flipping it is the whole reason this is not a one-liner.
+        /// </summary>
         void RefreshCursor()
         {
             // A move waiting on a bearing has already chosen its tile, so pricing the one under the
