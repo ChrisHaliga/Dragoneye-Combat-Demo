@@ -118,9 +118,14 @@ namespace Dragoneye.Combat
     /// slot. "Heavy armour" is not a category the rules know about -- it is an item in the armour
     /// slot with a class, and the class is what costs speed and what stops blows.
     ///
-    /// An item never touches an attribute. A weapon is its skills, armour is its pool and its
-    /// weight, and an offhand is one or the other. There used to be modifiers here, and every item
-    /// in a list was two things to compare instead of one.
+    /// Mostly an item is what it grants rather than what it adds: a weapon is its skills, armour
+    /// is its pool and its weight, and an offhand is one or the other. <see cref="Modifiers"/> is
+    /// the exception, for the item that lends a point of an attribute, and it is folded in after
+    /// the points are spent -- so the budget is always checked against what was bought and never
+    /// against what is being worn.
+    ///
+    /// This said an item never touches an attribute until modifiers came back, which is a comment
+    /// that outlived what it described by several months.
     /// </summary>
     public sealed class EquipmentSpec
     {

@@ -218,7 +218,7 @@ namespace Dragoneye.Combat
                 case Attribute.Toughness: return "Heals this much at the start of every turn.";
                 case Attribute.Dexterity: return "Adds to the damage of quick weapons.";
                 case Attribute.Strength: return "Adds to the damage of heavy weapons.";
-                case Attribute.Skill: return "Raises the chance a shot lands. Nothing shipped rolls yet.";
+                case Attribute.Skill: return "Raises the chance a shot lands, by five a point.";
                 case Attribute.Vitality: return "One more health for every point.";
                 case Attribute.Willpower: return "One more action point for every point.";
                 case Attribute.Endurance: return "One more speed: act sooner, and walk further per point.";
