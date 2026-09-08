@@ -206,15 +206,16 @@ namespace Dragoneye.Game.Combat
             m_Panel = new VisualElement();
             m_Panel.AddToClassList("clash-prompt");
 
-            // The reason and the help button on one line. No title: eight runes with a percentage
-            // under each is not mistakable for anything other than the question it is.
+            // The heading and the help button on one line, the heading taking the width so the
+            // button is pushed to the far corner. The heading is the ask itself rather than a
+            // caption on it: three quarters of the time that is "answer the attack", and the
+            // other quarter it is the thing the defender most needs to know.
             var head = new VisualElement();
             head.AddToClassList("clash-prompt__head");
 
-            var reason = new Label(ClashLabels.Describe(m_Request));
-            reason.AddToClassList("clash-prompt__reason");
-            reason.EnableInClassList("is-hidden", string.IsNullOrEmpty(reason.text));
-            head.Add(reason);
+            var title = new Label(ClashLabels.Describe(m_Request));
+            title.AddToClassList("clash-prompt__title");
+            head.Add(title);
 
             head.Add(HelpButton());
             m_Panel.Add(head);
@@ -395,8 +396,11 @@ namespace Dragoneye.Game.Combat
             CharacterSheet.PaintElement(mark, element);
             button.Add(mark);
 
-            // What you hold and what putting one up would leave you holding. No name: the rune is
-            // the name, and the number is the thing actually being weighed.
+            var name = new Label(ElementInfo.ShortNameOf(element));
+            name.AddToClassList("clash-option__name");
+            button.Add(name);
+
+            // What you hold and what putting one up would leave you holding.
             button.Add(Count(left, left > 0 ? left - 1 : 0));
 
             // Only an element the defender holds none of is off the table.
@@ -430,6 +434,10 @@ namespace Dragoneye.Game.Combat
 
             button.Add(mark);
 
+            var name = new Label("NONE");
+            name.AddToClassList("clash-option__name");
+            button.Add(name);
+
             // Nothing goes up and nothing comes off the hand, which is the whole of its appeal.
             button.Add(Count(0, 0));
 
@@ -451,15 +459,22 @@ namespace Dragoneye.Game.Combat
             var lines = new VisualElement();
             lines.AddToClassList("clash-option__matchups");
 
-            Matchup(lines, "Beats", ElementLore.Beats(element), "clash-matchup--beats");
-            Matchup(lines, "Even", ElementLore.Even(element), "clash-matchup--even");
-            Matchup(lines, "Loses", ElementLore.LosesTo(element), "clash-matchup--loses");
+            Matchup(lines, ElementLore.Beats(element), "clash-matchup--beats");
+            Matchup(lines, ElementLore.Even(element), "clash-matchup--even");
+            Matchup(lines, ElementLore.LosesTo(element), "clash-matchup--loses");
 
             return lines;
         }
 
-        static void Matchup(VisualElement into, string lead, IReadOnlyList<Element> against,
-            string style)
+        /// <summary>
+        /// One line of the three, as a bare list.
+        ///
+        /// No lead word. Beats, Even and Loses down every one of eight options was the same three
+        /// words twenty-four times, and the colour already carries it -- green for what this
+        /// answers, red for what answers it. The help window says so for anyone who has not
+        /// worked it out.
+        /// </summary>
+        static void Matchup(VisualElement into, IReadOnlyList<Element> against, string style)
         {
             if (against == null || against.Count == 0)
             {
@@ -473,7 +488,7 @@ namespace Dragoneye.Game.Combat
                 names.Add(ElementInfo.ShortNameOf(other));
             }
 
-            var line = new Label(lead + "  " + string.Join(" ", names));
+            var line = new Label(string.Join(", ", names));
             line.AddToClassList("clash-matchup");
             line.AddToClassList(style);
             into.Add(line);

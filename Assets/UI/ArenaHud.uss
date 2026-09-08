@@ -212,8 +212,8 @@
 .card {
     position: absolute;
     right: 16px;
-    top: 136px;
-    bottom: 128px;
+    top: 116px;
+    bottom: 140px;
     width: 290px;
     padding: 18px;
     background-image: url("../Art/UI/ui-panel.png");
@@ -846,8 +846,13 @@
  * The panel and the inspector are up together -- the card opens on the attacker while the question
  * stands -- so they take the same top and the same bottom, and both numbers are written here:
  *
- *     top     136px   the turn order is 115 tall (6 pad, an 88 portrait, its name, 4 pad)
- *     bottom  128px   the element tracker stands about 106 off the floor
+ *     top     116px   the turn order is 115 tall (6 pad, an 88 portrait, its name, 4 pad)
+ *     bottom  140px   the element tracker stands about 106 off the floor
+ *
+ * Both are worked against 624px of height, not 720. The panel scales from a 1280x720 reference at
+ * match 0.5, so a 16:9 window hands the layout exactly 720 css pixels and anything wider hands it
+ * fewer -- 685 at 2000x1017, 624 at 2560x1080. 624 is the number this has to survive, and it is
+ * the one the last two attempts at this did not use.
  *
  * Top and bottom rather than a height, which is the whole lesson of the last attempt at this. A
  * height is a guess about what the content will come to; these two are measurements of what is
@@ -860,10 +865,10 @@
 .clash-prompt {
     position: absolute;
     left: 50%;
-    top: 136px;
-    bottom: 128px;
+    top: 116px;
+    bottom: 140px;
     translate: -50% 0;
-    width: 508px;
+    width: 456px;
     padding: 14px 16px 12px 16px;
 
     /* Nothing leaves the frame. If a screen is ever too short for eight answers, the panel loses
@@ -884,10 +889,18 @@
     border-left-color: rgb(198, 158, 88);
 }
 
-/* The reason, and the help button pushed to the far corner of the same line. */
+/* The heading, and the help button pushed to the far corner of the same line by it. */
 .clash-prompt__head {
     flex-direction: row;
-    align-items: flex-start;
+    align-items: center;
+}
+
+.clash-prompt__title {
+    flex-grow: 1;
+    font-size: 11px;
+    -unity-font-style: bold;
+    letter-spacing: 2px;
+    color: rgb(226, 231, 240);
 }
 
 .clash-prompt__help {
@@ -985,19 +998,23 @@
     margin-top: 8px;
 }
 
-/* One answer: the button with its odds under it, and what it beats beside them. */
-/* Wide enough for the longest line the table can produce: "Loses  GEO HYD PYR" is eighteen
-   characters at 10px with a pixel of spacing, which is about 130. Narrower and it clips, and a
-   matchup list with the last element cut off is worse than none. */
+/* One answer: the button with its odds under it, and what it beats beside them.
+ *
+ * Aligned to the top, not the middle. Centred, the odds came out level with the last matchup line
+ * and read as belonging to that rather than to the button they sit under.
+ *
+ * Wide enough for the longest list the table can produce: "GEO, HYD, PYR, AERO" is eighteen
+ * characters at 10px with a pixel of spacing, about 130. Narrower and it clips, and a matchup list
+ * with its last element cut off is worse than none. */
 .clash-answer {
     flex-direction: row;
-    align-items: center;
-    width: 234px;
+    align-items: flex-start;
+    width: 208px;
 }
 
 .clash-answer__press {
     align-items: center;
-    width: 84px;
+    width: 58px;
     flex-shrink: 0;
 }
 
@@ -1005,8 +1022,11 @@
 .clash-option__matchups {
     flex-grow: 1;
     margin-left: 10px;
+    margin-top: 2px;
 }
 
+/* No lead word. Green is what this answers, red is what answers it, grey is a wash -- three
+   colours doing the work three repeated words were doing eight times over. */
 .clash-matchup {
     font-size: 10px;
     letter-spacing: 1px;
@@ -1028,14 +1048,14 @@
 
 /* One per element held, with what is left of it. The count is the defender's own business, which is
    why it can be shown at all. */
-/* The rune and what it costs you, and nothing else. Everything that used to be in here -- the
-   name, the odds, the three sentences of stakes -- is either gone or somewhere it can be read
-   once instead of eight times. */
+/* Square, and holding the three things a click decides on: which element, what it is called, and
+   what you have left of it. The odds and the matchups sit outside it -- they are what you read to
+   decide, not what you press. */
 .clash-option {
-    width: 84px;
-    height: 60px;
+    width: 56px;
+    height: 56px;
     margin: 0;
-    padding: 4px 0;
+    padding: 3px 0;
     border-width: 2px;
     border-color: rgba(0, 0, 0, 0);
     align-items: center;
@@ -1071,15 +1091,23 @@
 }
 
 .clash-option__mark {
-    width: 28px;
-    height: 28px;
+    width: 22px;
+    height: 22px;
     background-image: url("../Art/UI/ui-gem.png");
     -unity-background-scale-mode: scale-to-fit;
 }
 
+.clash-option__name {
+    margin-top: 1px;
+    font-size: 9px;
+    -unity-font-style: bold;
+    letter-spacing: 1px;
+    color: rgb(198, 204, 218);
+}
+
 .clash-option__count {
-    margin-top: 2px;
-    font-size: 11px;
+    margin-top: 0;
+    font-size: 10px;
     -unity-font-style: bold;
     letter-spacing: 1px;
     color: rgb(226, 222, 210);
@@ -1091,9 +1119,11 @@
 }
 
 /* What this answer is worth, in the same order as the key above the row. */
+/* Small, and hard up against the button above it: it belongs to that button, and there are seven
+   others on the panel it could otherwise be read as belonging to. */
 .clash-option__odds {
-    margin-top: 2px;
-    font-size: 12px;
+    margin-top: 1px;
+    font-size: 10px;
     -unity-font-style: bold;
     letter-spacing: 1px;
     color: rgb(150, 176, 216);

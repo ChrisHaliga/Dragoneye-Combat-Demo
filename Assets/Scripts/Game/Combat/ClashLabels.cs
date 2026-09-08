@@ -112,14 +112,10 @@ namespace Dragoneye.Game.Combat
         /// </summary>
         public static string Describe(DefenceRequest request) =>
             request.Flanked && !request.Shielded
-                ? "Struck from behind: put up two, the worse counts."
+                ? "STRUCK FROM BEHIND  ·  PUT UP TWO, THE WORSE COUNTS"
                 : request.Shielded && !request.Flanked
-                    ? "Put up two; the better counts."
-
-                    // Nothing. A panel of eight elements with a percentage under each does not
-                    // need to be captioned "answer with an element": the only two asks worth a
-                    // line are the two that are not the ordinary one.
-                    : string.Empty;
+                    ? "SHIELDED  ·  PUT UP TWO, THE BETTER COUNTS"
+                    : "ANSWER THE ATTACK";
 
         /// <summary>
         /// What each of the three outcomes is worth, in three short sentences.
