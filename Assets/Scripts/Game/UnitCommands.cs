@@ -82,13 +82,19 @@ namespace Dragoneye.Game
 
             var chosen = facing >= 0 ? Facing.Of(facing) : (Facing?)null;
 
-            // Refusals are ordinary -- a misclick on unreachable ground is one -- so this is verbose
-            // rather than a warning. The client is simply not told; its creature does not move.
+            // Refusals are ordinary -- a misclick on unreachable ground is one -- but the client
+            // used to be simply not told, which is indistinguishable from the order being dropped.
             if (!CombatDirector.Current.ServerMove(m_Creature, cell.ToCell(), chosen))
             {
                 Debug.Log($"[UnitCommands] Move to {cell.ToCell()} refused.", this);
+                RefusedRpc(RpcTarget.Single(rpc.Receive.SenderClientId, RpcTargetUse.Temp));
             }
         }
+
+        /// <summary>Says over the creature's head that the walk was refused. Only to whoever asked.</summary>
+        [Rpc(SendTo.SpecifiedInParams)]
+        void RefusedRpc(RpcParams rpc = default) =>
+            CombatNotices.Raise(m_Creature.TurnId, "Cannot go there", NoticeTone.Loss);
 
         /// <summary>
         /// Whether the client that sent this order is the one the creature answers to.

@@ -1830,7 +1830,12 @@
     width: 420px;
 }
 
+/* Fixed to its parent rather than sized by what is in it. The bar holds a label whose text goes
+   from "24 / 24" to "8 / 24" as the fight goes on, and a bar that takes its width from its own
+   contents shrinks and re-centres every time somebody is hit -- which reads as the bar sliding
+   sideways when you take damage. Nothing inside it is allowed to decide how wide it is. */
 .own-health {
+    width: 100%;
     height: 20px;
     justify-content: center;
     overflow: hidden;
@@ -1848,6 +1853,9 @@
 }
 
 .own-health__text {
+    position: absolute;
+    left: 0;
+    right: 0;
     font-size: 12px;
     -unity-font-style: bold;
     letter-spacing: 1px;

@@ -569,17 +569,21 @@ namespace Dragoneye.Game
         }
 
         /// <summary>
-        /// Turns the facing mark to match the creature as it has been shown.
+        /// Turns the facing mark: along the walk while it is walking, onto the creature's shown
+        /// facing once it has landed.
         ///
-        /// **After it has landed, not while it is walking.** A move reads as three beats -- go,
-        /// arrive, turn -- and turning on the way there loses the third one entirely.
+        /// **It used to hold still for the whole walk**, on the reading that a move is three beats
+        /// -- go, arrive, turn -- and that turning early spends the third one. Watched, it reads as
+        /// a piece being slid sideways: a creature facing north and walking east stares north the
+        /// entire way and snaps round on arrival. Looking where you are going is not the third
+        /// beat, it is part of the first.
         ///
-        /// Eased rather than snapped, and quickly: this is only the mark catching up, and a quarter
-        /// of a second of it is the difference between a piece being moved and a piece teleporting.
+        /// Eased rather than snapped, and quickly. A quarter of a second of it is the difference
+        /// between a piece being moved and a piece teleporting.
         /// </summary>
         void PointTheWay()
         {
-            if (m_Pointer == null || m_Creature == null || IsMoving)
+            if (m_Pointer == null || m_Creature == null)
             {
                 return;
             }
@@ -590,8 +594,41 @@ namespace Dragoneye.Game
             var basis = arena != null ? arena.transform.rotation : Quaternion.identity;
             var wanted = basis * Quaternion.Euler(0f, Shown.Facing(m_Creature).Index * 60f, 0f);
 
+            if (IsMoving && TryHeading(out var heading))
+            {
+                wanted = Quaternion.LookRotation(heading, Vector3.up);
+            }
+
             m_Pointer.rotation = Quaternion.RotateTowards(m_Pointer.rotation, wanted,
                 m_FacingTurnSpeed * Time.deltaTime);
+        }
+
+        /// <summary>
+        /// Which way the token is travelling this instant, flattened onto the ground.
+        ///
+        /// False when there is nowhere left to go or the remaining hop is too short to take a
+        /// direction from -- normalising a near-zero vector gives a direction made of rounding
+        /// error, and the mark would spin on the spot at the end of every leg.
+        /// </summary>
+        bool TryHeading(out Vector3 heading)
+        {
+            heading = Vector3.zero;
+
+            if (m_Leg >= m_Route.Count)
+            {
+                return false;
+            }
+
+            var to = m_Route[m_Leg] - transform.position;
+            to.y = 0f;
+
+            if (to.sqrMagnitude < 0.0004f)
+            {
+                return false;
+            }
+
+            heading = to.normalized;
+            return true;
         }
 
         /// <summary>One frame of walking, corner to corner along the route.</summary>

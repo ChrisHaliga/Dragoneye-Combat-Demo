@@ -206,9 +206,30 @@ namespace Dragoneye.Game.Combat
             if (!CombatDirector.Current.ServerUseSkill(m_Creature, skillId, cell.ToCell(),
                     out var why, chosen))
             {
-                // Refusals are ordinary -- a misclick out of range is one -- so this is verbose
-                // rather than a warning.
+                // Told to the player, not just to the server's own console. An order that is
+                // refused and explains nothing is indistinguishable from an order that was
+                // dropped, and a fight full of clicks that quietly do nothing is unplayable --
+                // this is what "it just fails with no prompt" was.
                 Debug.Log($"[SkillCommands] Skill {skillId} refused: {why}.", this);
+                RefusedRpc((byte)why, RpcTarget.Single(rpc.Receive.SenderClientId, RpcTargetUse.Temp));
+            }
+        }
+
+        /// <summary>
+        /// Says over the creature's head why its order was not carried out.
+        ///
+        /// Only to the client that asked. A refusal is a fact about somebody's click, not about
+        /// the fight, and four players watching one of them misjudge a range is noise on three
+        /// screens.
+        /// </summary>
+        [Rpc(SendTo.SpecifiedInParams)]
+        void RefusedRpc(byte refusal, RpcParams rpc = default)
+        {
+            var reason = SkillLabels.Describe((SkillRefusal)refusal);
+
+            if (!string.IsNullOrEmpty(reason))
+            {
+                CombatNotices.Raise(m_Creature.TurnId, reason, NoticeTone.Loss);
             }
         }
 
