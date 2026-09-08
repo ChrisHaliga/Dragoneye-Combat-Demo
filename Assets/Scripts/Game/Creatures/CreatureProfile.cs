@@ -62,7 +62,11 @@ namespace Dragoneye.Game.Creatures
             MaxAp = maxAp;
             Initiative = initiative;
             SkillIds = skillIds ?? System.Array.Empty<int>();
-            StartingPool = startingPool;
+            // Every creature holds one of each physical element without paying for it, whether it
+            // was built in the creator or authored as a premade. Applied here, at the one place
+            // both kinds become the same shape, so neither can be given the floor and the other
+            // left without it. Idempotent, so a pool that already has them keeps what it has.
+            StartingPool = ElementPricing.WithFree(startingPool);
             Level = level < Progression.FirstLevel ? Progression.FirstLevel : level;
         }
 

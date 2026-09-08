@@ -61,7 +61,14 @@ namespace Dragoneye.Combat
         /// and one Pyro, or one of four different elements -- the shape of the pool is as much a
         /// choice as its size.
         /// </summary>
-        public ElementCounts StartingPool = ElementCounts.Empty;
+        /// <summary>
+        /// The elements this character brings. Starts at the free four, which cost nothing.
+        ///
+        /// Not empty, because a character that holds nothing an attack can be made of cannot
+        /// fight, and the screen should show the floor rather than let a player discover it in
+        /// the arena.
+        /// </summary>
+        public ElementCounts StartingPool = ElementPricing.Free;
 
         public int WeaponId = NoEquipment;
 

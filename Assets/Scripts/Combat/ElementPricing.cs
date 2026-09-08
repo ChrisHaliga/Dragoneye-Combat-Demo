@@ -15,6 +15,41 @@ namespace Dragoneye.Combat
     /// </summary>
     public static class ElementPricing
     {
+        /// <summary>
+        /// One of each physical element, which every creature has without paying for it.
+        ///
+        /// A fight where somebody holds nothing an attack can be made of is not a fight, and a
+        /// budget spent entirely on depth in one element left exactly that. These four are the
+        /// floor: enough to always have something to throw and something to answer with, and
+        /// cheap enough in the fiction that nobody should have to buy them.
+        ///
+        /// The four are the ones that cost a point. Lux, Nyx and Arcana are the ones you pay for
+        /// and the ones a build is characterised by, so none of them is free.
+        /// </summary>
+        public static readonly ElementCounts Free = new ElementCounts(1, 1, 1, 1, 0, 0, 0);
+
+        /// <summary>
+        /// A pool with the free elements in it, whoever wrote the pool.
+        ///
+        /// Per element the larger of the two, not the sum, so it can be applied twice without
+        /// handing anybody eight physical elements -- a premade authored with two Pyro keeps two,
+        /// and gains one each of the rest.
+        /// </summary>
+        public static ElementCounts WithFree(ElementCounts pool)
+        {
+            var whole = pool;
+
+            foreach (var element in ElementInfo.All)
+            {
+                if (Free[element] > pool[element])
+                {
+                    whole = whole.With(element, Free[element]);
+                }
+            }
+
+            return whole;
+        }
+
         /// <summary>What one of this element costs out of the pool budget.</summary>
         public static int CostOf(Element element)
         {
@@ -38,18 +73,23 @@ namespace Dragoneye.Combat
             }
         }
 
-        /// <summary>What a whole pool costs.</summary>
+        /// <summary>
+        /// What a whole pool costs, with the free elements taken off first.
+        ///
+        /// So a pool of exactly <see cref="Free"/> costs nothing, and a budget buys depth and the
+        /// rarer elements rather than the first of each common one.
+        /// </summary>
         public static int CostOf(ElementCounts pool)
         {
             var total = 0;
 
             foreach (var element in ElementInfo.All)
             {
-                var held = pool[element];
+                var paid = pool[element] - Free[element];
 
-                if (held > 0)
+                if (paid > 0)
                 {
-                    total += held * CostOf(element);
+                    total += paid * CostOf(element);
                 }
             }
 

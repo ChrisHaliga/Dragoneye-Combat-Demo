@@ -57,8 +57,12 @@ namespace Dragoneye.Multiplayer
         CharacterBuild m_Build;
         LevelGain m_Gain;
 
-        // What the character already held when the screen opened. The new points are spent on top
-        // of it, and nothing bought in an earlier level may be taken back here to pay for this one.
+        // How far the pool may be taken down: the four every creature holds for nothing. Above
+        // that, everything is back on the table at a level up.
+        //
+        // It used to be whatever the character already held, so the only thing a new point could
+        // buy was one more of something, and a pool that had gone the wrong way early stayed wrong
+        // for twenty levels. Spending a level's point is a decision about the whole pool.
         ElementCounts m_Floor;
 
         /// <summary>True when every control was found. False means the UXML and this disagree.</summary>
@@ -168,7 +172,7 @@ namespace Dragoneye.Multiplayer
             m_Character = character;
             m_Build = new CharacterBuild(character.Build);
             m_Gain = Progression.Resolve(m_Build.Level, m_Build.Xp);
-            m_Floor = m_Build.StartingPool;
+            m_Floor = ElementPricing.Free;
 
             // The level is applied to the working copy up front, so everything below -- the budget,
             // the skills, the health -- is what the character is about to be rather than what it
