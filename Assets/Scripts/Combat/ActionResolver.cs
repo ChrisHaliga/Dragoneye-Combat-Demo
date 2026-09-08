@@ -163,9 +163,15 @@ namespace Dragoneye.Combat
         /// the target is already in reach, -1 when there is no such hex.
         /// </param>
         /// <param name="stepCost">What one tile costs this creature. Its armour's to say.</param>
+        /// <param name="targetIsSelf">
+        /// Whether what is being aimed at is the actor. A skill aimed at the user has exactly one
+        /// legal target and never walks to reach it, so it is priced before anything about reach
+        /// is asked -- the reach question has no meaning when the answer is always "here", and
+        /// asking it anyway is what made catching your breath report that there was no route.
+        /// </param>
         public static ActionPlan ResolveSkill(bool isActorsTurn, bool controlsActor, Ap currentAp,
             SkillSpec skill, bool targetIsCreature, bool targetIsEnemy, int stepsToReach,
-            Ap stepCost, bool hasLine = true)
+            Ap stepCost, bool hasLine = true, bool targetIsSelf = false)
         {
             if (!controlsActor)
             {
@@ -180,6 +186,21 @@ namespace Dragoneye.Combat
             if (skill == null)
             {
                 return ActionPlan.Nothing;
+            }
+
+            if (skill.Target == SkillTarget.Self)
+            {
+                if (!targetIsSelf)
+                {
+                    return new ActionPlan(BoardAction.None, Ap.Zero, ActionRefusal.NoTarget,
+                        skill: skill);
+                }
+
+                return currentAp < skill.ApCost
+                    ? new ActionPlan(BoardAction.UseSkill, skill.ApCost, ActionRefusal.TooExpensive,
+                        skill: skill)
+                    : new ActionPlan(BoardAction.UseSkill, skill.ApCost, ActionRefusal.None,
+                        skill: skill);
             }
 
             // What a creature-directed skill is for. Aiming one at bare ground is not a cheaper

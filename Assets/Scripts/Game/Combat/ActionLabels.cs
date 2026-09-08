@@ -16,6 +16,14 @@ namespace Dragoneye.Game.Combat
     {
         public static string Describe(ActionPlan plan)
         {
+            // Nothing on offer and nothing the matter: the hex the actor is already standing on,
+            // or a board with nothing armed. A label here would be a price for an action that is
+            // not being offered -- "Move -- 0 AP" over your own feet.
+            if (plan.Action == BoardAction.None && plan.Refusal == ActionRefusal.None)
+            {
+                return string.Empty;
+            }
+
             switch (plan.Refusal)
             {
                 case ActionRefusal.NotYourTurn:

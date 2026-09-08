@@ -465,7 +465,10 @@ namespace Dragoneye.Game.Combat
                 return ActionPlan.Nothing;
             }
 
-            var occupied = m_Units.TryGet(hex, out _);
+            // Somebody *else*. Standing on your own hex is not an obstacle, it is where you are,
+            // and reporting it as occupied made the walk refuse the one hex it has nothing to say
+            // about.
+            var occupied = m_Units.IsOccupiedByOther(hex, actor.Unit);
             var grid = m_Map != null ? m_Map.Grid : null;
 
             return ActionResolver.Resolve(
@@ -503,6 +506,24 @@ namespace Dragoneye.Game.Combat
 
         ActionPlan PriceSkill(CreatureState actor, SkillSpec skill, Cell hex)
         {
+            // A skill aimed at the user has one target and it is never in doubt, so it is priced
+            // against the actor wherever the cursor happens to be. That is what makes the cost
+            // readable the moment it is armed instead of only while hovering one particular hex,
+            // which on a board this size is a hunt for your own feet.
+            if (skill.Target == SkillTarget.Self)
+            {
+                return ActionResolver.ResolveSkill(
+                    isActorsTurn: true,
+                    controlsActor: true,
+                    currentAp: actor.CurrentAp,
+                    skill: skill,
+                    targetIsCreature: true,
+                    targetIsEnemy: false,
+                    stepsToReach: 0,
+                    stepCost: actor.StepCost,
+                    targetIsSelf: true);
+            }
+
             var occupied = m_Units.TryGet(hex, out var occupant);
             var target = occupied ? occupant.GetComponent<CreatureState>() : null;
 
@@ -601,7 +622,14 @@ namespace Dragoneye.Game.Combat
 
                 if (skills != null)
                 {
-                    skills.RequestUse(m_SkillBar.SelectedSkill, hex, m_SkillBar.SelectedElement);
+                    // Aimed at the actor when that is the only place it can go, so the click is a
+                    // confirmation rather than an aim and does not have to land on the actor's own
+                    // hex to count.
+                    var at = plan.Skill != null && plan.Skill.Target == SkillTarget.Self
+                        ? actor.Cell
+                        : hex;
+
+                    skills.RequestUse(m_SkillBar.SelectedSkill, at, m_SkillBar.SelectedElement);
                 }
 
                 m_SkillBar.ClearSelection();
