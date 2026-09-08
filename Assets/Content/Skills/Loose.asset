@@ -18,7 +18,11 @@ MonoBehaviour:
     are.
   m_Icon: {fileID: 0}
   m_Element: 3
-  m_ElementOptions: 
+  m_ElementOptions:
+  - 0
+  - 1
+  - 2
+  - 3
   m_Conditions: []
   m_ApCost: 1
   m_ElementCost: 1

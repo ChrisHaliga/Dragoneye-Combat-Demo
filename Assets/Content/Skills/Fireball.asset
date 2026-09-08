@@ -17,7 +17,11 @@ MonoBehaviour:
   m_Description: The reason the staff is held at arm's length. Two Pyro, thrown.
   m_Icon: {fileID: 0}
   m_Element: 2
-  m_ElementOptions: 
+  m_ElementOptions:
+  - 0
+  - 1
+  - 2
+  - 3
   m_Conditions: []
   m_ApCost: 2
   m_ElementCost: 2

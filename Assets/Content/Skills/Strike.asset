@@ -17,7 +17,11 @@ MonoBehaviour:
   m_Description: A committed swing. Cheap, and it asks its question in Pyro.
   m_Icon: {fileID: 0}
   m_Element: 2
-  m_ElementOptions: 
+  m_ElementOptions:
+  - 0
+  - 1
+  - 2
+  - 3
   m_Conditions: []
   m_ApCost: 1
   m_ElementCost: 1

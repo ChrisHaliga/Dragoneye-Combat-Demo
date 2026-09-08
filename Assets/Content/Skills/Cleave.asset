@@ -17,7 +17,11 @@ MonoBehaviour:
   m_Description: Slower and dearer, and it ends arguments.
   m_Icon: {fileID: 0}
   m_Element: 0
-  m_ElementOptions: 
+  m_ElementOptions:
+  - 0
+  - 1
+  - 2
+  - 3
   m_Conditions: []
   m_ApCost: 2
   m_ElementCost: 2

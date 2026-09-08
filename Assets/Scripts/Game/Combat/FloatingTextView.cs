@@ -124,8 +124,24 @@ namespace Dragoneye.Game.Combat
                     OnNotice(e.Actor, $"+{e.Amount} AP", NoticeTone.Gain, NoticeMark.None);
                     break;
 
-                // Turned aside by an answer: nothing to count, so the mark is the whole note.
+                // What the acting creature just did, over its own head, named. A player watching
+                // somebody else's turn could see a token move and a number appear on a third
+                // creature, and had to read the log to learn which of nine skills joined them.
+                // The name is safe to say here: the clash has resolved, the shot has been revealed,
+                // and an uncontested skill was never hidden.
+                case CombatEventKind.Acted:
+                    Announce(e.Actor, e.Skill);
+                    break;
+
+                // A shot names itself as it is revealed, which is after the defender answered.
+                case CombatEventKind.Shot:
+                    Announce(e.Actor, e.Skill);
+                    break;
+
                 case CombatEventKind.ClashResolved:
+                    Announce(e.Actor, e.Skill);
+
+                    // Turned aside by an answer: nothing to count, so the mark is the whole note.
                     if (e.Outcome != ClashOutcome.AttackerWins)
                     {
                         OnNotice(e.Target, string.Empty, NoticeTone.Gain, NoticeMark.Guard);
@@ -154,6 +170,22 @@ namespace Dragoneye.Game.Combat
         {
             Listen();
             Advance(Time.deltaTime);
+        }
+
+        /// <summary>
+        /// Says what a creature just used, over its head.
+        ///
+        /// Only when the id resolves to something with a name: a number nobody can look up says
+        /// less than nothing, and the catalog is not loaded outside a match.
+        /// </summary>
+        void Announce(uint actor, int skillId)
+        {
+            var catalog = SkillCatalog.Current;
+
+            if (catalog != null && catalog.TryGetSkill(skillId, out var skill))
+            {
+                OnNotice(actor, skill.Name, NoticeTone.Gain, NoticeMark.None);
+            }
         }
 
         void OnNotice(uint turnId, string text, NoticeTone tone, NoticeMark mark)
