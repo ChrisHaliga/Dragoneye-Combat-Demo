@@ -2271,3 +2271,39 @@
     color: rgb(169, 176, 190);
     margin-top: 3px;
 }
+
+/* Which element the armed skill arrives as. Its own strip above the turn line, icons only: the
+   rune is the thing being chosen and the thing a player learns to read, and a short name under
+   each was a second alphabet for the same four choices. */
+.element-choice {
+    flex-direction: row;
+    justify-content: center;
+    align-items: center;
+    margin-bottom: 4px;
+}
+
+.element-choice__option {
+    width: 34px;
+    height: 34px;
+    margin: 0 3px;
+    padding: 0;
+    justify-content: center;
+    align-items: center;
+    background-color: rgba(8, 9, 13, 0.9);
+    border-width: 1px;
+    border-color: rgb(58, 66, 82);
+    border-radius: 4px;
+}
+
+.element-choice__option:hover {
+    border-color: rgb(226, 191, 122);
+}
+
+.element-choice__option:disabled {
+    opacity: 0.3;
+}
+
+.element-choice__rune {
+    width: 22px;
+    height: 22px;
+}

@@ -270,10 +270,7 @@ namespace Dragoneye.Game
                     return s_FacingMaterial;
                 }
 
-                var shader = Shader.Find("Universal Render Pipeline/Unlit")
-                    ?? Shader.Find("Unlit/Color");
-
-                s_FacingMaterial = new Material(shader) { name = "Facing" };
+                s_FacingMaterial = WorldArt.NewUnlit("Facing", transparent: false);
                 s_FacingMaterial.SetColor("_BaseColor", new Color(0.94f, 0.90f, 0.78f, 1f));
                 s_FacingMaterial.color = new Color(0.94f, 0.90f, 0.78f, 1f);
 

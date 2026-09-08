@@ -12,6 +12,10 @@
         <!-- The bottom band: what the turn is spent out of over what it is spent on. Points above
              health, End Turn on the right of it, and the bar of actions under the pair. -->
         <ui:VisualElement name="turn-footer" class="turn-footer">
+            <!-- Which element the armed skill arrives as. Above the line that says whose turn it
+                 is, so it sits between the board and the bar and takes nothing away from either. -->
+            <ui:VisualElement name="element-choice" class="element-choice" />
+
             <ui:Label name="turn-announce" text="" class="turn-announce" />
 
             <ui:VisualElement class="vitals">

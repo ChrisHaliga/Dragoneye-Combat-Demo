@@ -85,8 +85,7 @@ namespace Dragoneye.Game.Combat
 
             m_Points = new Vector3[Mathf.Max(2, m_Samples)];
 
-            m_Material = new Material(Shader.Find("Universal Render Pipeline/Unlit")
-                ?? Shader.Find("Unlit/Color")) { name = "Shot Arc" };
+            m_Material = WorldArt.NewUnlit("Shot Arc", transparent: true);
             m_Material.SetFloat("_Surface", 1f);
             m_Material.SetFloat("_ZWrite", 0f);
             m_Material.SetOverrideTag("RenderType", "Transparent");

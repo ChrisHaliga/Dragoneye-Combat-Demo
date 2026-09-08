@@ -130,8 +130,7 @@ namespace Dragoneye.Game.Combat
                 return;
             }
 
-            m_Material = new Material(Shader.Find("Universal Render Pipeline/Unlit")
-                ?? Shader.Find("Unlit/Color")) { name = "Path Step" };
+            m_Material = WorldArt.NewUnlit("Path Step", transparent: true);
 
             m_Material.SetFloat("_Surface", 1f);
             m_Material.SetFloat("_ZWrite", 0f);

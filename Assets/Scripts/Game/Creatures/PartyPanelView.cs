@@ -204,7 +204,6 @@ namespace Dragoneye.Game.Creatures
             CreatureDisplay.DrawVitals(card, creature, numbers: true);
 
             // The runes go beside the card rather than over the face.
-            CreatureDisplay.DrawElements(row, creature);
             CreatureDisplay.ShowElementsOnHover(card, creature, columns: 4, placement: "rune-grid--right");
             row.Add(card);
 

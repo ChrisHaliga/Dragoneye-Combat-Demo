@@ -69,6 +69,10 @@ namespace Dragoneye.Game.Combat
         // options in place of the slots while this is set.
         int m_Choosing = NoSkill;
 
+        // The row of element buttons, above the turn announcement. Its own strip rather than the
+        // action bar's space.
+        VisualElement m_Choice;
+
         // What the bar was last drawn from. A click is a press and a release on the same element,
         // so rebuilding every frame destroyed the button between the two and nothing was ever
         // clicked -- the bar looked alive and did nothing at all.
@@ -129,6 +133,7 @@ namespace Dragoneye.Game.Combat
 
             m_Root = document.Q<VisualElement>("root") ?? document;
             m_Bar = m_Root.Q<VisualElement>("skill-bar");
+            m_Choice = m_Root.Q<VisualElement>("element-choice");
 
             m_Window = m_Root.Q<VisualElement>("skill-window");
             m_WindowName = m_Root.Q<Label>("skill-window-name");
@@ -297,6 +302,13 @@ namespace Dragoneye.Game.Combat
             m_DrawnCount = count;
 
             Rebuild(actor, yours);
+
+            if (m_Choice != null)
+            {
+                m_Choice.style.display = m_Choice.childCount > 0
+                    ? DisplayStyle.Flex
+                    : DisplayStyle.None;
+            }
         }
 
         /// <summary>
@@ -398,22 +410,24 @@ namespace Dragoneye.Game.Combat
 
             m_Bar.Clear();
             m_Slotted.Clear();
+            m_Choice?.Clear();
 
             if (commands == null || pool == null)
             {
                 return;
             }
 
-            // Picking what a fist is made of takes the bar over entirely. It is one question with
-            // a few answers and a way out, and leaving the rest of the bar live beside it would
-            // offer a second decision on top of the one already being asked.
+            // Which element the skill arrives as is asked on its own strip above the bar, not by
+            // taking the bar over. The skills stay where they were, so the answer is a small
+            // decision beside the row rather than the row disappearing out from under the player.
             if (m_Choosing != NoSkill && commands.TryGetSkill(m_Choosing, out var choosing))
             {
                 DrawElementChoice(choosing, actor, pool.Ledger);
-                return;
             }
-
-            m_Choosing = NoSkill;
+            else
+            {
+                m_Choosing = NoSkill;
+            }
 
             m_Bar.Add(BuildMoveSlot(actor.StepCost, yours));
 
@@ -534,41 +548,37 @@ namespace Dragoneye.Game.Combat
         /// elements a fist could be made of is a fact about the skill, and a row that changed
         /// length as the pool drained would teach the player nothing about either.
         /// </summary>
+        /// <summary>
+        /// Which element the armed skill arrives as: one button an option, and nothing else on them.
+        ///
+        /// Icons alone. The rune is the thing being chosen between and it is the thing a player
+        /// learns to read; a short name under each is a second alphabet for the same four choices,
+        /// and it made the row twice as wide for nothing. What each one is worth is on the card
+        /// that appears when the pointer is on it.
+        ///
+        /// An option the creature cannot pay for is drawn and disabled rather than left out, so
+        /// the row is the same four every time and "I have no Pyro" is something you can see.
+        /// </summary>
         void DrawElementChoice(SkillSpec skill, CreatureState actor, ElementLedger ledger)
         {
-            var title = new Label($"{skill.Name} as");
-            title.AddToClassList("skill-choice__title");
-            m_Bar.Add(title);
-
             foreach (var element in skill.ElementOptions)
             {
                 var option = skill.WithElement(element);
                 var refusal = SkillRules.CheckAffordable(option, true, actor.CurrentAp, ledger);
 
                 var button = new Button(() => Use(option, element));
-                button.AddToClassList("action-slot");
-                button.AddToClassList("action-slot--choice");
+                button.AddToClassList("element-choice__option");
                 button.SetEnabled(refusal == SkillRefusal.None);
-                button.tooltip = ElementLore.Describe(element);
-                ElementChart.Hint(button, element);
                 button.text = string.Empty;
 
                 var mark = new VisualElement();
-                mark.AddToClassList("action-slot__rune-large");
+                mark.AddToClassList("element-choice__rune");
                 CharacterSheet.PaintElement(mark, element);
                 button.Add(mark);
 
-                var name = new Label(ElementInfo.ShortNameOf(element));
-                name.AddToClassList("action-slot__caption");
-                button.Add(name);
-
-                m_Bar.Add(button);
+                ElementChart.Hint(button, element);
+                m_Choice.Add(button);
             }
-
-            var cancel = new Button(() => m_Choosing = NoSkill) { text = "Cancel" };
-            cancel.AddToClassList("action-slot");
-            cancel.AddToClassList("action-slot--cancel");
-            m_Bar.Add(cancel);
         }
 
         // ---------- the slots ----------

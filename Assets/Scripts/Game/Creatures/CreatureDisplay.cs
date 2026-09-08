@@ -157,60 +157,6 @@ namespace Dragoneye.Game.Creatures
         }
 
         /// <summary>
-        /// What a creature is holding, in a column beside its card.
-        ///
-        /// Beside it rather than on it: runes over a face are two pictures in one square, and the
-        /// face is the half a player recognises a creature by.
-        ///
-        /// Its own pool where the local player is entitled to it, and only what has been proven
-        /// otherwise. The rule is the card's rule, kept here so a portrait cannot become the one
-        /// place an opponent's hand leaks.
-        /// </summary>
-        public static void DrawElements(VisualElement into, CreatureState creature)
-        {
-            var pool = creature.Pool;
-
-            if (pool == null)
-            {
-                return;
-            }
-
-            var held = LocalPlayer.Controls(creature) ? pool.Pool : PossibleElements.Seen(pool.Ledger).Known;
-            var column = new VisualElement();
-            column.AddToClassList("portrait__elements");
-            column.pickingMode = PickingMode.Ignore;
-
-            foreach (var element in ElementInfo.All)
-            {
-                var count = held[element];
-
-                if (count <= 0)
-                {
-                    continue;
-                }
-
-                var row = new VisualElement();
-                row.AddToClassList("portrait__element");
-
-                var rune = new VisualElement();
-                rune.AddToClassList("portrait__rune");
-                CharacterSheet.PaintElement(rune, element);
-                row.Add(rune);
-
-                var label = new Label(count.ToString());
-                label.AddToClassList("portrait__count");
-                row.Add(label);
-
-                column.Add(row);
-            }
-
-            if (column.childCount > 0)
-            {
-                into.Add(column);
-            }
-        }
-
-        /// <summary>
         /// Everything known about a creature's elements, laid out in a grid, for a hover.
         ///
         /// **On hover rather than always.** Seven elements will not fit beside a portrait, and the
@@ -237,7 +183,8 @@ namespace Dragoneye.Game.Creatures
             }
 
             var mine = LocalPlayer.Controls(creature);
-            var held = mine ? pool.Pool : PossibleElements.Seen(pool.Ledger).Known;
+            var held = mine ? Shown.Hand(creature) : PossibleElements.Seen(pool.Ledger).Known;
+            var start = creature.StartingPool;
             var unknown = mine ? 0 : pool.Unidentified;
 
             var cells = new List<VisualElement>();
@@ -246,7 +193,14 @@ namespace Dragoneye.Game.Creatures
             {
                 var count = held[element];
 
-                if (count > 0)
+                // Your own creature reads "2 (3)": what is left of what it began with. Somebody
+                // else's reads the bare count, because how many they started with per element is
+                // not something anybody has shown you -- the question mark below carries the rest.
+                if (mine && start[element] > 0)
+                {
+                    cells.Add(RuneCell(element, $"{count} ({start[element]})"));
+                }
+                else if (!mine && count > 0)
                 {
                     cells.Add(RuneCell(element, count.ToString()));
                 }

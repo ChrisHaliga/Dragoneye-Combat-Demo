@@ -84,6 +84,40 @@ namespace Dragoneye.Game
         }
 
         /// <summary>
+        /// A fresh unlit material, opaque or blended, cloned from one that ships with the build.
+        ///
+        /// **Cloned rather than built, and this is the whole reason the overlays worked in the
+        /// editor and came out flat black in a player.** Unity decides which variants of a shader
+        /// to keep by looking at the materials in the build, not at the shader: including
+        /// URP/Unlit in the always-included list ships the shader and none of the configurations
+        /// nothing uses. Every overlay here built its own material at runtime and turned on
+        /// transparency by hand, so the transparent variant was used by no material anywhere, was
+        /// stripped, and the material fell back to something that draws black.
+        ///
+        /// The two configurations are material assets under Resources, which is packaged whole.
+        /// A variant a material asset uses is a variant that ships. Anything that wants an unlit
+        /// material asks here rather than reaching for the shader, so there is one place this can
+        /// be got wrong and it is this one.
+        /// </summary>
+        public static Material NewUnlit(string name, bool transparent)
+        {
+            var key = transparent ? "UnlitTransparent" : "UnlitOpaque";
+            var packaged = Resources.Load<Material>(key);
+
+            if (packaged == null)
+            {
+                // Loud, because the fallback is exactly the thing that renders black in a build.
+                Debug.LogError($"Assets/Resources/{key}.mat is missing. Every overlay built from "
+                    + "it will render black in a player, because the shader variant it needs is "
+                    + "only packaged by that asset.");
+
+                return new Material(Shader.Find("Universal Render Pipeline/Unlit")) { name = name };
+            }
+
+            return new Material(packaged) { name = name };
+        }
+
+        /// <summary>
         /// An unlit material showing a texture, opaque or blended, shared by name.
         ///
         /// The same recipe the move ghost uses, because two translucent things on the same board
@@ -96,23 +130,9 @@ namespace Dragoneye.Game
                 return existing;
             }
 
-            var shader = Shader.Find("Universal Render Pipeline/Unlit") ?? Shader.Find("Unlit/Texture");
-            var material = new Material(shader) { name = name, mainTexture = texture };
-
+            var material = NewUnlit(name, transparent);
+            material.mainTexture = texture;
             material.SetTexture("_BaseMap", texture);
-            material.SetColor("_BaseColor", Color.white);
-            material.color = Color.white;
-
-            if (transparent)
-            {
-                material.SetFloat("_Surface", 1f);
-                material.SetFloat("_ZWrite", 0f);
-                material.SetOverrideTag("RenderType", "Transparent");
-                material.renderQueue = 3000;
-                material.SetInt("_SrcBlend", (int)UnityEngine.Rendering.BlendMode.SrcAlpha);
-                material.SetInt("_DstBlend", (int)UnityEngine.Rendering.BlendMode.OneMinusSrcAlpha);
-                material.EnableKeyword("_SURFACE_TYPE_TRANSPARENT");
-            }
 
             s_Materials[name] = material;
             return material;

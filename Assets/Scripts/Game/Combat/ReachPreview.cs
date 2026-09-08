@@ -164,8 +164,7 @@ namespace Dragoneye.Game.Combat
             m_Root = new GameObject("Reach").transform;
             m_Root.SetParent(transform, false);
 
-            m_Material = new Material(Shader.Find("Universal Render Pipeline/Unlit")
-                ?? Shader.Find("Unlit/Color")) { name = "Reach" };
+            m_Material = WorldArt.NewUnlit("Reach", transparent: true);
             m_Material.SetFloat("_Surface", 1f);
             m_Material.SetFloat("_ZWrite", 0f);
             m_Material.SetOverrideTag("RenderType", "Transparent");

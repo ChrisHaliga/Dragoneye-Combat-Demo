@@ -102,8 +102,9 @@ namespace Dragoneye.Game.Combat
                 return;
             }
 
-            m_Material = new Material(Shader.Find("Universal Render Pipeline/Unlit")
-                ?? Shader.Find("Unlit/Color")) { name = "Move Ghost" };
+            // Transparent, and from the packaged material: a variant nothing on disk uses is a
+            // variant no build keeps.
+            m_Material = WorldArt.NewUnlit("Move Ghost", transparent: true);
 
             // Transparent, and not writing depth: two overlapping translucent pieces that fought
             // over the depth buffer would flicker as the camera moved.

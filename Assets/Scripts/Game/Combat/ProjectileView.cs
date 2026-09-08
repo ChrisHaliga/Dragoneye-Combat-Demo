@@ -198,8 +198,7 @@ namespace Dragoneye.Game.Combat
 
         static Material Glow(Color tint)
         {
-            var material = new Material(Shader.Find("Universal Render Pipeline/Unlit")
-                ?? Shader.Find("Unlit/Color")) { name = "Shot" };
+            var material = WorldArt.NewUnlit("Shot", transparent: false);
 
             // Lifted towards white so it reads as light rather than paint.
             var bright = Color.Lerp(tint, Color.white, 0.35f);
