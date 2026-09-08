@@ -148,11 +148,14 @@ namespace Dragoneye.Game.Combat
             // turn" are the same shape and you have to remember which of them is you.
             var yours = LocalPlayer.Controls(creature);
 
+            // Whose go it is, not which of their creatures is acting. The turn order above says
+            // that already, larger, with a portrait on it -- and naming the character here as well
+            // made the one line that has to be read at a glance into two facts to read.
             var who = creature.IsComputerControlled
                 ? creature.DisplayName
                 : CreatureDisplay.ControllerName(creature);
 
-            var line = yours ? $"YOUR TURN  ·  {creature.DisplayName}" : $"{who}'s turn";
+            var line = yours ? "YOUR TURN" : $"{who}'s turn";
 
             m_Announce.text = m_Fast ? line + "  ·  FAST FORWARD" : line;
             m_Announce.EnableInClassList("turn-announce--yours", yours);
@@ -261,7 +264,8 @@ namespace Dragoneye.Game.Combat
                     active ? Color.white : tint;
 
             CreatureDisplay.DrawPortrait(root, creature, "turn-portrait__initial");
-            CreatureDisplay.ShowElementsOnHover(root, creature, columns: 2, placement: "rune-grid--below");
+            CreatureDisplay.ShowElementsOnHover(root, creature, columns: 2,
+                placement: CreatureDisplay.RunePlacement.Below);
             CreatureDisplay.DrawVitals(root, creature, numbers: active);
 
             if (active)

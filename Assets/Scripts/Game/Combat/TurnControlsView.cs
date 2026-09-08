@@ -38,7 +38,6 @@ namespace Dragoneye.Game.Combat
         VisualElement m_Footer;
         VisualElement m_Banner;
         VisualElement m_ApPips;
-        Label m_ApText;
         Label m_Cursor;
         Label m_OutcomeTitle;
         Button m_EndTurn;
@@ -71,7 +70,6 @@ namespace Dragoneye.Game.Combat
             m_Footer = root.Q<VisualElement>("turn-footer");
             m_Banner = root.Q<VisualElement>("outcome-banner");
             m_ApPips = root.Q<VisualElement>("ap-pips");
-            m_ApText = root.Q<Label>("ap-text");
             m_Cursor = root.Q<Label>("cursor-action");
             m_OutcomeTitle = root.Q<Label>("outcome-title");
             m_EndTurn = root.Q<Button>("end-turn-button");
@@ -80,7 +78,7 @@ namespace Dragoneye.Game.Combat
             m_HealthText = root.Q<Label>("own-health-text");
             m_OwnElements = root.Q<VisualElement>("own-elements");
 
-            if (m_Footer == null || m_Banner == null || m_ApPips == null || m_ApText == null
+            if (m_Footer == null || m_Banner == null || m_ApPips == null
                 || m_Cursor == null
                 || m_OutcomeTitle == null || m_EndTurn == null)
             {
@@ -149,7 +147,6 @@ namespace Dragoneye.Game.Combat
             }
 
             ApPips.Fill(m_ApPips, shown.CurrentAp, shown.MaxAp);
-            m_ApText.text = $"{shown.CurrentAp} / {shown.MaxAp} AP";
 
             RefreshVitals(shown);
             RefreshOwnElements();

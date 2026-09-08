@@ -116,17 +116,12 @@
     border-radius: 4px;
 }
 
-.rune-grid--right {
-    left: 100%;
-    top: 2px;
-    margin-left: 6px;
-}
-
-.rune-grid--below {
-    left: 50%;
-    top: 100%;
-    margin-left: -34px;
-    margin-top: 4px;
+/* Placed from code, because it lives in a layer over the whole HUD rather than inside the portrait
+   it describes -- so where it goes is a question about where that portrait ended up on screen, and
+   percentages of the layer would be percentages of the window. */
+.rune-grid--floating {
+    left: 0;
+    top: 0;
 }
 
 .rune-grid__row {
@@ -212,11 +207,13 @@
 
 /* Pinned to the HUD rather than sized by what is on it: top with everything else, bottom on the
    line the log and the footer sit on. What does not fit scrolls. */
+/* Top and bottom with the defence prompt, which is the panel it is usually beside: the question
+   opens this card on whoever is attacking. The two numbers are the prompt's, written there. */
 .card {
     position: absolute;
     right: 16px;
-    top: 16px;
-    bottom: 130px;
+    bottom: 116px;
+    height: 256px;
     width: 290px;
     padding: 18px;
     background-image: url("../Art/UI/ui-panel.png");
@@ -345,10 +342,12 @@
     margin-right: 8px;
 }
 
+/* Half a circle. Two of them, touching, are one point; the seam between them is where a spent
+   half shows. The radius is the full height, which is what turns a rectangle into a semicircle --
+   keep it equal to the height in every size below or the ends come out as lozenges. */
 .pip {
-    width: 7px;
+    width: 6px;
     height: 12px;
-    margin-right: 3px;
     background-color: rgb(38, 43, 56);
     border-width: 1px;
     border-color: rgb(20, 23, 30);
@@ -359,9 +358,18 @@
     border-color: rgb(140, 106, 52);
 }
 
-/* Every second pip closes a whole point, so a half-unit budget stays countable. */
-.pip--whole {
-    margin-right: 7px;
+/* The left half, and the right half that closes the circle and carries the gap to the next one. */
+.pip--opening {
+    border-top-left-radius: 12px;
+    border-bottom-left-radius: 12px;
+    border-right-width: 0;
+}
+
+.pip--closing {
+    border-top-right-radius: 12px;
+    border-bottom-right-radius: 12px;
+    border-left-width: 0;
+    margin-right: 6px;
 }
 
 /* Flavour, directly under the name it flavours. It used to sit at the bottom under the skill list,
@@ -491,7 +499,26 @@
 /* The bar and the button that ends the turn, as one row. */
 .action-row {
     flex-direction: row;
+    align-items: flex-end;
+    width: 100%;
+}
+
+/* Either end of the row: equal halves of what the controls leave over. The panels in them are
+   positioned rather than laid out, so a log four times the height of the row grows up over the
+   board instead of making the band four times as tall. */
+.action-row__side {
+    flex-grow: 1;
+    flex-basis: 0;
+    min-width: 0;
+    align-self: stretch;
+}
+
+/* Never squeezed. The sides give way first: a log with less of a line showing still reads, a bar
+   of actions with a slot cut off does not. */
+.action-row__centre {
+    flex-direction: row;
     align-items: center;
+    flex-shrink: 0;
 }
 
 .spacer {
@@ -814,15 +841,27 @@
  * It goes up during somebody else's turn, and where it used to sit it covered the result of the
  * attack before it -- so a defender answered without being able to read what had just happened.
  * Down here it clears the result, the banner and the log, and it is the width of what is on it. */
+/* ==================================================================== the defence prompt
+ *
+ * The panel and the inspector are up together -- the card opens on the attacker while the question
+ * stands -- so they share a bottom and a height. Both numbers are here, and the card's rule below
+ * takes them from this comment rather than from a second guess:
+ *
+ *     bottom  116px   clear of the element tracker, which stands about 106 off the floor
+ *     height  256px   two rows of answers, a reason above them and a tally under
+ *
+ * The width is set by the answers rather than chosen: four to a row, each as wide as its odds need
+ * at the size they are read, which is 92 and its margins. Anything narrower drops a card to the
+ * next row and the panel grows by a whole row -- which is exactly how it came to be three rows
+ * tall and two thirds of the way up the board.
+ */
 .clash-prompt {
     position: absolute;
     left: 50%;
-    bottom: 130px;
+    bottom: 116px;
+    height: 256px;
     translate: -50% 0;
-
-    /* Four answers to a row, two rows: eight buttons in a line was a panel wider than the board.
-       The width is what four of them come to, and the buttons are what their own numbers need. */
-    width: 452px;
+    width: 432px;
     padding: 12px 16px 12px 16px;
     background-image: url("../Art/UI/ui-panel.png");
     -unity-slice-left: 32;
@@ -839,14 +878,60 @@
     border-left-color: rgb(198, 158, 88);
 }
 
-.clash-prompt__title {
-    font-size: 15px;
+/* The reason, and the help button pushed to the far corner of the same line. */
+.clash-prompt__head {
+    flex-direction: row;
+    align-items: flex-start;
+}
+
+.clash-prompt__help {
+    width: 20px;
+    height: 20px;
+    margin-left: 8px;
+    padding: 0;
+    flex-shrink: 0;
+    font-size: 12px;
     -unity-font-style: bold;
-    letter-spacing: 1px;
-    color: rgb(232, 226, 212);
+    color: rgb(198, 158, 88);
+    background-color: rgba(0, 0, 0, 0);
+    border-width: 1px;
+    border-color: rgb(78, 68, 48);
+    border-radius: 10px;
+}
+
+.clash-prompt__help:hover {
+    color: rgb(236, 231, 219);
+    border-color: rgb(198, 158, 88);
+}
+
+/* Beside the panel, not over it: the board is behind and the inspector is on the right, so left is
+   the one direction with nothing in it. */
+.clash-help {
+    position: absolute;
+    right: 100%;
+    bottom: 0;
+    margin-right: 12px;
+    width: 300px;
+    padding: 12px;
+    background-color: rgba(8, 9, 13, 0.96);
+    border-width: 1px;
+    border-color: rgb(58, 66, 82);
+    border-radius: 4px;
+}
+
+.clash-help__stakes {
+    font-size: 11px;
+    white-space: normal;
+    color: rgb(198, 204, 218);
+    margin-bottom: 10px;
+}
+
+.clash-help__chart {
+    margin-top: 2px;
 }
 
 .clash-prompt__reason {
+    flex-grow: 1;
     margin-top: 2px;
     font-size: 11px;
     white-space: normal;
@@ -855,20 +940,29 @@
 }
 
 .clash-prompt__options {
-    flex-wrap: wrap;
-    justify-content: center;
     flex-direction: row;
     flex-wrap: wrap;
-    margin-top: 12px;
+    justify-content: center;
+    margin-top: 10px;
+}
+
+/* One answer: the button, and the odds under it rather than in it. Four of these to a row. */
+.clash-answer {
+    width: 92px;
+    margin: 0 4px 6px 4px;
+    align-items: center;
 }
 
 /* One per element held, with what is left of it. The count is the defender's own business, which is
    why it can be shown at all. */
+/* The rune and what it costs you, and nothing else. Everything that used to be in here -- the
+   name, the odds, the three sentences of stakes -- is either gone or somewhere it can be read
+   once instead of eight times. */
 .clash-option {
-    width: 105px;
-    height: 122px;
-    margin: 0 8px 8px 0;
-    padding: 8px 0;
+    width: 84px;
+    height: 60px;
+    margin: 0;
+    padding: 4px 0;
     border-width: 2px;
     border-color: rgba(0, 0, 0, 0);
     align-items: center;
@@ -904,14 +998,14 @@
 }
 
 .clash-option__mark {
-    width: 40px;
-    height: 40px;
+    width: 28px;
+    height: 28px;
     background-image: url("../Art/UI/ui-gem.png");
     -unity-background-scale-mode: scale-to-fit;
 }
 
-.clash-option__name {
-    margin-top: 3px;
+.clash-option__count {
+    margin-top: 2px;
     font-size: 11px;
     -unity-font-style: bold;
     letter-spacing: 1px;
@@ -925,7 +1019,7 @@
 
 /* What this answer is worth, in the same order as the key above the row. */
 .clash-option__odds {
-    margin-top: 3px;
+    margin-top: 2px;
     font-size: 12px;
     -unity-font-style: bold;
     letter-spacing: 1px;
@@ -1296,11 +1390,15 @@
    you watch, so at rest it gives the tiles underneath back and firms up when you go to read it. */
 /* Two sizes. Shut, it is the last thing that happened and nothing else; open, it is the record.
    Neither has a frame worth the name -- the lines carry their own shadow. */
+/* Along the bottom of its half of the row, and as wide as that half allows up to the width the
+   lines were written for. Positioned from the row rather than the screen, so the padding it keeps
+   is the one the action bar keeps. */
 .combat-log {
     position: absolute;
-    left: 16px;
-    bottom: 104px;
-    width: 420px;
+    left: 0;
+    right: 8px;
+    bottom: 0;
+    max-width: 420px;
 }
 
 .combat-log__frame {
@@ -1541,14 +1639,6 @@
     min-height: 22px;
 }
 
-.ap-row__text {
-    margin-left: 12px;
-    font-size: 13px;
-    -unity-font-style: bold;
-    letter-spacing: 2px;
-    color: rgb(226, 191, 122);
-}
-
 /* Larger than the card's: these are the ones a player counts every turn. */
 .pips--footer {
     flex-grow: 0;
@@ -1556,13 +1646,19 @@
 }
 
 .pips--footer .pip {
-    width: 10px;
-    height: 14px;
-    margin-right: 3px;
+    width: 8px;
+    height: 16px;
 }
 
-.pips--footer .pip--whole {
-    margin-right: 9px;
+.pips--footer .pip--opening {
+    border-top-left-radius: 16px;
+    border-bottom-left-radius: 16px;
+}
+
+.pips--footer .pip--closing {
+    border-top-right-radius: 16px;
+    border-bottom-right-radius: 16px;
+    margin-right: 8px;
 }
 
 /* ---------- the eighth answer ---------- */
@@ -1595,18 +1691,6 @@
     height: 2px;
     background-color: rgb(217, 112, 94);
     rotate: -45deg;
-}
-
-/* What is known about the attack, between the stakes and the row. */
-.clash-prompt__intel {
-    margin-top: 8px;
-    font-size: 12px;
-    color: rgb(168, 175, 192);
-    white-space: normal;
-}
-
-.clash-prompt__intel--known {
-    color: rgb(226, 191, 122);
 }
 
 /* ---------- armour ---------- */
@@ -2149,8 +2233,8 @@
    own creature. Two to a row, four rows, the eighth cell empty because there are seven. */
 .own-elements {
     position: absolute;
-    right: 16px;
-    bottom: 104px;
+    right: 0;
+    bottom: 0;
     padding: 7px 8px;
     background-color: rgba(8, 9, 13, 0.9);
     border-width: 1px;

@@ -36,7 +36,12 @@ namespace Dragoneye.Game.Combat
         VisualElement m_Root;
         VisualElement m_Panel;
         VisualElement m_Options;
+        VisualElement m_Help;
         Label m_Tally;
+
+        // What the player had open before the question interrupted them, and whether it did.
+        CreatureState m_Restore;
+        bool m_Interrupted;
 
         DefenceRequest m_Request;
         bool m_Open;
@@ -139,8 +144,11 @@ namespace Dragoneye.Game.Combat
         {
             m_Panel?.RemoveFromHierarchy();
             m_Panel = null;
+            m_Help = null;
             m_Open = false;
             m_Waiting = false;
+
+            PutTheCardBack();
         }
 
         CreatureState Defender => Creature((uint)m_Request.DefenderId);
@@ -198,19 +206,17 @@ namespace Dragoneye.Game.Combat
             m_Panel = new VisualElement();
             m_Panel.AddToClassList("clash-prompt");
 
-            var title = new Label("Answer the attack");
-            title.AddToClassList("clash-prompt__title");
-            m_Panel.Add(title);
+            // The reason and the help button on one line. No title: eight runes with a percentage
+            // under each is not mistakable for anything other than the question it is.
+            var head = new VisualElement();
+            head.AddToClassList("clash-prompt__head");
 
             var reason = new Label(ClashLabels.Describe(m_Request));
             reason.AddToClassList("clash-prompt__reason");
-            m_Panel.Add(reason);
+            head.Add(reason);
 
-            m_Panel.Add(Intelligence());
-
-            var key = new Label(ClashLabels.Stakes);
-            key.AddToClassList("clash-prompt__key");
-            m_Panel.Add(key);
+            head.Add(HelpButton());
+            m_Panel.Add(head);
 
             m_Options = new VisualElement();
             m_Options.AddToClassList("clash-prompt__options");
@@ -223,7 +229,12 @@ namespace Dragoneye.Game.Combat
             m_Tally.EnableInClassList("is-hidden", m_Request.Required <= 1);
             m_Panel.Add(m_Tally);
 
+            m_Help = HelpWindow();
+            m_Panel.Add(m_Help);
+
             m_Root.Add(m_Panel);
+
+            ShowTheAttacker();
 
             // The frame after it exists, so it can ease in from the state the stylesheet starts it in.
             var panel = m_Panel;
@@ -233,51 +244,79 @@ namespace Dragoneye.Game.Combat
         }
 
         /// <summary>
-        /// What is known about the attack, in one line.
+        /// Opens the inspector on whoever is attacking, for as long as the question is up.
         ///
-        /// A swing at somebody walking past is always the swinger's weapon, and once the weapon
-        /// has been seen its element is known -- so the line says so, and the odds below are
-        /// worked out against that one element rather than the whole hand. Otherwise it lists
-        /// the skills this creature has been watched using, which is what a player would be
-        /// counting on their fingers anyway.
+        /// This used to be a sentence listing the skills the attacker had been watched using. The
+        /// card says that and everything else about them, in the place a player already knows to
+        /// look, and it does not have to be kept in step with what the card decides is public.
+        ///
+        /// Whatever was being looked at before comes back when the question goes, so a player who
+        /// had a card open for their own reasons does not lose it to an interruption.
         /// </summary>
-        VisualElement Intelligence()
+        void ShowTheAttacker()
         {
-            var line = new Label();
-            line.AddToClassList("clash-prompt__intel");
-
+            var selection = m_Input.Selection;
             var attacker = Attacker;
 
-            if (m_Request.HasTelegraph)
+            if (selection == null || attacker == null)
             {
-                var rune = CombatLogLines.Rune(m_Request.Telegraphed);
-                line.text = $"They are swinging with their weapon, which you have seen: it "
-                    + $"arrives as {rune}.";
-                line.AddToClassList("clash-prompt__intel--known");
-                return line;
+                return;
             }
 
-            var seen = new List<string>();
-            var commands = attacker != null ? attacker.SkillCommands : null;
-            var catalog = SkillCatalog.Current;
+            m_Restore = selection.Selected;
+            m_Interrupted = true;
+            selection.Select(attacker);
+        }
 
-            if (commands != null && catalog != null)
+        void PutTheCardBack()
+        {
+            if (!m_Interrupted)
             {
-                foreach (var id in commands.SeenSkillIds)
-                {
-                    if (catalog.TryGetSkill(id, out var skill) && skill.IsContested
-                        && skill.ElementCost > 0)
-                    {
-                        seen.Add($"{skill.Name} ({CombatLogLines.Rune(skill.Element)})");
-                    }
-                }
+                return;
             }
 
-            line.text = seen.Count > 0
-                ? "Seen attacking with: " + string.Join(", ", seen) + "."
-                : "You have not seen this creature attack yet.";
+            m_Interrupted = false;
+            m_Input.Selection?.Select(m_Restore);
+            m_Restore = null;
+        }
 
-            return line;
+        /// <summary>The corner button that opens the rules beside the panel.</summary>
+        Button HelpButton()
+        {
+            var help = new Button(() => m_Help?.ToggleInClassList("is-hidden"))
+            {
+                text = "?"
+            };
+
+            help.AddToClassList("clash-prompt__help");
+            help.tooltip = "What a win, a tie and a loss cost, and what beats what.";
+
+            return help;
+        }
+
+        /// <summary>
+        /// The rules, beside the panel rather than inside it.
+        ///
+        /// Off to the left, because the inspector is on the right and the board is behind. Shut
+        /// unless asked for: a player who knows the table does not need three sentences and a
+        /// seven-column chart between them and the eight buttons, every single clash.
+        /// </summary>
+        VisualElement HelpWindow()
+        {
+            var window = new VisualElement();
+            window.AddToClassList("clash-help");
+            window.AddToClassList("is-hidden");
+
+            var stakes = new Label(ClashLabels.Stakes);
+            stakes.AddToClassList("clash-help__stakes");
+            window.Add(stakes);
+
+            var chart = new VisualElement();
+            chart.AddToClassList("clash-help__chart");
+            ElementChart.Build(chart);
+            window.Add(chart);
+
+            return window;
         }
 
         void Refresh()
@@ -335,24 +374,16 @@ namespace Dragoneye.Game.Combat
             CharacterSheet.PaintElement(mark, element);
             button.Add(mark);
 
-            // How many are held, on the name rather than under it. A line of its own per option
-            // was four words to say a number, on a panel that covers the board.
-            var name = new Label(staged > 0
-                ? $"{ElementInfo.ShortNameOf(element)} ({staged} up)"
-                : $"{ElementInfo.ShortNameOf(element)} ({left})");
-            name.AddToClassList("clash-option__name");
-            button.Add(name);
-
-            var chances = new Label(ClashLabels.Chances(OddsFor(element)));
-            chances.AddToClassList("clash-option__odds");
-            chances.tooltip = "Win: the attack misses and this element comes back. Tie: it "
-                + "misses, but the element is spent. Lose: you take the hit and it is spent.";
-            button.Add(chances);
+            // What you hold and what putting one up would leave you holding. No name: the rune is
+            // the name, and the number is the thing actually being weighed.
+            button.Add(Count(left, left > 0 ? left - 1 : 0));
 
             // Only an element the defender holds none of is off the table.
             button.SetEnabled(left + staged > 0);
 
-            return button;
+            return Answer(button, ClashLabels.Chances(OddsFor(element)),
+                "Win: the attack misses and this element comes back. Tie: it misses, but the "
+                + "element is spent. Lose: you take the hit and it is spent.");
         }
 
         /// <summary>
@@ -378,16 +409,40 @@ namespace Dragoneye.Game.Combat
 
             button.Add(mark);
 
-            var name = new Label("NONE");
-            name.AddToClassList("clash-option__name");
-            button.Add(name);
+            // Nothing goes up and nothing comes off the hand, which is the whole of its appeal.
+            button.Add(Count(0, 0));
 
-            var chances = new Label(ClashLabels.Chances(ClashOdds.CertainLoss));
-            chances.AddToClassList("clash-option__odds");
-            chances.tooltip = "You take the hit. Nothing is spent.";
-            button.Add(chances);
+            return Answer(button, ClashLabels.Chances(ClashOdds.CertainLoss),
+                "You take the hit. Nothing is spent.");
+        }
 
-            return button;
+        /// <summary>What you hold, and what you would hold having put one up.</summary>
+        static Label Count(int now, int after)
+        {
+            var count = new Label($"{now} ({after})");
+            count.AddToClassList("clash-option__count");
+            return count;
+        }
+
+        /// <summary>
+        /// One answer: the button, and its odds under it.
+        ///
+        /// Under rather than inside, so the button is the rune and the number it costs -- the two
+        /// things a click decides -- and the forecast sits below where it can be read across the
+        /// row without the eye stepping in and out of eight boxes.
+        /// </summary>
+        static VisualElement Answer(VisualElement button, string chances, string explain)
+        {
+            var cell = new VisualElement();
+            cell.AddToClassList("clash-answer");
+            cell.Add(button);
+
+            var odds = new Label(chances);
+            odds.AddToClassList("clash-option__odds");
+            odds.tooltip = explain;
+            cell.Add(odds);
+
+            return cell;
         }
 
         /// <summary>

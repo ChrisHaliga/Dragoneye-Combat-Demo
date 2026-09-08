@@ -267,8 +267,18 @@ namespace Dragoneye.Game.Creatures
         /// Built on entry rather than kept and hidden, because what it says changes every time an
         /// element is spent and a panel that is only correct when it was built is worse than none.
         /// </summary>
+        /// <summary>Which side of the portrait the panel opens on.</summary>
+        public enum RunePlacement
+        {
+            /// <summary>Beside it, for a portrait in a column down the edge of the screen.</summary>
+            Right,
+
+            /// <summary>Under it, for a portrait in a row across the top.</summary>
+            Below
+        }
+
         public static void ShowElementsOnHover(VisualElement portrait, CreatureState creature,
-            int columns, string placement)
+            int columns, RunePlacement placement)
         {
             VisualElement shown = null;
 
@@ -279,9 +289,21 @@ namespace Dragoneye.Game.Creatures
                     return;
                 }
 
+                var layer = HoverLayer(portrait);
+
+                if (layer == null)
+                {
+                    return;
+                }
+
                 shown = ElementGrid(creature, columns);
-                shown.AddToClassList(placement);
-                portrait.Add(shown);
+                shown.AddToClassList("rune-grid--floating");
+                layer.Add(shown);
+
+                // Measured once it has been laid out: the panel is built from the hand it is
+                // describing, so how wide and tall it comes out is not known until it exists.
+                shown.RegisterCallback<GeometryChangedEvent>(_ => Place(shown, portrait, placement));
+                Place(shown, portrait, placement);
             });
 
             portrait.RegisterCallback<PointerLeaveEvent>(_ =>
@@ -289,6 +311,59 @@ namespace Dragoneye.Game.Creatures
                 shown?.RemoveFromHierarchy();
                 shown = null;
             });
+
+            // A portrait can be taken off the board while the pointer is still over it -- a
+            // creature dies, the party list is rebuilt -- and PointerLeave never arrives for an
+            // element that is already gone.
+            portrait.RegisterCallback<DetachFromPanelEvent>(_ =>
+            {
+                shown?.RemoveFromHierarchy();
+                shown = null;
+            });
+        }
+
+        /// <summary>The HUD's topmost layer, or null before the panel is built.</summary>
+        static VisualElement HoverLayer(VisualElement anchor) =>
+            anchor.panel?.visualTree?.Q<VisualElement>("hover-layer");
+
+        /// <summary>
+        /// Puts the panel beside the portrait, in the layer's own coordinates.
+        ///
+        /// The layer covers the whole HUD from its origin, so a position on screen is a position
+        /// in it. Kept inside the panel at both edges: a portrait at the end of the turn order
+        /// would otherwise open its runes off the side of the window.
+        /// </summary>
+        static void Place(VisualElement shown, VisualElement portrait, RunePlacement placement)
+        {
+            var host = shown.parent;
+
+            if (host == null || float.IsNaN(shown.resolvedStyle.width))
+            {
+                return;
+            }
+
+            var anchor = portrait.worldBound;
+            var origin = host.worldBound;
+            var size = shown.worldBound;
+
+            const float Gap = 6f;
+
+            var left = placement == RunePlacement.Right
+                ? anchor.xMax + Gap
+                : anchor.center.x - size.width / 2f;
+
+            var top = placement == RunePlacement.Right
+                ? anchor.yMin
+                : anchor.yMax + Gap;
+
+            // Back inside the window, on whichever edge it ran past.
+            left = Mathf.Clamp(left, origin.xMin + Gap,
+                Mathf.Max(origin.xMin + Gap, origin.xMax - size.width - Gap));
+            top = Mathf.Clamp(top, origin.yMin + Gap,
+                Mathf.Max(origin.yMin + Gap, origin.yMax - size.height - Gap));
+
+            shown.style.left = left - origin.xMin;
+            shown.style.top = top - origin.yMin;
         }
 
         /// <summary>

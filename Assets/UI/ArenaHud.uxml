@@ -23,7 +23,6 @@
                     <ui:VisualElement class="vitals__gutter" picking-mode="Ignore" />
                     <ui:VisualElement name="ap-row" class="ap-row">
                         <ui:VisualElement name="ap-pips" class="pips pips--footer" />
-                        <ui:Label name="ap-text" text="" class="ap-row__text" />
                     </ui:VisualElement>
                     <ui:VisualElement class="vitals__gutter" picking-mode="Ignore" />
                 </ui:VisualElement>
@@ -42,26 +41,50 @@
                 </ui:VisualElement>
             </ui:VisualElement>
 
+            <!-- The log, the controls and the hand, along the bottom. The two ends are flexible
+                 halves of whatever the controls leave, so the bar stays centred on the screen and
+                 a narrow window takes the width off the log rather than off the bar. -->
             <ui:VisualElement class="action-row">
-                <ui:VisualElement name="action-menu" class="action-menu">
-                    <ui:Button name="menu-equipment" class="action-menu__button" />
-                    <ui:Button name="menu-skills" class="action-menu__button" />
-                    <ui:Button name="menu-items" class="action-menu__button" />
+                <ui:VisualElement class="action-row__side">
+                    <ui:VisualElement name="combat-log" class="combat-log combat-log--small">
+                        <ui:VisualElement name="combat-log-frame" class="combat-log__frame">
+                            <ui:VisualElement class="combat-log__head">
+                                <ui:Label text="COMBAT LOG" class="combat-log__title" />
+                                <ui:Button name="combat-log-minimize" class="icon-button" />
+                            </ui:VisualElement>
+                            <ui:ScrollView name="combat-log-list" class="combat-log-list" />
+                        </ui:VisualElement>
+
+                        <ui:Button name="combat-log-sliver" class="combat-log__sliver" />
+                    </ui:VisualElement>
                 </ui:VisualElement>
 
-                <ui:VisualElement name="skill-bar" class="action-bar" />
+                <ui:VisualElement class="action-row__centre">
+                    <ui:VisualElement name="action-menu" class="action-menu">
+                        <ui:Button name="menu-equipment" class="action-menu__button" />
+                        <ui:Button name="menu-skills" class="action-menu__button" />
+                        <ui:Button name="menu-items" class="action-menu__button" />
+                    </ui:VisualElement>
+
+                    <ui:VisualElement name="skill-bar" class="action-bar" />
+                </ui:VisualElement>
+
+                <ui:VisualElement class="action-row__side">
+                    <!-- What this player is holding, always on screen, beside the hand it
+                         describes. -->
+                    <ui:VisualElement name="own-elements" class="own-elements" />
+                </ui:VisualElement>
             </ui:VisualElement>
         </ui:VisualElement>
 
         <ui:Label name="cursor-action" text="" class="cursor-action" />
 
-        <!-- Numbers that rise off a creature and fade. Positioned from the world every frame, so
-             the layer is a full-screen canvas with nothing of its own in it. -->
-        <!-- What this player is holding, always on screen. Four rows of two, bottom right,
-             out of the way of the board and beside the hand it describes. -->
-        <ui:VisualElement name="own-elements" class="own-elements" />
-
         <ui:VisualElement name="floating-text" class="floating-layer" picking-mode="Ignore" />
+
+        <!-- What a hovered portrait is holding. Its own layer, because a panel parented to a
+             portrait is clipped by it and faded with it, and this one belongs to neither. Last,
+             so it draws over everything it is explaining. -->
+        <ui:VisualElement name="hover-layer" class="floating-layer" picking-mode="Ignore" />
 
         <ui:VisualElement name="scenario-report" class="scenario-report is-hidden">
             <ui:Label name="scenario-title" text="" class="scenario-report__title" />
@@ -85,17 +108,6 @@
 
         <!-- What has happened, in order, in two sizes. Shut it and the last line stays as a
              sliver above the bar; open it and it is the whole record, scrollable. -->
-        <ui:VisualElement name="combat-log" class="combat-log combat-log--small">
-            <ui:VisualElement name="combat-log-frame" class="combat-log__frame">
-                <ui:VisualElement class="combat-log__head">
-                    <ui:Label text="COMBAT LOG" class="combat-log__title" />
-                    <ui:Button name="combat-log-minimize" class="icon-button" />
-                </ui:VisualElement>
-                <ui:ScrollView name="combat-log-list" class="combat-log-list" />
-            </ui:VisualElement>
-
-            <ui:Button name="combat-log-sliver" class="combat-log__sliver" />
-        </ui:VisualElement>
 
         <!-- One skill, in full, because a slot is an icon and an icon is not a rulebook. Opened
              from the slot's own right-click menu and closed from the corner. -->
